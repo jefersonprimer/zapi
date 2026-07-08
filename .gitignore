@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+target/
+
+# Expo / React Native
+.expo/
+*.jsw
+*.jsb
+
+# Build and Output
+dist/
+build/
+out/
+bin/
+obj/
+
+# Environment / Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.env.*
+*.pem
+*.key
+
+# Application Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.classpath
+.project
+.settings/
+
+# Operating System
+.DS_Store
+Thumbs.db

@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Primer Chat",
+    "slug": "primer-chat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.primer.chat"
+    },
+    "android": {
+      "package": "com.primer.chat",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-notifications"
+    ]
+  }
+}
