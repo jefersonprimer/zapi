@@ -142,11 +142,26 @@ export async function uploadFile(
   type?: string
 ): Promise<{ url: string }> {
   const formData = new FormData();
-  formData.append("file", {
-    uri,
-    type: type || "image/jpeg",
-    name: name || "photo.jpg",
-  } as any);
+  if (Platform.OS === "web") {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      formData.append("file", blob, name || "file");
+    } catch (err) {
+      console.error("Failed to fetch blob from URI on web:", err);
+      formData.append("file", {
+        uri,
+        type: type || "image/jpeg",
+        name: name || "photo.jpg",
+      } as any);
+    }
+  } else {
+    formData.append("file", {
+      uri,
+      type: type || "image/jpeg",
+      name: name || "photo.jpg",
+    } as any);
+  }
 
   const res = await fetch(`${API_URL}/upload`, {
     method: "POST",

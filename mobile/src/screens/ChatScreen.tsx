@@ -2,45 +2,45 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
-  TextInput,
   FlatList,
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Clipboard,
   Modal,
-  Image,
-  Linking,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import { Audio } from "expo-av";
-import EmojiPicker, { type EmojiType } from "rn-emoji-keyboard";
+import * as SecureStore from "expo-secure-store";
 import {
-  Smile,
-  Paperclip,
-  Camera as CameraIcon,
-  Mic as MicIcon,
-  Send as SendIcon,
-  Play as PlayIcon,
-  Pause as PauseIcon,
-  FileText as FileIcon,
-  Video as VideoIcon,
-  Music as MusicIcon,
-  Trash2 as TrashIcon,
-  Square as SquareIcon,
-  X as XIcon,
   Phone as PhoneIcon,
   MoreVertical as MoreVerticalIcon,
+  Video,
+  ArrowLeft,
+  Trash2,
 } from "lucide-react-native";
+import { ChatEmojiPicker } from "../components/ChatEmojiPicker";
+import { ChatInput } from "../components/ChatInput";
+import { AttachDocumentButton } from "../components/AttachDocumentButton";
+import {
+  AttachCameraButton,
+  type Attachment,
+} from "../components/AttachCameraButton";
+import { SendOrMicButton } from "../components/SendOrMicButton";
+import { ChatMenuModal } from "../components/ChatMenuModal";
+import { AudioPlayer } from "../components/AudioPlayer";
+import { MessageBubble } from "../components/MessageBubble";
+import { VoiceNoteRecorderBar } from "../components/VoiceNoteRecorderBar";
+import { AttachmentPreviewBar } from "../components/AttachmentPreviewBar";
 import { useAuth } from "../context/AuthContext";
 import {
   getMessages,
   sendMessage,
   uploadFile,
   type Message,
-  API_URL,
   getContacts,
   addContact,
   removeContact,
@@ -48,140 +48,67 @@ import {
 import { wsClient } from "../services/ws";
 import { voiceCallManager } from "../services/voiceCallManager";
 
-const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url);
-const isAudioUrl = (url: string) => /\.(m4a|mp3|wav|caf|ogg|3gp)(\?.*)?$/i.test(url);
-const isVideoUrl = (url: string) => /\.(mp4|mov|webm|mkv|avi)(\?.*)?$/i.test(url);
-
-function AudioPlayer({ uri, isMine }: { uri: string; isMine: boolean }) {
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
-
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (status.isLoaded) {
-      setPosition(status.positionMillis);
-      setDuration(status.durationMillis || 0);
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setPosition(0);
-      }
-    }
-  };
-
-  async function playSound() {
-    try {
-      if (sound) {
-        await sound.playAsync();
-        setIsPlaying(true);
-      } else {
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri },
-          { shouldPlay: true },
-          onPlaybackStatusUpdate
-        );
-        setSound(newSound);
-        setIsPlaying(true);
-      }
-    } catch (error) {
-      console.log("Error playing sound:", error);
-    }
-  }
-
-  async function pauseSound() {
-    if (sound) {
-      await sound.pauseAsync();
-      setIsPlaying(false);
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [sound]);
-
-  const formatTime = (millis: number) => {
-    const totalSeconds = millis / 1000;
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-  };
-
+function isSameDay(dateStr1: string, dateStr2: string): boolean {
+  if (!dateStr1 || !dateStr2) return false;
+  const d1 = new Date(dateStr1);
+  const d2 = new Date(dateStr2);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
   return (
-    <View style={[audioStyles.container, isMine ? audioStyles.containerMine : audioStyles.containerTheir]}>
-      <TouchableOpacity
-        onPress={isPlaying ? pauseSound : playSound}
-        style={[audioStyles.playButton, isMine ? audioStyles.playButtonMine : audioStyles.playButtonTheir]}
-      >
-        {isPlaying ? (
-          <PauseIcon size={14} color={isMine ? "#007AFF" : "#fff"} fill={isMine ? "#007AFF" : "#fff"} />
-        ) : (
-          <PlayIcon size={14} color={isMine ? "#007AFF" : "#fff"} fill={isMine ? "#007AFF" : "#fff"} style={{ marginLeft: 2 }} />
-        )}
-      </TouchableOpacity>
-      <View style={audioStyles.progressContainer}>
-        <Text style={[audioStyles.timeText, isMine ? audioStyles.timeTextMine : audioStyles.timeTextTheir]}>
-          {isPlaying ? `${formatTime(position)} / ${formatTime(duration)}` : `Voice Message (${formatTime(duration || 0)})`}
-        </Text>
-      </View>
-    </View>
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
   );
 }
 
-const audioStyles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 8,
-    borderRadius: 12,
-    marginVertical: 4,
-    minWidth: 180,
-  },
-  containerMine: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-  },
-  containerTheir: {
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-  },
-  playButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 8,
-  },
-  playButtonMine: {
-    backgroundColor: "#fff",
-  },
-  playButtonTheir: {
-    backgroundColor: "#007AFF",
-  },
-  playIcon: {
-    fontSize: 14,
-  },
-  playIconMine: {
-    color: "#007AFF",
-  },
-  playIconTheir: {
-    color: "#fff",
-  },
-  progressContainer: {
-    flex: 1,
-  },
-  timeText: {
-    fontSize: 12,
-  },
-  timeTextMine: {
-    color: "#fff",
-  },
-  timeTextTheir: {
-    color: "#333",
-  },
-});
+function getDateLabel(dateStr: string): string {
+  const msgDate = new Date(dateStr);
+  if (isNaN(msgDate.getTime())) return "";
+
+  const today = new Date();
+  
+  // Clear times
+  const dMsg = new Date(msgDate.getFullYear(), msgDate.getMonth(), msgDate.getDate());
+  const dToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  
+  const diffTime = dToday.getTime() - dMsg.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return "Hoje";
+  }
+  if (diffDays === 1) {
+    return "Ontem";
+  }
+  if (diffDays === 2) {
+    return "Anteontem";
+  }
+  if (diffDays > 2 && diffDays < 7) {
+    return "Esta semana";
+  }
+  if (diffDays >= 7 && diffDays < 14) {
+    return "Semana passada";
+  }
+  
+  // Check if it's the same month and year
+  if (dMsg.getFullYear() === dToday.getFullYear() && dMsg.getMonth() === dToday.getMonth()) {
+    return "Este mês";
+  }
+  
+  // Check if it's last month
+  const isLastMonth = 
+    (dToday.getFullYear() === dMsg.getFullYear() && dToday.getMonth() - dMsg.getMonth() === 1) ||
+    (dToday.getFullYear() - dMsg.getFullYear() === 1 && dToday.getMonth() === 0 && dMsg.getMonth() === 11);
+      
+  if (isLastMonth) {
+    return "Mês passado";
+  }
+  
+  const months = [
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+  ];
+  return `${dMsg.getDate()} de ${months[dMsg.getMonth()]} de ${dMsg.getFullYear()}`;
+}
 
 type Props = {
   route: any;
@@ -198,6 +125,66 @@ export default function ChatScreen({ route, navigation }: Props) {
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [isContact, setIsContact] = useState(false);
+
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+
+  const deletedKey = `deleted_messages_${chatId}`;
+
+  // Load deleted messages from SecureStore
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await SecureStore.getItemAsync(deletedKey);
+        if (stored) {
+          setDeletedIds(JSON.parse(stored));
+        } else {
+          setDeletedIds([]);
+        }
+      } catch (err) {
+        console.error("Error loading deleted messages:", err);
+      }
+    })();
+  }, [chatId, deletedKey]);
+
+  async function handleDeleteForMe() {
+    if (!selectedMessage) return;
+    const newDeleted = [...deletedIds, selectedMessage.id];
+    setDeletedIds(newDeleted);
+    try {
+      await SecureStore.setItemAsync(deletedKey, JSON.stringify(newDeleted));
+    } catch (err) {
+      console.error("Error saving deleted message:", err);
+    }
+    setSelectedMessage(null);
+    setDeleteModalVisible(false);
+  }
+
+  const handleCopy = () => {
+    if (selectedMessage && selectedMessage.content) {
+      try {
+        if (Platform.OS === "web") {
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(selectedMessage.content);
+          } else {
+            throw new Error("Web clipboard not available");
+          }
+        } else {
+          Clipboard.setString(selectedMessage.content);
+        }
+        Alert.alert("Sucesso", "Mensagem copiada para a área de transferência.");
+      } catch (err) {
+        console.error("Clipboard copy failed:", err);
+        Alert.alert("Erro", "Não foi possível copiar a mensagem.");
+      }
+    } else {
+      Alert.alert("Erro", "Apenas mensagens de texto ou emoji podem ser copiadas.");
+    }
+    setOptionsModalVisible(false);
+    setSelectedMessage(null);
+  };
 
   // Check if participant is a contact
   useEffect(() => {
@@ -227,47 +214,86 @@ export default function ChatScreen({ route, navigation }: Props) {
         Alert.alert("Sucesso", "Contato adicionado com sucesso.");
       }
     } catch (err: any) {
-      Alert.alert("Erro", err.message || "Não foi possível gerenciar o contato.");
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível gerenciar o contato.",
+      );
     }
   }
 
   // Set call and menu buttons in header
   useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+    if (selectedMessage) {
+      navigation.setOptions({
+        headerLeft: () => (
           <TouchableOpacity
-            onPress={() => {
-              if (participantId) {
-                voiceCallManager.startCall(participantId, participantUsername || "User");
-              } else {
-                Alert.alert("Error", "Cannot initiate call: Participant ID is missing.");
-              }
-            }}
-            style={{ marginRight: 15 }}
+            onPress={() => setSelectedMessage(null)}
+            style={{ marginLeft: 10, padding: 8 }}
           >
-            <PhoneIcon size={22} color="#007AFF" />
+            <ArrowLeft size={24} color="#272727" />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setMenuVisible(true)}
-            style={{ marginRight: 10 }}
-          >
-            <MoreVerticalIcon size={22} color="#007AFF" />
-          </TouchableOpacity>
-        </View>
-      ),
-    });
-  }, [navigation, participantId, participantUsername]);
+        ),
+        headerTitle: "",
+        title: "",
+        headerRight: () => (
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity
+              onPress={() => setDeleteModalVisible(true)}
+              style={{ marginRight: 20, padding: 8 }}
+            >
+              <Trash2 size={22} color="#272727" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setOptionsModalVisible(true)}
+              style={{ marginRight: 10, padding: 8 }}
+            >
+              <MoreVerticalIcon size={22} color="#272727" />
+            </TouchableOpacity>
+          </View>
+        ),
+      });
+    } else {
+      navigation.setOptions({
+        headerLeft: undefined,
+        headerTitle: participantUsername,
+        title: participantUsername,
+        headerRight: () => (
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity>
+              <Video size={22} color="#272727" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (participantId) {
+                  voiceCallManager.startCall(
+                    participantId,
+                    participantUsername || "User",
+                  );
+                } else {
+                  Alert.alert(
+                    "Error",
+                    "Cannot initiate call: Participant ID is missing.",
+                  );
+                }
+              }}
+              style={{ marginHorizontal: 30 }}
+            >
+              <PhoneIcon size={22} color="#272727" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setMenuVisible(true)}
+              style={{ marginRight: 10 }}
+            >
+              <MoreVerticalIcon size={22} color="#272727" />
+            </TouchableOpacity>
+          </View>
+        ),
+      });
+    }
+  }, [navigation, participantId, participantUsername, selectedMessage]);
 
-  interface Attachment {
-    uri: string;
-    name: string;
-    type: "image" | "video" | "audio" | "document";
-    mimeType?: string;
-  }
-
-  const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] =
+    useState<Attachment | null>(null);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -314,7 +340,8 @@ export default function ChatScreen({ route, navigation }: Props) {
     const hasContent = content.trim().length > 0;
     const hasAttachment = selectedAttachment !== null;
 
-    if ((!hasContent && !hasAttachment && !sending) || !token || sending) return;
+    if ((!hasContent && !hasAttachment && !sending) || !token || sending)
+      return;
     setSending(true);
     try {
       let attachmentUrl = undefined;
@@ -343,15 +370,53 @@ export default function ChatScreen({ route, navigation }: Props) {
     }
   }
 
-  async function handlePickDocument() {
-    if (!token) return;
+  async function handlePickFromGallery() {
+    try {
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permission.status !== "granted") {
+        Alert.alert(
+          "Permissão Negada",
+          "O acesso à galeria de fotos é necessário para selecionar imagens/vídeos.",
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images", "videos"],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0)
+        return;
+      const asset = result.assets[0];
+
+      const isVideo = asset.type === "video";
+      const defaultName = isVideo
+        ? `video_${Date.now()}.mp4`
+        : `photo_${Date.now()}.jpg`;
+      const defaultMime = isVideo ? "video/mp4" : "image/jpeg";
+
+      setSelectedAttachment({
+        uri: asset.uri,
+        name: asset.fileName || defaultName,
+        type: isVideo ? "video" : "image",
+        mimeType: asset.mimeType || defaultMime,
+      });
+    } catch (err: any) {
+      Alert.alert("Erro ao selecionar da galeria", err.message);
+    }
+  }
+
+  async function handlePickFile() {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "*/*",
         copyToCacheDirectory: true,
       });
 
-      if (result.canceled || !result.assets || result.assets.length === 0) return;
+      if (result.canceled || !result.assets || result.assets.length === 0)
+        return;
       const asset = result.assets[0];
 
       let type: "image" | "video" | "audio" | "document" = "document";
@@ -371,44 +436,48 @@ export default function ChatScreen({ route, navigation }: Props) {
         mimeType: asset.mimeType,
       });
     } catch (err: any) {
-      Alert.alert("Error picking document", err.message);
+      Alert.alert("Erro ao selecionar documento", err.message);
     }
   }
 
-  async function handleTakePhoto() {
+  async function handlePickDocument() {
     if (!token) return;
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (permission.status !== "granted") {
-        Alert.alert("Permission Denied", "Camera access is required to take photos.");
-        return;
-      }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images", "videos"],
-        quality: 0.8,
-      });
-
-      if (result.canceled || !result.assets || result.assets.length === 0) return;
-      const asset = result.assets[0];
-
-      const isVideo = asset.type === "video";
-      setSelectedAttachment({
-        uri: asset.uri,
-        name: isVideo ? `video_${Date.now()}.mp4` : `photo_${Date.now()}.jpg`,
-        type: isVideo ? "video" : "image",
-        mimeType: isVideo ? "video/mp4" : "image/jpeg",
-      });
-    } catch (err: any) {
-      Alert.alert("Error taking photo", err.message);
+    if (Platform.OS === "web") {
+      // No navegador (web), o seletor de arquivos padrão já dá acesso a tudo (galeria, documentos, etc.)
+      handlePickFile();
+      return;
     }
+
+    Alert.alert(
+      "Anexar Arquivo",
+      "Escolha de onde deseja selecionar o arquivo:",
+      [
+        {
+          text: "Galeria (Fotos e Vídeos)",
+          onPress: handlePickFromGallery,
+        },
+        {
+          text: "Documentos",
+          onPress: handlePickFile,
+        },
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+      ],
+      { cancelable: true },
+    );
   }
 
   async function startRecording() {
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== "granted") {
-        Alert.alert("Permission Denied", "Microphone access is required to record audio.");
+        Alert.alert(
+          "Permission Denied",
+          "Microphone access is required to record audio.",
+        );
         return;
       }
 
@@ -418,7 +487,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       });
 
       const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
 
       setRecording(newRecording);
@@ -464,12 +533,6 @@ export default function ChatScreen({ route, navigation }: Props) {
     }
   }
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -478,226 +541,143 @@ export default function ChatScreen({ route, navigation }: Props) {
     >
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={messages.filter((msg) => !deletedIds.includes(msg.id))}
         keyExtractor={(item) => item.id}
         onContentSizeChange={() =>
           flatListRef.current?.scrollToEnd({ animated: true })
         }
         style={styles.messageList}
         contentContainerStyle={{ padding: 16 }}
-        renderItem={({ item }) => {
-          const isMine = item.sender_id === user?.user_id;
-          const fullUrl = item.image_url
-            ? (item.image_url.startsWith("http")
-              ? item.image_url
-              : `${API_URL}${item.image_url}`)
-            : null;
+        renderItem={({ item, index }) => {
+          const filteredMessages = messages.filter((msg) => !deletedIds.includes(msg.id));
+          const showDateHeader =
+            index === 0 ||
+            !isSameDay(filteredMessages[index - 1].created_at, item.created_at);
+
+          const isSelected = selectedMessage?.id === item.id;
 
           return (
-            <View
-              style={[
-                styles.messageBubble,
-                isMine ? styles.myMessage : styles.theirMessage,
-              ]}
-            >
-              {fullUrl && (
-                <>
-                  {isImageUrl(item.image_url!) ? (
-                    <Image
-                      source={{ uri: fullUrl }}
-                      style={styles.messageImage}
-                      resizeMode="cover"
-                    />
-                  ) : isAudioUrl(item.image_url!) ? (
-                    <AudioPlayer uri={fullUrl} isMine={isMine} />
-                  ) : isVideoUrl(item.image_url!) ? (
-                    <TouchableOpacity
-                      style={[
-                        styles.videoBubble,
-                        isMine ? styles.videoBubbleMine : styles.videoBubbleTheir,
-                      ]}
-                      onPress={() => Linking.openURL(fullUrl)}
-                    >
-                      <View style={styles.videoPreview}>
-                        <VideoIcon size={24} color={isMine ? "#fff" : "#007AFF"} style={{ marginRight: 6 }} />
-                        <Text style={[styles.videoText, isMine ? styles.videoTextMine : styles.videoTextTheir]}>
-                          Play Video
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[
-                        styles.docBubble,
-                        isMine ? styles.docBubbleMine : styles.docBubbleTheir,
-                      ]}
-                      onPress={() => Linking.openURL(fullUrl)}
-                    >
-                      <FileIcon size={24} color={isMine ? "#fff" : "#333"} style={{ marginRight: 10 }} />
-                      <View style={styles.docInfo}>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.docName,
-                            isMine ? styles.docNameMine : styles.docNameTheir,
-                          ]}
-                        >
-                          {item.image_url!.split("/").pop()}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.docSubtitle,
-                            isMine ? styles.docSubMine : styles.docSubTheir,
-                          ]}
-                        >
-                          Tap to open document
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                </>
+            <View>
+              {showDateHeader && (
+                <View style={styles.dateHeaderContainer}>
+                  <View style={styles.dateHeaderBackground}>
+                    <Text style={styles.dateHeaderText}>
+                      {getDateLabel(item.created_at)}
+                    </Text>
+                  </View>
+                </View>
               )}
-              {item.content ? (
-                <Text style={isMine ? styles.myMessageText : styles.messageText}>{item.content}</Text>
-              ) : null}
-              <Text
+              <TouchableOpacity
+                onLongPress={() => setSelectedMessage(item)}
+                delayLongPress={500}
                 style={[
-                  styles.messageTime,
-                  isMine ? styles.myMessageTime : styles.theirMessageTime,
+                  styles.messageRow,
+                  isSelected && styles.selectedMessageRow
                 ]}
+                activeOpacity={0.8}
               >
-                {new Date(item.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
+                <MessageBubble item={item} currentUserId={user?.user_id} />
+              </TouchableOpacity>
             </View>
           );
         }}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            No messages yet. Say hello!
-          </Text>
+          <Text style={styles.emptyText}>No messages yet. Say hello!</Text>
         }
       />
 
       {selectedAttachment && (
-        <View style={styles.previewAttachmentBar}>
-          <View style={styles.previewAttachmentContent}>
-            {selectedAttachment.type === "image" ? (
-              <Image source={{ uri: selectedAttachment.uri }} style={styles.previewImage} />
-            ) : (
-              <View style={styles.previewIconContainer}>
-                {selectedAttachment.type === "video" ? (
-                  <VideoIcon size={20} color="#007AFF" />
-                ) : selectedAttachment.type === "audio" ? (
-                  <MusicIcon size={20} color="#34C759" />
-                ) : (
-                  <FileIcon size={20} color="#8e8e93" />
-                )}
-              </View>
-            )}
-            <View style={styles.previewTextContainer}>
-              <Text style={styles.previewName} numberOfLines={1}>
-                {selectedAttachment.name}
-              </Text>
-              <Text style={styles.previewType}>
-                {selectedAttachment.type.toUpperCase()} ready to send
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.previewCloseBtn} onPress={() => setSelectedAttachment(null)}>
-            <XIcon size={14} color="#666" />
-          </TouchableOpacity>
-        </View>
+        <AttachmentPreviewBar
+          attachment={selectedAttachment}
+          onClear={() => setSelectedAttachment(null)}
+        />
       )}
 
       <View style={styles.inputContainer}>
         {isRecording ? (
-          <View style={styles.recordingContainer}>
-            <Text style={styles.recordingText}>🔴 Recording: {formatDuration(recordingDuration)}</Text>
-            <TouchableOpacity style={styles.cancelRecordBtn} onPress={() => stopRecording(false)}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <TrashIcon size={16} color="#FF3B30" style={{ marginRight: 4 }} />
-                <Text style={styles.cancelRecordText}>Cancel</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.stopRecordBtn} onPress={() => stopRecording(true)}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <SquareIcon size={12} color="#fff" fill="#fff" style={{ marginRight: 6 }} />
-                <Text style={styles.stopRecordText}>Stop</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+          <VoiceNoteRecorderBar
+            recordingDuration={recordingDuration}
+            onStopRecording={stopRecording}
+          />
         ) : (
           <>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setShowEmojiPicker(true)}>
-              <Smile size={24} color="#007AFF" />
-            </TouchableOpacity>
+            <View style={styles.inputContainerMessage}>
+              <ChatEmojiPicker
+                onEmojiSelected={(emoji) => setContent((prev) => prev + emoji)}
+              />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Message..."
-              placeholderTextColor="#999"
-              value={content}
-              onChangeText={setContent}
-              multiline
+              <ChatInput value={content} onChangeText={setContent} />
+
+              <AttachDocumentButton onPress={handlePickDocument} />
+
+              <AttachCameraButton onTakePhoto={setSelectedAttachment} />
+            </View>
+
+            <SendOrMicButton
+              hasContent={
+                content.trim().length > 0 || selectedAttachment !== null
+              }
+              sending={sending}
+              onSend={handleSend}
+              onStartRecording={startRecording}
             />
-
-            <TouchableOpacity style={styles.iconBtn} onPress={handlePickDocument}>
-              <Paperclip size={22} color="#007AFF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconBtn} onPress={handleTakePhoto}>
-              <CameraIcon size={22} color="#007AFF" />
-            </TouchableOpacity>
-
-            {(content.trim().length > 0 || selectedAttachment) ? (
-              <TouchableOpacity
-                style={[styles.sendButtonCircle, sending && styles.sendButtonCircleDisabled]}
-                onPress={handleSend}
-                disabled={sending}
-              >
-                <SendIcon size={18} color="#fff" style={{ marginLeft: 2 }} />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.micButton}
-                onPress={startRecording}
-              >
-                <MicIcon size={20} color="#fff" />
-              </TouchableOpacity>
-            )}
           </>
         )}
       </View>
 
-      <EmojiPicker
-        open={showEmojiPicker}
-        onClose={() => setShowEmojiPicker(false)}
-        onEmojiSelected={(emojiObject: EmojiType) => {
-          setContent((prev) => prev + emojiObject.emoji);
-        }}
-      />
-      <Modal
+      <ChatMenuModal
         visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        isContact={isContact}
+        onToggleContact={handleToggleContact}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
         transparent={true}
+        visible={deleteModalVisible}
         animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.modalOverlayCentered}>
+          <View style={styles.alertContainer}>
+            <Text style={styles.alertTitle}>Deseja apagar a mensagem?</Text>
+            <View style={styles.alertButtons}>
+              <TouchableOpacity
+                style={[styles.alertButton, styles.cancelButton]}
+                onPress={() => setDeleteModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.alertButton, styles.deleteButton]}
+                onPress={handleDeleteForMe}
+              >
+                <Text style={styles.deleteButtonText}>Apagar para mim</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Options/Ellipsis Dropdown Modal */}
+      <Modal
+        transparent={true}
+        visible={optionsModalVisible}
+        animationType="fade"
+        onRequestClose={() => setOptionsModalVisible(false)}
       >
         <TouchableOpacity
-          style={styles.modalOverlay}
+          style={styles.dropdownOverlay}
           activeOpacity={1}
-          onPress={() => setMenuVisible(false)}
+          onPress={() => setOptionsModalVisible(false)}
         >
-          <View style={styles.menuContainer}>
+          <View style={styles.dropdownContainer}>
             <TouchableOpacity
-              style={styles.menuItem}
-              onPress={handleToggleContact}
+              style={styles.dropdownOption}
+              onPress={handleCopy}
             >
-              <Text style={[styles.menuItemText, !isContact ? styles.addText : styles.removeText]}>
-                {isContact ? "Remover dos contatos" : "Adicionar aos contatos"}
-              </Text>
+              <Text style={styles.dropdownOptionText}>Copiar</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -709,233 +689,137 @@ export default function ChatScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   messageList: { flex: 1 },
-  messageBubble: {
-    maxWidth: "75%",
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 8,
-  },
-  myMessage: {
-    backgroundColor: "#007AFF",
-    alignSelf: "flex-end",
-    borderBottomRightRadius: 4,
-  },
-  theirMessage: {
-    backgroundColor: "#f0f0f0",
-    alignSelf: "flex-start",
-    borderBottomLeftRadius: 4,
-  },
-  messageImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 4,
-  },
-  messageText: { fontSize: 16, color: "#333" },
-  myMessageText: { fontSize: 16, color: "#fff" },
-  messageTime: { fontSize: 11, marginTop: 4 },
-  myMessageTime: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
-  theirMessageTime: { color: "#999" },
+
   inputContainer: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#eee",
   },
-  input: {
+  modalOverlayCentered: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  alertContainer: {
+    width: "80%",
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  alertTitle: {
     fontSize: 16,
-    maxHeight: 100,
-    marginRight: 8,
-  },
-  sendButtonCircle: {
-    backgroundColor: "#007AFF",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-  sendButtonCircleDisabled: { opacity: 0.5 },
-  attachBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 4,
-  },
-  attachBtnText: { fontSize: 22 },
-  emptyText: {
-    textAlign: "center",
-    color: "#999",
-    marginTop: 40,
-    fontSize: 16,
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 2,
-    marginBottom: 4,
-  },
-  iconBtnText: { fontSize: 20 },
-  micButton: {
-    backgroundColor: "#34C759",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-  previewAttachmentBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#f9f9f9",
-    padding: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#eee",
-  },
-  previewAttachmentContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  previewImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    marginRight: 10,
-  },
-  previewIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: "#eee",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  previewIcon: { fontSize: 20 },
-  previewTextContainer: { flex: 1 },
-  previewName: { fontSize: 14, fontWeight: "600", color: "#333" },
-  previewType: { fontSize: 11, color: "#888", marginTop: 2 },
-  previewCloseBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#e0e0e0",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 10,
-  },
-  previewCloseText: { fontSize: 12, fontWeight: "bold", color: "#666" },
-  recordingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    justifyContent: "space-between",
-    paddingVertical: 4,
-  },
-  recordingText: {
-    fontSize: 16,
-    color: "#FF3B30",
     fontWeight: "600",
-    flex: 1,
+    color: "#272727",
+    marginBottom: 24,
+    textAlign: "center",
   },
-  cancelRecordBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  alertButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  alertButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#f5f5f5",
     marginRight: 8,
   },
-  cancelRecordText: { color: "#FF3B30", fontSize: 15, fontWeight: "500" },
-  stopRecordBtn: {
-    backgroundColor: "#FF3B30",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  deleteButton: {
+    backgroundColor: "#ff3b30",
+    marginLeft: 8,
   },
-  stopRecordText: { color: "#fff", fontSize: 15, fontWeight: "600" },
-  
-  videoBubble: {
-    width: 200,
-    height: 120,
-    borderRadius: 12,
-    marginBottom: 4,
-    overflow: "hidden",
+  cancelButtonText: {
+    color: "#666",
+    fontSize: 14,
+    fontWeight: "600",
   },
-  videoBubbleMine: { backgroundColor: "rgba(255, 255, 255, 0.2)" },
-  videoBubbleTheir: { backgroundColor: "rgba(0, 0, 0, 0.05)" },
-  videoPreview: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  deleteButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
-  videoText: { fontSize: 16, fontWeight: "600" },
-  videoTextMine: { color: "#fff" },
-  videoTextTheir: { color: "#007AFF" },
 
-  docBubble: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    borderRadius: 12,
-    marginBottom: 4,
-    maxWidth: 220,
-  },
-  docBubbleMine: { backgroundColor: "rgba(255, 255, 255, 0.2)" },
-  docBubbleTheir: { backgroundColor: "rgba(0, 0, 0, 0.05)" },
-  docIcon: { fontSize: 28, marginRight: 10 },
-  docInfo: { flex: 1 },
-  docName: { fontSize: 14, fontWeight: "600" },
-  docNameMine: { color: "#fff" },
-  docNameTheir: { color: "#333" },
-  docSubtitle: { fontSize: 11, marginTop: 2 },
-  docSubMine: { color: "rgba(255, 255, 255, 0.7)" },
-  docSubTheir: { color: "#666" },
-  modalOverlay: {
+  dropdownOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
   },
-  menuContainer: {
+  dropdownContainer: {
     position: "absolute",
-    top: 60,
+    top: Platform.OS === "ios" ? 95 : 60,
     right: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     paddingVertical: 6,
-    width: 200,
+    minWidth: 140,
+    elevation: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 6,
     borderWidth: 1,
     borderColor: "#f0f0f0",
   },
-  menuItem: {
-    paddingHorizontal: 20,
+  dropdownOption: {
     paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: "flex-start",
+    width: "100%",
   },
-  menuItemText: {
+  dropdownOptionText: {
     fontSize: 16,
+    color: "#272727",
     fontWeight: "500",
   },
-  addText: {
-    color: "#007AFF",
+  messageRow: {
+    width: "100%",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  removeText: {
-    color: "#ff3b30",
+  selectedMessageRow: {
+    backgroundColor: "rgba(76, 175, 80, 0.15)",
+    borderRadius: 8,
+  },
+
+  inputContainerMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: 40,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#888",
+    marginTop: 40,
+    fontSize: 16,
+  },
+  dateHeaderContainer: {
+    alignItems: "center",
+    marginVertical: 12,
+  },
+  dateHeaderBackground: {
+    backgroundColor: "#eaeaea",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    color: "#666",
+    fontWeight: "600",
   },
 });
