@@ -7,3 +7,5 @@ pub mod push;
 pub mod upload;
 pub mod users;
 pub mod ws;
+pub mod calls;
+pub mod contacts;

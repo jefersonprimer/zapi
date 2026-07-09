@@ -1,26 +1,42 @@
-const WS_URL = "ws://192.168.5.22:3000";
+import { Platform } from "react-native";
+
+const WS_URL = (() => {
+  if (Platform.OS === "web") {
+    const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
+    return `ws://${hostname}:3000`;
+  }
+  return "ws://192.168.5.22:3000";
+})();
 
 type MessageHandler = (msg: any) => void;
 
 export class WsClient {
   private ws: WebSocket | null = null;
   private handlers = new Map<string, MessageHandler[]>();
-  private token: string;
+  private token: string | null = null;
   private chatId: string | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private keepAliveTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(token: string) {
+  init(token: string) {
     this.token = token;
+    this.connect();
   }
 
   connect() {
+    if (!this.token) return;
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
     this.ws = new WebSocket(`${WS_URL}/ws?token=${this.token}`);
 
     this.ws.onopen = () => {
+      this.startHeartbeat();
       if (this.chatId) {
         this.subscribe(this.chatId);
+      }
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
       }
     };
 
@@ -34,6 +50,7 @@ export class WsClient {
     };
 
     this.ws.onclose = () => {
+      this.stopHeartbeat();
       this.scheduleReconnect();
     };
 
@@ -43,6 +60,7 @@ export class WsClient {
   }
 
   disconnect() {
+    this.stopHeartbeat();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -53,6 +71,7 @@ export class WsClient {
     }
     this.ws?.close();
     this.ws = null;
+    this.token = null;
   }
 
   subscribe(chatId: string) {
@@ -78,9 +97,22 @@ export class WsClient {
     };
   }
 
-  private send(data: object) {
+  send(data: object) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
+    }
+  }
+
+  private startHeartbeat() {
+    this.keepAliveTimer = setInterval(() => {
+      this.send({ type: "ping" });
+    }, 10000);
+  }
+
+  private stopHeartbeat() {
+    if (this.keepAliveTimer) {
+      clearInterval(this.keepAliveTimer);
+      this.keepAliveTimer = null;
     }
   }
 
@@ -92,3 +124,5 @@ export class WsClient {
     }, 3000);
   }
 }
+
+export const wsClient = new WsClient();

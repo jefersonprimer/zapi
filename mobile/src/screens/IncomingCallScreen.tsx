@@ -1,0 +1,120 @@
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Phone, PhoneOff } from "lucide-react-native";
+
+interface IncomingCallScreenProps {
+  callerUsername: string;
+  onAccept: () => void;
+  onDecline: () => void;
+}
+
+export default function IncomingCallScreen({
+  callerUsername,
+  onAccept,
+  onDecline,
+}: IncomingCallScreenProps) {
+  return (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.avatarContainer}>
+          <Text style={styles.avatarText}>
+            {callerUsername.slice(0, 2).toUpperCase()}
+          </Text>
+        </View>
+
+        <Text style={styles.callerName}>{callerUsername}</Text>
+        <Text style={styles.callType}>Incoming Voice Call</Text>
+      </View>
+
+      <View style={styles.actionsContainer}>
+        {/* Decline Button */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onDecline}
+          style={[styles.actionButton, styles.declineButton]}
+        >
+          <PhoneOff size={28} color="#ffffff" />
+        </TouchableOpacity>
+
+        {/* Accept Button */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onAccept}
+          style={[styles.actionButton, styles.acceptButton]}
+        >
+          <Phone size={28} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0b0f19",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 100,
+    paddingBottom: 80,
+  },
+  content: {
+    alignItems: "center",
+  },
+  avatarContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
+    borderWidth: 2,
+    borderColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  avatarText: {
+    fontSize: 44,
+    fontWeight: "bold",
+    color: "#3b82f6",
+  },
+  callerName: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 8,
+  },
+  callType: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.5)",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+  },
+  actionsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "70%",
+  },
+  actionButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  declineButton: {
+    backgroundColor: "#ef4444",
+  },
+  acceptButton: {
+    backgroundColor: "#10b981",
+  },
+});

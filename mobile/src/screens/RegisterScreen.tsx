@@ -23,13 +23,16 @@ export default function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleRegister() {
     if (!username.trim() || !email.trim() || !password) {
+      setError("All fields are required");
       Alert.alert("Error", "All fields are required");
       return;
     }
 
+    setError(null);
     setLoading(true);
     try {
       const data = await register(username, email, password);
@@ -39,7 +42,9 @@ export default function RegisterScreen({ navigation }: Props) {
         email: data.email,
       });
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      console.error("Registration error:", err);
+      setError(err.message || "An unexpected error occurred");
+      Alert.alert("Error", err.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -51,6 +56,8 @@ export default function RegisterScreen({ navigation }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Text style={styles.title}>Create Account</Text>
+
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <TextInput
         style={styles.input}
@@ -138,5 +145,12 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     textAlign: "center",
     fontSize: 14,
+  },
+  errorText: {
+    color: "#ff3b30",
+    textAlign: "center",
+    marginBottom: 16,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

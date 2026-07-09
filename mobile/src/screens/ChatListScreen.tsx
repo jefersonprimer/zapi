@@ -7,9 +7,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Modal,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { getChats, type ChatListItem } from "../services/api";
+import { MessageSquare, Camera, MoreVertical } from "lucide-react-native";
 
 type Props = {
   navigation: any;
@@ -19,6 +21,7 @@ export default function ChatListScreen({ navigation }: Props) {
   const { signOut, token } = useAuth();
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const loadChats = useCallback(async () => {
     if (!token) return;
@@ -53,22 +56,54 @@ export default function ChatListScreen({ navigation }: Props) {
         <Text style={styles.title}>Primer Chat</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity
-            onPress={() => navigation.navigate("NewGroup")}
-            style={styles.newChatBtn}
+            style={styles.headerIcon}
+            onPress={() => Alert.alert("Câmera", "Câmera em desenvolvimento.")}
           >
-            <Text style={styles.newChatBtnText}>G</Text>
+            <Camera color="#fff" size={22} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate("NewChat")}
-            style={styles.newChatBtn}
+            style={styles.headerIcon}
+            onPress={() => setMenuVisible(true)}
           >
-            <Text style={styles.newChatBtnText}>+</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={signOut}>
-            <Text style={styles.logout}>Logout</Text>
+            <MoreVertical color="#fff" size={22} />
           </TouchableOpacity>
         </View>
       </View>
+
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={styles.menuContainer}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                Alert.alert("Configurações", "Configurações em desenvolvimento.");
+              }}
+            >
+              <Text style={styles.menuItemText}>Configurações</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                signOut();
+              }}
+            >
+              <Text style={[styles.menuItemText, styles.logoutText]}>Sair</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {loading ? (
         <ActivityIndicator size="large" style={{ marginTop: 40 }} />
@@ -89,6 +124,7 @@ export default function ChatListScreen({ navigation }: Props) {
               onPress={() =>
                 navigation.navigate("Chat", {
                   chatId: item.id,
+                  participantId: item.participant_id,
                   participantUsername: item.name ?? item.participant_username ?? "Unknown",
                 })
               }
@@ -113,6 +149,13 @@ export default function ChatListScreen({ navigation }: Props) {
           )}
         />
       )}
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("Contacts")}
+      >
+        <MessageSquare color="#fff" size={24} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -165,4 +208,55 @@ const styles = StyleSheet.create({
   empty: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyText: { fontSize: 18, color: "#999", marginBottom: 4 },
   emptySubtext: { fontSize: 14, color: "#ccc" },
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#007AFF",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  headerIcon: {
+    padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  menuContainer: {
+    position: "absolute",
+    top: 90,
+    right: 16,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 6,
+    width: 170,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
+  },
+  menuItem: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "500",
+  },
+  logoutText: {
+    color: "#ff3b30",
+  },
 });

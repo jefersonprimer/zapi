@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
   Image,
   Linking,
 } from "react-native";
@@ -30,6 +31,8 @@ import {
   Trash2 as TrashIcon,
   Square as SquareIcon,
   X as XIcon,
+  Phone as PhoneIcon,
+  MoreVertical as MoreVerticalIcon,
 } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -37,8 +40,13 @@ import {
   sendMessage,
   uploadFile,
   type Message,
+  API_URL,
+  getContacts,
+  addContact,
+  removeContact,
 } from "../services/api";
-import { WsClient } from "../services/ws";
+import { wsClient } from "../services/ws";
+import { voiceCallManager } from "../services/voiceCallManager";
 
 const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url);
 const isAudioUrl = (url: string) => /\.(m4a|mp3|wav|caf|ogg|3gp)(\?.*)?$/i.test(url);
@@ -177,16 +185,79 @@ const audioStyles = StyleSheet.create({
 
 type Props = {
   route: any;
+  navigation: any;
 };
 
-export default function ChatScreen({ route }: Props) {
-  const { chatId } = route.params;
+export default function ChatScreen({ route, navigation }: Props) {
+  const { chatId, participantId, participantUsername } = route.params;
   const { token, user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const wsRef = useRef<WsClient | null>(null);
+
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [isContact, setIsContact] = useState(false);
+
+  // Check if participant is a contact
+  useEffect(() => {
+    if (!token || !participantId) return;
+    (async () => {
+      try {
+        const contactsList = await getContacts(token);
+        const exists = contactsList.some((c) => c.contact_id === participantId);
+        setIsContact(exists);
+      } catch (err) {
+        console.error("Error checking contact status:", err);
+      }
+    })();
+  }, [token, participantId]);
+
+  async function handleToggleContact() {
+    if (!token || !participantId) return;
+    setMenuVisible(false);
+    try {
+      if (isContact) {
+        await removeContact(token, participantId);
+        setIsContact(false);
+        Alert.alert("Sucesso", "Contato removido com sucesso.");
+      } else {
+        await addContact(token, participantId);
+        setIsContact(true);
+        Alert.alert("Sucesso", "Contato adicionado com sucesso.");
+      }
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Não foi possível gerenciar o contato.");
+    }
+  }
+
+  // Set call and menu buttons in header
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
+            onPress={() => {
+              if (participantId) {
+                voiceCallManager.startCall(participantId, participantUsername || "User");
+              } else {
+                Alert.alert("Error", "Cannot initiate call: Participant ID is missing.");
+              }
+            }}
+            style={{ marginRight: 15 }}
+          >
+            <PhoneIcon size={22} color="#007AFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setMenuVisible(true)}
+            style={{ marginRight: 10 }}
+          >
+            <MoreVerticalIcon size={22} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, participantId, participantUsername]);
 
   interface Attachment {
     uri: string;
@@ -227,19 +298,15 @@ export default function ChatScreen({ route }: Props) {
   useEffect(() => {
     if (!token) return;
 
-    const ws = new WsClient(token);
-    wsRef.current = ws;
-    ws.connect();
-    ws.subscribe(chatId);
+    wsClient.subscribe(chatId);
 
-    const unsub = ws.on("new_message", (data) => {
+    const unsub = wsClient.on("new_message", (data) => {
       setMessages((prev) => [...prev, data.message]);
     });
 
     return () => {
       unsub();
-      ws.disconnect();
-      wsRef.current = null;
+      wsClient.unsubscribe(chatId);
     };
   }, [chatId, token]);
 
@@ -423,7 +490,7 @@ export default function ChatScreen({ route }: Props) {
           const fullUrl = item.image_url
             ? (item.image_url.startsWith("http")
               ? item.image_url
-              : `http://192.168.5.22:3000${item.image_url}`)
+              : `${API_URL}${item.image_url}`)
             : null;
 
           return (
@@ -612,6 +679,29 @@ export default function ChatScreen({ route }: Props) {
           setContent((prev) => prev + emojiObject.emoji);
         }}
       />
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={styles.menuContainer}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleToggleContact}
+            >
+              <Text style={[styles.menuItemText, !isContact ? styles.addText : styles.removeText]}>
+                {isContact ? "Remover dos contatos" : "Adicionar aos contatos"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -814,4 +904,38 @@ const styles = StyleSheet.create({
   docSubtitle: { fontSize: 11, marginTop: 2 },
   docSubMine: { color: "rgba(255, 255, 255, 0.7)" },
   docSubTheir: { color: "#666" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  menuContainer: {
+    position: "absolute",
+    top: 60,
+    right: 16,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 6,
+    width: 200,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
+  },
+  menuItem: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  addText: {
+    color: "#007AFF",
+  },
+  removeText: {
+    color: "#ff3b30",
+  },
 });

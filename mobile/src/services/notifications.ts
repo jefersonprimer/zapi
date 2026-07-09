@@ -2,17 +2,22 @@ import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (Platform.OS === "web") {
+    return null;
+  }
   const { status: existing } = await Notifications.getPermissionsAsync();
   let finalStatus = existing;
 
@@ -41,5 +46,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
 }
 
 export async function getStoredPushToken(): Promise<string | null> {
+  if (Platform.OS === "web") {
+    return null;
+  }
   return SecureStore.getItemAsync("push_token");
 }
+

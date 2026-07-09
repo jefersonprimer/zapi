@@ -45,9 +45,11 @@ export default function NewChatScreen({ navigation }: Props) {
     setLoading(true);
     try {
       const data = await createChat(token, userId);
+      const chosenUser = users.find((u) => u.id === userId);
       navigation.replace("Chat", {
         chatId: data.id,
-        participantUsername: userId,
+        participantId: userId,
+        participantUsername: chosenUser?.username ?? "Unknown",
       });
     } catch (err: any) {
       Alert.alert("Error", err.message);

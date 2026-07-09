@@ -1,4 +1,12 @@
-const API_URL = "http://192.168.5.22:3000";
+import { Platform } from "react-native";
+
+export const API_URL = (() => {
+  if (Platform.OS === "web") {
+    const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
+    return `http://${hostname}:3000`;
+  }
+  return "http://192.168.5.22:3000";
+})();
 
 export interface AuthResponse {
   token: string;
@@ -178,3 +186,27 @@ export async function sendMessage(
     body: JSON.stringify({ content: content || null, image_url: imageUrl || null }),
   });
 }
+
+export interface Contact {
+  contact_id: string;
+  username: string;
+  email: string;
+}
+
+export async function getContacts(token: string): Promise<Contact[]> {
+  return authFetch(`${API_URL}/contacts`, token);
+}
+
+export async function addContact(token: string, contactId: string): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/contacts`, token, {
+    method: "POST",
+    body: JSON.stringify({ contact_id: contactId }),
+  });
+}
+
+export async function removeContact(token: string, contactId: string): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/contacts/${contactId}`, token, {
+    method: "DELETE",
+  });
+}
+

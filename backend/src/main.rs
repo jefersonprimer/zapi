@@ -5,6 +5,7 @@ mod models;
 pub mod push;
 mod routes;
 pub mod ws;
+pub mod signaling;
 
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
@@ -13,6 +14,7 @@ use tower_http::cors::CorsLayer;
 pub struct AppState {
     pub pool: sqlx::PgPool,
     pub ws: ws::WsState,
+    pub call_manager: signaling::CallManager,
 }
 
 #[tokio::main]
@@ -32,6 +34,7 @@ async fn main() {
     let state = AppState {
         pool,
         ws: ws::WsState::default(),
+        call_manager: signaling::CallManager::new(),
     };
 
     let app = routes::create_router(state).layer(CorsLayer::permissive());
