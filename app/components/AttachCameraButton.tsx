@@ -11,6 +11,7 @@ export interface Attachment {
   type: "image" | "video" | "audio" | "document";
   mimeType?: string;
   size?: number;
+  duration?: number;
 }
 
 interface AttachCameraButtonProps {

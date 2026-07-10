@@ -131,7 +131,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
           )}
         </>
       )}
-      {item.content ? (
+      {item.content && !(item.image_url && isAudioUrl(item.image_url)) ? (
         <Text style={isMine ? styles.myMessageText : [styles.messageText, { color: colors.text }]}>
           {item.content}
         </Text>

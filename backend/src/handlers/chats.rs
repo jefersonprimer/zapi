@@ -91,14 +91,18 @@ pub async fn list_chats(
             c.is_group,
             c.name,
             CASE
-                WHEN m.deleted_for_everyone = TRUE THEN '🚫 Esta mensagem foi apagada'
+                WHEN m.deleted_for_everyone = TRUE THEN 'Message deleted'
+                WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' AND m.image_url ~* '\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$' THEN
+                    CASE
+                        WHEN m.content IS NOT NULL AND m.content LIKE 'duration:%' THEN 'Audio|' || m.content
+                        ELSE 'Audio'
+                    END
                 WHEN m.content IS NOT NULL AND TRIM(m.content) != '' THEN m.content
                 WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' THEN
                     CASE
-                        WHEN m.image_url ~* '\.(jpg|jpeg|png|gif|webp)(\?.*)?$' THEN '📷 Foto'
-                        WHEN m.image_url ~* '\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$' THEN '🎵 Áudio'
-                        WHEN m.image_url ~* '\.(mp4|mov|webm|mkv|avi)(\?.*)?$' THEN '🎥 Vídeo'
-                        ELSE '📁 Arquivo'
+                        WHEN m.image_url ~* '\.(jpg|jpeg|png|gif|webp)(\?.*)?$' THEN 'Photo'
+                        WHEN m.image_url ~* '\.(mp4|mov|webm|mkv|avi)(\?.*)?$' THEN 'Video'
+                        ELSE 'File'
                     END
                 ELSE NULL
             END AS last_message,

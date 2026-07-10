@@ -14,15 +14,18 @@ import {
   UserPlus as UserIcon,
   Trash2 as TrashIcon,
   MessageCircle,
+  ArrowLeft,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { getContacts, removeContact, createChat, type Contact } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ContactsScreen() {
   const router = useRouter();
   const { token } = useAuth();
   const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -114,67 +117,82 @@ export default function ContactsScreen() {
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.tint} />
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Custom Header */}
+      <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: colors.headerBackground }]}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <ArrowLeft size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.headerText }]}>Contatos</Text>
+            {!loading && (
+              <Text style={[styles.headerSubtitle, { color: colors.headerText }]}>
+                {contacts.length} contato{contacts.length === 1 ? "" : "s"}
+              </Text>
+            )}
+          </View>
+        </View>
+      </View>
+
       {actionLoading && (
         <View style={[styles.overlayLoading, { backgroundColor: colors.modalOverlay }]}>
           <ActivityIndicator size="large" color={colors.tint} />
         </View>
       )}
 
-      <FlatList
-        data={contacts}
-        keyExtractor={(item) => item.contact_id}
-        ListHeaderComponent={renderHeader}
-        renderItem={({ item }) => (
-          <View style={[styles.contactRow, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity
-              style={styles.contactInfo}
-              onPress={() => handleStartChat(item)}
-            >
-              <View style={[styles.avatar, { backgroundColor: isDark ? "#2C2C2E" : "#e5e5ea" }]}>
-                <Text style={[styles.avatarText, { color: colors.text }]}>
-                  {item.username[0]?.toUpperCase() ?? "?"}
-                </Text>
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
-                <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.rowActions}>
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={colors.tint} />
+        </View>
+      ) : (
+        <FlatList
+          data={contacts}
+          keyExtractor={(item) => item.contact_id}
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item }) => (
+            <View style={[styles.contactRow, { borderBottomColor: colors.border }]}>
               <TouchableOpacity
-                style={[styles.chatIconBtn, { backgroundColor: colors.surface }]}
+                style={styles.contactInfo}
                 onPress={() => handleStartChat(item)}
               >
-                <MessageCircle size={20} color={colors.tint} />
+                <View style={[styles.avatar, { backgroundColor: isDark ? "#2C2C2E" : "#e5e5ea" }]}>
+                  <Text style={[styles.avatarText, { color: colors.text }]}>
+                    {item.username[0]?.toUpperCase() ?? "?"}
+                  </Text>
+                </View>
+                <View style={styles.textContainer}>
+                  <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
+                  <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
+                </View>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.removeBtn, { backgroundColor: isDark ? "rgba(255, 69, 58, 0.15)" : "#ffeaea" }]}
-                onPress={() => handleConfirmRemove(item)}
-              >
-                <TrashIcon size={20} color={colors.danger} />
-              </TouchableOpacity>
+
+              <View style={styles.rowActions}>
+                <TouchableOpacity
+                  style={[styles.chatIconBtn, { backgroundColor: colors.surface }]}
+                  onPress={() => handleStartChat(item)}
+                >
+                  <MessageCircle size={20} color={colors.tint} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.removeBtn, { backgroundColor: isDark ? "rgba(255, 69, 58, 0.15)" : "#ffeaea" }]}
+                  onPress={() => handleConfirmRemove(item)}
+                >
+                  <TrashIcon size={20} color={colors.danger} />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhum contato adicionado ainda.</Text>
-            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>Busque usuários no botão &quot;Novo contato&quot; acima.</Text>
-          </View>
-        }
-        contentContainerStyle={{ paddingBottom: 40 }}
-      />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhum contato adicionado ainda.</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>Busque usuários no botão &quot;Novo contato&quot; acima.</Text>
+            </View>
+          }
+          contentContainerStyle={{ paddingBottom: 40 }}
+        />
+      )}
     </View>
   );
 }
@@ -193,6 +211,36 @@ const styles = StyleSheet.create({
     zIndex: 999,
     justifyContent: "center",
     alignItems: "center",
+  },
+  customHeader: {
+    paddingBottom: 12,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  backBtn: {
+    padding: 4,
+    marginRight: 16,
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+    opacity: 0.8,
   },
   headerContainer: {
     paddingHorizontal: 20,

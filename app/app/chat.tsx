@@ -501,9 +501,10 @@ export default function ChatScreen() {
     setSending(true);
     try {
       let attachmentUrl = undefined;
+      let messageContent = content;
 
       if (selectedAttachment) {
-        const { uri, name, type, mimeType } = selectedAttachment;
+        const { uri, name, type, mimeType, duration } = selectedAttachment;
         let finalMime = mimeType;
         if (!finalMime) {
           if (type === "image") finalMime = "image/jpeg";
@@ -514,9 +515,13 @@ export default function ChatScreen() {
 
         const uploadRes = await uploadFile(token, uri, name, finalMime);
         attachmentUrl = uploadRes.url;
+
+        if (type === "audio" && duration) {
+          messageContent = `duration:${duration}`;
+        }
       }
 
-      await sendMessage(token, chatId, content, attachmentUrl);
+      await sendMessage(token, chatId, messageContent, attachmentUrl);
       setContent("");
       setSelectedAttachment(null);
     } catch (err: any) {
@@ -778,6 +783,7 @@ export default function ChatScreen() {
             type: "audio",
             mimeType: "audio/webm",
             size: audioBlob.size,
+            duration: recordingDuration,
           });
         }
         mediaRecorderRef.current = null;
@@ -808,6 +814,7 @@ export default function ChatScreen() {
             name: `audio_${Date.now()}.m4a`,
             type: "audio",
             mimeType: "audio/m4a",
+            duration: recordingDuration,
           });
         }
       }

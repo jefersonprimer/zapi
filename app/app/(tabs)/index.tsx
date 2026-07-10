@@ -21,6 +21,10 @@ import {
   Laptop,
   Check,
   Lock,
+  Mic,
+  Video,
+  FileText,
+  Trash2,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -126,10 +130,7 @@ export default function ChatListScreen() {
               style={styles.menuItem}
               onPress={() => {
                 setMenuVisible(false);
-                Alert.alert(
-                  "Configurações",
-                  "Configurações em desenvolvimento.",
-                );
+                router.push("/settings");
               }}
             >
               <Text style={[styles.menuItemText, { color: colors.text }]}>
@@ -377,19 +378,112 @@ export default function ChatListScreen() {
                 <Text style={[styles.chatName, { color: colors.text }]}>
                   {item.name ?? item.participant_username ?? "Unknown"}
                 </Text>
-                <Text
-                  style={[
-                    styles.lastMessage,
-                    { color: colors.textSecondary },
-                    item.unread_count > 0 && [
-                      styles.lastMessageUnread,
-                      { color: colors.text },
-                    ],
-                  ]}
-                  numberOfLines={1}
-                >
-                  {item.last_message ?? "Nenhuma mensagem ainda"}
-                </Text>
+                {(() => {
+                  if (!item.last_message) {
+                    return (
+                      <Text
+                        style={[
+                          styles.lastMessage,
+                          { color: colors.textSecondary },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        Nenhuma mensagem ainda
+                      </Text>
+                    );
+                  }
+
+                  let iconElement = null;
+                  let displayMessage = item.last_message;
+
+                  if (item.last_message.startsWith("Audio")) {
+                    let durationStr = "";
+                    const parts = item.last_message.split("|duration:");
+                    if (parts.length > 1) {
+                      const secs = parseInt(parts[1], 10);
+                      if (!isNaN(secs)) {
+                        const m = Math.floor(secs / 60);
+                        const s = secs % 60;
+                        durationStr = ` (${m}:${s < 10 ? "0" : ""}${s})`;
+                      }
+                    }
+                    displayMessage = `Mensagem de voz ${durationStr}`;
+                    iconElement = (
+                      <Mic
+                        size={15}
+                        color={colors.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                    );
+                  } else if (item.last_message === "Photo") {
+                    displayMessage = "Photo";
+                    iconElement = (
+                      <Camera
+                        size={15}
+                        color={colors.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                    );
+                  } else if (item.last_message === "Video") {
+                    displayMessage = "Video";
+                    iconElement = (
+                      <Video
+                        size={15}
+                        color={colors.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                    );
+                  } else if (item.last_message === "File") {
+                    displayMessage = "File";
+                    iconElement = (
+                      <FileText
+                        size={15}
+                        color={colors.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                    );
+                  } else if (item.last_message === "Message deleted") {
+                    displayMessage = "Message deleted";
+                    iconElement = (
+                      <Trash2
+                        size={15}
+                        color={colors.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                    );
+                  }
+
+                  if (iconElement) {
+                    return (
+                      <View style={styles.lastMessageAudioContainer}>
+                        {iconElement}
+                        <Text
+                          style={[
+                            styles.lastMessage,
+                            { color: colors.textSecondary, flex: 1 },
+                            item.unread_count > 0 && styles.lastMessageUnread,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {displayMessage}
+                        </Text>
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <Text
+                      style={[
+                        styles.lastMessage,
+                        { color: colors.textSecondary },
+                        item.unread_count > 0 && styles.lastMessageUnread,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {item.last_message}
+                    </Text>
+                  );
+                })()}
               </View>
               <View style={styles.rightContainer}>
                 <Text
@@ -470,6 +564,11 @@ const styles = StyleSheet.create({
   chatInfo: { flex: 1 },
   chatName: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
   lastMessage: { fontSize: 14 },
+  lastMessageAudioContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
   lastMessageUnread: { fontWeight: "700" },
   time: { fontSize: 12 },
   timeUnread: { fontWeight: "700" },

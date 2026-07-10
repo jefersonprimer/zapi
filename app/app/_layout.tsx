@@ -75,10 +75,11 @@ function InitialLayout() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="register" options={{ headerShown: true, title: "Register", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
-      <Stack.Screen name="chat" options={{ headerShown: true }} />
-      <Stack.Screen name="new-chat" options={{ headerShown: true, title: "New Chat", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
-      <Stack.Screen name="new-group" options={{ headerShown: true, title: "New Group", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
-      <Stack.Screen name="contacts" options={{ headerShown: true, title: "Contatos", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
+      <Stack.Screen name="chat" options={{ headerShown: false }} />
+      <Stack.Screen name="new-chat" options={{ headerShown: false }} />
+      <Stack.Screen name="new-group" options={{ headerShown: false }} />
+      <Stack.Screen name="contacts" options={{ headerShown: false }} />
+      <Stack.Screen name="settings" options={{ headerShown: false }} />
     </Stack>
   );
 }
