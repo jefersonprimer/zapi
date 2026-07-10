@@ -352,6 +352,9 @@ export default function ChatScreen({ route, navigation }: Props) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingTimerRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<any>(null);
+  const audioChunksRef = useRef<any[]>([]);
+  const [isRecordingPaused, setIsRecordingPaused] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -414,6 +417,43 @@ export default function ChatScreen({ route, navigation }: Props) {
 
     if ((!hasContent && !hasAttachment && !sending) || !token || sending)
       return;
+
+    if (selectedAttachment && selectedAttachment.size !== undefined) {
+      const size = selectedAttachment.size;
+      const type = selectedAttachment.type;
+      const mime = selectedAttachment.mimeType || "";
+      let maxBytes = 0;
+      let label = "";
+
+      if (type === "image") {
+        maxBytes = 20 * 1024 * 1024;
+        label = "fotos (máx 20MB)";
+      } else if (type === "video") {
+        maxBytes = 250 * 1024 * 1024;
+        label = "vídeos (máx 250MB)";
+      } else if (type === "document") {
+        maxBytes = 500 * 1024 * 1024;
+        label = "documentos (máx 500MB)";
+      } else if (type === "audio") {
+        const isVoiceMsg = selectedAttachment.name.startsWith("audio_") || mime === "audio/m4a" || mime === "audio/aac" || mime === "audio/3gp";
+        if (isVoiceMsg) {
+          maxBytes = 25 * 1024 * 1024;
+          label = "mensagens de voz (máx 25MB)";
+        } else {
+          maxBytes = 50 * 1024 * 1024;
+          label = "áudios (máx 50MB)";
+        }
+      }
+
+      if (size > maxBytes) {
+        Alert.alert(
+          "Arquivo muito grande",
+          `O tamanho do arquivo excede o limite permitido para ${label}.`
+        );
+        return;
+      }
+    }
+
     setSending(true);
     try {
       let attachmentUrl = undefined;
@@ -474,6 +514,7 @@ export default function ChatScreen({ route, navigation }: Props) {
         name: asset.fileName || defaultName,
         type: isVideo ? "video" : "image",
         mimeType: asset.mimeType || defaultMime,
+        size: asset.fileSize,
       });
     } catch (err: any) {
       Alert.alert("Erro ao selecionar da galeria", err.message);
@@ -506,6 +547,7 @@ export default function ChatScreen({ route, navigation }: Props) {
         name: asset.name,
         type,
         mimeType: asset.mimeType,
+        size: asset.size,
       });
     } catch (err: any) {
       Alert.alert("Erro ao selecionar documento", err.message);
@@ -543,6 +585,33 @@ export default function ChatScreen({ route, navigation }: Props) {
   }
 
   async function startRecording() {
+    setIsRecordingPaused(false);
+    if (Platform.OS === "web") {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+        setRecordingDuration(0);
+
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingDuration((prev) => prev + 1);
+        }, 1000);
+      } catch (err: any) {
+        Alert.alert("Erro ao acessar o microfone", err.message || "Permissão negada ou não suportada no navegador.");
+      }
+      return;
+    }
+
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== "granted") {
@@ -574,7 +643,100 @@ export default function ChatScreen({ route, navigation }: Props) {
     }
   }
 
+  async function handlePauseResumeRecording() {
+    if (Platform.OS === "web") {
+      const recorder = mediaRecorderRef.current;
+      if (!recorder) return;
+
+      if (isRecordingPaused) {
+        try {
+          recorder.resume();
+          setIsRecordingPaused(false);
+          if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = setInterval(() => {
+            setRecordingDuration((prev) => prev + 1);
+          }, 1000);
+        } catch (err: any) {
+          console.error("Failed to resume web recording:", err);
+        }
+      } else {
+        try {
+          recorder.pause();
+          setIsRecordingPaused(true);
+          if (recordingTimerRef.current) {
+            clearInterval(recordingTimerRef.current);
+            recordingTimerRef.current = null;
+          }
+        } catch (err: any) {
+          console.error("Failed to pause web recording:", err);
+        }
+      }
+      return;
+    }
+
+    if (!recording) return;
+
+    if (isRecordingPaused) {
+      try {
+        await recording.startAsync();
+        setIsRecordingPaused(false);
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingDuration((prev) => prev + 1);
+        }, 1000);
+      } catch (err: any) {
+        console.error("Failed to resume native recording:", err);
+      }
+    } else {
+      try {
+        await recording.pauseAsync();
+        setIsRecordingPaused(true);
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+      } catch (err: any) {
+        console.error("Failed to pause native recording:", err);
+      }
+    }
+  }
+
   async function stopRecording(shouldKeep: boolean) {
+    setIsRecordingPaused(false);
+    if (Platform.OS === "web") {
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+
+      const recorder = mediaRecorderRef.current;
+      if (!recorder) return;
+
+      recorder.onstop = () => {
+        if (recorder.stream) {
+          recorder.stream.getTracks().forEach((track: any) => track.stop());
+        }
+
+        if (shouldKeep) {
+          const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+          const uri = URL.createObjectURL(audioBlob);
+          setSelectedAttachment({
+            uri,
+            name: `audio_${Date.now()}.opus`,
+            type: "audio",
+            mimeType: "audio/webm",
+            size: audioBlob.size,
+          });
+        }
+        mediaRecorderRef.current = null;
+        audioChunksRef.current = [];
+      };
+
+      recorder.stop();
+      return;
+    }
+
     if (!recording) return;
 
     setIsRecording(false);
@@ -777,6 +939,8 @@ export default function ChatScreen({ route, navigation }: Props) {
           <VoiceNoteRecorderBar
             recordingDuration={recordingDuration}
             onStopRecording={stopRecording}
+            isPaused={isRecordingPaused}
+            onPauseResumeRecording={handlePauseResumeRecording}
           />
         ) : (
           <>

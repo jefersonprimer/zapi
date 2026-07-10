@@ -12,7 +12,7 @@ interface MessageBubbleProps {
 const isImageUrl = (url: string) =>
   /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url);
 const isAudioUrl = (url: string) =>
-  /\.(m4a|mp3|wav|caf|ogg|3gp)(\?.*)?$/i.test(url);
+  /\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$/i.test(url);
 const isVideoUrl = (url: string) =>
   /\.(mp4|mov|webm|mkv|avi)(\?.*)?$/i.test(url);
 

@@ -1,7 +1,8 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
-import { Video as VideoIcon, Music as MusicIcon, FileText as FileIcon, X as XIcon } from "lucide-react-native";
+import { Video as VideoIcon, FileText as FileIcon, X as XIcon } from "lucide-react-native";
 import { Attachment } from "./AttachCameraButton";
+import { AudioPlayer } from "./AudioPlayer";
 
 interface AttachmentPreviewBarProps {
   attachment: Attachment;
@@ -14,38 +15,52 @@ export const AttachmentPreviewBar: React.FC<AttachmentPreviewBarProps> = ({
 }) => {
   return (
     <View style={styles.previewAttachmentBar}>
-      <View style={styles.previewAttachmentContent}>
-        {attachment.type === "image" ? (
-          <Image
-            source={{ uri: attachment.uri }}
-            style={styles.previewImage}
-          />
-        ) : (
-          <View style={styles.previewIconContainer}>
-            {attachment.type === "video" ? (
-              <VideoIcon size={20} color="#007AFF" />
-            ) : attachment.type === "audio" ? (
-              <MusicIcon size={20} color="#34C759" />
-            ) : (
-              <FileIcon size={20} color="#8e8e93" />
-            )}
+      {attachment.type === "audio" ? (
+        <View style={styles.audioPreviewContainer}>
+          <View style={styles.audioPlayerWrapper}>
+            <AudioPlayer uri={attachment.uri} isMine={false} />
           </View>
-        )}
-        <View style={styles.previewTextContainer}>
-          <Text style={styles.previewName} numberOfLines={1}>
-            {attachment.name}
-          </Text>
-          <Text style={styles.previewType}>
-            {attachment.type.toUpperCase()} ready to send
-          </Text>
+          <TouchableOpacity
+            style={styles.previewCloseBtn}
+            onPress={onClear}
+          >
+            <XIcon size={14} color="#666" />
+          </TouchableOpacity>
         </View>
-      </View>
-      <TouchableOpacity
-        style={styles.previewCloseBtn}
-        onPress={onClear}
-      >
-        <XIcon size={14} color="#666" />
-      </TouchableOpacity>
+      ) : (
+        <>
+          <View style={styles.previewAttachmentContent}>
+            {attachment.type === "image" ? (
+              <Image
+                source={{ uri: attachment.uri }}
+                style={styles.previewImage}
+              />
+            ) : (
+              <View style={styles.previewIconContainer}>
+                {attachment.type === "video" ? (
+                  <VideoIcon size={20} color="#007AFF" />
+                ) : (
+                  <FileIcon size={20} color="#8e8e93" />
+                )}
+              </View>
+            )}
+            <View style={styles.previewTextContainer}>
+              <Text style={styles.previewName} numberOfLines={1}>
+                {attachment.name}
+              </Text>
+              <Text style={styles.previewType}>
+                {attachment.type.toUpperCase()} ready to send
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.previewCloseBtn}
+            onPress={onClear}
+          >
+            <XIcon size={14} color="#666" />
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 };
@@ -59,6 +74,15 @@ const styles = StyleSheet.create({
     padding: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#eee",
+  },
+  audioPreviewContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  audioPlayerWrapper: {
+    flex: 1,
+    marginRight: 6,
   },
   previewAttachmentContent: {
     flexDirection: "row",

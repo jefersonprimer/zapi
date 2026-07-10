@@ -9,6 +9,7 @@ export interface Attachment {
   name: string;
   type: "image" | "video" | "audio" | "document";
   mimeType?: string;
+  size?: number;
 }
 
 interface AttachCameraButtonProps {
@@ -40,6 +41,7 @@ export const AttachCameraButton: React.FC<AttachCameraButtonProps> = ({
             name: file.name || (isVideo ? `video_${Date.now()}.mp4` : `photo_${Date.now()}.jpg`),
             type: isVideo ? "video" : "image",
             mimeType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
+            size: file.size,
           });
         };
         input.click();
@@ -74,6 +76,7 @@ export const AttachCameraButton: React.FC<AttachCameraButtonProps> = ({
         name: isVideo ? `video_${Date.now()}.mp4` : `photo_${Date.now()}.jpg`,
         type: isVideo ? "video" : "image",
         mimeType: isVideo ? "video/mp4" : "image/jpeg",
+        size: asset.fileSize,
       });
     } catch (err: any) {
       Alert.alert("Error taking photo", err.message);

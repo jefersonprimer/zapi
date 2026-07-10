@@ -16,14 +16,6 @@ pub async fn upload_image(
     mut multipart: Multipart,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let upload_dir = Path::new("uploads");
-    tokio::fs::create_dir_all(upload_dir)
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "failed to create upload directory" })),
-            )
-        })?;
 
     while let Some(field) = multipart
         .next_field()
@@ -45,18 +37,24 @@ pub async fn upload_image(
             .unwrap_or("bin")
             .to_lowercase();
 
-        let allowed = [
-            "jpg", "jpeg", "png", "gif", "webp",
-            "pdf", "txt", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
-            "mp4", "mov", "webm", "mkv", "avi",
-            "mp3", "m4a", "wav", "caf", "aac", "ogg", "3gp"
-        ];
-        if !allowed.contains(&ext.as_str()) {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(json!({ "error": "invalid file type. allowed: images, pdf, docx, audio, video" })),
-            ));
-        }
+        let (subfolder, max_size, label) = match ext.as_str() {
+            "jpg" | "jpeg" | "png" | "gif" | "webp" => ("images", 20 * 1024 * 1024, "Photo (max 20MB)"),
+            "mp4" | "mov" | "webm" | "mkv" | "avi" => ("videos", 250 * 1024 * 1024, "Video (max 250MB)"),
+            "mp3" | "wav" | "caf" | "ogg" => ("audio", 50 * 1024 * 1024, "Audio (max 50MB)"),
+            "3gp" | "aac" | "m4a" | "opus" => ("audio", 25 * 1024 * 1024, "Voice message (max 25MB)"),
+            // Qualquer outro tipo de arquivo é tratado como documento (máx 500MB)
+            _ => ("documents", 500 * 1024 * 1024, "Document (max 500MB)"),
+        };
+
+        let target_dir = upload_dir.join(subfolder);
+        tokio::fs::create_dir_all(&target_dir)
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": "failed to create upload directory" })),
+                )
+            })?;
 
         let data = field.bytes().await.map_err(|_| {
             (
@@ -65,15 +63,15 @@ pub async fn upload_image(
             )
         })?;
 
-        if data.len() > 10 * 1024 * 1024 {
+        if data.len() > max_size {
             return Err((
                 StatusCode::BAD_REQUEST,
-                Json(json!({ "error": "file too large. max 10MB" })),
+                Json(json!({ "error": format!("file too large. {} limit exceeded.", label) })),
             ));
         }
 
         let filename = format!("{}_{}.{}", auth.0, Uuid::new_v4(), ext);
-        let filepath = upload_dir.join(&filename);
+        let filepath = target_dir.join(&filename);
 
         tokio::fs::write(&filepath, &data).await.map_err(|_| {
             (
@@ -82,7 +80,7 @@ pub async fn upload_image(
             )
         })?;
 
-        return Ok(Json(json!({ "url": format!("/uploads/{}", filename) })));
+        return Ok(Json(json!({ "url": format!("/uploads/{}/{}", subfolder, filename) })));
     }
 
     Err((

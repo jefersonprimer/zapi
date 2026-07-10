@@ -67,7 +67,7 @@ pub async fn send_message(
     )
     .bind(chat_id)
     .bind(auth.0)
-    .bind(&body.content)
+    .bind(body.content.as_deref().unwrap_or(""))
     .bind(&body.image_url)
     .fetch_one(&pool)
     .await
