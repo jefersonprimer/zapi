@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,10 @@ import {
   Video,
   ArrowLeft,
   Trash2,
+  PhoneIncoming,
+  PhoneOutgoing,
+  PhoneMissed,
+  PhoneOff,
 } from "lucide-react-native";
 import { ChatEmojiPicker } from "../components/ChatEmojiPicker";
 import { ChatInput } from "../components/ChatInput";
@@ -47,6 +51,12 @@ import {
 } from "../services/api";
 import { wsClient } from "../services/ws";
 import { voiceCallManager } from "../services/voiceCallManager";
+import { getCallHistory, type CallHistoryItem } from "../services/callApi";
+import { useCallStore } from "../store/useCallStore";
+
+type ChatItem =
+  | { type: "message"; data: Message }
+  | { type: "call"; data: CallHistoryItem };
 
 function isSameDay(dateStr1: string, dateStr2: string): boolean {
   if (!dateStr1 || !dateStr2) return false;
@@ -119,9 +129,12 @@ export default function ChatScreen({ route, navigation }: Props) {
   const { chatId, participantId, participantUsername } = route.params;
   const { token, user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [calls, setCalls] = useState<CallHistoryItem[]>([]);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  const callState = useCallStore((state) => state.callState);
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [isContact, setIsContact] = useState(false);
@@ -132,6 +145,32 @@ export default function ChatScreen({ route, navigation }: Props) {
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
 
   const deletedKey = `deleted_messages_${chatId}`;
+
+  const chatItems = useMemo(() => {
+    const items: ChatItem[] = [];
+
+    messages.forEach((msg) => {
+      if (!deletedIds.includes(msg.id)) {
+        items.push({ type: "message", data: msg });
+      }
+    });
+
+    calls.forEach((call) => {
+      const isOutgoing = call.caller_id === user?.user_id && call.callee_id === participantId;
+      const isIncoming = call.caller_id === participantId && call.callee_id === user?.user_id;
+      if (isOutgoing || isIncoming) {
+        items.push({ type: "call", data: call });
+      }
+    });
+
+    items.sort((a, b) => {
+      const timeA = new Date(a.type === "message" ? a.data.created_at : a.data.created_at).getTime();
+      const timeB = new Date(b.type === "message" ? b.data.created_at : b.data.created_at).getTime();
+      return timeA - timeB;
+    });
+
+    return items;
+  }, [messages, calls, deletedIds, user?.user_id, participantId]);
 
   // Load deleted messages from SecureStore
   useEffect(() => {
@@ -325,8 +364,15 @@ export default function ChatScreen({ route, navigation }: Props) {
   const loadMessages = useCallback(async () => {
     if (!token) return;
     try {
-      const data = await getMessages(token, chatId);
-      setMessages(data.messages);
+      const [msgData, callData] = await Promise.all([
+        getMessages(token, chatId),
+        getCallHistory(token).catch((err) => {
+          console.error("Failed to fetch call history:", err);
+          return [];
+        })
+      ]);
+      setMessages(msgData.messages);
+      setCalls(callData);
     } catch (err: any) {
       Alert.alert("Error", err.message);
     }
@@ -335,6 +381,12 @@ export default function ChatScreen({ route, navigation }: Props) {
   useEffect(() => {
     loadMessages();
   }, [loadMessages]);
+
+  useEffect(() => {
+    if (callState === "idle") {
+      loadMessages();
+    }
+  }, [callState, loadMessages]);
 
   useEffect(() => {
     if (!token) return;
@@ -561,45 +613,152 @@ export default function ChatScreen({ route, navigation }: Props) {
     >
       <FlatList
         ref={flatListRef}
-        data={messages.filter((msg) => !deletedIds.includes(msg.id))}
-        keyExtractor={(item) => item.id}
+        data={chatItems}
+        keyExtractor={(item) => item.type === "message" ? item.data.id : `call_${item.data.id}`}
         onContentSizeChange={() =>
           flatListRef.current?.scrollToEnd({ animated: true })
         }
         style={styles.messageList}
         contentContainerStyle={{ padding: 16 }}
         renderItem={({ item, index }) => {
-          const filteredMessages = messages.filter((msg) => !deletedIds.includes(msg.id));
-          const showDateHeader =
-            index === 0 ||
-            !isSameDay(filteredMessages[index - 1].created_at, item.created_at);
+          const itemDate = item.type === "message" ? item.data.created_at : item.data.created_at;
+          const prevItem = index > 0 ? chatItems[index - 1] : null;
+          const prevDate = prevItem
+            ? prevItem.type === "message"
+              ? prevItem.data.created_at
+              : prevItem.data.created_at
+            : "";
+          const showDateHeader = index === 0 || !isSameDay(prevDate, itemDate);
 
-          const isSelected = selectedMessage?.id === item.id;
+          if (item.type === "message") {
+            const msg = item.data;
+            const isSelected = selectedMessage?.id === msg.id;
 
-          return (
-            <View>
-              {showDateHeader && (
-                <View style={styles.dateHeaderContainer}>
-                  <View style={styles.dateHeaderBackground}>
-                    <Text style={styles.dateHeaderText}>
-                      {getDateLabel(item.created_at)}
+            return (
+              <View>
+                {showDateHeader && (
+                  <View style={styles.dateHeaderContainer}>
+                    <View style={styles.dateHeaderBackground}>
+                      <Text style={styles.dateHeaderText}>
+                        {getDateLabel(msg.created_at)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                <TouchableOpacity
+                  onLongPress={() => setSelectedMessage(msg)}
+                  delayLongPress={500}
+                  style={[
+                    styles.messageRow,
+                    isSelected && styles.selectedMessageRow
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <MessageBubble item={msg} currentUserId={user?.user_id} />
+                </TouchableOpacity>
+              </View>
+            );
+          } else {
+            const call = item.data;
+            const isOutgoing = call.caller_id === user?.user_id;
+
+            let StatusIcon = PhoneIncoming;
+            let iconColor = "#34C759"; // Green
+            let statusText = isOutgoing ? "Ligação efetuada" : "Ligação recebida";
+            let bubbleBg = "#f1f0f0";
+            let textColor = "#333";
+            let timeColor = "#999";
+
+            if (isOutgoing) {
+              StatusIcon = PhoneOutgoing;
+              bubbleBg = "#e1f5fe"; // light blue
+              textColor = "#01579b";
+              timeColor = "rgba(1, 87, 155, 0.6)";
+            } else {
+              if (call.status === "completed") {
+                bubbleBg = "#e8f5e9"; // light green
+                textColor = "#1b5e20";
+                timeColor = "rgba(27, 94, 32, 0.6)";
+              } else {
+                // missed, rejected, busy, failed
+                StatusIcon = PhoneMissed;
+                iconColor = "#FF3B30"; // Red
+                statusText = "Chamada perdida";
+                if (call.status === "failed") {
+                  StatusIcon = PhoneOff;
+                  iconColor = "#FF9500"; // Orange
+                }
+                bubbleBg = "#ffebee"; // light red
+                textColor = "#b71c1c";
+                timeColor = "rgba(183, 28, 28, 0.6)";
+              }
+            }
+
+            const formattedTime = new Date(call.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            const formatDuration = (secs: number) => {
+              if (secs === 0) return "";
+              const mins = Math.floor(secs / 60);
+              const remainingSecs = secs % 60;
+              if (mins > 0) {
+                return `${mins}m ${remainingSecs}s`;
+              }
+              return `${remainingSecs}s`;
+            };
+
+            const durationStr = call.duration > 0 ? ` (${formatDuration(call.duration)})` : "";
+
+            return (
+              <View>
+                {showDateHeader && (
+                  <View style={styles.dateHeaderContainer}>
+                    <View style={styles.dateHeaderBackground}>
+                      <Text style={styles.dateHeaderText}>
+                        {getDateLabel(call.created_at)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                <View style={[
+                  styles.messageRow,
+                  isOutgoing ? styles.myCallRow : styles.theirCallRow
+                ]}>
+                  <View style={[
+                    styles.callBubble,
+                    { backgroundColor: bubbleBg }
+                  ]}>
+                    <View style={styles.callBubbleContent}>
+                      <View style={[styles.callIconContainer, { backgroundColor: iconColor + "20" }]}>
+                        <StatusIcon size={20} color={iconColor} />
+                      </View>
+                      <View style={styles.callTextContainer}>
+                        <Text style={[styles.callStatusText, { color: textColor }]}>
+                          {statusText}{durationStr}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.callbackButton}
+                          onPress={() => {
+                            voiceCallManager.startCall(
+                              participantId,
+                              participantUsername || "User"
+                            );
+                          }}
+                        >
+                          <Text style={styles.callbackButtonText}>Retornar ligação</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <Text style={[styles.callTimeText, { color: timeColor }]}>
+                      {formattedTime}
                     </Text>
                   </View>
                 </View>
-              )}
-              <TouchableOpacity
-                onLongPress={() => setSelectedMessage(item)}
-                delayLongPress={500}
-                style={[
-                  styles.messageRow,
-                  isSelected && styles.selectedMessageRow
-                ]}
-                activeOpacity={0.8}
-              >
-                <MessageBubble item={item} currentUserId={user?.user_id} />
-              </TouchableOpacity>
-            </View>
-          );
+              </View>
+            );
+          }
         }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No messages yet. Say hello!</Text>
@@ -841,5 +1000,57 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#666",
     fontWeight: "600",
+  },
+  myCallRow: {
+    alignSelf: "flex-end",
+    alignItems: "flex-end",
+  },
+  theirCallRow: {
+    alignSelf: "flex-start",
+    alignItems: "flex-start",
+  },
+  callBubble: {
+    maxWidth: "75%",
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  callBubbleContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  callIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  callTextContainer: {
+    flex: 1,
+    minWidth: 120,
+  },
+  callStatusText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  callbackButton: {
+    marginTop: 4,
+  },
+  callbackButtonText: {
+    color: "#007AFF",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  callTimeText: {
+    fontSize: 10,
+    textAlign: "right",
+    marginTop: 4,
   },
 });
