@@ -1,6 +1,7 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
 import { Send as SendIcon, Mic as MicIcon } from "lucide-react-native";
+import { useAppTheme } from "@/context/ThemeContext";
 
 interface SendOrMicButtonProps {
   hasContent: boolean;
@@ -15,11 +16,14 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
   onSend,
   onStartRecording,
 }) => {
+  const { colors } = useAppTheme();
+
   if (hasContent) {
     return (
       <TouchableOpacity
         style={[
           styles.sendButtonCircle,
+          { backgroundColor: colors.tint },
           sending && styles.sendButtonCircleDisabled,
         ]}
         onPress={onSend}
@@ -31,7 +35,10 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
   }
 
   return (
-    <TouchableOpacity style={styles.micButton} onPress={onStartRecording}>
+    <TouchableOpacity 
+      style={[styles.micButton, { backgroundColor: colors.badge }]} 
+      onPress={onStartRecording}
+    >
       <MicIcon size={20} color="#f2f2f2" />
     </TouchableOpacity>
   );
@@ -39,7 +46,6 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
 
 const styles = StyleSheet.create({
   sendButtonCircle: {
-    backgroundColor: "#007AFF",
     width: 50,
     height: 50,
     borderRadius: 20,
@@ -50,7 +56,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   micButton: {
-    backgroundColor: "#34C759",
     width: 50,
     height: 50,
     borderRadius: 20,

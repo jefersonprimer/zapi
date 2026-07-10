@@ -1,5 +1,6 @@
 import React from "react";
 import { Modal, TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import { useAppTheme } from "@/context/ThemeContext";
 
 interface ChatMenuModalProps {
   visible: boolean;
@@ -14,6 +15,8 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
   isContact,
   onToggleContact,
 }) => {
+  const { colors } = useAppTheme();
+
   return (
     <Modal
       visible={visible}
@@ -26,7 +29,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
         activeOpacity={1}
         onPress={onClose}
       >
-        <View style={styles.menuContainer}>
+        <View style={[styles.menuContainer, { backgroundColor: colors.menuBackground, borderColor: colors.border }]}>
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
@@ -37,7 +40,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
             <Text
               style={[
                 styles.menuItemText,
-                !isContact ? styles.addText : styles.removeText,
+                !isContact ? [styles.addText, { color: colors.tint }] : [styles.removeText, { color: colors.danger }],
               ]}
             >
               {isContact ? "Remover dos contatos" : "Adicionar aos contatos"}
@@ -52,13 +55,12 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "transparent",
   },
   menuContainer: {
     position: "absolute",
-    top: 60,
+    top: 90,
     right: 16,
-    backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 6,
     width: 200,
@@ -68,7 +70,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
   },
   menuItem: {
     paddingHorizontal: 20,
@@ -78,10 +79,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
   },
-  addText: {
-    color: "#007AFF",
-  },
-  removeText: {
-    color: "#ff3b30",
-  },
+  addText: {},
+  removeText: {},
 });

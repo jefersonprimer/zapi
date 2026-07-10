@@ -12,15 +12,19 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { getChats, type ChatListItem } from "@/services/api";
-import { Camera, MoreVertical, MessageSquarePlus } from "lucide-react-native";
+import { Camera, MoreVertical, MessageSquarePlus, Sun, Moon, Laptop, Check } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
+import { useAppTheme } from "@/context/ThemeContext";
 
 export default function ChatListScreen() {
   const router = useRouter();
   const { signOut, token } = useAuth();
+  const { colors, themePreference, setThemePreference } = useAppTheme();
+  
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [themeModalVisible, setThemeModalVisible] = useState(false);
 
   const loadChats = useCallback(async () => {
     if (!token) return;
@@ -28,7 +32,7 @@ export default function ChatListScreen() {
       const data = await getChats(token);
       setChats(data.chats);
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      Alert.alert("Erro", err.message);
     } finally {
       setLoading(false);
     }
@@ -55,25 +59,26 @@ export default function ChatListScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Primer Chat</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
+        <Text style={[styles.title, { color: colors.headerText }]}>Primer Chat</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={styles.headerIcon}
             onPress={() => Alert.alert("Câmera", "Câmera em desenvolvimento.")}
           >
-            <Camera color="#fff" size={22} />
+            <Camera color={colors.headerText} size={22} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerIcon}
             onPress={() => setMenuVisible(true)}
           >
-            <MoreVertical color="#fff" size={22} />
+            <MoreVertical color={colors.headerText} size={22} />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* Main Options Menu Dropdown */}
       <Modal
         visible={menuVisible}
         transparent={true}
@@ -85,7 +90,17 @@ export default function ChatListScreen() {
           activeOpacity={1}
           onPress={() => setMenuVisible(false)}
         >
-          <View style={styles.menuContainer}>
+          <View style={[styles.menuContainer, { backgroundColor: colors.menuBackground, borderColor: colors.border }]}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                setThemeModalVisible(true);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>Alterar Tema</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => {
@@ -96,8 +111,10 @@ export default function ChatListScreen() {
                 );
               }}
             >
-              <Text style={styles.menuItemText}>Configurações</Text>
+              <Text style={[styles.menuItemText, { color: colors.text }]}>Configurações</Text>
             </TouchableOpacity>
+
+            <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
 
             <TouchableOpacity
               style={styles.menuItem}
@@ -106,19 +123,100 @@ export default function ChatListScreen() {
                 signOut();
               }}
             >
-              <Text style={[styles.menuItemText, styles.logoutText]}>Sair</Text>
+              <Text style={[styles.menuItemText, { color: colors.danger }]}>Sair</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Theme Choice Dialog Modal */}
+      <Modal
+        visible={themeModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setThemeModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={[styles.dialogOverlay, { backgroundColor: colors.modalOverlay }]}
+          activeOpacity={1}
+          onPress={() => setThemeModalVisible(false)}
+        >
+          <View style={[styles.themeDialog, { backgroundColor: colors.menuBackground, borderColor: colors.border }]}>
+            <Text style={[styles.dialogTitle, { color: colors.text }]}>Escolher tema</Text>
+            
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={async () => {
+                await setThemePreference("light");
+                setThemeModalVisible(false);
+              }}
+            >
+              <View style={styles.dialogOptionLabel}>
+                <Sun size={20} color={themePreference === "light" ? colors.tint : colors.textSecondary} />
+                <Text style={[
+                  styles.dialogOptionText,
+                  { color: colors.text },
+                  themePreference === "light" && { color: colors.tint, fontWeight: "600" }
+                ]}>Claro</Text>
+              </View>
+              {themePreference === "light" && <Check size={18} color={colors.tint} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={async () => {
+                await setThemePreference("dark");
+                setThemeModalVisible(false);
+              }}
+            >
+              <View style={styles.dialogOptionLabel}>
+                <Moon size={20} color={themePreference === "dark" ? colors.tint : colors.textSecondary} />
+                <Text style={[
+                  styles.dialogOptionText,
+                  { color: colors.text },
+                  themePreference === "dark" && { color: colors.tint, fontWeight: "600" }
+                ]}>Escuro</Text>
+              </View>
+              {themePreference === "dark" && <Check size={18} color={colors.tint} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={async () => {
+                await setThemePreference("system");
+                setThemeModalVisible(false);
+              }}
+            >
+              <View style={styles.dialogOptionLabel}>
+                <Laptop size={20} color={themePreference === "system" ? colors.tint : colors.textSecondary} />
+                <Text style={[
+                  styles.dialogOptionText,
+                  { color: colors.text },
+                  themePreference === "system" && { color: colors.tint, fontWeight: "600" }
+                ]}>Padrão do sistema</Text>
+              </View>
+              {themePreference === "system" && <Check size={18} color={colors.tint} />}
+            </TouchableOpacity>
+
+            <View style={[styles.menuDivider, { backgroundColor: colors.border, marginVertical: 8 }]} />
+
+            <TouchableOpacity
+              style={styles.dialogCloseButton}
+              onPress={() => setThemeModalVisible(false)}
+            >
+              <Text style={[styles.dialogCloseText, { color: colors.tint }]}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
       {loading ? (
-        <ActivityIndicator size="large" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.tint} style={{ marginTop: 40 }} />
       ) : chats.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>No chats yet</Text>
-          <Text style={styles.emptySubtext}>
-            Tap + to start a new conversation
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhuma conversa ainda</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+            Toque no botão abaixo para iniciar
           </Text>
         </View>
       ) : (
@@ -127,7 +225,7 @@ export default function ChatListScreen() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.chatItem}
+              style={[styles.chatItem, { borderBottomColor: colors.border }]}
               onPress={() =>
                 router.push({
                   pathname: "/chat",
@@ -141,7 +239,11 @@ export default function ChatListScreen() {
               }
             >
               <View
-                style={[styles.avatar, item.is_group && styles.groupAvatar]}
+                style={[
+                  styles.avatar,
+                  { backgroundColor: colors.tint },
+                  item.is_group && styles.groupAvatar
+                ]}
               >
                 <Text style={styles.avatarText}>
                   {item.is_group
@@ -150,31 +252,33 @@ export default function ChatListScreen() {
                 </Text>
               </View>
               <View style={styles.chatInfo}>
-                <Text style={styles.chatName}>
+                <Text style={[styles.chatName, { color: colors.text }]}>
                   {item.name ?? item.participant_username ?? "Unknown"}
                 </Text>
                 <Text
                   style={[
                     styles.lastMessage,
-                    item.unread_count > 0 && styles.lastMessageUnread,
+                    { color: colors.textSecondary },
+                    item.unread_count > 0 && [styles.lastMessageUnread, { color: colors.text }],
                   ]}
                   numberOfLines={1}
                 >
-                  {item.last_message ?? "No messages yet"}
+                  {item.last_message ?? "Nenhuma mensagem ainda"}
                 </Text>
               </View>
               <View style={styles.rightContainer}>
                 <Text
                   style={[
                     styles.time,
-                    item.unread_count > 0 && styles.timeUnread,
+                    { color: colors.textSecondary },
+                    item.unread_count > 0 && [styles.timeUnread, { color: colors.tint }],
                   ]}
                 >
                   {formatTime(item.last_message_at)}
                 </Text>
                 {item.unread_count > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{item.unread_count}</Text>
+                  <View style={[styles.badge, { backgroundColor: colors.badge }]}>
+                    <Text style={[styles.badgeText, { color: colors.badgeText }]}>{item.unread_count}</Text>
                   </View>
                 )}
               </View>
@@ -184,7 +288,7 @@ export default function ChatListScreen() {
       )}
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: colors.fab }]}
         onPress={() => router.push("/contacts")}
       >
         <MessageSquarePlus color="#fff" size={24} />
@@ -194,64 +298,53 @@ export default function ChatListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 56,
-    paddingBottom: 12,
-    backgroundColor: "#007AFF",
+    paddingBottom: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  title: { fontSize: 20, fontWeight: "bold", color: "#fff" },
+  title: { fontSize: 22, fontWeight: "bold" },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 16 },
-  newChatBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
+  headerIcon: {
+    padding: 4,
   },
-  newChatBtnText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "bold",
-    marginTop: -2,
-  },
-  logout: { color: "#fff", fontSize: 14 },
   groupAvatar: { backgroundColor: "#34C759" },
   chatItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#eee",
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   avatarText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   chatInfo: { flex: 1 },
-  chatName: { fontSize: 16, fontWeight: "600", color: "#333", marginBottom: 2 },
-  lastMessage: { fontSize: 14, color: "#999" },
-  lastMessageUnread: { color: "#111", fontWeight: "700" },
-  time: { fontSize: 12, color: "#bbb" },
-  timeUnread: { color: "#007AFF", fontWeight: "700" },
+  chatName: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
+  lastMessage: { fontSize: 14 },
+  lastMessageUnread: { fontWeight: "700" },
+  time: { fontSize: 12 },
+  timeUnread: { fontWeight: "700" },
   rightContainer: {
     alignItems: "flex-end",
     justifyContent: "center",
     marginLeft: 8,
   },
   badge: {
-    backgroundColor: "#34C759",
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -261,13 +354,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   badgeText: {
-    color: "#fff",
     fontSize: 11,
     fontWeight: "bold",
   },
-  empty: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyText: { fontSize: 18, color: "#999", marginBottom: 4 },
-  emptySubtext: { fontSize: 14, color: "#ccc" },
+  empty: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
+  emptyText: { fontSize: 18, fontWeight: "600", marginBottom: 4 },
+  emptySubtext: { fontSize: 14, textAlign: "center" },
   fab: {
     position: "absolute",
     bottom: 24,
@@ -275,37 +367,36 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 4,
+    elevation: 6,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  headerIcon: {
-    padding: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "transparent",
+  },
+  dialogOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   menuContainer: {
     position: "absolute",
-    top: 60,
+    top: 90,
     right: 16,
-    backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 6,
-    width: 170,
+    width: 180,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
   },
   menuItem: {
     paddingHorizontal: 20,
@@ -313,10 +404,50 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: "#333",
     fontWeight: "500",
   },
-  logoutText: {
-    color: "#ff3b30",
+  menuDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 12,
+  },
+  themeDialog: {
+    width: "80%",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  dialogOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+  },
+  dialogOptionLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dialogOptionText: {
+    fontSize: 16,
+  },
+  dialogCloseButton: {
+    alignItems: "flex-end",
+    paddingTop: 8,
+    paddingRight: 4,
+  },
+  dialogCloseText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

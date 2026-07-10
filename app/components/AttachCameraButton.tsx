@@ -3,6 +3,7 @@ import { TouchableOpacity, Alert, StyleSheet, Platform } from "react-native";
 import { Camera as CameraIcon } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../context/AuthContext";
+import { useAppTheme } from "@/context/ThemeContext";
 
 export interface Attachment {
   uri: string;
@@ -20,6 +21,7 @@ export const AttachCameraButton: React.FC<AttachCameraButtonProps> = ({
   onTakePhoto,
 }) => {
   const { token } = useAuth();
+  const { colors } = useAppTheme();
 
   const handleTakePhoto = async () => {
     if (!token) return;
@@ -85,7 +87,7 @@ export const AttachCameraButton: React.FC<AttachCameraButtonProps> = ({
 
   return (
     <TouchableOpacity style={styles.iconBtn} onPress={handleTakePhoto}>
-      <CameraIcon size={22} color="#272727" />
+      <CameraIcon size={22} color={colors.icon} />
     </TouchableOpacity>
   );
 };

@@ -1,14 +1,17 @@
 import { View, Text, StyleSheet } from "react-native";
 import { Sparkles } from "lucide-react-native";
+import { useAppTheme } from "@/context/ThemeContext";
 
 export default function UpdatesScreen() {
+  const { colors } = useAppTheme();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.headerTitle}>Atualizações</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.headerTitle, { color: colors.text }]}>Atualizações</Text>
       <View style={styles.content}>
-        <Sparkles size={48} color="#007AFF" style={{ marginBottom: 16 }} />
-        <Text style={styles.title}>Fique por dentro das novidades</Text>
-        <Text style={styles.description}>
+        <Sparkles size={56} color={colors.tint} style={{ marginBottom: 20 }} />
+        <Text style={[styles.title, { color: colors.text }]}>Fique por dentro das novidades</Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           Em breve você poderá ver atualizações de status, canais e stories de seus contatos diretamente aqui.
         </Text>
       </View>
@@ -19,14 +22,12 @@ export default function UpdatesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingTop: 20,
+    paddingTop: 40,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     marginVertical: 16,
   },
   content: {
@@ -37,16 +38,14 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
-    color: "#333",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   description: {
-    fontSize: 14,
-    color: "#8e8e93",
+    fontSize: 15,
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 22,
   },
 });

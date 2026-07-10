@@ -1,48 +1,67 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+import { Platform } from "react-native";
 
-import { Platform } from 'react-native';
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorLight = "#007AFF";
+const tintColorDark = "#0A84FF";
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: "#1E293B", // slate 800
+    textSecondary: "#64748B", // slate 500
+    background: "#F8FAFC", // slate 50
+    surface: "#FFFFFF",
+    cardBackground: "#FFFFFF",
+    border: "#E2E8F0", // slate 200
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: "#64748B", // slate 500
+    tabIconDefault: "#94A3B8", // slate 400
     tabIconSelected: tintColorLight,
+    headerBackground: "#007AFF", // Brand blue header
+    headerText: "#FFFFFF",
+    tabBarBackground: "#FFFFFF",
+    badge: "#10B981", // Emerald 500
+    badgeText: "#FFFFFF",
+    fab: "#007AFF",
+    menuBackground: "#FFFFFF",
+    modalOverlay: "rgba(0,0,0,0.3)",
+    shadow: "#0F172A",
+    danger: "#EF4444", // red 500
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: "#F8FAFC", // slate 50
+    textSecondary: "#94A3B8", // slate 400
+    background: "#0F172A", // slate 900
+    surface: "#1E293B", // slate 800
+    cardBackground: "#1E293B",
+    border: "#334155", // slate 700
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: "#94A3B8", // slate 400
+    tabIconDefault: "#64748B", // slate 500
     tabIconSelected: tintColorDark,
+    headerBackground: "#1E293B", // slate 800 header in dark mode
+    headerText: "#F8FAFC",
+    tabBarBackground: "#0F172A",
+    badge: "#10B981", // Emerald 500
+    badgeText: "#FFFFFF",
+    fab: "#0A84FF",
+    menuBackground: "#1E293B",
+    modalOverlay: "rgba(0,0,0,0.6)",
+    shadow: "#000000",
+    danger: "#EF4444",
   },
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+    sans: "system-ui",
+    serif: "ui-serif",
+    rounded: "ui-rounded",
+    mono: "ui-monospace",
   },
   default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+    sans: "normal",
+    serif: "serif",
+    rounded: "normal",
+    mono: "monospace",
   },
   web: {
     sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",

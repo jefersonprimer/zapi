@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Audio } from "expo-av";
 import { Play as PlayIcon, Pause as PauseIcon } from "lucide-react-native";
+import { useAppTheme } from "@/context/ThemeContext";
 
 interface AudioPlayerProps {
   uri: string;
@@ -9,6 +10,7 @@ interface AudioPlayerProps {
 }
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
+  const { colors, isDark } = useAppTheme();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [webAudio, setWebAudio] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -191,27 +193,27 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
     <View
       style={[
         styles.container,
-        isMine ? styles.containerMine : styles.containerTheir,
+        isMine ? styles.containerMine : [styles.containerTheir, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)" }],
       ]}
     >
       <TouchableOpacity
         onPress={isPlaying ? pauseSound : playSound}
         style={[
           styles.playButton,
-          isMine ? styles.playButtonMine : styles.playButtonTheir,
+          isMine ? styles.playButtonMine : [styles.playButtonTheir, { backgroundColor: colors.tint }],
         ]}
       >
         {isPlaying ? (
           <PauseIcon
             size={14}
-            color={isMine ? "#007AFF" : "#fff"}
-            fill={isMine ? "#007AFF" : "#fff"}
+            color={isMine ? colors.tint : "#fff"}
+            fill={isMine ? colors.tint : "#fff"}
           />
         ) : (
           <PlayIcon
             size={14}
-            color={isMine ? "#007AFF" : "#fff"}
-            fill={isMine ? "#007AFF" : "#fff"}
+            color={isMine ? colors.tint : "#fff"}
+            fill={isMine ? colors.tint : "#fff"}
             style={{ marginLeft: 2 }}
           />
         )}
@@ -227,13 +229,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
           <View
             style={[
               styles.timelineBackground,
-              isMine ? styles.timelineBgMine : styles.timelineBgTheir,
+              isMine ? styles.timelineBgMine : [styles.timelineBgTheir, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.2)" : "#dcdcdc" }],
             ]}
           >
             <View
               style={[
                 styles.timelineProgress,
-                isMine ? styles.timelineProgressMine : styles.timelineProgressTheir,
+                isMine ? styles.timelineProgressMine : [styles.timelineProgressTheir, { backgroundColor: colors.tint }],
                 { width: `${progressPercent}%` },
               ]}
             />
@@ -241,7 +243,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
             <View
               style={[
                 styles.timelineThumb,
-                isMine ? styles.timelineThumbMine : styles.timelineThumbTheir,
+                isMine ? styles.timelineThumbMine : [styles.timelineThumbTheir, { backgroundColor: colors.tint }],
                 { left: `${progressPercent}%` },
               ]}
             />
@@ -252,7 +254,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
         <Text
           style={[
             styles.timeText,
-            isMine ? styles.timeTextMine : styles.timeTextTheir,
+            isMine ? styles.timeTextMine : [styles.timeTextTheir, { color: colors.textSecondary }],
           ]}
         >
           {formatTime(position)} / {formatTime(duration)}
@@ -263,14 +265,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
       <TouchableOpacity
         style={[
           styles.speedButton,
-          isMine ? styles.speedButtonMine : styles.speedButtonTheir,
+          isMine ? styles.speedButtonMine : [styles.speedButtonTheir, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 122, 255, 0.1)", borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 122, 255, 0.2)" }],
         ]}
         onPress={changeSpeed}
       >
         <Text
           style={[
             styles.speedText,
-            isMine ? styles.speedTextMine : styles.speedTextTheir,
+            isMine ? styles.speedTextMine : [styles.speedTextTheir, { color: colors.tint }],
           ]}
         >
           {speed}x

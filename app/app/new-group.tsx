@@ -16,10 +16,14 @@ import {
   searchUsers,
   type UserSearchResult,
 } from "@/services/api";
+import { useAppTheme } from "@/context/ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function NewGroupScreen() {
   const router = useRouter();
   const { token } = useAuth();
+  const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<UserSearchResult[]>([]);
@@ -34,7 +38,7 @@ export default function NewGroupScreen() {
       const data = await searchUsers(token, query.trim());
       setUsers(data.users);
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      Alert.alert("Erro", err.message);
     } finally {
       setSearching(false);
     }
@@ -66,48 +70,48 @@ export default function NewGroupScreen() {
         },
       });
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      Alert.alert("Erro", err.message);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>New Group</Text>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: 0 }]}>
+      <Text style={[styles.title, { color: colors.text }]}>Novo Grupo</Text>
 
       <TextInput
-        style={styles.input}
-        placeholder="Group name"
-        placeholderTextColor="#999"
+        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+        placeholder="Nome do grupo"
+        placeholderTextColor={colors.textSecondary}
         value={name}
         onChangeText={setName}
       />
 
-      <Text style={styles.sectionTitle}>Add members</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Adicionar membros</Text>
       <View style={styles.searchRow}>
         <TextInput
-          style={styles.input}
-          placeholder="Search users..."
-          placeholderTextColor="#999"
+          style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+          placeholder="Buscar usuários..."
+          placeholderTextColor={colors.textSecondary}
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
         />
-        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
+        <TouchableOpacity style={[styles.searchBtn, { backgroundColor: colors.tint }]} onPress={handleSearch}>
           {searching ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.searchBtnText}>Search</Text>
+            <Text style={styles.searchBtnText}>Buscar</Text>
           )}
         </TouchableOpacity>
       </View>
 
       {selected.size > 0 && (
-        <View style={styles.selectedRow}>
-          <Text style={styles.selectedText}>
-            Selected: {Array.from(selected.values()).join(", ")}
+        <View style={[styles.selectedRow, { backgroundColor: isDark ? "rgba(10, 132, 255, 0.15)" : "#e8f0fe" }]}>
+          <Text style={[styles.selectedText, { color: colors.text }]}>
+            Selecionados: {Array.from(selected.values()).join(", ")}
           </Text>
         </View>
       )}
@@ -120,20 +124,20 @@ export default function NewGroupScreen() {
           const isSelected = selected.has(item.id);
           return (
             <TouchableOpacity
-              style={styles.userItem}
+              style={[styles.userItem, { borderBottomColor: colors.border }]}
               onPress={() => toggleUser(item)}
             >
-              <View style={[styles.checkbox, isSelected && styles.checked]}>
+              <View style={[styles.checkbox, { borderColor: colors.border }, isSelected && [styles.checked, { backgroundColor: colors.tint, borderColor: colors.tint }]]}>
                 {isSelected && <Text style={styles.checkmark}>✓</Text>}
               </View>
-              <View style={styles.avatar}>
+              <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
                 <Text style={styles.avatarText}>
                   {item.username[0].toUpperCase()}
                 </Text>
               </View>
               <View>
-                <Text style={styles.username}>{item.username}</Text>
-                <Text style={styles.email}>{item.email}</Text>
+                <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
+                <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
               </View>
             </TouchableOpacity>
           );
@@ -143,6 +147,7 @@ export default function NewGroupScreen() {
       <TouchableOpacity
         style={[
           styles.createBtn,
+          { backgroundColor: colors.tint, marginBottom: Math.max(insets.bottom, 24) },
           (!name.trim() || selected.size === 0) && styles.createBtnDisabled,
         ]}
         onPress={handleCreate}
@@ -151,7 +156,7 @@ export default function NewGroupScreen() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.createBtnText}>Create Group</Text>
+          <Text style={styles.createBtnText}>Criar Grupo</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -159,65 +164,58 @@ export default function NewGroupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 24 },
-  title: { fontSize: 24, fontWeight: "bold", color: "#333", marginBottom: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: "600", color: "#666", marginBottom: 12, marginTop: 8 },
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 24 },
+  sectionTitle: { fontSize: 16, fontWeight: "600", marginBottom: 12, marginTop: 8 },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
   },
   searchRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
   searchBtn: {
-    backgroundColor: "#007AFF",
     borderRadius: 8,
     paddingHorizontal: 20,
     justifyContent: "center",
   },
   searchBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   selectedRow: {
-    backgroundColor: "#e8f0fe",
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
   },
-  selectedText: { color: "#333", fontSize: 14 },
+  selectedText: { fontSize: 14 },
   userItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#eee",
   },
   checkbox: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: "#ccc",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
-  checked: { backgroundColor: "#007AFF", borderColor: "#007AFF" },
+  checked: {},
   checkmark: { color: "#fff", fontSize: 14, fontWeight: "bold" },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   avatarText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  username: { fontSize: 16, fontWeight: "600", color: "#333" },
-  email: { fontSize: 14, color: "#666", marginTop: 2 },
+  username: { fontSize: 16, fontWeight: "600" },
+  email: { fontSize: 14, marginTop: 2 },
   createBtn: {
-    backgroundColor: "#007AFF",
     borderRadius: 8,
     padding: 16,
     alignItems: "center",

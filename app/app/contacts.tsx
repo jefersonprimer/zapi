@@ -17,10 +17,12 @@ import {
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { getContacts, removeContact, createChat, type Contact } from "@/services/api";
+import { useAppTheme } from "@/context/ThemeContext";
 
 export default function ContactsScreen() {
   const router = useRouter();
   const { token } = useAuth();
+  const { colors, isDark } = useAppTheme();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -89,42 +91,42 @@ export default function ContactsScreen() {
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <TouchableOpacity
-        style={styles.actionItem}
+        style={[styles.actionItem, { borderBottomColor: colors.border }]}
         onPress={() => router.push("/new-group")}
       >
         <View style={[styles.iconContainer, styles.groupBg]}>
           <GroupIcon color="#fff" size={22} />
         </View>
-        <Text style={styles.actionText}>Novo grupo</Text>
+        <Text style={[styles.actionText, { color: colors.text }]}>Novo grupo</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.actionItem}
+        style={[styles.actionItem, { borderBottomColor: colors.border }]}
         onPress={() => router.push("/new-chat")}
       >
-        <View style={[styles.iconContainer, styles.userBg]}>
+        <View style={[styles.iconContainer, styles.userBg, { backgroundColor: colors.tint }]}>
           <UserIcon color="#fff" size={22} />
         </View>
-        <Text style={styles.actionText}>Novo contato</Text>
+        <Text style={[styles.actionText, { color: colors.text }]}>Novo contato</Text>
       </TouchableOpacity>
 
-      <Text style={styles.sectionTitle}>Contatos adicionados</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Contatos adicionados</Text>
     </View>
   );
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {actionLoading && (
-        <View style={styles.overlayLoading}>
-          <ActivityIndicator size="large" color="#007AFF" />
+        <View style={[styles.overlayLoading, { backgroundColor: colors.modalOverlay }]}>
+          <ActivityIndicator size="large" color={colors.tint} />
         </View>
       )}
 
@@ -133,42 +135,42 @@ export default function ContactsScreen() {
         keyExtractor={(item) => item.contact_id}
         ListHeaderComponent={renderHeader}
         renderItem={({ item }) => (
-          <View style={styles.contactRow}>
+          <View style={[styles.contactRow, { borderBottomColor: colors.border }]}>
             <TouchableOpacity
               style={styles.contactInfo}
               onPress={() => handleStartChat(item)}
             >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
+              <View style={[styles.avatar, { backgroundColor: isDark ? "#2C2C2E" : "#e5e5ea" }]}>
+                <Text style={[styles.avatarText, { color: colors.text }]}>
                   {item.username[0]?.toUpperCase() ?? "?"}
                 </Text>
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.username}>{item.username}</Text>
-                <Text style={styles.email}>{item.email}</Text>
+                <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
+                <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
               </View>
             </TouchableOpacity>
 
             <View style={styles.rowActions}>
               <TouchableOpacity
-                style={styles.chatIconBtn}
+                style={[styles.chatIconBtn, { backgroundColor: colors.surface }]}
                 onPress={() => handleStartChat(item)}
               >
-                <MessageCircle size={20} color="#007AFF" />
+                <MessageCircle size={20} color={colors.tint} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.removeBtn}
+                style={[styles.removeBtn, { backgroundColor: isDark ? "rgba(255, 69, 58, 0.15)" : "#ffeaea" }]}
                 onPress={() => handleConfirmRemove(item)}
               >
-                <TrashIcon size={20} color="#ff3b30" />
+                <TrashIcon size={20} color={colors.danger} />
               </TouchableOpacity>
             </View>
           </View>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Nenhum contato adicionado ainda.</Text>
-            <Text style={styles.emptySubtext}>Busque usuários no botão &quot;Novo contato&quot; acima.</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhum contato adicionado ainda.</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>Busque usuários no botão &quot;Novo contato&quot; acima.</Text>
           </View>
         }
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -180,17 +182,14 @@ export default function ContactsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
   },
   overlayLoading: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.7)",
     zIndex: 999,
     justifyContent: "center",
     alignItems: "center",
@@ -204,7 +203,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#eee",
   },
   iconContainer: {
     width: 44,
@@ -223,12 +221,10 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#8e8e93",
     marginTop: 24,
     marginBottom: 10,
     textTransform: "uppercase",
@@ -240,7 +236,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#f0f0f0",
   },
   contactInfo: {
     flexDirection: "row",
@@ -251,13 +246,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#e5e5ea",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   avatarText: {
-    color: "#333",
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -267,11 +260,9 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
   },
   email: {
     fontSize: 14,
-    color: "#8e8e93",
     marginTop: 2,
   },
   rowActions: {
@@ -281,13 +272,11 @@ const styles = StyleSheet.create({
   chatIconBtn: {
     padding: 8,
     borderRadius: 18,
-    backgroundColor: "#f2f2f7",
     marginRight: 8,
   },
   removeBtn: {
     padding: 8,
     borderRadius: 18,
-    backgroundColor: "#ffeaea",
   },
   emptyContainer: {
     alignItems: "center",
@@ -298,13 +287,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#8e8e93",
     textAlign: "center",
     marginBottom: 4,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#c7c7cc",
     textAlign: "center",
   },
 });

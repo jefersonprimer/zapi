@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Trash2 as TrashIcon, Square as SquareIcon, Pause as PauseIcon, Play as PlayIcon } from "lucide-react-native";
+import { useAppTheme } from "@/context/ThemeContext";
 
 interface VoiceNoteRecorderBarProps {
   recordingDuration: number;
@@ -15,6 +16,8 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
   isPaused,
   onPauseResumeRecording,
 }) => {
+  const { colors, isDark } = useAppTheme();
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -23,7 +26,7 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
 
   return (
     <View style={styles.recordingContainer}>
-      <Text style={[styles.recordingText, isPaused && styles.pausedText]}>
+      <Text style={[styles.recordingText, { color: colors.danger }, isPaused && [styles.pausedText, { color: colors.textSecondary }]]}>
         {isPaused ? "⏸️ Pausado" : "🔴 Gravando"}: {formatDuration(recordingDuration)}
       </Text>
       
@@ -32,22 +35,22 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
           style={styles.actionBtn}
           onPress={() => onStopRecording(false)}
         >
-          <TrashIcon size={18} color="#FF3B30" />
+          <TrashIcon size={18} color={colors.danger} />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionBtn, styles.pauseResumeBtn]}
+          style={[styles.actionBtn, styles.pauseResumeBtn, { backgroundColor: isDark ? "#2C2C2E" : "#eee" }]}
           onPress={onPauseResumeRecording}
         >
           {isPaused ? (
-            <PlayIcon size={18} color="#34C759" fill="#34C759" />
+            <PlayIcon size={18} color={colors.badge} fill={colors.badge} />
           ) : (
-            <PauseIcon size={18} color="#007AFF" fill="#007AFF" />
+            <PauseIcon size={18} color={colors.tint} fill={colors.tint} />
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.stopRecordBtn}
+          style={[styles.stopRecordBtn, { backgroundColor: colors.danger }]}
           onPress={() => onStopRecording(true)}
         >
           <SquareIcon size={12} color="#fff" fill="#fff" style={{ marginRight: 6 }} />
@@ -68,13 +71,10 @@ const styles = StyleSheet.create({
   },
   recordingText: {
     fontSize: 15,
-    color: "#FF3B30",
     fontWeight: "600",
     flex: 1,
   },
-  pausedText: {
-    color: "#8e8e93",
-  },
+  pausedText: {},
   actionsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -86,13 +86,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   pauseResumeBtn: {
-    backgroundColor: "#eee",
     borderRadius: 16,
     width: 32,
     height: 32,
   },
   stopRecordBtn: {
-    backgroundColor: "#FF3B30",
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 8,

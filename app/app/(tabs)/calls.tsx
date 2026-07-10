@@ -12,9 +12,11 @@ import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, PhoneOff } from "luci
 import { useAuth } from "@/context/AuthContext";
 import { getCallHistory, type CallHistoryItem } from "@/services/callApi";
 import { voiceCallManager } from "@/services/voiceCallManager";
+import { useAppTheme } from "@/context/ThemeContext";
 
 export default function CallsScreen() {
   const { token, user } = useAuth();
+  const { colors } = useAppTheme();
   const [calls, setCalls] = useState<CallHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -80,16 +82,16 @@ export default function CallsScreen() {
     };
 
     return (
-      <View style={styles.callItem}>
+      <View style={[styles.callItem, { borderBottomColor: colors.border }]}>
         <View style={styles.leftContainer}>
-          <View style={[styles.avatar, { backgroundColor: isOutgoing ? "#007AFF" : "#34C759" }]}>
+          <View style={[styles.avatar, { backgroundColor: isOutgoing ? colors.tint : "#34C759" }]}>
             <Text style={styles.avatarText}>{peerName[0]?.toUpperCase() ?? "?"}</Text>
           </View>
           <View style={styles.info}>
-            <Text style={styles.peerName}>{peerName}</Text>
+            <Text style={[styles.peerName, { color: colors.text }]}>{peerName}</Text>
             <View style={styles.statusRow}>
               <StatusIcon size={14} color={iconColor} style={{ marginRight: 6 }} />
-              <Text style={styles.statusText}>
+              <Text style={[styles.statusText, { color: colors.textSecondary }]}>
                 {isOutgoing ? "Efetuada" : "Recebida"} • {formattedDate}
                 {item.duration > 0 && ` • ${formatDuration(item.duration)}`}
               </Text>
@@ -97,10 +99,10 @@ export default function CallsScreen() {
           </View>
         </View>
         <TouchableOpacity
-          style={styles.callButton}
+          style={[styles.callButton, { backgroundColor: colors.surface }]}
           onPress={() => handleCallBack(peerId, peerName)}
         >
-          <Phone size={18} color="#007AFF" />
+          <Phone size={18} color={colors.tint} />
         </TouchableOpacity>
       </View>
     );
@@ -108,18 +110,18 @@ export default function CallsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.headerTitle}>Ligações</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.headerTitle, { color: colors.text }]}>Ligações</Text>
       {calls.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>Nenhuma ligação recente</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhuma ligação recente</Text>
         </View>
       ) : (
         <FlatList
@@ -136,14 +138,12 @@ export default function CallsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingTop: 20,
+    paddingTop: 40,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     marginVertical: 16,
   },
   loading: {
@@ -158,7 +158,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#eee",
   },
   leftContainer: {
     flexDirection: "row",
@@ -184,7 +183,6 @@ const styles = StyleSheet.create({
   peerName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
     marginBottom: 4,
   },
   statusRow: {
@@ -193,12 +191,10 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    color: "#8e8e93",
   },
   callButton: {
     padding: 10,
     borderRadius: 20,
-    backgroundColor: "#f2f2f7",
     marginLeft: 12,
   },
   empty: {
@@ -209,6 +205,5 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#8e8e93",
   },
 });

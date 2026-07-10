@@ -5,8 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from "react-native";
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ThemeProvider as AppThemeProvider, useAppTheme } from "@/context/ThemeContext";
 import { wsClient } from "@/services/ws";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { registerForPushNotifications } from "@/services/notifications";
@@ -15,6 +15,7 @@ import CallOverlay from "@/components/CallOverlay";
 
 function InitialLayout() {
   const { token, user, isLoading } = useAuth();
+  const { colors } = useAppTheme();
   const segments = useSegments();
   const router = useRouter();
 
@@ -63,8 +64,8 @@ function InitialLayout() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: '#fff' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
@@ -73,25 +74,34 @@ function InitialLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="register" options={{ headerShown: true, title: "Register" }} />
+      <Stack.Screen name="register" options={{ headerShown: true, title: "Register", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
       <Stack.Screen name="chat" options={{ headerShown: true }} />
-      <Stack.Screen name="new-chat" options={{ headerShown: true, title: "New Chat" }} />
-      <Stack.Screen name="new-group" options={{ headerShown: true, title: "New Group" }} />
-      <Stack.Screen name="contacts" options={{ headerShown: true, title: "Contatos" }} />
+      <Stack.Screen name="new-chat" options={{ headerShown: true, title: "New Chat", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
+      <Stack.Screen name="new-group" options={{ headerShown: true, title: "New Group", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
+      <Stack.Screen name="contacts" options={{ headerShown: true, title: "Contatos", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
     </Stack>
   );
 }
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+function RootLayoutInner() {
+  const { theme, colors } = useAppTheme();
 
   return (
+    <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
+      <InitialLayout />
+      <CallOverlay />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.headerBackground} />
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <InitialLayout />
-        <CallOverlay />
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <AppThemeProvider>
+        <RootLayoutInner />
+      </AppThemeProvider>
     </AuthProvider>
   );
 }
+

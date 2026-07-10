@@ -2,20 +2,23 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { MessageCircle, CircleDot, Users2, Phone } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "#8e8e93",
+        tabBarActiveTintColor: colors.tabIconSelected,
+        tabBarInactiveTintColor: colors.tabIconDefault,
         headerShown: false,
         tabBarLabelStyle: { fontSize: 12, fontWeight: "500", paddingBottom: 4 },
         tabBarStyle: {
           height: 60 + insets.bottom,
-          borderTopColor: "#eee",
+          borderTopColor: colors.border,
+          backgroundColor: colors.tabBarBackground,
           paddingTop: 4,
           paddingBottom: insets.bottom,
         },
@@ -51,3 +54,4 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+

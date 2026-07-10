@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Linking } from "react-
 import { FileText as FileIcon, Video as VideoIcon } from "lucide-react-native";
 import { type Message, API_URL } from "../services/api";
 import { AudioPlayer } from "./AudioPlayer";
+import { useAppTheme } from "@/context/ThemeContext";
 
 interface MessageBubbleProps {
   item: Message;
@@ -17,6 +18,7 @@ const isVideoUrl = (url: string) =>
   /\.(mp4|mov|webm|mkv|avi)(\?.*)?$/i.test(url);
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserId }) => {
+  const { colors } = useAppTheme();
   const isMine = item.sender_id === currentUserId;
   const fullUrl = item.image_url
     ? item.image_url.startsWith("http")
@@ -29,17 +31,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
       <View
         style={[
           styles.messageBubble,
-          isMine ? styles.myMessage : styles.theirMessage,
+          isMine ? [styles.myMessage, { backgroundColor: colors.tint }] : [styles.theirMessage, { backgroundColor: colors.surface }],
           styles.deletedBubble,
+          { borderColor: colors.border }
         ]}
       >
-        <Text style={[styles.deletedText, isMine ? styles.myMessageDeletedText : styles.messageDeletedText]}>
+        <Text style={[styles.deletedText, isMine ? styles.myMessageDeletedText : [styles.messageDeletedText, { color: colors.textSecondary }]]}>
           🚫 Esta mensagem foi apagada
         </Text>
         <Text
           style={[
             styles.messageTime,
-            isMine ? styles.myMessageTime : styles.theirMessageTime,
+            isMine ? styles.myMessageTime : [styles.theirMessageTime, { color: colors.textSecondary }],
           ]}
         >
           {new Date(item.created_at).toLocaleTimeString([], {
@@ -55,7 +58,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
     <View
       style={[
         styles.messageBubble,
-        isMine ? styles.myMessage : styles.theirMessage,
+        isMine ? [styles.myMessage, { backgroundColor: colors.tint }] : [styles.theirMessage, { backgroundColor: colors.surface }],
       ]}
     >
       {fullUrl && (
@@ -79,13 +82,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
               <View style={styles.videoPreview}>
                 <VideoIcon
                   size={24}
-                  color={isMine ? "#fff" : "#007AFF"}
+                  color={isMine ? "#fff" : colors.tint}
                   style={{ marginRight: 6 }}
                 />
                 <Text
                   style={[
                     styles.videoText,
-                    isMine ? styles.videoTextMine : styles.videoTextTheir,
+                    isMine ? styles.videoTextMine : [styles.videoTextTheir, { color: colors.tint }],
                   ]}
                 >
                   Play Video
@@ -102,7 +105,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
             >
               <FileIcon
                 size={24}
-                color={isMine ? "#fff" : "#333"}
+                color={isMine ? "#fff" : colors.text}
                 style={{ marginRight: 10 }}
               />
               <View style={styles.docInfo}>
@@ -110,7 +113,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
                   numberOfLines={1}
                   style={[
                     styles.docName,
-                    isMine ? styles.docNameMine : styles.docNameTheir,
+                    isMine ? styles.docNameMine : [styles.docNameTheir, { color: colors.text }],
                   ]}
                 >
                   {item.image_url!.split("/").pop()}
@@ -118,7 +121,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
                 <Text
                   style={[
                     styles.docSubtitle,
-                    isMine ? styles.docSubMine : styles.docSubTheir,
+                    isMine ? styles.docSubMine : [styles.docSubTheir, { color: colors.textSecondary }],
                   ]}
                 >
                   Tap to open document
@@ -129,14 +132,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
         </>
       )}
       {item.content ? (
-        <Text style={isMine ? styles.myMessageText : styles.messageText}>
+        <Text style={isMine ? styles.myMessageText : [styles.messageText, { color: colors.text }]}>
           {item.content}
         </Text>
       ) : null}
       <Text
         style={[
           styles.messageTime,
-          isMine ? styles.myMessageTime : styles.theirMessageTime,
+          isMine ? styles.myMessageTime : [styles.theirMessageTime, { color: colors.textSecondary }],
         ]}
       >
         {new Date(item.created_at).toLocaleTimeString([], {
@@ -156,12 +159,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   myMessage: {
-    backgroundColor: "#007AFF",
     alignSelf: "flex-end",
     borderBottomRightRadius: 4,
   },
   theirMessage: {
-    backgroundColor: "#f1f0f0",
     alignSelf: "flex-start",
     borderBottomLeftRadius: 4,
   },
@@ -171,11 +172,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 4,
   },
-  messageText: { fontSize: 16, color: "#333" },
+  messageText: { fontSize: 16 },
   myMessageText: { fontSize: 16, color: "#fff" },
   messageTime: { fontSize: 11, marginTop: 4 },
   myMessageTime: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
-  theirMessageTime: { color: "#999" },
+  theirMessageTime: { },
   videoBubble: {
     padding: 10,
     borderRadius: 12,
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
   videoPreview: { flexDirection: "row", alignItems: "center" },
   videoText: { fontSize: 14, fontWeight: "600" },
   videoTextMine: { color: "#fff" },
-  videoTextTheir: { color: "#007AFF" },
+  videoTextTheir: { },
   docBubble: {
     flexDirection: "row",
     alignItems: "center",
@@ -202,14 +203,13 @@ const styles = StyleSheet.create({
   docInfo: { flex: 1 },
   docName: { fontSize: 14, fontWeight: "600" },
   docNameMine: { color: "#fff" },
-  docNameTheir: { color: "#333" },
+  docNameTheir: { },
   docSubtitle: { fontSize: 11, marginTop: 2 },
   docSubMine: { color: "rgba(255, 255, 255, 0.7)" },
-  docSubTheir: { color: "#666" },
+  docSubTheir: { },
   deletedBubble: {
     borderStyle: "dashed",
     borderWidth: 1,
-    borderColor: "#ccc",
     opacity: 0.8,
   },
   deletedText: {
@@ -219,7 +219,5 @@ const styles = StyleSheet.create({
   myMessageDeletedText: {
     color: "rgba(255, 255, 255, 0.8)",
   },
-  messageDeletedText: {
-    color: "#888",
-  },
+  messageDeletedText: { },
 });

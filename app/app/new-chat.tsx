@@ -16,10 +16,12 @@ import {
   searchUsers,
   type UserSearchResult,
 } from "@/services/api";
+import { useAppTheme } from "@/context/ThemeContext";
 
 export default function NewChatScreen() {
   const router = useRouter();
   const { token } = useAuth();
+  const { colors } = useAppTheme();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<UserSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,7 @@ export default function NewChatScreen() {
       const data = await searchUsers(token, query.trim());
       setUsers(data.users);
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      Alert.alert("Erro", err.message);
     } finally {
       setSearching(false);
     }
@@ -53,36 +55,36 @@ export default function NewChatScreen() {
         },
       });
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      Alert.alert("Erro", err.message);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>New Conversation</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.title, { color: colors.text }]}>Nova Conversa</Text>
       <View style={styles.searchRow}>
         <TextInput
-          style={styles.input}
-          placeholder="Search by username or email..."
-          placeholderTextColor="#999"
+          style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+          placeholder="Buscar por usuário ou email..."
+          placeholderTextColor={colors.textSecondary}
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
           onSubmitEditing={handleSearch}
           returnKeyType="search"
         />
-        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
+        <TouchableOpacity style={[styles.searchBtn, { backgroundColor: colors.tint }]} onPress={handleSearch}>
           {searching ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.searchBtnText}>Search</Text>
+            <Text style={styles.searchBtnText}>Buscar</Text>
           )}
         </TouchableOpacity>
       </View>
 
-      {loading && <ActivityIndicator style={{ marginTop: 20 }} />}
+      {loading && <ActivityIndicator style={{ marginTop: 20 }} color={colors.tint} />}
 
       <FlatList
         data={users}
@@ -90,23 +92,23 @@ export default function NewChatScreen() {
         style={{ marginTop: 16 }}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.userItem}
+            style={[styles.userItem, { borderBottomColor: colors.border }]}
             onPress={() => handleSelectUser(item.id)}
           >
-            <View style={styles.avatar}>
+            <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
               <Text style={styles.avatarText}>
                 {item.username[0].toUpperCase()}
               </Text>
             </View>
             <View>
-              <Text style={styles.username}>{item.username}</Text>
-              <Text style={styles.email}>{item.email}</Text>
+              <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
+              <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
             </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={
           query.trim() && !searching ? (
-            <Text style={styles.empty}>No users found</Text>
+            <Text style={[styles.empty, { color: colors.textSecondary }]}>Nenhum usuário encontrado</Text>
           ) : null
         }
       />
@@ -115,24 +117,21 @@ export default function NewChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 24 },
+  container: { flex: 1, padding: 24 },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
     marginBottom: 24,
   },
   searchRow: { flexDirection: "row", gap: 8 },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
   },
   searchBtn: {
-    backgroundColor: "#007AFF",
     borderRadius: 8,
     paddingHorizontal: 20,
     justifyContent: "center",
@@ -143,19 +142,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#eee",
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   avatarText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  username: { fontSize: 16, fontWeight: "600", color: "#333" },
-  email: { fontSize: 14, color: "#666", marginTop: 2 },
-  empty: { textAlign: "center", color: "#999", marginTop: 40 },
+  username: { fontSize: 16, fontWeight: "600" },
+  email: { fontSize: 14, marginTop: 2 },
+  empty: { textAlign: "center", marginTop: 40 },
 });

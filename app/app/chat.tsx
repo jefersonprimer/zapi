@@ -44,6 +44,7 @@ import {
   getStorageItem,
   setStorageItem,
 } from "@/context/AuthContext";
+import { useAppTheme } from "@/context/ThemeContext";
 import {
   getMessages,
   sendMessage,
@@ -188,6 +189,7 @@ export default function ChatScreen() {
   }, []);
 
   const { token, user } = useAuth();
+  const { colors, isDark } = useAppTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [calls, setCalls] = useState<CallHistoryItem[]>([]);
   const [content, setContent] = useState("");
@@ -827,21 +829,21 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 90}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 0}
     >
       {/* Custom Header */}
-      <View style={[styles.customHeader, { paddingTop: insets.top, height: insets.top + 60 }]}>
+      <View style={[styles.customHeader, { paddingTop: insets.top, height: insets.top + 60, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.headerLeftContainer}>
           <TouchableOpacity
             onPress={() => (selectedMessage ? setSelectedMessage(null) : router.back())}
             style={styles.headerBackBtn}
           >
-            <ArrowLeft size={24} color="#272727" />
+            <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           {!selectedMessage && (
-            <Text style={styles.headerTitleText} numberOfLines={1}>
+            <Text style={[styles.headerTitleText, { color: colors.text }]} numberOfLines={1}>
               {participantUsername}
             </Text>
           )}
@@ -854,13 +856,13 @@ export default function ChatScreen() {
                 onPress={() => setDeleteModalVisible(true)}
                 style={styles.headerActionBtn}
               >
-                <Trash2 size={22} color="#272727" />
+                <Trash2 size={22} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setOptionsModalVisible(true)}
                 style={styles.headerActionBtn}
               >
-                <MoreVerticalIcon size={22} color="#272727" />
+                <MoreVerticalIcon size={22} color={colors.text} />
               </TouchableOpacity>
             </>
           ) : (
@@ -882,7 +884,7 @@ export default function ChatScreen() {
                 }}
                 style={styles.headerActionBtn}
               >
-                <Video size={22} color="#272727" />
+                <Video size={22} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
@@ -900,13 +902,13 @@ export default function ChatScreen() {
                 }}
                 style={styles.headerActionBtn}
               >
-                <PhoneIcon size={22} color="#272727" />
+                <PhoneIcon size={22} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setMenuVisible(true)}
                 style={styles.headerActionBtn}
               >
-                <MoreVerticalIcon size={22} color="#272727" />
+                <MoreVerticalIcon size={22} color={colors.text} />
               </TouchableOpacity>
             </>
           )}
@@ -945,8 +947,8 @@ export default function ChatScreen() {
               <View>
                 {showDateHeader && (
                   <View style={styles.dateHeaderContainer}>
-                    <View style={styles.dateHeaderBackground}>
-                      <Text style={styles.dateHeaderText}>
+                    <View style={[styles.dateHeaderBackground, { backgroundColor: isDark ? "#1E293B" : "#eaeaea" }]}>
+                      <Text style={[styles.dateHeaderText, { color: colors.textSecondary }]}>
                         {getDateLabel(msg.created_at)}
                       </Text>
                     </View>
@@ -959,7 +961,7 @@ export default function ChatScreen() {
                   delayLongPress={500}
                   style={[
                     styles.messageRow,
-                    isSelected && styles.selectedMessageRow,
+                    isSelected && [styles.selectedMessageRow, { backgroundColor: isDark ? "rgba(10, 132, 255, 0.25)" : "rgba(0, 122, 255, 0.15)" }],
                   ]}
                   activeOpacity={0.8}
                 >
@@ -976,20 +978,20 @@ export default function ChatScreen() {
             let statusText = isOutgoing
               ? "Ligação efetuada"
               : "Ligação recebida";
-            let bubbleBg = "#f1f0f0";
-            let textColor = "#333";
-            let timeColor = "#999";
+            let bubbleBg = isDark ? "#1E293B" : "#f1f0f0";
+            let textColor = colors.text;
+            let timeColor = colors.textSecondary;
 
             if (isOutgoing) {
               StatusIcon = PhoneOutgoing;
-              bubbleBg = "#e1f5fe"; // light blue
-              textColor = "#01579b";
-              timeColor = "rgba(1, 87, 155, 0.6)";
+              bubbleBg = isDark ? "rgba(10, 132, 255, 0.15)" : "#e1f5fe"; // light blue
+              textColor = isDark ? "#0A84FF" : "#01579b";
+              timeColor = isDark ? "rgba(10, 132, 255, 0.7)" : "rgba(1, 87, 155, 0.6)";
             } else {
               if (call.status === "completed") {
-                bubbleBg = "#e8f5e9"; // light green
-                textColor = "#1b5e20";
-                timeColor = "rgba(27, 94, 32, 0.6)";
+                bubbleBg = isDark ? "rgba(48, 209, 88, 0.15)" : "#e8f5e9"; // light green
+                textColor = isDark ? "#30D158" : "#1b5e20";
+                timeColor = isDark ? "rgba(48, 209, 88, 0.7)" : "rgba(27, 94, 32, 0.6)";
               } else {
                 StatusIcon = PhoneMissed;
                 iconColor = "#FF3B30"; // Red
@@ -998,9 +1000,9 @@ export default function ChatScreen() {
                   StatusIcon = PhoneOff;
                   iconColor = "#FF9500"; // Orange
                 }
-                bubbleBg = "#ffebee"; // light red
-                textColor = "#b71c1c";
-                timeColor = "rgba(183, 28, 28, 0.6)";
+                bubbleBg = isDark ? "rgba(255, 69, 58, 0.15)" : "#ffebee"; // light red
+                textColor = isDark ? "#FF453A" : "#b71c1c";
+                timeColor = isDark ? "rgba(255, 69, 58, 0.7)" : "rgba(183, 28, 28, 0.6)";
               }
             }
 
@@ -1029,8 +1031,8 @@ export default function ChatScreen() {
               <View>
                 {showDateHeader && (
                   <View style={styles.dateHeaderContainer}>
-                    <View style={styles.dateHeaderBackground}>
-                      <Text style={styles.dateHeaderText}>
+                    <View style={[styles.dateHeaderBackground, { backgroundColor: isDark ? "#1E293B" : "#eaeaea" }]}>
+                      <Text style={[styles.dateHeaderText, { color: colors.textSecondary }]}>
                         {getDateLabel(call.created_at)}
                       </Text>
                     </View>
@@ -1070,7 +1072,7 @@ export default function ChatScreen() {
                             );
                           }}
                         >
-                          <Text style={styles.callbackButtonText}>
+                          <Text style={[styles.callbackButtonText, { color: colors.tint }]}>
                             Retornar ligação
                           </Text>
                         </TouchableOpacity>
@@ -1086,7 +1088,7 @@ export default function ChatScreen() {
           }
         }}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No messages yet. Say hello!</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhuma mensagem ainda. Envie um oi!</Text>
         }
       />
 
@@ -1100,7 +1102,7 @@ export default function ChatScreen() {
       <View
         style={[
           styles.inputContainer,
-          { paddingBottom: isKeyboardVisible ? 6 : insets.bottom },
+          { paddingBottom: isKeyboardVisible ? 6 : insets.bottom, backgroundColor: colors.background },
         ]}
       >
         {isRecording ? (
@@ -1112,7 +1114,7 @@ export default function ChatScreen() {
           />
         ) : (
           <>
-            <View style={styles.inputContainerMessage}>
+            <View style={[styles.inputContainerMessage, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <ChatEmojiPicker
                 onEmojiSelected={(emoji) => setContent((prev) => prev + emoji)}
               />
@@ -1150,9 +1152,9 @@ export default function ChatScreen() {
         animationType="fade"
         onRequestClose={() => setDeleteModalVisible(false)}
       >
-        <View style={styles.modalOverlayCentered}>
-          <View style={styles.alertContainer}>
-            <Text style={styles.alertTitle}>Deseja apagar a mensagem?</Text>
+        <View style={[styles.modalOverlayCentered, { backgroundColor: colors.modalOverlay }]}>
+          <View style={[styles.alertContainer, { backgroundColor: colors.menuBackground }]}>
+            <Text style={[styles.alertTitle, { color: colors.text }]}>Deseja apagar a mensagem?</Text>
             <View
               style={
                 isDeleteForEveryoneAvailable
@@ -1166,6 +1168,7 @@ export default function ChatScreen() {
                     style={[
                       styles.alertButtonVertical,
                       styles.deleteEveryoneButton,
+                      { backgroundColor: colors.danger }
                     ]}
                     onPress={handleDeleteForEveryone}
                   >
@@ -1174,10 +1177,10 @@ export default function ChatScreen() {
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.alertButtonVertical, styles.deleteMeButton]}
+                    style={[styles.alertButtonVertical, styles.deleteMeButton, { backgroundColor: isDark ? "#2C2C2E" : "#f5f5f5" }]}
                     onPress={handleDeleteForMe}
                   >
-                    <Text style={styles.deleteMeButtonText}>
+                    <Text style={[styles.deleteMeButtonText, { color: colors.tint }]}>
                       Apagar para mim
                     </Text>
                   </TouchableOpacity>
@@ -1185,22 +1188,23 @@ export default function ChatScreen() {
                     style={[
                       styles.alertButtonVertical,
                       styles.cancelButtonVertical,
+                      { backgroundColor: isDark ? "#2C2C2E" : "#e0e0e0" }
                     ]}
                     onPress={() => setDeleteModalVisible(false)}
                   >
-                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                    <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancelar</Text>
                   </TouchableOpacity>
                 </>
               ) : (
                 <>
                   <TouchableOpacity
-                    style={[styles.alertButton, styles.cancelButton]}
+                    style={[styles.alertButton, styles.cancelButton, { backgroundColor: isDark ? "#2C2C2E" : "#f5f5f5" }]}
                     onPress={() => setDeleteModalVisible(false)}
                   >
-                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                    <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancelar</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.alertButton, styles.deleteButton]}
+                    style={[styles.alertButton, styles.deleteButton, { backgroundColor: colors.danger }]}
                     onPress={handleDeleteForMe}
                   >
                     <Text style={styles.deleteButtonText}>Apagar para mim</Text>
@@ -1220,16 +1224,16 @@ export default function ChatScreen() {
         onRequestClose={() => setOptionsModalVisible(false)}
       >
         <TouchableOpacity
-          style={styles.dropdownOverlay}
+          style={[styles.dropdownOverlay, { backgroundColor: colors.modalOverlay }]}
           activeOpacity={1}
           onPress={() => setOptionsModalVisible(false)}
         >
-          <View style={styles.dropdownContainer}>
+          <View style={[styles.dropdownContainer, { backgroundColor: colors.menuBackground, borderColor: colors.border }]}>
             <TouchableOpacity
               style={styles.dropdownOption}
               onPress={handleCopy}
             >
-              <Text style={styles.dropdownOptionText}>Copiar</Text>
+              <Text style={[styles.dropdownOptionText, { color: colors.text }]}>Copiar</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

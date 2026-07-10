@@ -1,5 +1,6 @@
 import React from "react";
 import { TextInput, StyleSheet, Platform } from "react-native";
+import { useAppTheme } from "@/context/ThemeContext";
 
 interface ChatInputProps {
   value: string;
@@ -10,11 +11,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   value,
   onChangeText,
 }) => {
+  const { colors } = useAppTheme();
+
   return (
     <TextInput
-      style={styles.input}
-      placeholder="Message..."
-      placeholderTextColor="#272727"
+      style={[styles.input, { color: colors.text }]}
+      placeholder="Mensagem..."
+      placeholderTextColor={colors.textSecondary}
       value={value}
       onChangeText={onChangeText}
       multiline
@@ -27,7 +30,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#272727",
     paddingHorizontal: 8,
     ...Platform.select({
       web: {
