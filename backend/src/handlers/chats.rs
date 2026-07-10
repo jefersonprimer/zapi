@@ -92,7 +92,13 @@ pub async fn list_chats(
             c.name,
             m.content AS last_message,
             m.created_at AS last_message_at,
-            c.created_at
+            c.created_at,
+            (
+                SELECT COALESCE(COUNT(*), 0) FROM messages msg
+                WHERE msg.chat_id = c.id
+                  AND msg.sender_id != $1
+                  AND msg.created_at > cp1.last_read_at
+            ) AS unread_count
          FROM chats c
          JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
          LEFT JOIN LATERAL (

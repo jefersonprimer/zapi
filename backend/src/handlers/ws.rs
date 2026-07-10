@@ -123,7 +123,7 @@ async fn handle_signaling_message(
     tx: &tokio::sync::mpsc::UnboundedSender<String>,
 ) -> Result<(), String> {
     match msg {
-        WsMessage::CallStart { call_id: _, target_user_id, caller_username: _ } => {
+        WsMessage::CallStart { call_id: _, target_user_id, caller_username: _, is_video } => {
             // Fetch caller's username
             let caller_username = sqlx::query_scalar::<_, String>(
                 "SELECT username FROM users WHERE id = $1"
@@ -140,6 +140,7 @@ async fn handle_signaling_message(
                         call_id: Some(call_id),
                         target_user_id: user_id, // Target sees Alice as the caller
                         caller_username: Some(caller_username),
+                        is_video,
                     };
                     let incoming_json = serde_json::to_string(&incoming).unwrap();
                     if state.call_manager.send_to_user(target_user_id, &incoming_json) {
@@ -148,6 +149,7 @@ async fn handle_signaling_message(
                             call_id: Some(call_id),
                             target_user_id,
                             caller_username: None,
+                            is_video,
                         };
                         let _ = tx.send(serde_json::to_string(&ack).unwrap());
                     } else {

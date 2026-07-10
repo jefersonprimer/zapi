@@ -17,6 +17,7 @@ pub struct SendMessageRequest {
 pub async fn send_message(
     State(pool): State<PgPool>,
     State(ws_state): State<ws::WsState>,
+    State(call_manager): State<crate::signaling::CallManager>,
     auth: AuthUser,
     Path(chat_id): Path<Uuid>,
     Json(body): Json<SendMessageRequest>,
@@ -81,6 +82,23 @@ pub async fn send_message(
         .broadcast(chat_id, &serde_json::to_string(&json!({"type": "new_message", "message": msg})).unwrap())
         .await;
 
+    // Notify all participants of this chat to refresh their chat lists
+    let participants: Vec<(Uuid,)> = sqlx::query_as(
+        "SELECT user_id FROM chat_participants WHERE chat_id = $1"
+    )
+    .bind(chat_id)
+    .fetch_all(&pool)
+    .await
+    .unwrap_or_default();
+
+    for (p_id,) in participants {
+        let update_msg = json!({
+            "type": "chat_list_update",
+            "chat_id": chat_id
+        }).to_string();
+        call_manager.send_to_user(p_id, &update_msg);
+    }
+
     let sender_name = msg.sender_username.clone();
     let push_body = body.content.clone().unwrap_or_default();
     let push_text = if push_body.is_empty() { "📷 Image".to_string() } else { push_body };
@@ -117,6 +135,13 @@ pub async fn get_messages(
         ));
     }
 
+    // Update last_read_at for this participant to mark all messages as read
+    let _ = sqlx::query("UPDATE chat_participants SET last_read_at = NOW() WHERE chat_id = $1 AND user_id = $2")
+        .bind(chat_id)
+        .bind(auth.0)
+        .execute(&pool)
+        .await;
+
     let messages = sqlx::query_as::<_, Message>(
         "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at
          FROM messages m
@@ -135,4 +160,45 @@ pub async fn get_messages(
     })?;
 
     Ok(Json(json!({ "messages": messages })))
+}
+
+pub async fn mark_chat_read(
+    State(pool): State<PgPool>,
+    auth: AuthUser,
+    Path(chat_id): Path<Uuid>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let is_participant: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT chat_id FROM chat_participants WHERE chat_id = $1 AND user_id = $2",
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "database error" })),
+        )
+    })?;
+
+    if is_participant.is_none() {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "you are not a participant of this chat" })),
+        ));
+    }
+
+    sqlx::query("UPDATE chat_participants SET last_read_at = NOW() WHERE chat_id = $1 AND user_id = $2")
+        .bind(chat_id)
+        .bind(auth.0)
+        .execute(&pool)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "failed to update last read status" })),
+            )
+        })?;
+
+    Ok(Json(json!({ "status": "success" })))
 }

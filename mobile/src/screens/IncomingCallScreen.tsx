@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Phone, PhoneOff } from "lucide-react-native";
+import { Phone, PhoneOff, Video } from "lucide-react-native";
+import { useCallStore } from "../store/useCallStore";
 
 interface IncomingCallScreenProps {
   callerUsername: string;
@@ -13,17 +14,21 @@ export default function IncomingCallScreen({
   onAccept,
   onDecline,
 }: IncomingCallScreenProps) {
+  const isVideo = useCallStore((state) => state.isVideo);
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>
+        <View style={[styles.avatarContainer, isVideo && styles.videoAvatarContainer]}>
+          <Text style={[styles.avatarText, isVideo && styles.videoAvatarText]}>
             {callerUsername.slice(0, 2).toUpperCase()}
           </Text>
         </View>
 
         <Text style={styles.callerName}>{callerUsername}</Text>
-        <Text style={styles.callType}>Incoming Voice Call</Text>
+        <Text style={styles.callType}>
+          {isVideo ? "Incoming Video Call" : "Incoming Voice Call"}
+        </Text>
       </View>
 
       <View style={styles.actionsContainer}>
@@ -42,7 +47,11 @@ export default function IncomingCallScreen({
           onPress={onAccept}
           style={[styles.actionButton, styles.acceptButton]}
         >
-          <Phone size={28} color="#ffffff" />
+          {isVideo ? (
+            <Video size={28} color="#ffffff" />
+          ) : (
+            <Phone size={28} color="#ffffff" />
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -116,5 +125,13 @@ const styles = StyleSheet.create({
   },
   acceptButton: {
     backgroundColor: "#10b981",
+  },
+  videoAvatarContainer: {
+    borderColor: "#10b981",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    shadowColor: "#10b981",
+  },
+  videoAvatarText: {
+    color: "#10b981",
   },
 });

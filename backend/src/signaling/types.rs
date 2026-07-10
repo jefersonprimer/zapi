@@ -11,6 +11,8 @@ pub enum WsMessage {
         target_user_id: Uuid,
         #[serde(default)]
         caller_username: Option<String>,
+        #[serde(default)]
+        is_video: Option<bool>,
     },
     #[serde(rename = "call:ringing")]
     CallRinging {

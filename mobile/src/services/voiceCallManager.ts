@@ -57,9 +57,10 @@ class VoiceCallManager {
     switch (msg.type) {
       case "call:start":
         // Distinguish between caller and callee based on local store callState
+        const isVideoCall = !!msg.is_video;
         if (store.callState === "calling") {
           // I am the caller: Server generated a call_id, let's update it
-          store.initiateCall(msg.call_id, msg.target_user_id, store.calleeUsername || "User");
+          store.initiateCall(msg.call_id, msg.target_user_id, store.calleeUsername || "User", isVideoCall);
         } else {
           // I am the callee: This is an incoming call alert
           if (store.callState !== "idle") {
@@ -68,7 +69,7 @@ class VoiceCallManager {
           }
           // Shift to ringing state and display incoming calling screen
           const callerName = msg.caller_username || `User_${msg.target_user_id.slice(0, 4)}`;
-          store.receiveCall(msg.call_id, msg.target_user_id, callerName);
+          store.receiveCall(msg.call_id, msg.target_user_id, callerName, isVideoCall);
           this.send({ type: "call:ringing", call_id: msg.call_id, caller_id: msg.target_user_id });
         }
         break;
@@ -151,10 +152,10 @@ class VoiceCallManager {
   }
 
   // Initiate calling Bob
-  startCall(targetUserId: string, targetUsername: string) {
+  startCall(targetUserId: string, targetUsername: string, isVideo: boolean = false) {
     const store = useCallStore.getState();
-    store.initiateCall("", targetUserId, targetUsername);
-    this.send({ type: "call:start", target_user_id: targetUserId });
+    store.initiateCall("", targetUserId, targetUsername, isVideo);
+    this.send({ type: "call:start", target_user_id: targetUserId, is_video: isVideo });
   }
 
   // Accept incoming call
@@ -194,6 +195,26 @@ class VoiceCallManager {
     }
   }
 
+  // Toggle local camera
+  setCameraEnabled(enabled: boolean) {
+    if (this.localStream) {
+      this.localStream.getVideoTracks().forEach((track: any) => {
+        track.enabled = enabled;
+      });
+    }
+  }
+
+  // Flip between front and back camera
+  switchCamera() {
+    if (this.localStream) {
+      this.localStream.getVideoTracks().forEach((track: any) => {
+        if (typeof track._switchCamera === "function") {
+          track._switchCamera();
+        }
+      });
+    }
+  }
+
   // Toggle audio output routing via expo-av
   async setSpeaker(speaker: boolean) {
     try {
@@ -216,13 +237,19 @@ class VoiceCallManager {
     try {
       this.localStream = await mediaDevices.getUserMedia({
         audio: true,
-        video: false,
+        video: store.isVideo ? {
+          facingMode: store.isFrontCamera ? "user" : "environment"
+        } : false,
       });
-    } catch (e) {
-      console.error("Microphone access denied", e);
-      this.send({ type: "call:failed", call_id: callId, reason: "Mic permission denied" });
+    } catch (e: any) {
+      console.error("Microphone/Camera access denied", e);
+      let errorMsg = "Microphone/Camera permission denied";
+      if (Platform.OS === "web" && !window.isSecureContext) {
+        errorMsg = "WebRTC requires a Secure Context (HTTPS or localhost) to access camera/microphone.";
+      }
+      this.send({ type: "call:failed", call_id: callId, reason: errorMsg });
       store.setCallState("failed");
-      store.setError("Microphone permission denied");
+      store.setError(errorMsg);
       this.cleanupCall();
       setTimeout(() => store.resetCall(), 3000);
       return;

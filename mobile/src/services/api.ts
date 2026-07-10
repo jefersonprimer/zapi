@@ -24,6 +24,7 @@ export interface ChatListItem {
   last_message: string | null;
   last_message_at: string | null;
   created_at: string;
+  unread_count: number;
 }
 
 export interface Message {
@@ -222,6 +223,12 @@ export async function addContact(token: string, contactId: string): Promise<{ st
 export async function removeContact(token: string, contactId: string): Promise<{ status: string }> {
   return authFetch(`${API_URL}/contacts/${contactId}`, token, {
     method: "DELETE",
+  });
+}
+
+export async function markChatRead(token: string, chatId: string): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/chats/${chatId}/read`, token, {
+    method: "POST",
   });
 }
 

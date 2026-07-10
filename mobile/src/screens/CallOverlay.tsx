@@ -13,9 +13,16 @@ export default function CallOverlay() {
     calleeUsername,
     isMuted,
     isSpeakerEnabled,
+    isVideo,
+    isCameraEnabled,
+    isFrontCamera,
+    localStream,
+    remoteStream,
     error,
     toggleMute,
     toggleSpeaker,
+    toggleCamera,
+    switchCamera,
     acceptCall,
     rejectCall,
     endCall,
@@ -58,9 +65,16 @@ export default function CallOverlay() {
         callState={callState}
         isMuted={isMuted}
         isSpeakerEnabled={isSpeakerEnabled}
+        isVideo={isVideo}
+        isCameraEnabled={isCameraEnabled}
+        isFrontCamera={isFrontCamera}
+        localStream={localStream}
+        remoteStream={remoteStream}
         error={error}
         onToggleMute={toggleMute}
         onToggleSpeaker={toggleSpeaker}
+        onToggleCamera={toggleCamera}
+        onSwitchCamera={switchCamera}
         onEndCall={endCall}
       />
     );

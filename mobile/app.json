@@ -10,7 +10,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.primer.chat",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Allow Primer Chat to access your microphone to make voice calls."
+        "NSMicrophoneUsageDescription": "Allow Primer Chat to access your microphone to make voice and video calls.",
+        "NSCameraUsageDescription": "Allow Primer Chat to access your camera to make video calls."
       }
     },
     "android": {
@@ -27,7 +28,13 @@
     "plugins": [
       "expo-secure-store",
       "expo-notifications",
-      "@config-plugins/react-native-webrtc"
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Allow Primer Chat to access your camera to make video calls.",
+          "microphonePermission": "Allow Primer Chat to access your microphone to make voice and video calls."
+        }
+      ]
     ]
   }
 }

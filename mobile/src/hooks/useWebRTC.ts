@@ -12,11 +12,16 @@ export function useWebRTC() {
     calleeUsername,
     isMuted,
     isSpeakerEnabled,
+    isVideo,
+    isCameraEnabled,
+    isFrontCamera,
     localStream,
     remoteStream,
     error,
     toggleMute: toggleMuteStore,
     toggleSpeaker: toggleSpeakerStore,
+    toggleCamera: toggleCameraStore,
+    switchCamera: switchCameraStore,
   } = useCallStore();
 
   const toggleMute = useCallback(() => {
@@ -31,8 +36,19 @@ export function useWebRTC() {
     toggleSpeakerStore();
   }, [isSpeakerEnabled, toggleSpeakerStore]);
 
-  const startCall = useCallback((targetUserId: string, targetUsername: string) => {
-    voiceCallManager.startCall(targetUserId, targetUsername);
+  const toggleCamera = useCallback(() => {
+    const nextCamera = !isCameraEnabled;
+    voiceCallManager.setCameraEnabled(nextCamera);
+    toggleCameraStore();
+  }, [isCameraEnabled, toggleCameraStore]);
+
+  const switchCamera = useCallback(() => {
+    voiceCallManager.switchCamera();
+    switchCameraStore();
+  }, [switchCameraStore]);
+
+  const startCall = useCallback((targetUserId: string, targetUsername: string, isVideo: boolean = false) => {
+    voiceCallManager.startCall(targetUserId, targetUsername, isVideo);
   }, []);
 
   const acceptCall = useCallback(() => {
@@ -56,11 +72,16 @@ export function useWebRTC() {
     calleeUsername,
     isMuted,
     isSpeakerEnabled,
+    isVideo,
+    isCameraEnabled,
+    isFrontCamera,
     localStream,
     remoteStream,
     error,
     toggleMute,
     toggleSpeaker,
+    toggleCamera,
+    switchCamera,
     startCall,
     acceptCall,
     rejectCall,

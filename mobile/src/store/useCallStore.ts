@@ -21,17 +21,22 @@ interface CallStoreState {
   calleeUsername: string | null;
   isMuted: boolean;
   isSpeakerEnabled: boolean;
+  isVideo: boolean;
+  isCameraEnabled: boolean;
+  isFrontCamera: boolean;
   localStream: any | null; // MediaStream from react-native-webrtc
   remoteStream: any | null; // MediaStream from react-native-webrtc
   error: string | null;
 
   // Actions
   setCallState: (state: CallState) => void;
-  initiateCall: (callId: string, calleeId: string, calleeUsername: string) => void;
-  receiveCall: (callId: string, callerId: string, callerUsername: string) => void;
+  initiateCall: (callId: string, calleeId: string, calleeUsername: string, isVideo?: boolean) => void;
+  receiveCall: (callId: string, callerId: string, callerUsername: string, isVideo?: boolean) => void;
   setStreams: (local: any | null, remote: any | null) => void;
   toggleMute: () => void;
   toggleSpeaker: () => void;
+  toggleCamera: () => void;
+  switchCamera: () => void;
   setError: (error: string | null) => void;
   resetCall: () => void;
 }
@@ -45,13 +50,16 @@ export const useCallStore = create<CallStoreState>((set) => ({
   calleeUsername: null,
   isMuted: false,
   isSpeakerEnabled: false,
+  isVideo: false,
+  isCameraEnabled: true,
+  isFrontCamera: true,
   localStream: null,
   remoteStream: null,
   error: null,
 
   setCallState: (callState) => set({ callState }),
 
-  initiateCall: (callId, calleeId, calleeUsername) =>
+  initiateCall: (callId, calleeId, calleeUsername, isVideo = false) =>
     set({
       callState: "calling",
       callId,
@@ -60,11 +68,14 @@ export const useCallStore = create<CallStoreState>((set) => ({
       callerId: null,
       callerUsername: null,
       isMuted: false,
-      isSpeakerEnabled: false,
+      isSpeakerEnabled: isVideo, // Route to speaker by default for video calls
+      isVideo,
+      isCameraEnabled: isVideo,
+      isFrontCamera: true,
       error: null,
     }),
 
-  receiveCall: (callId, callerId, callerUsername) =>
+  receiveCall: (callId, callerId, callerUsername, isVideo = false) =>
     set({
       callState: "ringing",
       callId,
@@ -73,7 +84,10 @@ export const useCallStore = create<CallStoreState>((set) => ({
       calleeId: null,
       calleeUsername: null,
       isMuted: false,
-      isSpeakerEnabled: false,
+      isSpeakerEnabled: isVideo, // Route to speaker by default for video calls
+      isVideo,
+      isCameraEnabled: isVideo,
+      isFrontCamera: true,
       error: null,
     }),
 
@@ -82,6 +96,10 @@ export const useCallStore = create<CallStoreState>((set) => ({
   toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
 
   toggleSpeaker: () => set((state) => ({ isSpeakerEnabled: !state.isSpeakerEnabled })),
+
+  toggleCamera: () => set((state) => ({ isCameraEnabled: !state.isCameraEnabled })),
+
+  switchCamera: () => set((state) => ({ isFrontCamera: !state.isFrontCamera })),
 
   setError: (error) => set({ error }),
 
@@ -95,6 +113,9 @@ export const useCallStore = create<CallStoreState>((set) => ({
       calleeUsername: null,
       isMuted: false,
       isSpeakerEnabled: false,
+      isVideo: false,
+      isCameraEnabled: true,
+      isFrontCamera: true,
       localStream: null,
       remoteStream: null,
       error: null,

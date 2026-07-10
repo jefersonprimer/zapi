@@ -31,7 +31,6 @@ import {
 } from "../components/AttachCameraButton";
 import { SendOrMicButton } from "../components/SendOrMicButton";
 import { ChatMenuModal } from "../components/ChatMenuModal";
-import { AudioPlayer } from "../components/AudioPlayer";
 import { MessageBubble } from "../components/MessageBubble";
 import { VoiceNoteRecorderBar } from "../components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "../components/AttachmentPreviewBar";
@@ -44,6 +43,7 @@ import {
   getContacts,
   addContact,
   removeContact,
+  markChatRead,
 } from "../services/api";
 import { wsClient } from "../services/ws";
 import { voiceCallManager } from "../services/voiceCallManager";
@@ -259,7 +259,22 @@ export default function ChatScreen({ route, navigation }: Props) {
         title: participantUsername,
         headerRight: () => (
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (participantId) {
+                  voiceCallManager.startCall(
+                    participantId,
+                    participantUsername || "User",
+                    true,
+                  );
+                } else {
+                  Alert.alert(
+                    "Error",
+                    "Cannot initiate call: Participant ID is missing.",
+                  );
+                }
+              }}
+            >
               <Video size={22} color="#272727" />
             </TouchableOpacity>
             <TouchableOpacity
@@ -328,13 +343,18 @@ export default function ChatScreen({ route, navigation }: Props) {
 
     const unsub = wsClient.on("new_message", (data) => {
       setMessages((prev) => [...prev, data.message]);
+      if (data.message.sender_id !== user?.user_id) {
+        markChatRead(token, chatId).catch((err) =>
+          console.error("Error marking chat read:", err)
+        );
+      }
     });
 
     return () => {
       unsub();
       wsClient.unsubscribe(chatId);
     };
-  }, [chatId, token]);
+  }, [chatId, token, user]);
 
   async function handleSend() {
     const hasContent = content.trim().length > 0;

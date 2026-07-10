@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import EndCallButton from "../components/EndCallButton";
 import ConnectionStatus from "../components/ConnectionStatus";
-import { type CallState } from "../store/useCallStore";
+import { type CallState, useCallStore } from "../store/useCallStore";
 
 interface OutgoingCallScreenProps {
   calleeUsername: string;
@@ -15,16 +15,21 @@ export default function OutgoingCallScreen({
   callState,
   onCancel,
 }: OutgoingCallScreenProps) {
+  const isVideo = useCallStore((state) => state.isVideo);
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>
+        <View style={[styles.avatarContainer, isVideo && styles.videoAvatarContainer]}>
+          <Text style={[styles.avatarText, isVideo && styles.videoAvatarText]}>
             {calleeUsername.slice(0, 2).toUpperCase()}
           </Text>
         </View>
 
         <Text style={styles.calleeName}>{calleeUsername}</Text>
+        <Text style={styles.callType}>
+          {isVideo ? "Outgoing Video Call" : "Outgoing Voice Call"}
+        </Text>
         <ConnectionStatus state={callState} />
       </View>
 
@@ -67,7 +72,21 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "#ffffff",
+    marginBottom: 8,
+  },
+  callType: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.5)",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
     marginBottom: 16,
+  },
+  videoAvatarContainer: {
+    borderColor: "#10b981",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+  },
+  videoAvatarText: {
+    color: "#10b981",
   },
   actionsContainer: {
     alignItems: "center",

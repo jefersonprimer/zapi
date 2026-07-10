@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getChats, type ChatListItem } from "../services/api";
 import { MessageSquare, Camera, MoreVertical } from "lucide-react-native";
+import { wsClient } from "../services/ws";
 
 type Props = {
   navigation: any;
@@ -43,6 +44,14 @@ export default function ChatListScreen({ navigation }: Props) {
     const unsubscribe = navigation.addListener("focus", loadChats);
     return unsubscribe;
   }, [navigation, loadChats]);
+
+  useEffect(() => {
+    if (!token) return;
+    const unsub = wsClient.on("chat_list_update", () => {
+      loadChats();
+    });
+    return unsub;
+  }, [token, loadChats]);
 
   function formatTime(iso: string | null) {
     if (!iso) return "";
@@ -140,11 +149,26 @@ export default function ChatListScreen({ navigation }: Props) {
                 <Text style={styles.chatName}>
                   {item.name ?? item.participant_username ?? "Unknown"}
                 </Text>
-                <Text style={styles.lastMessage} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.lastMessage,
+                    item.unread_count > 0 && styles.lastMessageUnread,
+                  ]}
+                  numberOfLines={1}
+                >
                   {item.last_message ?? "No messages yet"}
                 </Text>
               </View>
-              <Text style={styles.time}>{formatTime(item.last_message_at)}</Text>
+              <View style={styles.rightContainer}>
+                <Text style={[styles.time, item.unread_count > 0 && styles.timeUnread]}>
+                  {formatTime(item.last_message_at)}
+                </Text>
+                {item.unread_count > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{item.unread_count}</Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           )}
         />
@@ -204,7 +228,29 @@ const styles = StyleSheet.create({
   chatInfo: { flex: 1 },
   chatName: { fontSize: 16, fontWeight: "600", color: "#333", marginBottom: 2 },
   lastMessage: { fontSize: 14, color: "#999" },
-  time: { fontSize: 12, color: "#bbb", marginLeft: 8 },
+  lastMessageUnread: { color: "#111", fontWeight: "700" },
+  time: { fontSize: 12, color: "#bbb" },
+  timeUnread: { color: "#007AFF", fontWeight: "700" },
+  rightContainer: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  badge: {
+    backgroundColor: "#34C759",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    marginTop: 6,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
   empty: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyText: { fontSize: 18, color: "#999", marginBottom: 4 },
   emptySubtext: { fontSize: 14, color: "#ccc" },

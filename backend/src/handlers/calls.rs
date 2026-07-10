@@ -19,6 +19,7 @@ use crate::signaling::types::WsMessage;
 #[derive(Debug, Deserialize)]
 pub struct StartCallRequest {
     pub target_user_id: Uuid,
+    pub is_video: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,6 +56,7 @@ pub async fn start_call(
         call_id: Some(call_id),
         target_user_id: caller_id,
         caller_username: Some(caller_username),
+        is_video: payload.is_video,
     }).unwrap();
 
     // Bob gets incoming call containing the caller's details
