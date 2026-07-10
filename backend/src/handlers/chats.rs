@@ -78,7 +78,7 @@ pub async fn list_chats(
     auth: AuthUser,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let chats = sqlx::query_as::<_, ChatListItem>(
-        "WITH users_in_chat AS (
+        r#"WITH users_in_chat AS (
             SELECT chat_id, jsonb_agg(jsonb_build_object('id', u.id, 'username', u.username)) AS users
             FROM chat_participants cp
             JOIN users u ON u.id = cp.user_id
@@ -90,7 +90,18 @@ pub async fn list_chats(
             (SELECT u2.username FROM chat_participants cp2 JOIN users u2 ON u2.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1) AS participant_username,
             c.is_group,
             c.name,
-            m.content AS last_message,
+            CASE
+                WHEN m.deleted_for_everyone = TRUE THEN '🚫 Esta mensagem foi apagada'
+                WHEN m.content IS NOT NULL AND TRIM(m.content) != '' THEN m.content
+                WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' THEN
+                    CASE
+                        WHEN m.image_url ~* '\.(jpg|jpeg|png|gif|webp)(\?.*)?$' THEN '📷 Foto'
+                        WHEN m.image_url ~* '\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$' THEN '🎵 Áudio'
+                        WHEN m.image_url ~* '\.(mp4|mov|webm|mkv|avi)(\?.*)?$' THEN '🎥 Vídeo'
+                        ELSE '📁 Arquivo'
+                    END
+                ELSE NULL
+            END AS last_message,
             m.created_at AS last_message_at,
             c.created_at,
             (
@@ -102,12 +113,12 @@ pub async fn list_chats(
          FROM chats c
          JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
          LEFT JOIN LATERAL (
-             SELECT content, created_at FROM messages
+             SELECT content, image_url, deleted_for_everyone, created_at FROM messages
              WHERE chat_id = c.id
              ORDER BY created_at DESC
              LIMIT 1
          ) m ON true
-         ORDER BY m.created_at DESC NULLS LAST",
+         ORDER BY m.created_at DESC NULLS LAST"#,
     )
     .bind(auth.0)
     .fetch_all(&pool)

@@ -10,11 +10,11 @@ import {
   Alert,
   Clipboard,
   Modal,
+  Keyboard,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { Audio } from "expo-av";
-import * as SecureStore from "expo-secure-store";
 import {
   Phone as PhoneIcon,
   MoreVertical as MoreVerticalIcon,
@@ -38,7 +38,7 @@ import { ChatMenuModal } from "../components/ChatMenuModal";
 import { MessageBubble } from "../components/MessageBubble";
 import { VoiceNoteRecorderBar } from "../components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "../components/AttachmentPreviewBar";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, getStorageItem, setStorageItem } from "../context/AuthContext";
 import {
   getMessages,
   sendMessage,
@@ -48,11 +48,13 @@ import {
   addContact,
   removeContact,
   markChatRead,
+  deleteMessageForEveryone,
 } from "../services/api";
 import { wsClient } from "../services/ws";
 import { voiceCallManager } from "../services/voiceCallManager";
 import { getCallHistory, type CallHistoryItem } from "../services/callApi";
 import { useCallStore } from "../store/useCallStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ChatItem =
   | { type: "message"; data: Message }
@@ -126,6 +128,28 @@ type Props = {
 };
 
 export default function ChatScreen({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSubscription = Keyboard.addListener(showEvent, () => {
+      setIsKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
   const { chatId, participantId, participantUsername } = route.params;
   const { token, user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -172,11 +196,11 @@ export default function ChatScreen({ route, navigation }: Props) {
     return items;
   }, [messages, calls, deletedIds, user?.user_id, participantId]);
 
-  // Load deleted messages from SecureStore
+  // Load deleted messages from platform-aware storage
   useEffect(() => {
     (async () => {
       try {
-        const stored = await SecureStore.getItemAsync(deletedKey);
+        const stored = await getStorageItem(deletedKey);
         if (stored) {
           setDeletedIds(JSON.parse(stored));
         } else {
@@ -193,9 +217,28 @@ export default function ChatScreen({ route, navigation }: Props) {
     const newDeleted = [...deletedIds, selectedMessage.id];
     setDeletedIds(newDeleted);
     try {
-      await SecureStore.setItemAsync(deletedKey, JSON.stringify(newDeleted));
+      await setStorageItem(deletedKey, JSON.stringify(newDeleted));
     } catch (err) {
       console.error("Error saving deleted message:", err);
+    }
+    setSelectedMessage(null);
+    setDeleteModalVisible(false);
+  }
+
+  async function handleDeleteForEveryone() {
+    if (!selectedMessage || !token) return;
+    try {
+      await deleteMessageForEveryone(token, chatId, selectedMessage.id);
+      // Update local messages state immediately
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === selectedMessage.id
+            ? { ...msg, deleted_for_everyone: true, content: null, image_url: null }
+            : msg
+        )
+      );
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Não foi possível apagar a mensagem para todos.");
     }
     setSelectedMessage(null);
     setDeleteModalVisible(false);
@@ -405,8 +448,21 @@ export default function ChatScreen({ route, navigation }: Props) {
       }
     });
 
+    const unsubDelete = wsClient.on("message_deleted", (data) => {
+      if (data.chat_id === chatId) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === data.message_id
+              ? { ...msg, deleted_for_everyone: true, content: null, image_url: null }
+              : msg
+          )
+        );
+      }
+    });
+
     return () => {
       unsub();
+      unsubDelete();
       wsClient.unsubscribe(chatId);
     };
   }, [chatId, token, user]);
@@ -767,10 +823,18 @@ export default function ChatScreen({ route, navigation }: Props) {
     }
   }
 
+  const isDeleteForEveryoneAvailable = (() => {
+    if (!selectedMessage || selectedMessage.sender_id !== user?.user_id) return false;
+    const sentTime = new Date(selectedMessage.created_at).getTime();
+    const now = Date.now();
+    const ageInHours = (now - sentTime) / (1000 * 60 * 60);
+    return ageInHours < 24;
+  })();
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 90}
     >
       <FlatList
@@ -808,7 +872,7 @@ export default function ChatScreen({ route, navigation }: Props) {
                   </View>
                 )}
                 <TouchableOpacity
-                  onLongPress={() => setSelectedMessage(msg)}
+                  onLongPress={() => !msg.deleted_for_everyone && setSelectedMessage(msg)}
                   delayLongPress={500}
                   style={[
                     styles.messageRow,
@@ -934,7 +998,7 @@ export default function ChatScreen({ route, navigation }: Props) {
         />
       )}
 
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? 6 : insets.bottom }]}>
         {isRecording ? (
           <VoiceNoteRecorderBar
             recordingDuration={recordingDuration}
@@ -985,19 +1049,44 @@ export default function ChatScreen({ route, navigation }: Props) {
         <View style={styles.modalOverlayCentered}>
           <View style={styles.alertContainer}>
             <Text style={styles.alertTitle}>Deseja apagar a mensagem?</Text>
-            <View style={styles.alertButtons}>
-              <TouchableOpacity
-                style={[styles.alertButton, styles.cancelButton]}
-                onPress={() => setDeleteModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.alertButton, styles.deleteButton]}
-                onPress={handleDeleteForMe}
-              >
-                <Text style={styles.deleteButtonText}>Apagar para mim</Text>
-              </TouchableOpacity>
+            <View style={isDeleteForEveryoneAvailable ? styles.alertButtonsVertical : styles.alertButtons}>
+              {isDeleteForEveryoneAvailable ? (
+                <>
+                  <TouchableOpacity
+                    style={[styles.alertButtonVertical, styles.deleteEveryoneButton]}
+                    onPress={handleDeleteForEveryone}
+                  >
+                    <Text style={styles.deleteButtonText}>Apagar para todos</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.alertButtonVertical, styles.deleteMeButton]}
+                    onPress={handleDeleteForMe}
+                  >
+                    <Text style={styles.deleteMeButtonText}>Apagar para mim</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.alertButtonVertical, styles.cancelButtonVertical]}
+                    onPress={() => setDeleteModalVisible(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[styles.alertButton, styles.cancelButton]}
+                    onPress={() => setDeleteModalVisible(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.alertButton, styles.deleteButton]}
+                    onPress={handleDeleteForMe}
+                  >
+                    <Text style={styles.deleteButtonText}>Apagar para mim</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -1093,6 +1182,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  alertButtonsVertical: {
+    flexDirection: "column",
+    width: "100%",
+    gap: 10,
+  },
+  alertButtonVertical: {
+    width: "100%",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  deleteEveryoneButton: {
+    backgroundColor: "#ff3b30",
+  },
+  deleteMeButton: {
+    backgroundColor: "#f5f5f5",
+  },
+  deleteMeButtonText: {
+    color: "#ff9500",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  cancelButtonVertical: {
+    backgroundColor: "#e0e0e0",
+  },
 
   dropdownOverlay: {
     flex: 1,
@@ -1136,6 +1250,7 @@ const styles = StyleSheet.create({
   },
 
   inputContainerMessage: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#ffffff",
@@ -1143,6 +1258,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 4,
+    marginRight: 8,
   },
   emptyText: {
     textAlign: "center",
@@ -1174,6 +1290,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   callBubble: {
+    width: "75%",
     maxWidth: "75%",
     padding: 12,
     borderRadius: 16,
@@ -1187,6 +1304,8 @@ const styles = StyleSheet.create({
   callBubbleContent: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 1,
+    width: "100%",
   },
   callIconContainer: {
     width: 40,
@@ -1203,6 +1322,7 @@ const styles = StyleSheet.create({
   callStatusText: {
     fontSize: 15,
     fontWeight: "600",
+    flexShrink: 1,
   },
   callbackButton: {
     marginTop: 4,

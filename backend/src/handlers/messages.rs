@@ -63,7 +63,8 @@ pub async fn send_message(
             (SELECT username FROM users WHERE id = $2) AS sender_username,
             content,
             image_url,
-            created_at",
+            created_at,
+            deleted_for_everyone",
     )
     .bind(chat_id)
     .bind(auth.0)
@@ -101,7 +102,42 @@ pub async fn send_message(
 
     let sender_name = msg.sender_username.clone();
     let push_body = body.content.clone().unwrap_or_default();
-    let push_text = if push_body.is_empty() { "📷 Image".to_string() } else { push_body };
+    let push_text = if push_body.trim().is_empty() {
+        if let Some(ref url) = body.image_url {
+            let url_lower = url.to_lowercase();
+            if url_lower.ends_with(".jpg")
+                || url_lower.ends_with(".jpeg")
+                || url_lower.ends_with(".png")
+                || url_lower.ends_with(".gif")
+                || url_lower.ends_with(".webp")
+            {
+                "📷 Foto".to_string()
+            } else if url_lower.ends_with(".m4a")
+                || url_lower.ends_with(".mp3")
+                || url_lower.ends_with(".wav")
+                || url_lower.ends_with(".caf")
+                || url_lower.ends_with(".ogg")
+                || url_lower.ends_with(".3gp")
+                || url_lower.ends_with(".opus")
+                || url_lower.contains("audio")
+            {
+                "🎵 Áudio".to_string()
+            } else if url_lower.ends_with(".mp4")
+                || url_lower.ends_with(".mov")
+                || url_lower.ends_with(".webm")
+                || url_lower.ends_with(".mkv")
+                || url_lower.ends_with(".avi")
+            {
+                "🎥 Vídeo".to_string()
+            } else {
+                "📁 Arquivo".to_string()
+            }
+        } else {
+            "Mensagem".to_string()
+        }
+    } else {
+        push_body
+    };
     tokio::spawn(async move {
         crate::push::send_push_notification(&pool, chat_id, &sender_name, &push_text, auth.0).await;
     });
@@ -143,7 +179,7 @@ pub async fn get_messages(
         .await;
 
     let messages = sqlx::query_as::<_, Message>(
-        "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at
+        "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at, m.deleted_for_everyone
          FROM messages m
          JOIN users u ON u.id = m.sender_id
          WHERE m.chat_id = $1
@@ -201,4 +237,128 @@ pub async fn mark_chat_read(
         })?;
 
     Ok(Json(json!({ "status": "success" })))
+}
+
+#[derive(sqlx::FromRow)]
+struct MessageDeleteMeta {
+    sender_id: Uuid,
+    chat_id: Uuid,
+    image_url: Option<String>,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+pub async fn delete_message(
+    State(pool): State<PgPool>,
+    State(ws_state): State<ws::WsState>,
+    State(call_manager): State<crate::signaling::CallManager>,
+    auth: AuthUser,
+    Path((chat_id, message_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // 1. Fetch message metadata to verify
+    let message: Option<MessageDeleteMeta> = sqlx::query_as(
+        "SELECT sender_id, chat_id, image_url, created_at FROM messages WHERE id = $1"
+    )
+    .bind(message_id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Error fetching message: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "database error" })),
+        )
+    })?;
+
+    let meta = match message {
+        Some(m) => m,
+        None => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "message not found" })),
+            ));
+        }
+    };
+
+    // 2. Authorization check
+    if meta.sender_id != auth.0 {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "only the sender can delete the message for everyone" })),
+        ));
+    }
+
+    if meta.chat_id != chat_id {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "message does not belong to this chat" })),
+        ));
+    }
+
+    // 3. Time validation (24-hour limit)
+    let now = chrono::Utc::now();
+    if now.signed_duration_since(meta.created_at) > chrono::Duration::hours(24) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "messages older than 24 hours cannot be deleted for everyone" })),
+        ));
+    }
+
+    // 4. Update DB (Soft Delete - Tombstone)
+    sqlx::query(
+        "UPDATE messages 
+         SET content = NULL, image_url = NULL, deleted_for_everyone = TRUE, deleted_at = NOW() 
+         WHERE id = $1"
+    )
+    .bind(message_id)
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Error soft-deleting message: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "failed to delete message" })),
+        )
+    })?;
+
+    // 5. Async physical file deletion (if image_url is present)
+    if let Some(url) = meta.image_url {
+        if url.starts_with("/uploads/") {
+            let relative_path = url.trim_start_matches('/').to_string();
+            tokio::spawn(async move {
+                let filepath = std::path::Path::new(&relative_path).to_path_buf();
+                if let Err(e) = tokio::fs::remove_file(&filepath).await {
+                    tracing::error!("Failed to delete physical file {:?}: {}", filepath, e);
+                } else {
+                    tracing::debug!("Successfully deleted physical file {:?}", filepath);
+                }
+            });
+        }
+    }
+
+    // 6. Broadcast via WebSocket
+    let ws_event = json!({
+        "type": "message_deleted",
+        "chat_id": chat_id,
+        "message_id": message_id
+    }).to_string();
+    let _ = ws_state.broadcast(chat_id, &ws_event).await;
+
+    // 7. Notify participants to refresh chat list
+    let participants: Vec<(Uuid,)> = sqlx::query_as(
+        "SELECT user_id FROM chat_participants WHERE chat_id = $1"
+    )
+    .bind(chat_id)
+    .fetch_all(&pool)
+    .await
+    .unwrap_or_default();
+
+    for (p_id,) in participants {
+        let update_msg = json!({
+            "type": "chat_list_update",
+            "chat_id": chat_id
+        }).to_string();
+        call_manager.send_to_user(p_id, &update_msg);
+    }
+
+    Ok(Json(json!({ "status": "success", "message_id": message_id })))
 }

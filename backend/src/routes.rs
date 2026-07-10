@@ -33,6 +33,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/chats", post(handlers::chats::create_chat))
         .route("/chats/:id/messages", get(handlers::messages::get_messages))
         .route("/chats/:id/messages", post(handlers::messages::send_message))
+        .route("/chats/:id/messages/:message_id", delete(handlers::messages::delete_message))
         .route("/chats/:id/read", post(handlers::messages::mark_chat_read))
         .route("/users/search", get(handlers::users::search_users))
         .route("/push/register", post(handlers::push::register_push_token))

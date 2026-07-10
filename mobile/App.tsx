@@ -17,6 +17,7 @@ import CommunitiesScreen from "./src/screens/CommunitiesScreen";
 import CallsScreen from "./src/screens/CallsScreen";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MessageCircle, CircleDot, Users2, Phone } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Call signaling & view imports
 import { voiceCallManager } from "./src/services/voiceCallManager";
@@ -27,6 +28,7 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -34,7 +36,12 @@ function TabNavigator() {
         tabBarActiveTintColor: "#007AFF",
         tabBarInactiveTintColor: "#8e8e93",
         tabBarLabelStyle: { fontSize: 12, fontWeight: "500", paddingBottom: 4 },
-        tabBarStyle: { height: 60, borderTopColor: "#eee", paddingTop: 4 },
+        tabBarStyle: {
+          height: 60 + insets.bottom,
+          borderTopColor: "#eee",
+          paddingTop: 4,
+          paddingBottom: insets.bottom,
+        },
         tabBarIcon: ({ color, size }) => {
           if (route.name === "ConversasTab") {
             return <MessageCircle color={color} size={size} />;

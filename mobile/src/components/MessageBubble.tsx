@@ -24,6 +24,33 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
       : `${API_URL}${item.image_url}`
     : null;
 
+  if (item.deleted_for_everyone) {
+    return (
+      <View
+        style={[
+          styles.messageBubble,
+          isMine ? styles.myMessage : styles.theirMessage,
+          styles.deletedBubble,
+        ]}
+      >
+        <Text style={[styles.deletedText, isMine ? styles.myMessageDeletedText : styles.messageDeletedText]}>
+          🚫 Esta mensagem foi apagada
+        </Text>
+        <Text
+          style={[
+            styles.messageTime,
+            isMine ? styles.myMessageTime : styles.theirMessageTime,
+          ]}
+        >
+          {new Date(item.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
@@ -179,4 +206,20 @@ const styles = StyleSheet.create({
   docSubtitle: { fontSize: 11, marginTop: 2 },
   docSubMine: { color: "rgba(255, 255, 255, 0.7)" },
   docSubTheir: { color: "#666" },
+  deletedBubble: {
+    borderStyle: "dashed",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    opacity: 0.8,
+  },
+  deletedText: {
+    fontStyle: "italic",
+    fontSize: 14,
+  },
+  myMessageDeletedText: {
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+  messageDeletedText: {
+    color: "#888",
+  },
 });

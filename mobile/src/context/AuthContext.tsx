@@ -26,7 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 // Platform-aware storage helpers to ensure web support
-const getStorageItem = async (key: string): Promise<string | null> => {
+export const getStorageItem = async (key: string): Promise<string | null> => {
   if (Platform.OS === "web") {
     return localStorage.getItem(key);
   }
@@ -37,7 +37,7 @@ const getStorageItem = async (key: string): Promise<string | null> => {
   }
 };
 
-const setStorageItem = async (key: string, value: string): Promise<void> => {
+export const setStorageItem = async (key: string, value: string): Promise<void> => {
   if (Platform.OS === "web") {
     localStorage.setItem(key, value);
     return;
@@ -47,7 +47,7 @@ const setStorageItem = async (key: string, value: string): Promise<void> => {
   } catch {}
 };
 
-const deleteStorageItem = async (key: string): Promise<void> => {
+export const deleteStorageItem = async (key: string): Promise<void> => {
   if (Platform.OS === "web") {
     localStorage.removeItem(key);
     return;

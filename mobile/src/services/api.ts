@@ -32,9 +32,10 @@ export interface Message {
   chat_id: string;
   sender_id: string;
   sender_username: string;
-  content: string;
+  content: string | null;
   image_url: string | null;
   created_at: string;
+  deleted_for_everyone?: boolean;
 }
 
 export async function authFetch(url: string, token: string, options: RequestInit = {}) {
@@ -229,6 +230,16 @@ export async function removeContact(token: string, contactId: string): Promise<{
 export async function markChatRead(token: string, chatId: string): Promise<{ status: string }> {
   return authFetch(`${API_URL}/chats/${chatId}/read`, token, {
     method: "POST",
+  });
+}
+
+export async function deleteMessageForEveryone(
+  token: string,
+  chatId: string,
+  messageId: string
+): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/chats/${chatId}/messages/${messageId}`, token, {
+    method: "DELETE",
   });
 }
 
