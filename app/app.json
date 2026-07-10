@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Primer Chat",
-    "slug": "primer-chat",
+    "name": "Zapi",
+    "slug": "primer-zapi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,8 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.primer.chat",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Allow Primer Chat to access your microphone to make voice and video calls.",
-        "NSCameraUsageDescription": "Allow Primer Chat to access your camera to make video calls."
+        "NSMicrophoneUsageDescription": "Allow Zapi to access your microphone to make voice and video calls.",
+        "NSCameraUsageDescription": "Allow Zapi to access your camera to make video calls."
       }
     },
     "android": {
@@ -24,11 +24,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "permissions": [
-        "RECORD_AUDIO",
-        "MODIFY_AUDIO_SETTINGS",
-        "CAMERA"
-      ],
+      "permissions": ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS", "CAMERA"],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -56,8 +52,8 @@
       [
         "@config-plugins/react-native-webrtc",
         {
-          "cameraPermission": "Allow Primer Chat to access your camera to make video calls.",
-          "microphonePermission": "Allow Primer Chat to access your microphone to make voice and video calls."
+          "cameraPermission": "Allow Zapi to access your camera to make video calls.",
+          "microphonePermission": "Allow Zapi Chat to access your microphone to make voice and video calls."
         }
       ]
     ],

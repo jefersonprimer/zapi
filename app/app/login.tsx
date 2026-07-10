@@ -51,7 +51,7 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <Text style={styles.title}>Primer Chat</Text>
+      <Text style={styles.title}>Zapi</Text>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
