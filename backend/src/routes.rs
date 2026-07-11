@@ -1,4 +1,4 @@
-use axum::{extract::FromRef, routing::delete, routing::get, routing::post, Router};
+use axum::{extract::{FromRef, DefaultBodyLimit}, routing::delete, routing::get, routing::post, Router};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
 
@@ -35,18 +35,21 @@ pub fn create_router(state: AppState) -> Router {
         .route("/chats/:id/messages", post(handlers::messages::send_message))
         .route("/chats/:id/messages/:message_id", delete(handlers::messages::delete_message))
         .route("/chats/:id/read", post(handlers::messages::mark_chat_read))
+        .route("/chats/:id/clear", post(handlers::messages::clear_chat_messages))
         .route("/users/search", get(handlers::users::search_users))
         .route("/push/register", post(handlers::push::register_push_token))
         .route("/groups", post(handlers::groups::create_group))
         .route("/groups/:id/add", post(handlers::groups::add_participant))
         .route("/groups/:id/remove/:user_id", delete(handlers::groups::remove_participant))
-        .route("/upload", post(handlers::upload::upload_image))
+        .route("/upload", post(handlers::upload::upload_image).layer(DefaultBodyLimit::disable()))
         .route("/calls/start", post(handlers::calls::start_call))
         .route("/calls/end", post(handlers::calls::end_call))
         .route("/calls/history", get(handlers::calls::get_history))
         .route("/contacts", get(handlers::contacts::list_contacts))
         .route("/contacts", post(handlers::contacts::add_contact))
         .route("/contacts/:contact_id", delete(handlers::contacts::remove_contact))
+        .route("/contacts/:contact_id/block", post(handlers::contacts::block_contact))
+        .route("/contacts/:contact_id/unblock", post(handlers::contacts::unblock_contact))
         .route("/ws", get(handlers::ws::ws_handler))
         .nest_service("/uploads", ServeDir::new("uploads"))
         .with_state(state)

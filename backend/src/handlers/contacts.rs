@@ -15,6 +15,7 @@ pub struct ContactResponse {
     pub contact_id: Uuid,
     pub username: String,
     pub email: String,
+    pub is_blocked: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -28,7 +29,7 @@ pub async fn list_contacts(
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let contacts = sqlx::query_as::<_, ContactResponse>(
         r#"
-        SELECT c.contact_id, u.username, u.email
+        SELECT c.contact_id, u.username, u.email, c.is_blocked
         FROM contacts c
         JOIN users u ON c.contact_id = u.id
         WHERE c.user_id = $1
@@ -122,3 +123,62 @@ pub async fn remove_contact(
 
     Ok(Json(json!({ "status": "success" })))
 }
+
+pub async fn block_contact(
+    AuthUser(user_id): AuthUser,
+    State(pool): State<PgPool>,
+    Path(contact_id): Path<Uuid>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let result = sqlx::query(
+        "UPDATE contacts SET is_blocked = TRUE WHERE user_id = $1 AND contact_id = $2"
+    )
+    .bind(user_id)
+    .bind(contact_id)
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
+    if result.rows_affected() == 0 {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Contact not found" })),
+        ));
+    }
+
+    Ok(Json(json!({ "status": "success", "is_blocked": true })))
+}
+
+pub async fn unblock_contact(
+    AuthUser(user_id): AuthUser,
+    State(pool): State<PgPool>,
+    Path(contact_id): Path<Uuid>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let result = sqlx::query(
+        "UPDATE contacts SET is_blocked = FALSE WHERE user_id = $1 AND contact_id = $2"
+    )
+    .bind(user_id)
+    .bind(contact_id)
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
+    if result.rows_affected() == 0 {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Contact not found" })),
+        ));
+    }
+
+    Ok(Json(json!({ "status": "success", "is_blocked": false })))
+}
+

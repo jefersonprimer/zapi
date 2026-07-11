@@ -1,6 +1,6 @@
-import React from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, Linking } from "react-native";
-import { FileText as FileIcon, Video as VideoIcon } from "lucide-react-native";
+import React, { useState } from "react";
+import { View, Text, Image, TouchableOpacity, StyleSheet, Linking, Modal, TouchableWithoutFeedback, SafeAreaView, Platform } from "react-native";
+import { FileText as FileIcon, Video as VideoIcon, X as XIcon } from "lucide-react-native";
 import { type Message, API_URL } from "../services/api";
 import { AudioPlayer } from "./AudioPlayer";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -19,6 +19,7 @@ const isVideoUrl = (url: string) =>
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserId }) => {
   const { colors } = useAppTheme();
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const isMine = item.sender_id === currentUserId;
   const fullUrl = item.image_url
     ? item.image_url.startsWith("http")
@@ -64,11 +65,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
       {fullUrl && (
         <>
           {isImageUrl(item.image_url!) ? (
-            <Image
-              source={{ uri: fullUrl }}
-              style={styles.messageImage}
-              resizeMode="cover"
-            />
+            <TouchableOpacity onPress={() => setIsFullScreen(true)} activeOpacity={0.9}>
+              <Image
+                source={{ uri: fullUrl }}
+                style={styles.messageImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
           ) : isAudioUrl(item.image_url!) ? (
             <AudioPlayer uri={fullUrl} isMine={isMine} />
           ) : isVideoUrl(item.image_url!) ? (
@@ -147,6 +150,38 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
           minute: "2-digit",
         })}
       </Text>
+
+      {fullUrl && isImageUrl(item.image_url!) && (
+        <Modal
+          visible={isFullScreen}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsFullScreen(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setIsFullScreen(false)}>
+            <View style={styles.modalBackground}>
+              <SafeAreaView style={styles.modalSafeArea}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setIsFullScreen(false)}
+                  activeOpacity={0.7}
+                >
+                  <XIcon size={24} color="#fff" />
+                </TouchableOpacity>
+                <TouchableWithoutFeedback>
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={{ uri: fullUrl }}
+                      style={styles.fullImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                </TouchableWithoutFeedback>
+              </SafeAreaView>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -220,4 +255,36 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
   },
   messageDeletedText: { },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalSafeArea: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeButton: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 20 : 40,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    padding: 10,
+    borderRadius: 25,
+  },
+  imageContainer: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullImage: {
+    width: "100%",
+    height: "100%",
+  },
 });

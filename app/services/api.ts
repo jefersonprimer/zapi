@@ -25,6 +25,8 @@ export interface ChatListItem {
   last_message_at: string | null;
   created_at: string;
   unread_count: number;
+  is_blocked_by_me?: boolean;
+  is_blocked_by_them?: boolean;
 }
 
 export interface Message {
@@ -208,6 +210,7 @@ export interface Contact {
   contact_id: string;
   username: string;
   email: string;
+  is_blocked: boolean;
 }
 
 export async function getContacts(token: string): Promise<Contact[]> {
@@ -224,6 +227,24 @@ export async function addContact(token: string, contactId: string): Promise<{ st
 export async function removeContact(token: string, contactId: string): Promise<{ status: string }> {
   return authFetch(`${API_URL}/contacts/${contactId}`, token, {
     method: "DELETE",
+  });
+}
+
+export async function blockContact(token: string, contactId: string): Promise<{ status: string; is_blocked: boolean }> {
+  return authFetch(`${API_URL}/contacts/${contactId}/block`, token, {
+    method: "POST",
+  });
+}
+
+export async function unblockContact(token: string, contactId: string): Promise<{ status: string; is_blocked: boolean }> {
+  return authFetch(`${API_URL}/contacts/${contactId}/unblock`, token, {
+    method: "POST",
+  });
+}
+
+export async function clearChatMessages(token: string, chatId: string): Promise<{ status: string; chat_id: string }> {
+  return authFetch(`${API_URL}/chats/${chatId}/clear`, token, {
+    method: "POST",
   });
 }
 

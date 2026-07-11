@@ -24,4 +24,6 @@ pub struct ChatListItem {
     pub last_message_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub unread_count: i64,
+    pub is_blocked_by_me: Option<bool>,
+    pub is_blocked_by_them: Option<bool>,
 }

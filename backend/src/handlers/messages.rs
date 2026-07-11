@@ -53,6 +53,38 @@ pub async fn send_message(
         ));
     }
 
+    // Check if either user has blocked the other (only for direct/1-to-1 chats)
+    let is_blocked = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS (
+            SELECT 1 
+            FROM chat_participants cp
+            JOIN chats c ON c.id = cp.chat_id
+            JOIN contacts con ON (
+                (con.user_id = cp.user_id AND con.contact_id = $2 AND con.is_blocked = true)
+                OR
+                (con.user_id = $2 AND con.contact_id = cp.user_id AND con.is_blocked = true)
+            )
+            WHERE cp.chat_id = $1 AND cp.user_id != $2 AND c.is_group = false
+        )
+        "#
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_one(&pool)
+    .await
+    .unwrap_or(false);
+
+    if is_blocked {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "error": "chat_blocked",
+                "message": "Não é possível enviar mensagens. O usuário está bloqueado."
+            })),
+        ));
+    }
+
     let msg = sqlx::query_as::<_, Message>(
         "INSERT INTO messages (chat_id, sender_id, content, image_url)
          VALUES ($1, $2, $3, $4)
@@ -362,3 +394,93 @@ pub async fn delete_message(
 
     Ok(Json(json!({ "status": "success", "message_id": message_id })))
 }
+
+pub async fn clear_chat_messages(
+    State(pool): State<PgPool>,
+    State(ws_state): State<ws::WsState>,
+    State(call_manager): State<crate::signaling::CallManager>,
+    auth: AuthUser,
+    Path(chat_id): Path<Uuid>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // Check if participant
+    let is_participant: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT chat_id FROM chat_participants WHERE chat_id = $1 AND user_id = $2",
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "database error" })),
+        )
+    })?;
+
+    if is_participant.is_none() {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "you are not a participant of this chat" })),
+        ));
+    }
+
+    // Delete physical media files associated with the messages
+    let messages_with_images: Vec<(Option<String>,)> = sqlx::query_as(
+        "SELECT image_url FROM messages WHERE chat_id = $1 AND image_url IS NOT NULL"
+    )
+    .bind(chat_id)
+    .fetch_all(&pool)
+    .await
+    .unwrap_or_default();
+
+    for (url_opt,) in messages_with_images {
+        if let Some(url) = url_opt {
+            if url.starts_with("/uploads/") {
+                let relative_path = url.trim_start_matches('/').to_string();
+                tokio::spawn(async move {
+                    let filepath = std::path::Path::new(&relative_path).to_path_buf();
+                    let _ = tokio::fs::remove_file(&filepath).await;
+                });
+            }
+        }
+    }
+
+    // Delete all messages in the database
+    sqlx::query("DELETE FROM messages WHERE chat_id = $1")
+        .bind(chat_id)
+        .execute(&pool)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+        })?;
+
+    // Broadcast clear event via WebSocket
+    let ws_event = json!({
+        "type": "messages_cleared",
+        "chat_id": chat_id
+    }).to_string();
+    let _ = ws_state.broadcast(chat_id, &ws_event).await;
+
+    // Notify participants to refresh chat list (since last message is deleted)
+    let participants: Vec<(Uuid,)> = sqlx::query_as(
+        "SELECT user_id FROM chat_participants WHERE chat_id = $1"
+    )
+    .bind(chat_id)
+    .fetch_all(&pool)
+    .await
+    .unwrap_or_default();
+
+    for (p_id,) in participants {
+        let update_msg = json!({
+            "type": "chat_list_update",
+            "chat_id": chat_id
+        }).to_string();
+        call_manager.send_to_user(p_id, &update_msg);
+    }
+
+    Ok(Json(json!({ "status": "success", "chat_id": chat_id })))
+}
+

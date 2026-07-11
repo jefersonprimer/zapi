@@ -26,7 +26,12 @@ import {
   PhoneMissed,
   PhoneOff,
 } from "lucide-react-native";
-import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
+import {
+  useLocalSearchParams,
+  useRouter,
+  useNavigation,
+  useFocusEffect,
+} from "expo-router";
 import { ChatEmojiPicker } from "@/components/ChatEmojiPicker";
 import { ChatInput } from "@/components/ChatInput";
 import { AttachDocumentButton } from "@/components/AttachDocumentButton";
@@ -39,11 +44,7 @@ import { ChatMenuModal } from "@/components/ChatMenuModal";
 import { MessageBubble } from "@/components/MessageBubble";
 import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
-import {
-  useAuth,
-  getStorageItem,
-  setStorageItem,
-} from "@/context/AuthContext";
+import { useAuth, getStorageItem, setStorageItem } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
   getMessages,
@@ -55,6 +56,8 @@ import {
   removeContact,
   markChatRead,
   deleteMessageForEveryone,
+  getChats,
+  unblockContact,
 } from "@/services/api";
 import { wsClient } from "@/services/ws";
 import { voiceCallManager } from "@/services/voiceCallManager";
@@ -205,6 +208,29 @@ export default function ChatScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
+
+  const [isBlockedByMe, setIsBlockedByMe] = useState(false);
+  const [isBlockedByThem, setIsBlockedByThem] = useState(false);
+
+  const loadChatDetails = useCallback(async () => {
+    if (!token) return;
+    try {
+      const chatListData = await getChats(token);
+      const currentChat = chatListData.chats.find((c) => c.id === chatId);
+      if (currentChat) {
+        setIsBlockedByMe(!!currentChat.is_blocked_by_me);
+        setIsBlockedByThem(!!currentChat.is_blocked_by_them);
+      }
+    } catch (err) {
+      console.error("Failed to load chat details for blocking status:", err);
+    }
+  }, [token, chatId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadChatDetails();
+    }, [loadChatDetails]),
+  );
 
   const deletedKey = `deleted_messages_${chatId}`;
 
@@ -444,9 +470,16 @@ export default function ChatScreen() {
       }
     });
 
+    const unsubClear = wsClient.on("messages_cleared", (data) => {
+      if (data.chat_id === chatId) {
+        setMessages([]);
+      }
+    });
+
     return () => {
       unsub();
       unsubDelete();
+      unsubClear();
       wsClient.unsubscribe(chatId);
     };
   }, [chatId, token, user]);
@@ -841,18 +874,49 @@ export default function ChatScreen() {
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 0}
     >
       {/* Custom Header */}
-      <View style={[styles.customHeader, { paddingTop: insets.top, height: insets.top + 60, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View
+        style={[
+          styles.customHeader,
+          {
+            paddingTop: insets.top,
+            height: insets.top + 60,
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
         <View style={styles.headerLeftContainer}>
           <TouchableOpacity
-            onPress={() => (selectedMessage ? setSelectedMessage(null) : router.back())}
+            onPress={() =>
+              selectedMessage ? setSelectedMessage(null) : router.back()
+            }
             style={styles.headerBackBtn}
           >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           {!selectedMessage && (
-            <Text style={[styles.headerTitleText, { color: colors.text }]} numberOfLines={1}>
-              {participantUsername}
-            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                if (participantId) {
+                  router.push({
+                    pathname: "/contact-detail",
+                    params: {
+                      participantId,
+                      participantUsername,
+                      chatId,
+                    },
+                  });
+                }
+              }}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingVertical: 8 }}
+            >
+              <Text
+                style={[styles.headerTitleText, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {participantUsername}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -954,8 +1018,18 @@ export default function ChatScreen() {
               <View>
                 {showDateHeader && (
                   <View style={styles.dateHeaderContainer}>
-                    <View style={[styles.dateHeaderBackground, { backgroundColor: isDark ? "#1E293B" : "#eaeaea" }]}>
-                      <Text style={[styles.dateHeaderText, { color: colors.textSecondary }]}>
+                    <View
+                      style={[
+                        styles.dateHeaderBackground,
+                        { backgroundColor: isDark ? "#1E293B" : "#eaeaea" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.dateHeaderText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         {getDateLabel(msg.created_at)}
                       </Text>
                     </View>
@@ -968,7 +1042,14 @@ export default function ChatScreen() {
                   delayLongPress={500}
                   style={[
                     styles.messageRow,
-                    isSelected && [styles.selectedMessageRow, { backgroundColor: isDark ? "rgba(10, 132, 255, 0.25)" : "rgba(0, 122, 255, 0.15)" }],
+                    isSelected && [
+                      styles.selectedMessageRow,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(10, 132, 255, 0.25)"
+                          : "rgba(0, 122, 255, 0.15)",
+                      },
+                    ],
                   ]}
                   activeOpacity={0.8}
                 >
@@ -993,12 +1074,16 @@ export default function ChatScreen() {
               StatusIcon = PhoneOutgoing;
               bubbleBg = isDark ? "rgba(10, 132, 255, 0.15)" : "#e1f5fe"; // light blue
               textColor = isDark ? "#0A84FF" : "#01579b";
-              timeColor = isDark ? "rgba(10, 132, 255, 0.7)" : "rgba(1, 87, 155, 0.6)";
+              timeColor = isDark
+                ? "rgba(10, 132, 255, 0.7)"
+                : "rgba(1, 87, 155, 0.6)";
             } else {
               if (call.status === "completed") {
                 bubbleBg = isDark ? "rgba(48, 209, 88, 0.15)" : "#e8f5e9"; // light green
                 textColor = isDark ? "#30D158" : "#1b5e20";
-                timeColor = isDark ? "rgba(48, 209, 88, 0.7)" : "rgba(27, 94, 32, 0.6)";
+                timeColor = isDark
+                  ? "rgba(48, 209, 88, 0.7)"
+                  : "rgba(27, 94, 32, 0.6)";
               } else {
                 StatusIcon = PhoneMissed;
                 iconColor = "#FF3B30"; // Red
@@ -1009,7 +1094,9 @@ export default function ChatScreen() {
                 }
                 bubbleBg = isDark ? "rgba(255, 69, 58, 0.15)" : "#ffebee"; // light red
                 textColor = isDark ? "#FF453A" : "#b71c1c";
-                timeColor = isDark ? "rgba(255, 69, 58, 0.7)" : "rgba(183, 28, 28, 0.6)";
+                timeColor = isDark
+                  ? "rgba(255, 69, 58, 0.7)"
+                  : "rgba(183, 28, 28, 0.6)";
               }
             }
 
@@ -1038,8 +1125,18 @@ export default function ChatScreen() {
               <View>
                 {showDateHeader && (
                   <View style={styles.dateHeaderContainer}>
-                    <View style={[styles.dateHeaderBackground, { backgroundColor: isDark ? "#1E293B" : "#eaeaea" }]}>
-                      <Text style={[styles.dateHeaderText, { color: colors.textSecondary }]}>
+                    <View
+                      style={[
+                        styles.dateHeaderBackground,
+                        { backgroundColor: isDark ? "#1E293B" : "#eaeaea" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.dateHeaderText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         {getDateLabel(call.created_at)}
                       </Text>
                     </View>
@@ -1079,7 +1176,12 @@ export default function ChatScreen() {
                             );
                           }}
                         >
-                          <Text style={[styles.callbackButtonText, { color: colors.tint }]}>
+                          <Text
+                            style={[
+                              styles.callbackButtonText,
+                              { color: colors.tint },
+                            ]}
+                          >
                             Retornar ligação
                           </Text>
                         </TouchableOpacity>
@@ -1095,7 +1197,9 @@ export default function ChatScreen() {
           }
         }}
         ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhuma mensagem ainda. Envie um oi!</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            Nenhuma mensagem ainda. Envie um oi!
+          </Text>
         }
       />
 
@@ -1109,10 +1213,46 @@ export default function ChatScreen() {
       <View
         style={[
           styles.inputContainer,
-          { paddingBottom: isKeyboardVisible ? 6 : insets.bottom, backgroundColor: colors.background },
+          {
+            paddingBottom: isKeyboardVisible ? 6 : insets.bottom,
+            backgroundColor: colors.background,
+          },
         ]}
       >
-        {isRecording ? (
+        {isBlockedByMe || isBlockedByThem ? (
+          <View
+            style={[
+              styles.blockedContainer,
+              { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" },
+            ]}
+          >
+            <Text style={[styles.blockedText, { color: colors.textSecondary }]}>
+              {isBlockedByMe
+                ? "Você bloqueou este contato. Desbloqueie para enviar mensagens."
+                : "Você está bloqueado. Não é possível enviar mensagens."}
+            </Text>
+            {isBlockedByMe && (
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!token || !participantId) return;
+                  try {
+                    await unblockContact(token, participantId);
+                    setIsBlockedByMe(false);
+                    Alert.alert("Sucesso", "Contato desbloqueado.");
+                  } catch (err: any) {
+                    Alert.alert(
+                      "Erro",
+                      err.message || "Não foi possível desbloquear o contato.",
+                    );
+                  }
+                }}
+                style={[styles.unblockButton, { backgroundColor: colors.tint }]}
+              >
+                <Text style={styles.unblockButtonText}>Desbloquear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : isRecording ? (
           <VoiceNoteRecorderBar
             recordingDuration={recordingDuration}
             onStopRecording={stopRecording}
@@ -1121,7 +1261,12 @@ export default function ChatScreen() {
           />
         ) : (
           <>
-            <View style={[styles.inputContainerMessage, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.inputContainerMessage,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
               <ChatEmojiPicker
                 onEmojiSelected={(emoji) => setContent((prev) => prev + emoji)}
               />
@@ -1150,6 +1295,18 @@ export default function ChatScreen() {
         onClose={() => setMenuVisible(false)}
         isContact={isContact}
         onToggleContact={handleToggleContact}
+        onViewContact={() => {
+          if (participantId) {
+            router.push({
+              pathname: "/contact-detail",
+              params: {
+                participantId,
+                participantUsername,
+                chatId,
+              },
+            });
+          }
+        }}
       />
 
       {/* Delete Confirmation Modal */}
@@ -1159,9 +1316,21 @@ export default function ChatScreen() {
         animationType="fade"
         onRequestClose={() => setDeleteModalVisible(false)}
       >
-        <View style={[styles.modalOverlayCentered, { backgroundColor: colors.modalOverlay }]}>
-          <View style={[styles.alertContainer, { backgroundColor: colors.menuBackground }]}>
-            <Text style={[styles.alertTitle, { color: colors.text }]}>Deseja apagar a mensagem?</Text>
+        <View
+          style={[
+            styles.modalOverlayCentered,
+            { backgroundColor: colors.modalOverlay },
+          ]}
+        >
+          <View
+            style={[
+              styles.alertContainer,
+              { backgroundColor: colors.menuBackground },
+            ]}
+          >
+            <Text style={[styles.alertTitle, { color: colors.text }]}>
+              Deseja apagar a mensagem?
+            </Text>
             <View
               style={
                 isDeleteForEveryoneAvailable
@@ -1175,7 +1344,7 @@ export default function ChatScreen() {
                     style={[
                       styles.alertButtonVertical,
                       styles.deleteEveryoneButton,
-                      { backgroundColor: colors.danger }
+                      { backgroundColor: colors.danger },
                     ]}
                     onPress={handleDeleteForEveryone}
                   >
@@ -1184,10 +1353,19 @@ export default function ChatScreen() {
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.alertButtonVertical, styles.deleteMeButton, { backgroundColor: isDark ? "#2C2C2E" : "#f5f5f5" }]}
+                    style={[
+                      styles.alertButtonVertical,
+                      styles.deleteMeButton,
+                      { backgroundColor: isDark ? "#2C2C2E" : "#f5f5f5" },
+                    ]}
                     onPress={handleDeleteForMe}
                   >
-                    <Text style={[styles.deleteMeButtonText, { color: colors.tint }]}>
+                    <Text
+                      style={[
+                        styles.deleteMeButtonText,
+                        { color: colors.tint },
+                      ]}
+                    >
                       Apagar para mim
                     </Text>
                   </TouchableOpacity>
@@ -1195,23 +1373,45 @@ export default function ChatScreen() {
                     style={[
                       styles.alertButtonVertical,
                       styles.cancelButtonVertical,
-                      { backgroundColor: isDark ? "#2C2C2E" : "#e0e0e0" }
+                      { backgroundColor: isDark ? "#2C2C2E" : "#e0e0e0" },
                     ]}
                     onPress={() => setDeleteModalVisible(false)}
                   >
-                    <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancelar</Text>
+                    <Text
+                      style={[
+                        styles.cancelButtonText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Cancelar
+                    </Text>
                   </TouchableOpacity>
                 </>
               ) : (
                 <>
                   <TouchableOpacity
-                    style={[styles.alertButton, styles.cancelButton, { backgroundColor: isDark ? "#2C2C2E" : "#f5f5f5" }]}
+                    style={[
+                      styles.alertButton,
+                      styles.cancelButton,
+                      { backgroundColor: isDark ? "#2C2C2E" : "#f5f5f5" },
+                    ]}
                     onPress={() => setDeleteModalVisible(false)}
                   >
-                    <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancelar</Text>
+                    <Text
+                      style={[
+                        styles.cancelButtonText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Cancelar
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.alertButton, styles.deleteButton, { backgroundColor: colors.danger }]}
+                    style={[
+                      styles.alertButton,
+                      styles.deleteButton,
+                      { backgroundColor: colors.danger },
+                    ]}
                     onPress={handleDeleteForMe}
                   >
                     <Text style={styles.deleteButtonText}>Apagar para mim</Text>
@@ -1231,16 +1431,29 @@ export default function ChatScreen() {
         onRequestClose={() => setOptionsModalVisible(false)}
       >
         <TouchableOpacity
-          style={[styles.dropdownOverlay, { backgroundColor: colors.modalOverlay }]}
+          style={[
+            styles.dropdownOverlay,
+            { backgroundColor: colors.modalOverlay },
+          ]}
           activeOpacity={1}
           onPress={() => setOptionsModalVisible(false)}
         >
-          <View style={[styles.dropdownContainer, { backgroundColor: colors.menuBackground, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.dropdownContainer,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <TouchableOpacity
               style={styles.dropdownOption}
               onPress={handleCopy}
             >
-              <Text style={[styles.dropdownOptionText, { color: colors.text }]}>Copiar</Text>
+              <Text style={[styles.dropdownOptionText, { color: colors.text }]}>
+                Copiar
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -1258,6 +1471,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: 12,
+  },
+  blockedContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
+    borderRadius: 12,
+    marginHorizontal: 12,
+    marginVertical: 4,
+  },
+  blockedText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 18,
+    marginRight: 10,
+  },
+  unblockButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  unblockButtonText: {
+    color: "#ffffff",
+    fontWeight: "bold",
+    fontSize: 13,
   },
   modalOverlayCentered: {
     flex: 1,

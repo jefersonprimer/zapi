@@ -113,7 +113,23 @@ pub async fn list_chats(
                 WHERE msg.chat_id = c.id
                   AND msg.sender_id != $1
                   AND msg.created_at > cp1.last_read_at
-            ) AS unread_count
+            ) AS unread_count,
+            (
+                SELECT COALESCE(
+                    (SELECT con.is_blocked FROM contacts con WHERE con.user_id = $1 AND con.contact_id = (
+                        SELECT cp2.user_id FROM chat_participants cp2 WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1
+                    )),
+                    false
+                )
+            ) AS is_blocked_by_me,
+            (
+                SELECT COALESCE(
+                    (SELECT con.is_blocked FROM contacts con WHERE con.user_id = (
+                        SELECT cp2.user_id FROM chat_participants cp2 WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1
+                    ) AND con.contact_id = $1),
+                    false
+                )
+            ) AS is_blocked_by_them
          FROM chats c
          JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
          LEFT JOIN LATERAL (
