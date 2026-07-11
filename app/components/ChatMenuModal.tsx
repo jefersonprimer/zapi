@@ -103,8 +103,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   menuItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 14,
+    padding: 14,
   },
   menuItemText: {
     fontSize: 16,

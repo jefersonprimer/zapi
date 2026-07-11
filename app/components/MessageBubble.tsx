@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, Linking, Modal, TouchableWithoutFeedback, SafeAreaView, Platform } from "react-native";
-import { FileText as FileIcon, Video as VideoIcon, X as XIcon } from "lucide-react-native";
+import { FileText as FileIcon, Video as VideoIcon, X as XIcon, Play as PlayIcon } from "lucide-react-native";
 import { type Message, API_URL } from "../services/api";
 import { AudioPlayer } from "./AudioPlayer";
 import { useAppTheme } from "@/context/ThemeContext";
+import { Video as ExpoVideo, ResizeMode } from "expo-av";
 
 interface MessageBubbleProps {
   item: Message;
@@ -76,26 +77,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
             <AudioPlayer uri={fullUrl} isMine={isMine} />
           ) : isVideoUrl(item.image_url!) ? (
             <TouchableOpacity
-              style={[
-                styles.videoBubble,
-                isMine ? styles.videoBubbleMine : styles.videoBubbleTheir,
-              ]}
-              onPress={() => Linking.openURL(fullUrl)}
+              style={styles.videoContainer}
+              onPress={() => setIsFullScreen(true)}
+              activeOpacity={0.9}
             >
-              <View style={styles.videoPreview}>
-                <VideoIcon
-                  size={24}
-                  color={isMine ? "#fff" : colors.tint}
-                  style={{ marginRight: 6 }}
-                />
-                <Text
-                  style={[
-                    styles.videoText,
-                    isMine ? styles.videoTextMine : [styles.videoTextTheir, { color: colors.tint }],
-                  ]}
-                >
-                  Play Video
-                </Text>
+              <ExpoVideo
+                source={{ uri: fullUrl }}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay={false}
+                useNativeControls={false}
+                style={styles.messageVideo}
+              />
+              <View style={styles.videoPlayOverlay}>
+                <PlayIcon size={32} color="#fff" fill="#fff" />
               </View>
             </TouchableOpacity>
           ) : (
@@ -182,6 +176,40 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
           </TouchableWithoutFeedback>
         </Modal>
       )}
+      {fullUrl && isVideoUrl(item.image_url!) && isFullScreen && (
+        <Modal
+          visible={isFullScreen}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsFullScreen(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setIsFullScreen(false)}>
+            <View style={styles.modalBackground}>
+              <SafeAreaView style={styles.modalSafeArea}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setIsFullScreen(false)}
+                  activeOpacity={0.7}
+                >
+                  <XIcon size={24} color="#fff" />
+                </TouchableOpacity>
+                <TouchableWithoutFeedback>
+                  <View style={styles.videoContainerFull}>
+                    <ExpoVideo
+                      source={{ uri: fullUrl }}
+                      style={styles.fullVideo}
+                      resizeMode={ResizeMode.CONTAIN}
+                      shouldPlay={true}
+                      useNativeControls={true}
+                      isLooping={false}
+                    />
+                  </View>
+                </TouchableWithoutFeedback>
+              </SafeAreaView>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -212,18 +240,35 @@ const styles = StyleSheet.create({
   messageTime: { fontSize: 11, marginTop: 4 },
   myMessageTime: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
   theirMessageTime: { },
-  videoBubble: {
-    padding: 10,
+  videoContainer: {
+    width: 200,
+    height: 200,
     borderRadius: 12,
+    overflow: "hidden",
     marginBottom: 4,
-    maxWidth: 200,
+    position: "relative",
+    backgroundColor: "#000",
   },
-  videoBubbleMine: { backgroundColor: "rgba(255, 255, 255, 0.2)" },
-  videoBubbleTheir: { backgroundColor: "rgba(0, 0, 0, 0.05)" },
-  videoPreview: { flexDirection: "row", alignItems: "center" },
-  videoText: { fontSize: 14, fontWeight: "600" },
-  videoTextMine: { color: "#fff" },
-  videoTextTheir: { },
+  messageVideo: {
+    width: "100%",
+    height: "100%",
+  },
+  videoPlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoContainerFull: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullVideo: {
+    width: "100%",
+    height: "100%",
+  },
   docBubble: {
     flexDirection: "row",
     alignItems: "center",

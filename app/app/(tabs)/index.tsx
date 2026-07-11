@@ -643,11 +643,11 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     position: "absolute",
-    top: 90,
-    right: 16,
+    top: 60,
+    right: 6,
     borderRadius: 12,
     paddingVertical: 6,
-    width: 180,
+    width: 220,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -656,8 +656,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   menuItem: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    padding: 14,
   },
   menuItemText: {
     fontSize: 16,
