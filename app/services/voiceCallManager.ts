@@ -127,11 +127,12 @@ class VoiceCallManager {
         if (store.callId === msg.call_id) {
           store.setCallState("connecting");
           // Bob sets Remote Offer and responds with Answer
-          await this.initializeWebRTC(false);
+          const success = await this.initializeWebRTC(false);
+          if (!success) return;
           await this.pc?.setRemoteDescription(new RTCSessionDescription({ type: "offer", sdp: msg.sdp }));
           const answer = await this.pc?.createAnswer();
           await this.pc?.setLocalDescription(answer);
-          this.send({ type: "answer", call_id: msg.call_id, sdp: answer.sdp });
+          this.send({ type: "answer", call_id: msg.call_id, sdp: answer?.sdp });
         }
         break;
 
@@ -285,10 +286,28 @@ class VoiceCallManager {
   }
 
   // WebRTC Connection Setup
-  private async initializeWebRTC(isCaller: boolean) {
+  private async initializeWebRTC(isCaller: boolean): Promise<boolean> {
     const store = useCallStore.getState();
     const callId = store.callId;
-    if (!callId) return;
+    if (!callId) return false;
+
+    if (!mediaDevices) {
+      let errorMsg = "WebRTC mediaDevices support not found on this platform.";
+      if (Platform.OS === "web") {
+        if (!window.isSecureContext) {
+          errorMsg = "WebRTC requires a Secure Context (HTTPS or localhost) to access camera/microphone.";
+        }
+      } else {
+        errorMsg = "Expo Go does not support react-native-webrtc native modules. Please use a Development Build (npx expo run:android or run:ios).";
+      }
+      console.error(errorMsg);
+      this.send({ type: "call:failed", call_id: callId, reason: errorMsg });
+      store.setCallState("failed");
+      store.setError(errorMsg);
+      this.cleanupCall();
+      setTimeout(() => store.resetCall(), 3000);
+      return false;
+    }
 
     try {
       this.localStream = await mediaDevices.getUserMedia({
@@ -308,7 +327,7 @@ class VoiceCallManager {
       store.setError(errorMsg);
       this.cleanupCall();
       setTimeout(() => store.resetCall(), 3000);
-      return;
+      return false;
     }
 
     const config = {
@@ -361,6 +380,8 @@ class VoiceCallManager {
       await this.pc.setLocalDescription(offer);
       this.send({ type: "offer", call_id: callId, sdp: offer.sdp });
     }
+
+    return true;
   }
 
   // Cleanup WebRTC instances

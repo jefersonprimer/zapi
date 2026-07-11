@@ -1,11 +1,17 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 
 const WS_URL = (() => {
   if (Platform.OS === "web") {
     const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
     return `ws://${hostname}:3000`;
   }
-  return "ws://192.168.5.22:3000";
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const ip = hostUri.split(":")[0];
+    return `ws://${ip}:3000`;
+  }
+  return Platform.OS === "android" ? "ws://10.0.2.2:3000" : "ws://localhost:3000";
 })();
 
 type MessageHandler = (msg: any) => void;

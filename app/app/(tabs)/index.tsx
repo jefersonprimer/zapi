@@ -12,6 +12,7 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { getChats, type ChatListItem } from "@/services/api";
+import { getChatsFromLocal, saveChats } from "@/services/database";
 import {
   Camera,
   MoreVertical,
@@ -42,10 +43,25 @@ export default function ChatListScreen() {
   const loadChats = useCallback(async () => {
     if (!token) return;
     try {
+      // 1. Get from local SQLite database immediately
+      const localChats = await getChatsFromLocal();
+      setChats(localChats);
+      
+      if (localChats.length > 0) {
+        setLoading(false);
+      }
+
+      // 2. Sincroniza em background com a API
       const data = await getChats(token);
-      setChats(data.chats);
+      
+      // 3. Salva no SQLite local
+      await saveChats(data.chats);
+      
+      // 4. Recarrega as informações atualizadas do SQLite
+      const updatedChats = await getChatsFromLocal();
+      setChats(updatedChats);
     } catch (err: any) {
-      Alert.alert("Erro", err.message);
+      console.warn("Offline or sync error loading chats:", err);
     } finally {
       setLoading(false);
     }

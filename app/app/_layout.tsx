@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +11,7 @@ import { wsClient } from "@/services/ws";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { registerForPushNotifications } from "@/services/notifications";
 import { authFetch, API_URL } from "@/services/api";
+import { initializeDatabase } from "@/services/database";
 import CallOverlay from "@/components/CallOverlay";
 
 function InitialLayout() {
@@ -18,6 +19,20 @@ function InitialLayout() {
   const { colors } = useAppTheme();
   const segments = useSegments();
   const router = useRouter();
+  const [dbReady, setDbReady] = useState(false);
+
+  // Initialize SQLite database
+  useEffect(() => {
+    (async () => {
+      try {
+        await initializeDatabase();
+      } catch (err) {
+        console.error("Failed to initialize SQLite database:", err);
+      } finally {
+        setDbReady(true);
+      }
+    })();
+  }, []);
 
   // Initialize signaling / websockets
   useEffect(() => {
@@ -49,7 +64,7 @@ function InitialLayout() {
 
   // Protected routes redirection
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !dbReady) return;
 
     const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
 
@@ -60,9 +75,9 @@ function InitialLayout() {
       // Redirect to index (conversas) if authenticated
       router.replace('/(tabs)');
     }
-  }, [token, isLoading, segments, router]);
+  }, [token, isLoading, dbReady, segments, router]);
 
-  if (isLoading) {
+  if (isLoading || !dbReady) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.tint} />

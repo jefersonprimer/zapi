@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import { clearAllLocalData } from "@/services/database";
 
 interface User {
   user_id: string;
@@ -94,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await deleteStorageItem("token");
       await deleteStorageItem("user");
+      await clearAllLocalData();
       setToken(null);
       setUser(null);
     } catch (e) {

@@ -85,19 +85,21 @@ pub async fn send_message(
         ));
     }
 
-    let msg = sqlx::query_as::<_, Message>(
-        "INSERT INTO messages (chat_id, sender_id, content, image_url)
-         VALUES ($1, $2, $3, $4)
+    let message_id = Uuid::now_v7();
+    let mut msg = sqlx::query_as::<_, Message>(
+        "INSERT INTO messages (id, chat_id, sender_id, content, image_url)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING
             id,
             chat_id,
             sender_id,
-            (SELECT username FROM users WHERE id = $2) AS sender_username,
+            (SELECT username FROM users WHERE id = $3) AS sender_username,
             content,
             image_url,
             created_at,
             deleted_for_everyone",
     )
+    .bind(message_id)
     .bind(chat_id)
     .bind(auth.0)
     .bind(body.content.as_deref().unwrap_or(""))
@@ -110,6 +112,53 @@ pub async fn send_message(
             Json(json!({ "error": "failed to send message" })),
         )
     })?;
+
+    if let Some(ref url) = body.image_url {
+        if !url.trim().is_empty() {
+            let url_lower = url.to_lowercase();
+            let att_type = if url_lower.ends_with(".jpg")
+                || url_lower.ends_with(".jpeg")
+                || url_lower.ends_with(".png")
+                || url_lower.ends_with(".gif")
+                || url_lower.ends_with(".webp")
+            {
+                "image"
+            } else if url_lower.ends_with(".mp4")
+                || url_lower.ends_with(".mov")
+                || url_lower.ends_with(".webm")
+                || url_lower.ends_with(".mkv")
+                || url_lower.ends_with(".avi")
+            {
+                "video"
+            } else if url_lower.ends_with(".mp3")
+                || url_lower.ends_with(".wav")
+                || url_lower.ends_with(".m4a")
+                || url_lower.ends_with(".caf")
+                || url_lower.ends_with(".ogg")
+                || url_lower.ends_with(".opus")
+            {
+                "audio"
+            } else {
+                "document"
+            };
+
+            let att = sqlx::query_as::<_, crate::models::message::Attachment>(
+                "INSERT INTO attachments (message_id, type, remote_url)
+                 VALUES ($1, $2, $3)
+                 RETURNING id, message_id, type, remote_url, mime_type, width, height, duration, size, sha256, thumbnail_path"
+            )
+            .bind(msg.id)
+            .bind(att_type)
+            .bind(url)
+            .fetch_one(&pool)
+            .await
+            .ok();
+
+            if let Some(a) = att {
+                msg.attachments = Some(vec![a]);
+            }
+        }
+    }
 
     let _ = ws_state
         .broadcast(chat_id, &serde_json::to_string(&json!({"type": "new_message", "message": msg})).unwrap())
@@ -210,7 +259,7 @@ pub async fn get_messages(
         .execute(&pool)
         .await;
 
-    let messages = sqlx::query_as::<_, Message>(
+    let mut messages = sqlx::query_as::<_, Message>(
         "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at, m.deleted_for_everyone
          FROM messages m
          JOIN users u ON u.id = m.sender_id
@@ -226,6 +275,29 @@ pub async fn get_messages(
             Json(json!({ "error": "database error" })),
         )
     })?;
+
+    if !messages.is_empty() {
+        let msg_ids: Vec<Uuid> = messages.iter().map(|m| m.id).collect();
+        
+        let attachments = sqlx::query_as::<_, crate::models::message::Attachment>(
+            "SELECT id, message_id, type, remote_url, mime_type, width, height, duration, size, sha256, thumbnail_path 
+             FROM attachments 
+             WHERE message_id = ANY($1)"
+        )
+        .bind(&msg_ids)
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_default();
+
+        for msg in &mut messages {
+            let msg_atts: Vec<_> = attachments
+                .iter()
+                .filter(|a| a.message_id == msg.id)
+                .cloned()
+                .collect();
+            msg.attachments = Some(msg_atts);
+        }
+    }
 
     Ok(Json(json!({ "messages": messages })))
 }

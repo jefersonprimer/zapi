@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, Linking, Modal, TouchableWithoutFeedback, SafeAreaView, Platform } from "react-native";
-import { FileText as FileIcon, Video as VideoIcon, X as XIcon, Play as PlayIcon } from "lucide-react-native";
+import { FileText as FileIcon, X as XIcon, Play as PlayIcon, Clock, CheckCheck, AlertCircle } from "lucide-react-native";
 import { type Message, API_URL } from "../services/api";
 import { AudioPlayer } from "./AudioPlayer";
 import { useAppTheme } from "@/context/ThemeContext";
-import { Video as ExpoVideo, ResizeMode } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
 
 interface MessageBubbleProps {
   item: Message;
@@ -18,14 +18,42 @@ const isAudioUrl = (url: string) =>
 const isVideoUrl = (url: string) =>
   /\.(mp4|mov|webm|mkv|avi)(\?.*)?$/i.test(url);
 
+interface MessageVideoProps {
+  uri: string;
+  isFullScreen: boolean;
+}
+
+const MessageVideo: React.FC<MessageVideoProps> = ({ uri, isFullScreen }) => {
+  const player = useVideoPlayer(uri, (playerInstance) => {
+    playerInstance.loop = false;
+    if (isFullScreen) {
+      playerInstance.play();
+    } else {
+      playerInstance.pause();
+    }
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={isFullScreen ? styles.fullVideo : styles.messageVideo}
+      contentFit={isFullScreen ? "contain" : "cover"}
+      nativeControls={isFullScreen}
+    />
+  );
+};
+
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserId }) => {
   const { colors } = useAppTheme();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const isMine = item.sender_id === currentUserId;
-  const fullUrl = item.image_url
-    ? item.image_url.startsWith("http")
-      ? item.image_url
-      : `${API_URL}${item.image_url}`
+  
+  // Use local_file_path if available to bypass network entirely
+  const mediaUrl = item.local_file_path || item.image_url;
+  const fullUrl = mediaUrl
+    ? mediaUrl.startsWith("http") || mediaUrl.startsWith("file://")
+      ? mediaUrl
+      : `${API_URL}${mediaUrl.startsWith("/") ? "" : "/"}${mediaUrl}`
     : null;
 
   if (item.deleted_for_everyone) {
@@ -65,7 +93,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
     >
       {fullUrl && (
         <>
-          {isImageUrl(item.image_url!) ? (
+          {isImageUrl(mediaUrl!) ? (
             <TouchableOpacity onPress={() => setIsFullScreen(true)} activeOpacity={0.9}>
               <Image
                 source={{ uri: fullUrl }}
@@ -73,21 +101,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
                 resizeMode="cover"
               />
             </TouchableOpacity>
-          ) : isAudioUrl(item.image_url!) ? (
+          ) : isAudioUrl(mediaUrl!) ? (
             <AudioPlayer uri={fullUrl} isMine={isMine} />
-          ) : isVideoUrl(item.image_url!) ? (
+          ) : isVideoUrl(mediaUrl!) ? (
             <TouchableOpacity
               style={styles.videoContainer}
               onPress={() => setIsFullScreen(true)}
               activeOpacity={0.9}
             >
-              <ExpoVideo
-                source={{ uri: fullUrl }}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay={false}
-                useNativeControls={false}
-                style={styles.messageVideo}
-              />
+              <MessageVideo uri={fullUrl} isFullScreen={false} />
               <View style={styles.videoPlayOverlay}>
                 <PlayIcon size={32} color="#fff" fill="#fff" />
               </View>
@@ -113,7 +135,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
                     isMine ? styles.docNameMine : [styles.docNameTheir, { color: colors.text }],
                   ]}
                 >
-                  {item.image_url!.split("/").pop()}
+                  {mediaUrl!.split("/").pop()}
                 </Text>
                 <Text
                   style={[
@@ -128,22 +150,33 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
           )}
         </>
       )}
-      {item.content && !(item.image_url && isAudioUrl(item.image_url)) ? (
+      {item.content && !(mediaUrl && isAudioUrl(mediaUrl)) ? (
         <Text style={isMine ? styles.myMessageText : [styles.messageText, { color: colors.text }]}>
           {item.content}
         </Text>
       ) : null}
-      <Text
-        style={[
-          styles.messageTime,
-          isMine ? styles.myMessageTime : [styles.theirMessageTime, { color: colors.textSecondary }],
-        ]}
-      >
-        {new Date(item.created_at).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </Text>
+      
+      <View style={styles.timeContainer}>
+        <Text
+          style={[
+            styles.messageTime,
+            isMine ? styles.myMessageTime : [styles.theirMessageTime, { color: colors.textSecondary }],
+          ]}
+        >
+          {new Date(item.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
+        {isMine && (
+          <View style={styles.statusIconContainer}>
+            {item.status === "pending" && <Clock size={11} color="rgba(255,255,255,0.7)" />}
+            {item.status === "uploading" && <Clock size={11} color="rgba(255,255,255,0.7)" />}
+            {item.status === "failed" && <AlertCircle size={11} color="#FF3B30" />}
+            {(item.status === "sent" || !item.status) && <CheckCheck size={11} color="rgba(255,255,255,0.8)" />}
+          </View>
+        )}
+      </View>
 
       {fullUrl && isImageUrl(item.image_url!) && (
         <Modal
@@ -195,14 +228,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
                 </TouchableOpacity>
                 <TouchableWithoutFeedback>
                   <View style={styles.videoContainerFull}>
-                    <ExpoVideo
-                      source={{ uri: fullUrl }}
-                      style={styles.fullVideo}
-                      resizeMode={ResizeMode.CONTAIN}
-                      shouldPlay={true}
-                      useNativeControls={true}
-                      isLooping={false}
-                    />
+                    <MessageVideo uri={fullUrl} isFullScreen={true} />
                   </View>
                 </TouchableWithoutFeedback>
               </SafeAreaView>
@@ -331,5 +357,15 @@ const styles = StyleSheet.create({
   fullImage: {
     width: "100%",
     height: "100%",
+  },
+  timeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    alignSelf: "flex-end",
+    marginTop: 4,
+  },
+  statusIconContainer: {
+    marginLeft: 4,
   },
 });

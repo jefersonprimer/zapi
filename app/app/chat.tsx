@@ -59,8 +59,19 @@ import {
   getChats,
   unblockContact,
 } from "@/services/api";
+import {
+  getMessagesFromLocal,
+  saveMessages,
+  insertMessageLocal,
+  updateMessageStatusLocal,
+  markChatReadLocal,
+  clearChatMessagesLocal,
+  deleteMessageLocal,
+} from "@/services/database";
+import { cacheMediaFile } from "@/services/mediaCache";
 import { wsClient } from "@/services/ws";
 import { voiceCallManager } from "@/services/voiceCallManager";
+import { generateUUIDv7 } from "@/services/uuidv7";
 import { getCallHistory, type CallHistoryItem } from "@/services/callApi";
 import { useCallStore } from "@/store/useCallStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -196,7 +207,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [calls, setCalls] = useState<CallHistoryItem[]>([]);
   const [content, setContent] = useState("");
-  const [sending, setSending] = useState(false);
+  const sending = false;
   const flatListRef = useRef<FlatList>(null);
 
   const callState = useCallStore((state) => state.callState);
@@ -412,22 +423,64 @@ export default function ChatScreen() {
     };
   }, []);
 
+  // Helper to trigger media downloads for all media messages
+  const cacheMediaForMessages = useCallback(async (msgs: Message[]) => {
+    for (const msg of msgs) {
+      if (msg.image_url && !msg.local_file_path && !msg.deleted_for_everyone) {
+        // Cache in background
+        cacheMediaFile(msg.image_url, msg.id).then((localPath) => {
+          if (localPath.startsWith("file://")) {
+            // Update local state when caching completes
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === msg.id ? { ...m, local_file_path: localPath } : m
+              )
+            );
+          }
+        }).catch((err) => {
+          console.warn("Background media caching failed:", err);
+        });
+      }
+    }
+  }, []);
+
   const loadMessages = useCallback(async () => {
     if (!token) return;
     try {
-      const [msgData, callData] = await Promise.all([
-        getMessages(token, chatId),
-        getCallHistory(token).catch((err) => {
-          console.error("Failed to fetch call history:", err);
-          return [];
-        }),
-      ]);
-      setMessages(msgData.messages);
-      setCalls(callData);
+      // 1. Carrega dados do SQLite local imediatamente
+      const localMsgs = await getMessagesFromLocal(chatId);
+      setMessages(localMsgs);
+      
+      // Inicia cache das mídias locais em background
+      cacheMediaForMessages(localMsgs);
+
+      // Carrega histórico de ligações paralelamente
+      getCallHistory(token).then((callData) => {
+        setCalls(callData);
+      }).catch((err) => {
+        console.error("Failed to fetch call history:", err);
+      });
+
+      // 2. Busca atualizações do servidor
+      const msgData = await getMessages(token, chatId);
+      
+      // 3. Salva no SQLite
+      await saveMessages(msgData.messages);
+      
+      // 4. Recarrega as informações atualizadas do SQLite
+      const updatedMsgs = await getMessagesFromLocal(chatId);
+      setMessages(updatedMsgs);
+
+      // Inicia cache de mídias novas em background
+      cacheMediaForMessages(updatedMsgs);
+
+      // Marca o chat como lido na API e localmente
+      markChatRead(token, chatId).catch(() => {});
+      await markChatReadLocal(chatId);
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      console.warn("Offline or sync error loading messages:", err);
     }
-  }, [chatId, token]);
+  }, [chatId, token, cacheMediaForMessages]);
 
   useEffect(() => {
     loadMessages();
@@ -445,16 +498,39 @@ export default function ChatScreen() {
     wsClient.subscribe(chatId);
 
     const unsub = wsClient.on("new_message", (data) => {
-      setMessages((prev) => [...prev, data.message]);
-      if (data.message.sender_id !== user?.user_id) {
-        markChatRead(token, chatId).catch((err) =>
-          console.error("Error marking chat read:", err),
-        );
+      if (data.message.chat_id === chatId) {
+        // Salva localmente primeiro
+        saveMessages([data.message]).then(async () => {
+          // Pega o caminho local da mídia se for cacheado
+          if (data.message.image_url) {
+            cacheMediaFile(data.message.image_url, data.message.id).then((localPath) => {
+              setMessages((prev) => [
+                ...prev,
+                { ...data.message, local_file_path: localPath.startsWith("file://") ? localPath : null }
+              ]);
+            }).catch(() => {
+              setMessages((prev) => [...prev, data.message]);
+            });
+          } else {
+            setMessages((prev) => [...prev, data.message]);
+          }
+          
+          await markChatReadLocal(chatId);
+        });
+
+        if (data.message.sender_id !== user?.user_id) {
+          markChatRead(token, chatId).catch((err) =>
+            console.error("Error marking chat read:", err),
+          );
+        }
       }
     });
 
     const unsubDelete = wsClient.on("message_deleted", (data) => {
       if (data.chat_id === chatId) {
+        // Atualiza localmente no SQLite
+        deleteMessageLocal(data.message_id).catch(console.error);
+
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === data.message_id
@@ -463,6 +539,7 @@ export default function ChatScreen() {
                   deleted_for_everyone: true,
                   content: null,
                   image_url: null,
+                  local_file_path: null,
                 }
               : msg,
           ),
@@ -472,6 +549,8 @@ export default function ChatScreen() {
 
     const unsubClear = wsClient.on("messages_cleared", (data) => {
       if (data.chat_id === chatId) {
+        // Limpa SQLite local
+        clearChatMessagesLocal(chatId).catch(console.error);
         setMessages([]);
       }
     });
@@ -531,37 +610,109 @@ export default function ChatScreen() {
       }
     }
 
-    setSending(true);
+    // Save attachment and content info, then clear UI inputs immediately
+    const attachmentInfo = selectedAttachment;
+    const messageContentText = content;
+    setContent("");
+    setSelectedAttachment(null);
+
+    // 1. Generate time-ordered UUIDv7 ID and create local message representation
+    const localId = generateUUIDv7();
+    const newLocalMsg: Message = {
+      id: localId,
+      chat_id: chatId,
+      sender_id: user?.user_id || "",
+      sender_username: user?.username || "",
+      content: messageContentText || null,
+      image_url: null,
+      local_file_path: attachmentInfo?.uri || null,
+      created_at: new Date().toISOString(),
+      status: attachmentInfo ? "uploading" : "pending",
+      deleted_for_everyone: false
+    };
+
     try {
-      let attachmentUrl = undefined;
-      let messageContent = content;
-
-      if (selectedAttachment) {
-        const { uri, name, type, mimeType, duration } = selectedAttachment;
-        let finalMime = mimeType;
-        if (!finalMime) {
-          if (type === "image") finalMime = "image/jpeg";
-          else if (type === "video") finalMime = "video/mp4";
-          else if (type === "audio") finalMime = "audio/m4a";
-          else finalMime = "application/pdf";
-        }
-
-        const uploadRes = await uploadFile(token, uri, name, finalMime);
-        attachmentUrl = uploadRes.url;
-
-        if (type === "audio" && duration) {
-          messageContent = `duration:${duration}`;
-        }
-      }
-
-      await sendMessage(token, chatId, messageContent, attachmentUrl);
-      setContent("");
-      setSelectedAttachment(null);
-    } catch (err: any) {
-      Alert.alert("Erro ao enviar mensagem", err.message);
-    } finally {
-      setSending(false);
+      // 2. Insert into SQLite local database
+      await insertMessageLocal(newLocalMsg);
+      
+      // Update UI state immediately
+      setMessages((prev) => [...prev, newLocalMsg]);
+    } catch (dbErr) {
+      console.error("Failed to save message to local SQLite:", dbErr);
     }
+
+    // 3. Process uploading and sending in background
+    (async () => {
+      let attachmentUrl: string | undefined = undefined;
+      let finalContent = messageContentText;
+
+      try {
+        if (attachmentInfo) {
+          const { uri, name, type, mimeType, duration } = attachmentInfo;
+          let finalMime = mimeType;
+          if (!finalMime) {
+            if (type === "image") finalMime = "image/jpeg";
+            else if (type === "video") finalMime = "video/mp4";
+            else if (type === "audio") finalMime = "audio/m4a";
+            else finalMime = "application/pdf";
+          }
+
+          // Upload physical file
+          const uploadRes = await uploadFile(token, uri, name, finalMime);
+          attachmentUrl = uploadRes.url;
+
+          if (type === "audio" && duration) {
+            finalContent = `duration:${duration}`;
+          }
+
+          // Update status to pending and save remote attachment URL
+          await updateMessageStatusLocal(localId, "pending", { image_url: attachmentUrl });
+
+          // Update UI state
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === localId ? { ...m, status: "pending", image_url: attachmentUrl || null } : m
+            )
+          );
+        }
+
+        // Send message to server API
+        const sendResult = await sendMessage(token, chatId, finalContent, attachmentUrl);
+        const serverMsg = sendResult.message;
+
+        // Replace local ID with server ID and set status to sent
+        await updateMessageStatusLocal(localId, "sent", {
+          serverId: serverMsg.id,
+          image_url: serverMsg.image_url,
+          local_file_path: attachmentInfo?.uri
+        });
+
+        // Update UI state with server representation
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === localId
+              ? {
+                  ...serverMsg,
+                  status: "sent",
+                  local_file_path: attachmentInfo?.uri || null
+                }
+              : m
+          )
+        );
+      } catch (err) {
+        console.error("Failed to send offline message in background:", err);
+
+        // Update database to failed
+        await updateMessageStatusLocal(localId, "failed");
+
+        // Update UI state to failed
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === localId ? { ...m, status: "failed" } : m
+          )
+        );
+      }
+    })();
   }
 
   async function handlePickFromGallery() {

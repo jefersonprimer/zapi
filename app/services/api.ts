@@ -1,11 +1,17 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 
 export const API_URL = (() => {
   if (Platform.OS === "web") {
     const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
     return `http://${hostname}:3000`;
   }
-  return "http://192.168.5.22:3000";
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const ip = hostUri.split(":")[0];
+    return `http://${ip}:3000`;
+  }
+  return Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
 })();
 
 export interface AuthResponse {
@@ -29,6 +35,22 @@ export interface ChatListItem {
   is_blocked_by_them?: boolean;
 }
 
+export interface Attachment {
+  id: string;
+  message_id: string;
+  type: "image" | "video" | "audio" | "document";
+  remote_url: string;
+  local_path: string | null;
+  mime_type: string | null;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  size: number | null;
+  sha256: string | null;
+  thumbnail_path: string | null;
+  download_status: "pending" | "downloading" | "downloaded" | "failed";
+}
+
 export interface Message {
   id: string;
   chat_id: string;
@@ -36,8 +58,11 @@ export interface Message {
   sender_username: string;
   content: string | null;
   image_url: string | null;
+  local_file_path?: string | null; // Local cached file URI
+  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed"; // Delivery status
   created_at: string;
   deleted_for_everyone?: boolean;
+  attachments?: Attachment[];
 }
 
 export async function authFetch(url: string, token: string, options: RequestInit = {}) {
