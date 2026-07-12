@@ -1032,7 +1032,13 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={
+        Platform.OS === "ios"
+          ? "padding"
+          : isKeyboardVisible
+          ? "height"
+          : undefined
+      }
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 0}
     >
       {/* Custom Header */}
