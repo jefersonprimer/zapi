@@ -48,6 +48,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/calls/start", post(handlers::calls::start_call))
         .route("/calls/end", post(handlers::calls::end_call))
         .route("/calls/history", get(handlers::calls::get_history))
+        .route("/calls/:id", delete(handlers::calls::delete_call))
         .route("/contacts", get(handlers::contacts::list_contacts))
         .route("/contacts", post(handlers::contacts::add_contact))
         .route("/contacts/:contact_id", delete(handlers::contacts::remove_contact))

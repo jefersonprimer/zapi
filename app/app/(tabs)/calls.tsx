@@ -6,19 +6,23 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, PhoneOff } from "lucide-react-native";
+import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, PhoneOff, Trash2, ArrowLeft } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
-import { getCallHistory, type CallHistoryItem } from "@/services/callApi";
+import { getCallHistory, deleteCallHistoryItem, type CallHistoryItem } from "@/services/callApi";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { useAppTheme } from "@/context/ThemeContext";
 
 export default function CallsScreen() {
   const { token, user } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const [calls, setCalls] = useState<CallHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCallIds, setSelectedCallIds] = useState<string[]>([]);
+
+  const isSelectionMode = selectedCallIds.length > 0;
 
   const fetchCalls = useCallback(async () => {
     if (!token) return;
@@ -37,6 +41,54 @@ export default function CallsScreen() {
       fetchCalls();
     }, [fetchCalls])
   );
+
+  const toggleSelection = (id: string) => {
+    setSelectedCallIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((item) => item !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const deleteSelectedCalls = async () => {
+    if (!token || selectedCallIds.length === 0) return;
+    try {
+      await Promise.all(selectedCallIds.map((id) => deleteCallHistoryItem(token, id)));
+      setCalls((prevCalls) => prevCalls.filter((c) => !selectedCallIds.includes(c.id)));
+      setSelectedCallIds([]);
+    } catch (err: any) {
+      console.error("Failed to delete selected calls:", err);
+      Alert.alert("Erro", "Não foi possível excluir as ligações selecionadas.");
+    }
+  };
+
+  const handleDeleteSelectedPrompt = () => {
+    Alert.alert(
+      "Excluir ligações",
+      `Deseja apagar as ${selectedCallIds.length} ligações selecionadas do seu histórico?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: deleteSelectedCalls,
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handlePressItem = (item: CallHistoryItem) => {
+    if (isSelectionMode) {
+      toggleSelection(item.id);
+    }
+  };
+
+  const handleLongPress = (item: CallHistoryItem) => {
+    toggleSelection(item.id);
+  };
 
   const handleCallBack = (userId: string, username: string) => {
     voiceCallManager.startCall(userId, username);
@@ -81,8 +133,24 @@ export default function CallsScreen() {
       return `${remainingSecs}s`;
     };
 
+    const isSelected = selectedCallIds.includes(item.id);
+
     return (
-      <View style={[styles.callItem, { borderBottomColor: colors.border }]}>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => handlePressItem(item)}
+        onLongPress={() => handleLongPress(item)}
+        delayLongPress={500}
+        style={[
+          styles.callItem, 
+          { borderBottomColor: colors.border },
+          isSelected && {
+            backgroundColor: isDark
+              ? "rgba(10, 132, 255, 0.15)"
+              : "rgba(0, 122, 255, 0.1)",
+          }
+        ]}
+      >
         <View style={styles.leftContainer}>
           <View style={[styles.avatar, { backgroundColor: isOutgoing ? colors.tint : "#34C759" }]}>
             <Text style={styles.avatarText}>{peerName[0]?.toUpperCase() ?? "?"}</Text>
@@ -98,13 +166,25 @@ export default function CallsScreen() {
             </View>
           </View>
         </View>
-        <TouchableOpacity
-          style={[styles.callButton, { backgroundColor: colors.surface }]}
-          onPress={() => handleCallBack(peerId, peerName)}
-        >
-          <Phone size={18} color={colors.tint} />
-        </TouchableOpacity>
-      </View>
+        {isSelectionMode ? (
+          <View style={styles.selectionIndicator}>
+            {isSelected ? (
+              <View style={[styles.selectedCircle, { backgroundColor: colors.tint }]}>
+                <View style={styles.selectedCircleInner} />
+              </View>
+            ) : (
+              <View style={[styles.unselectedCircle, { borderColor: colors.textSecondary }]} />
+            )}
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.callButton, { backgroundColor: colors.surface }]}
+            onPress={() => handleCallBack(peerId, peerName)}
+          >
+            <Phone size={18} color={colors.tint} />
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
     );
   };
 
@@ -118,7 +198,21 @@ export default function CallsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.headerTitle, { color: colors.text }]}>Ligações</Text>
+      {isSelectionMode ? (
+        <View style={[styles.headerContainer, { borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => setSelectedCallIds([])} style={styles.headerButton}>
+            <ArrowLeft size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitleSelection, { color: colors.text }]}>
+            {selectedCallIds.length} selecionadas
+          </Text>
+          <TouchableOpacity onPress={handleDeleteSelectedPrompt} style={styles.headerButton}>
+            <Trash2 size={24} color="#FF3B30" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Ligações</Text>
+      )}
       {calls.length === 0 ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhuma ligação recente</Text>
@@ -205,5 +299,45 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    marginVertical: 10,
+    height: 56,
+  },
+  headerButton: {
+    padding: 8,
+  },
+  headerTitleSelection: {
+    fontSize: 20,
+    fontWeight: "600",
+    flex: 1,
+    marginLeft: 16,
+  },
+  selectionIndicator: {
+    padding: 10,
+    marginLeft: 12,
+  },
+  selectedCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  selectedCircleInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#ffffff",
+  },
+  unselectedCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
   },
 });

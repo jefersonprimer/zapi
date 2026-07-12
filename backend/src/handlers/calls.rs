@@ -213,7 +213,8 @@ pub async fn get_history(
         FROM call_logs c
         JOIN users u1 ON c.caller_id = u1.id
         JOIN users u2 ON c.callee_id = u2.id
-        WHERE c.caller_id = $1 OR c.callee_id = $1
+        WHERE (c.caller_id = $1 AND c.deleted_by_caller = FALSE)
+           OR (c.callee_id = $1 AND c.deleted_by_callee = FALSE)
         ORDER BY c.created_at DESC
         LIMIT 50
         "#,
@@ -230,4 +231,50 @@ pub async fn get_history(
     })?;
 
     Ok(Json(logs))
+}
+
+pub async fn delete_call(
+    AuthUser(user_id): AuthUser,
+    State(state): State<AppState>,
+    axum::extract::Path(call_id): axum::extract::Path<Uuid>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let result = sqlx::query(
+        r#"
+        UPDATE call_logs
+        SET 
+            deleted_by_caller = CASE WHEN caller_id = $2 THEN TRUE ELSE deleted_by_caller END,
+            deleted_by_callee = CASE WHEN callee_id = $2 THEN TRUE ELSE deleted_by_callee END
+        WHERE id = $1 AND (caller_id = $2 OR callee_id = $2)
+        "#,
+    )
+    .bind(call_id)
+    .bind(user_id)
+    .execute(&state.pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
+    if result.rows_affected() == 0 {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Call log not found or unauthorized" })),
+        ));
+    }
+
+    // Hard delete call log record if both caller and callee have deleted it
+    let _ = sqlx::query(
+        r#"
+        DELETE FROM call_logs
+        WHERE id = $1 AND deleted_by_caller = TRUE AND deleted_by_callee = TRUE
+        "#,
+    )
+    .bind(call_id)
+    .execute(&state.pool)
+    .await;
+
+    Ok(Json(json!({ "status": "success" })))
 }

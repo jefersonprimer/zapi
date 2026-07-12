@@ -28,3 +28,9 @@ export async function endCallRequest(token: string, callId: string): Promise<{ s
 export async function getCallHistory(token: string): Promise<CallHistoryItem[]> {
   return authFetch(`${API_URL}/calls/history`, token);
 }
+
+export async function deleteCallHistoryItem(token: string, callId: string): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/calls/${callId}`, token, {
+    method: "DELETE",
+  });
+}

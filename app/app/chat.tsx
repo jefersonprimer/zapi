@@ -12,6 +12,7 @@ import {
   Modal,
   Keyboard,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -217,6 +218,7 @@ export default function ChatScreen() {
   const { colors, isDark } = useAppTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [calls, setCalls] = useState<CallHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [content, setContent] = useState("");
   const sending = false;
   const flatListRef = useRef<FlatList>(null);
@@ -482,8 +484,14 @@ export default function ChatScreen() {
       syncWorker.triggerSync(chatId);
     } catch (err: any) {
       console.warn("Error loading local messages:", err);
+    } finally {
+      setIsLoading(false);
     }
   }, [chatId, token, cacheMediaForMessages]);
+
+  useEffect(() => {
+    setIsLoading(true);
+  }, [chatId]);
 
   useEffect(() => {
     loadMessages();
@@ -1373,9 +1381,15 @@ export default function ChatScreen() {
           }
         }}
         ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            Nenhuma mensagem ainda. Envie um oi!
-          </Text>
+          isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.tint} />
+            </View>
+          ) : (
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              Nenhuma mensagem ainda. Envie um oi!
+            </Text>
+          )
         }
       />
 
@@ -1811,6 +1825,11 @@ const styles = StyleSheet.create({
     color: "#888",
     marginTop: 40,
     fontSize: 16,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   dateHeaderContainer: {
     alignItems: "center",
