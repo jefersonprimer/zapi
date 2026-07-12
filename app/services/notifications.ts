@@ -1,11 +1,25 @@
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-if (Platform.OS !== "web" && !isExpoGo) {
+
+const getNotificationsModule = () => {
+  if (Platform.OS === "web" || isExpoGo) {
+    return null;
+  }
+  try {
+    return require("expo-notifications");
+  } catch (e) {
+    console.warn("Failed to load expo-notifications:", e);
+    return null;
+  }
+};
+
+const Notifications = getNotificationsModule();
+
+if (Notifications) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -18,7 +32,7 @@ if (Platform.OS !== "web" && !isExpoGo) {
 }
 
 export async function registerForPushNotifications(): Promise<string | null> {
-  if (Platform.OS === "web" || isExpoGo) {
+  if (!Notifications) {
     return null;
   }
   const { status: existing } = await Notifications.getPermissionsAsync();

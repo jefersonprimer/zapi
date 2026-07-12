@@ -44,6 +44,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/groups/:id/add", post(handlers::groups::add_participant))
         .route("/groups/:id/remove/:user_id", delete(handlers::groups::remove_participant))
         .route("/upload", post(handlers::upload::upload_image).layer(DefaultBodyLimit::disable()))
+        .route("/upload/check-hash", get(handlers::upload::check_hash))
         .route("/calls/start", post(handlers::calls::start_call))
         .route("/calls/end", post(handlers::calls::end_call))
         .route("/calls/history", get(handlers::calls::get_history))

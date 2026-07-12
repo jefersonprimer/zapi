@@ -145,48 +145,31 @@ export async function saveChats(chats: ChatListItem[]) {
 export async function saveMessages(messages: Message[]) {
   const db = await getDatabase();
   for (const msg of messages) {
-    const existing = await db.getFirstAsync<{ status: string; local_file_path: string }>(
-      "SELECT status, local_file_path FROM messages WHERE id = ?",
-      [msg.id]
+    await db.runAsync(
+      `INSERT INTO messages (
+        id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        content = excluded.content,
+        image_url = excluded.image_url,
+        local_file_path = COALESCE(excluded.local_file_path, local_file_path),
+        created_at = excluded.created_at,
+        deleted_for_everyone = excluded.deleted_for_everyone,
+        deleted_at = excluded.deleted_at`,
+      [
+        msg.id,
+        msg.chat_id,
+        msg.sender_id,
+        msg.sender_username,
+        msg.content || null,
+        msg.image_url || null,
+        msg.local_file_path || null,
+        msg.created_at,
+        msg.status || "sent",
+        msg.deleted_for_everyone ? 1 : 0,
+        msg.deleted_at || null,
+      ]
     );
-
-    if (existing) {
-      // If it exists locally, only update server-defined fields, keep status & local file path
-      await db.runAsync(
-        `UPDATE messages SET
-          content = ?,
-          image_url = ?,
-          created_at = ?,
-          deleted_for_everyone = ?,
-          deleted_at = ?
-         WHERE id = ?`,
-        [
-          msg.content || null,
-          msg.image_url || null,
-          msg.created_at,
-          msg.deleted_for_everyone ? 1 : 0,
-          msg.deleted_at || null,
-          msg.id,
-        ]
-      );
-    } else {
-      await db.runAsync(
-        `INSERT INTO messages (
-          id, chat_id, sender_id, sender_username, content, image_url, created_at, status, deleted_for_everyone, deleted_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'sent', ?, ?)`,
-        [
-          msg.id,
-          msg.chat_id,
-          msg.sender_id,
-          msg.sender_username,
-          msg.content || null,
-          msg.image_url || null,
-          msg.created_at,
-          msg.deleted_for_everyone ? 1 : 0,
-          msg.deleted_at || null,
-        ]
-      );
-    }
 
     // Save attachments if they are present in the message payload
     if (msg.attachments && msg.attachments.length > 0) {

@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { Audio } from "expo-av";
+import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from "expo-audio";
 import {
   Phone as PhoneIcon,
   MoreVertical as MoreVerticalIcon,
@@ -48,9 +48,6 @@ import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
-  getMessages,
-  sendMessage,
-  uploadFile,
   type Message,
   getContacts,
   addContact,
@@ -62,10 +59,10 @@ import {
   API_URL,
 } from "@/services/api";
 import {
+  getDatabase,
   getMessagesFromLocal,
   saveMessages,
   insertMessageLocal,
-  updateMessageStatusLocal,
   markChatReadLocal,
   markSentMessagesReadLocal,
   markSentMessagesDeliveredLocal,
@@ -73,6 +70,7 @@ import {
   deleteMessageLocal,
   deleteMessageForMeLocal,
 } from "@/services/database";
+import { syncWorker } from "@/services/syncWorker";
 import { cacheMediaFile } from "@/services/mediaCache";
 import { wsClient } from "@/services/ws";
 import { voiceCallManager } from "@/services/voiceCallManager";
@@ -239,7 +237,7 @@ export default function ChatScreen() {
   const loadChatDetails = useCallback(async () => {
     if (!token) return;
     try {
-      const chatListData = await getChats(token);
+      const chatListData = await getChats(token, chatId);
       const currentChat = chatListData.chats.find((c) => c.id === chatId);
       if (currentChat) {
         setIsBlockedByMe(!!currentChat.is_blocked_by_me);
@@ -421,7 +419,8 @@ export default function ChatScreen() {
 
   const [selectedAttachment, setSelectedAttachment] =
     useState<Attachment | null>(null);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const [hasRecordingSession, setHasRecordingSession] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingTimerRef = useRef<any>(null);
@@ -475,24 +474,14 @@ export default function ChatScreen() {
         console.error("Failed to fetch call history:", err);
       });
 
-      // 2. Busca atualizações do servidor
-      const msgData = await getMessages(token, chatId);
-      
-      // 3. Salva no SQLite
-      await saveMessages(msgData.messages);
-      
-      // 4. Recarrega as informações atualizadas do SQLite
-      const updatedMsgs = await getMessagesFromLocal(chatId);
-      setMessages(updatedMsgs);
-
-      // Inicia cache de mídias novas em background
-      cacheMediaForMessages(updatedMsgs);
-
       // Marca o chat como lido na API e localmente
       markChatRead(token, chatId).catch(() => {});
       await markChatReadLocal(chatId);
+
+      // 2. Dispara a sincronização incremental (delta) em background no SyncWorker
+      syncWorker.triggerSync(chatId);
     } catch (err: any) {
-      console.warn("Offline or sync error loading messages:", err);
+      console.warn("Error loading local messages:", err);
     }
   }, [chatId, token, cacheMediaForMessages]);
 
@@ -507,6 +496,22 @@ export default function ChatScreen() {
   }, [callState, loadMessages]);
 
   useEffect(() => {
+    if (!chatId) return;
+    // Subscreve às mudanças do SQLite disparadas pelo SyncWorker
+    const unsubscribeSync = syncWorker.onMessagesChanged(chatId, async () => {
+      try {
+        const localMsgs = await getMessagesFromLocal(chatId);
+        setMessages(localMsgs);
+        cacheMediaForMessages(localMsgs);
+      } catch (err) {
+        console.error("Failed to reload messages from SQLite on sync update:", err);
+      }
+    });
+
+    return unsubscribeSync;
+  }, [chatId, cacheMediaForMessages]);
+
+  useEffect(() => {
     if (!token) return;
 
     wsClient.subscribe(chatId);
@@ -516,165 +521,94 @@ export default function ChatScreen() {
         if (data.message.sender_id !== user?.user_id) {
           wsClient.send({ type: "delivered_ack", chat_id: chatId });
         }
-        // Salva localmente primeiro
-        saveMessages([data.message]).then(async () => {
-          // Evita duplicar na interface caso já esteja lá
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === data.message.id)) {
-              return prev;
-            }
 
-            if (data.message.image_url) {
-              cacheMediaFile(data.message.image_url, data.message.id).then((localPath) => {
-                setMessages((curr) => {
-                  if (curr.some((m) => m.id === data.message.id)) return curr;
-
-                  // Se for nosso próprio envio, tenta substituir a mensagem pendente correspondente em vez de criar duplicada
-                  if (data.message.sender_id === user?.user_id) {
-                    const pendingIndex = curr.findIndex(
-                      (m) =>
-                        (m.status === "pending" || m.status === "uploading" || m.status === "sending") &&
-                        m.sender_id === user?.user_id &&
-                        m.content === data.message.content
-                    );
-                    if (pendingIndex !== -1) {
-                      const next = [...curr];
-                      next[pendingIndex] = {
-                        ...data.message,
-                        local_file_path: localPath.startsWith("file://") ? localPath : null
-                      };
-                      return next;
-                    }
-                  }
-
-                  return [
-                    ...curr,
-                    { ...data.message, local_file_path: localPath.startsWith("file://") ? localPath : null }
-                  ];
-                });
-              }).catch(() => {
-                setMessages((curr) => {
-                  if (curr.some((m) => m.id === data.message.id)) return curr;
-
-                  // Se for nosso próprio envio, tenta substituir a mensagem pendente correspondente em vez de criar duplicada
-                  if (data.message.sender_id === user?.user_id) {
-                    const pendingIndex = curr.findIndex(
-                      (m) =>
-                        (m.status === "pending" || m.status === "uploading" || m.status === "sending") &&
-                        m.sender_id === user?.user_id &&
-                        m.content === data.message.content
-                    );
-                    if (pendingIndex !== -1) {
-                      const next = [...curr];
-                      next[pendingIndex] = data.message;
-                      return next;
-                    }
-                  }
-
-                  return [...curr, data.message];
-                });
-              });
-              return prev;
-            } else {
-              // Se for nosso próprio envio, tenta substituir a mensagem pendente correspondente em vez de criar duplicada
-              if (data.message.sender_id === user?.user_id) {
-                const pendingIndex = prev.findIndex(
-                  (m) =>
-                    (m.status === "pending" || m.status === "uploading" || m.status === "sending") &&
-                    m.sender_id === user?.user_id &&
-                    m.content === data.message.content
-                );
-                if (pendingIndex !== -1) {
-                  const next = [...prev];
-                  next[pendingIndex] = data.message;
-                  return next;
-                }
+        // Save new message locally
+        if (data.message.sender_id === user?.user_id) {
+          // If it's our own message coming back, remove the temporary pending message
+          getDatabase().then(async (db) => {
+            let attachmentType: "image" | "video" | "audio" | "document" | null = null;
+            if (data.message.attachments && data.message.attachments.length > 0) {
+              attachmentType = data.message.attachments[0].type;
+            } else if (data.message.image_url) {
+              const urlLower = data.message.image_url.toLowerCase();
+              if (urlLower.endsWith(".jpg") || urlLower.endsWith(".jpeg") || urlLower.endsWith(".png") || urlLower.endsWith(".gif") || urlLower.endsWith(".webp")) {
+                attachmentType = "image";
+              } else if (urlLower.endsWith(".mp4") || urlLower.endsWith(".mov") || urlLower.endsWith(".webm") || urlLower.endsWith(".mkv") || urlLower.endsWith(".avi")) {
+                attachmentType = "video";
+              } else if (urlLower.endsWith(".mp3") || urlLower.endsWith(".wav") || urlLower.endsWith(".m4a") || urlLower.endsWith(".caf") || urlLower.endsWith(".ogg") || urlLower.endsWith(".opus")) {
+                attachmentType = "audio";
+              } else {
+                attachmentType = "document";
               }
-              return [...prev, data.message];
             }
-          });
-          
-          await markChatReadLocal(chatId);
-        });
+
+            let pending: { id: string } | null = null;
+            if (attachmentType) {
+              pending = await db.getFirstAsync<{ id: string }>(
+                `SELECT m.id FROM messages m 
+                 JOIN attachments a ON m.id = a.message_id 
+                 WHERE m.chat_id = ? AND m.sender_id = ? AND a.type = ? AND (m.status = 'pending' OR m.status = 'uploading' OR m.status = 'sending')`,
+                [chatId, user?.user_id || "", attachmentType]
+              );
+            } else {
+              pending = await db.getFirstAsync<{ id: string }>(
+                "SELECT id FROM messages WHERE chat_id = ? AND sender_id = ? AND content = ? AND (status = 'pending' OR status = 'uploading' OR status = 'sending')",
+                [chatId, user?.user_id || "", data.message.content || ""]
+              );
+            }
+
+            if (pending) {
+              await db.runAsync("DELETE FROM messages WHERE id = ?", [pending.id]);
+            }
+            await saveMessages([data.message]);
+            syncWorker.notifyMessagesChanged(chatId);
+          }).catch(console.error);
+        } else {
+          saveMessages([data.message]).then(() => {
+            syncWorker.notifyMessagesChanged(chatId);
+          }).catch(console.error);
+        }
 
         if (data.message.sender_id !== user?.user_id) {
           markChatRead(token, chatId).catch((err) =>
             console.error("Error marking chat read:", err),
           );
+          markChatReadLocal(chatId).catch(console.error);
         }
       }
     });
 
     const unsubDelete = wsClient.on("message_deleted", (data) => {
       if (data.chat_id === chatId) {
-        // Atualiza localmente no SQLite
-        deleteMessageLocal(data.message_id).catch(console.error);
-
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === data.message_id
-              ? {
-                  ...msg,
-                  deleted_for_everyone: true,
-                  content: null,
-                  image_url: null,
-                  local_file_path: null,
-                }
-              : msg,
-          ),
-        );
+        deleteMessageLocal(data.message_id).then(() => {
+          syncWorker.notifyMessagesChanged(chatId);
+        }).catch(console.error);
       }
     });
 
     const unsubClear = wsClient.on("messages_cleared", (data) => {
       if (data.chat_id === chatId) {
-        // Limpa SQLite local
-        clearChatMessagesLocal(chatId).catch(console.error);
-        setMessages([]);
-        setCalls([]);
-        setClearedAt(new Date().toISOString());
+        clearChatMessagesLocal(chatId).then(() => {
+          setCalls([]);
+          setClearedAt(new Date().toISOString());
+          syncWorker.notifyMessagesChanged(chatId);
+        }).catch(console.error);
       }
     });
 
     const unsubRead = wsClient.on("messages_read", (data) => {
       if (data.chat_id === chatId && data.reader_id !== user?.user_id) {
-        // Alguém leu nossas mensagens! Atualiza localmente no SQLite
-        markSentMessagesReadLocal(chatId, user?.user_id || "", data.read_at).catch(console.error);
-
-        // Atualiza a interface
-        setMessages((prev) =>
-          prev.map((msg) => {
-            if (
-              msg.sender_id === user?.user_id &&
-              msg.status !== "read" &&
-              new Date(msg.created_at) <= new Date(data.read_at)
-            ) {
-              return { ...msg, status: "read" };
-            }
-            return msg;
-          })
-        );
+        markSentMessagesReadLocal(chatId, user?.user_id || "", data.read_at).then(() => {
+          syncWorker.notifyMessagesChanged(chatId);
+        }).catch(console.error);
       }
     });
 
     const unsubDelivered = wsClient.on("messages_delivered", (data) => {
       if (data.chat_id === chatId && data.receiver_id !== user?.user_id) {
-        // Mensagens entregues! Atualiza localmente no SQLite
-        markSentMessagesDeliveredLocal(chatId, user?.user_id || "").catch(console.error);
-
-        // Atualiza a interface
-        setMessages((prev) =>
-          prev.map((msg) => {
-            if (
-              msg.sender_id === user?.user_id &&
-              msg.status === "sent" &&
-              new Date(msg.created_at) <= new Date(data.delivered_at)
-            ) {
-              return { ...msg, status: "delivered" };
-            }
-            return msg;
-          })
-        );
+        markSentMessagesDeliveredLocal(chatId, user?.user_id || "").then(() => {
+          syncWorker.notifyMessagesChanged(chatId);
+        }).catch(console.error);
       }
     });
 
@@ -775,87 +709,14 @@ export default function ChatScreen() {
       // 2. Insert into SQLite local database
       await insertMessageLocal(newLocalMsg);
       
-      // Update UI state immediately
-      setMessages((prev) => [...prev, newLocalMsg]);
+      // Notify SQLite changes to UI listeners to render the new message immediately
+      syncWorker.notifyMessagesChanged(chatId);
+      
+      // Trigger background upload and send in SyncWorker
+      syncWorker.triggerSync(chatId);
     } catch (dbErr) {
       console.error("Failed to save message to local SQLite:", dbErr);
     }
-
-    // 3. Process uploading and sending in background
-    (async () => {
-      let attachmentUrl: string | undefined = undefined;
-      let finalContent = messageContentText;
-
-      try {
-        if (attachmentInfo) {
-          const { uri, name, type, mimeType, duration } = attachmentInfo;
-          let finalMime = mimeType;
-          if (!finalMime) {
-            if (type === "image") finalMime = "image/jpeg";
-            else if (type === "video") finalMime = "video/mp4";
-            else if (type === "audio") finalMime = "audio/m4a";
-            else finalMime = "application/pdf";
-          }
-
-          // Upload physical file
-          const uploadRes = await uploadFile(token, uri, name, finalMime);
-          attachmentUrl = uploadRes.url;
-
-          if (type === "audio" && duration) {
-            finalContent = `duration:${duration}`;
-          }
-
-          // Update status to pending and save remote attachment URL
-          await updateMessageStatusLocal(localId, "pending", { image_url: attachmentUrl });
-
-          // Update UI state
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === localId ? { ...m, status: "pending", image_url: attachmentUrl || null } : m
-            )
-          );
-        }
-
-        // Send message to server API
-        const sendResult = await sendMessage(token, chatId, finalContent, attachmentUrl);
-        const serverMsg = sendResult.message;
-
-        // Replace local ID with server ID and set status to sent
-        await updateMessageStatusLocal(localId, "sent", {
-          serverId: serverMsg.id,
-          image_url: serverMsg.image_url,
-          local_file_path: attachmentInfo?.uri
-        });
-
-        // Update UI state with server representation
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === serverMsg.id)) {
-            return prev.filter((m) => m.id !== localId);
-          }
-          return prev.map((m) =>
-            m.id === localId
-              ? {
-                  ...serverMsg,
-                  status: "sent",
-                  local_file_path: attachmentInfo?.uri || null
-                }
-              : m
-          );
-        });
-      } catch (err) {
-        console.error("Failed to send offline message in background:", err);
-
-        // Update database to failed
-        await updateMessageStatusLocal(localId, "failed");
-
-        // Update UI state to failed
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === localId ? { ...m, status: "failed" } : m
-          )
-        );
-      }
-    })();
   }
 
   async function handlePickFromGallery() {
@@ -993,7 +854,7 @@ export default function ChatScreen() {
     }
 
     try {
-      const permission = await Audio.requestPermissionsAsync();
+      const permission = await requestRecordingPermissionsAsync();
       if (permission.status !== "granted") {
         Alert.alert(
           "Permissão Negada",
@@ -1002,16 +863,15 @@ export default function ChatScreen() {
         return;
       }
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
+      await recorder.prepareToRecordAsync();
+      recorder.record();
 
-      setRecording(newRecording);
+      setHasRecordingSession(true);
       setIsRecording(true);
       setRecordingDuration(0);
 
@@ -1055,11 +915,11 @@ export default function ChatScreen() {
       return;
     }
 
-    if (!recording) return;
+    if (!hasRecordingSession) return;
 
     if (isRecordingPaused) {
       try {
-        await recording.startAsync();
+        recorder.record();
         setIsRecordingPaused(false);
         if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = setInterval(() => {
@@ -1070,7 +930,7 @@ export default function ChatScreen() {
       }
     } else {
       try {
-        await recording.pauseAsync();
+        recorder.pause();
         setIsRecordingPaused(true);
         if (recordingTimerRef.current) {
           clearInterval(recordingTimerRef.current);
@@ -1121,7 +981,7 @@ export default function ChatScreen() {
       return;
     }
 
-    if (!recording) return;
+    if (!hasRecordingSession) return;
 
     setIsRecording(false);
     if (recordingTimerRef.current) {
@@ -1130,11 +990,11 @@ export default function ChatScreen() {
     }
 
     try {
-      await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      await recorder.stop();
+      await setAudioModeAsync({ allowsRecording: false });
 
       if (shouldKeep) {
-        const uri = recording.getURI();
+        const uri = recorder.uri;
         if (uri) {
           setSelectedAttachment({
             uri,
@@ -1148,7 +1008,7 @@ export default function ChatScreen() {
     } catch (err: any) {
       Alert.alert("Erro ao parar gravação", err.message);
     } finally {
-      setRecording(null);
+      setHasRecordingSession(false);
     }
   }
 

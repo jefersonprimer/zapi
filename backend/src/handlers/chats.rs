@@ -73,8 +73,14 @@ pub async fn create_chat(
     Ok(Json(json!({ "id": chat_id.0, "already_exists": false })))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ListChatsQuery {
+    pub chat_id: Option<Uuid>,
+}
+
 pub async fn list_chats(
     State(pool): State<PgPool>,
+    axum::extract::Query(query): axum::extract::Query<ListChatsQuery>,
     auth: AuthUser,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let chats = sqlx::query_as::<_, ChatListItem>(
@@ -104,7 +110,7 @@ pub async fn list_chats(
                 WHEN m.created_at IS NOT NULL THEN
                     CASE
                         WHEN m.deleted_for_everyone = TRUE THEN 'Message deleted'
-                        WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' AND m.image_url ~* '\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$' THEN
+                        WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' AND (m.image_url ~* 'audio' OR m.image_url ~* '\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$') THEN
                             CASE
                                 WHEN m.content IS NOT NULL AND m.content LIKE 'duration:%' THEN 'Audio|' || m.content
                                 ELSE 'Audio'
@@ -113,7 +119,7 @@ pub async fn list_chats(
                         WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' THEN
                             CASE
                                 WHEN m.image_url ~* '\.(jpg|jpeg|png|gif|webp)(\?.*)?$' THEN 'Photo'
-                                WHEN m.image_url ~* '\.(mp4|mov|webm|mkv|avi)(\?.*)?$' THEN 'Video'
+                                WHEN m.image_url ~* '\.(mp4|mov|webm|mkv|avi)(\?.*)?$' AND NOT m.image_url ~* 'audio' THEN 'Video'
                                 ELSE 'File|' || COALESCE(substring(split_part(m.image_url, '?', 1) from '[^/]+$'), 'File')
                             END
                         ELSE NULL
@@ -169,7 +175,7 @@ pub async fn list_chats(
              ORDER BY created_at DESC
              LIMIT 1
          ) m ON true
-         WHERE cp1.cleared_at IS NULL OR m.created_at IS NOT NULL OR cal.created_at IS NOT NULL
+         WHERE cp1.cleared_at IS NULL OR m.created_at IS NOT NULL OR cal.created_at IS NOT NULL OR c.id = $2
          ORDER BY COALESCE(
              CASE
                  WHEN cal.created_at IS NOT NULL AND (m.created_at IS NULL OR cal.created_at > m.created_at) THEN cal.created_at
@@ -179,6 +185,7 @@ pub async fn list_chats(
          ) DESC NULLS LAST"#,
     )
     .bind(auth.0)
+    .bind(query.chat_id)
     .fetch_all(&pool)
     .await
     .map_err(|_| {

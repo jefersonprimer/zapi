@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
-import { Audio } from "expo-av";
+import { createAudioPlayer, AudioPlayer as ExpoAudioPlayer, AudioStatus } from "expo-audio";
 import { Play as PlayIcon, Pause as PauseIcon } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -11,23 +11,14 @@ interface AudioPlayerProps {
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
   const { colors, isDark } = useAppTheme();
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [player, setPlayer] = useState<ExpoAudioPlayer | null>(null);
   const [webAudio, setWebAudio] = useState<any>(null);
+  const subscriptionRef = useRef<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1.0);
 
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (status.isLoaded) {
-      setPosition(status.positionMillis);
-      setDuration(status.durationMillis || 0);
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setPosition(0);
-      }
-    }
-  };
 
   // Web Audio Lifecycle
   useEffect(() => {
@@ -76,11 +67,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
   // Native Sound Lifecycle
   useEffect(() => {
     return () => {
-      if (sound) {
-        sound.unloadAsync();
+      if (player) {
+        player.remove();
+      }
+      if (subscriptionRef.current) {
+        subscriptionRef.current.remove();
+        subscriptionRef.current = null;
       }
     };
-  }, [sound]);
+  }, [player]);
 
   async function playSound() {
     if (Platform.OS === "web") {
@@ -97,17 +92,26 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
     }
 
     try {
-      if (sound) {
-        await sound.setRateAsync(speed, true);
-        await sound.playAsync();
+      if (player) {
+        player.setPlaybackRate(speed);
+        player.play();
         setIsPlaying(true);
       } else {
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri },
-          { shouldPlay: true, rate: speed, shouldCorrectPitch: true },
-          onPlaybackStatusUpdate,
-        );
-        setSound(newSound);
+        const newPlayer = createAudioPlayer(uri);
+        newPlayer.setPlaybackRate(speed);
+        if (subscriptionRef.current) {
+          subscriptionRef.current.remove();
+        }
+        subscriptionRef.current = newPlayer.addListener("playbackStatusUpdate", (status: AudioStatus) => {
+          setPosition(status.currentTime * 1000);
+          setDuration(status.duration * 1000 || 0);
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+            setPosition(0);
+          }
+        });
+        setPlayer(newPlayer);
+        newPlayer.play();
         setIsPlaying(true);
       }
     } catch (error) {
@@ -124,8 +128,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
       return;
     }
 
-    if (sound) {
-      await sound.pauseAsync();
+    if (player) {
+      player.pause();
       setIsPlaying(false);
     }
   }
@@ -138,8 +142,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
   };
 
   const seekNative = async (posMs: number) => {
-    if (sound) {
-      await sound.setPositionAsync(posMs);
+    if (player) {
+      await player.seekTo(posMs / 1000);
       setPosition(posMs);
     }
   };
@@ -173,8 +177,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
         webAudio.playbackRate = nextSpeed;
       }
     } else {
-      if (sound) {
-        await sound.setRateAsync(nextSpeed, true);
+      if (player) {
+        player.setPlaybackRate(nextSpeed);
       }
     }
   };

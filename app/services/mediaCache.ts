@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import * as FileSystem from "expo-file-system/legacy";
+import { File, Paths } from "expo-file-system";
 import { API_URL } from "./api";
 import { getDatabase } from "./database";
 
@@ -32,7 +32,7 @@ export function getLocalPathForUrl(remoteUrl: string): string | null {
     subfolder = "audio";
   }
 
-  return `${FileSystem.documentDirectory}media/${subfolder}/${filename}`;
+  return Paths.join(Paths.document, "media", subfolder, filename);
 }
 
 // Caches the media file and optionally updates the SQLite DB
@@ -50,24 +50,23 @@ export async function cacheMediaFile(remoteUrl: string, messageId?: string): Pro
   if (!localUri) return getFullRemoteUrl(remoteUrl);
 
   try {
+    const file = new File(localUri);
     // Check if file already exists
-    const fileInfo = await FileSystem.getInfoAsync(localUri);
-    if (fileInfo.exists) {
+    if (file.exists) {
       return localUri;
     }
 
     // Ensure parent directory exists
-    const dirPath = localUri.substring(0, localUri.lastIndexOf("/"));
-    const dirInfo = await FileSystem.getInfoAsync(dirPath);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
+    const parentDir = file.parentDirectory;
+    if (!parentDir.exists) {
+      parentDir.create({ intermediates: true, idempotent: true });
     }
 
     // Download file
     const downloadUrl = getFullRemoteUrl(remoteUrl);
-    const downloadResult = await FileSystem.downloadAsync(downloadUrl, localUri);
+    await File.downloadFileAsync(downloadUrl, file, { idempotent: true });
 
-    if (downloadResult.status === 200) {
+    if (true) {
       // Update SQLite database with local file path
       if (messageId) {
         try {

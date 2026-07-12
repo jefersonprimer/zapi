@@ -2,6 +2,9 @@ import { Platform } from "react-native";
 import Constants from "expo-constants";
 
 const WS_URL = (() => {
+  if (process.env.EXPO_PUBLIC_WS_URL) {
+    return process.env.EXPO_PUBLIC_WS_URL;
+  }
   if (Platform.OS === "web") {
     const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
     return `ws://${hostname}:3000`;

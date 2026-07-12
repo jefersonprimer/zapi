@@ -32,6 +32,7 @@ pub struct Message {
     pub image_url: Option<String>,
     pub created_at: DateTime<Utc>,
     pub deleted_for_everyone: bool,
+    pub deleted_at: Option<DateTime<Utc>>,
     
     #[sqlx(skip)]
     pub attachments: Option<Vec<Attachment>>,

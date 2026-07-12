@@ -95,6 +95,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       : `${API_URL}${mediaUrl.startsWith("/") ? "" : "/"}${mediaUrl}`
     : null;
 
+  const isImage = attachment ? attachment.type === "image" : (mediaUrl ? (isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")) : false);
+  const isAudio = attachment ? attachment.type === "audio" : (mediaUrl ? (isAudioUrl(mediaUrl) || mediaUrl.toLowerCase().includes("audio")) : false);
+  const isVideo = attachment ? attachment.type === "video" : (mediaUrl ? (isVideoUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")) : false);
+
   if (item.deleted_for_everyone) {
     const deletedColor = isMine
       ? "rgba(255, 255, 255, 0.8)"
@@ -152,7 +156,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     >
       {fullUrl && (
         <>
-          {isImageUrl(mediaUrl!) ? (
+          {isImage ? (
             <TouchableOpacity
               onPress={() => setIsFullScreen(true)}
               activeOpacity={0.9}
@@ -163,9 +167,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 resizeMode="cover"
               />
             </TouchableOpacity>
-          ) : isAudioUrl(mediaUrl!) ? (
+          ) : isAudio ? (
             <AudioPlayer uri={fullUrl} isMine={isMine} />
-          ) : isVideoUrl(mediaUrl!) ? (
+          ) : isVideo ? (
             <TouchableOpacity
               style={styles.videoContainer}
               onPress={() => setIsFullScreen(true)}
@@ -278,7 +282,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
       </View>
 
-      {fullUrl && isImageUrl(item.image_url!) && (
+      {fullUrl && isImage && (
         <Modal
           visible={isFullScreen}
           transparent={true}
@@ -309,7 +313,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </TouchableWithoutFeedback>
         </Modal>
       )}
-      {fullUrl && isVideoUrl(item.image_url!) && isFullScreen && (
+      {fullUrl && isVideo && isFullScreen && (
         <Modal
           visible={isFullScreen}
           transparent={true}

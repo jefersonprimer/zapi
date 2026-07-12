@@ -1,6 +1,11 @@
-use axum::{extract::{Path, State}, http::StatusCode, Json};
+use axum::{extract::{Path, State, Query}, http::StatusCode, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
+
+#[derive(Debug, Deserialize)]
+pub struct GetMessagesQuery {
+    pub since: Option<chrono::DateTime<chrono::Utc>>,
+}
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -12,6 +17,7 @@ use crate::ws;
 pub struct SendMessageRequest {
     pub content: Option<String>,
     pub image_url: Option<String>,
+    pub sha256: Option<String>,
 }
 
 pub async fn send_message(
@@ -97,7 +103,8 @@ pub async fn send_message(
             content,
             image_url,
             created_at,
-            deleted_for_everyone",
+            deleted_for_everyone,
+            deleted_at",
     )
     .bind(message_id)
     .bind(chat_id)
@@ -116,7 +123,17 @@ pub async fn send_message(
     if let Some(ref url) = body.image_url {
         if !url.trim().is_empty() {
             let url_lower = url.to_lowercase();
-            let att_type = if url_lower.ends_with(".jpg")
+            let att_type = if url_lower.contains("/audio/")
+                || url_lower.contains("audio")
+                || url_lower.ends_with(".mp3")
+                || url_lower.ends_with(".wav")
+                || url_lower.ends_with(".m4a")
+                || url_lower.ends_with(".caf")
+                || url_lower.ends_with(".ogg")
+                || url_lower.ends_with(".opus")
+            {
+                "audio"
+            } else if url_lower.ends_with(".jpg")
                 || url_lower.ends_with(".jpeg")
                 || url_lower.ends_with(".png")
                 || url_lower.ends_with(".gif")
@@ -130,26 +147,19 @@ pub async fn send_message(
                 || url_lower.ends_with(".avi")
             {
                 "video"
-            } else if url_lower.ends_with(".mp3")
-                || url_lower.ends_with(".wav")
-                || url_lower.ends_with(".m4a")
-                || url_lower.ends_with(".caf")
-                || url_lower.ends_with(".ogg")
-                || url_lower.ends_with(".opus")
-            {
-                "audio"
             } else {
                 "document"
             };
 
             let att = sqlx::query_as::<_, crate::models::message::Attachment>(
-                "INSERT INTO attachments (message_id, type, remote_url)
-                 VALUES ($1, $2, $3)
+                "INSERT INTO attachments (message_id, type, remote_url, sha256)
+                 VALUES ($1, $2, $3, $4)
                  RETURNING id, message_id, type, remote_url, mime_type, width, height, duration, size, sha256, thumbnail_path"
             )
             .bind(msg.id)
             .bind(att_type)
             .bind(url)
+            .bind(body.sha256.clone())
             .fetch_one(&pool)
             .await
             .ok();
@@ -234,6 +244,7 @@ pub async fn get_messages(
     State(ws_state): State<ws::WsState>,
     auth: AuthUser,
     Path(chat_id): Path<Uuid>,
+    Query(query): Query<GetMessagesQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let is_participant: Option<(Uuid,)> = sqlx::query_as(
         "SELECT chat_id FROM chat_participants WHERE chat_id = $1 AND user_id = $2",
@@ -295,18 +306,42 @@ pub async fn get_messages(
         (None, None, None)
     };
 
-    let mut messages = sqlx::query_as::<_, Message>(
-        "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at, m.deleted_for_everyone
-         FROM messages m
-         JOIN users u ON u.id = m.sender_id
-         JOIN chat_participants cp ON cp.chat_id = m.chat_id AND cp.user_id = $2
-         WHERE m.chat_id = $1 AND (cp.cleared_at IS NULL OR m.created_at > cp.cleared_at)
-         ORDER BY m.created_at ASC",
-    )
-    .bind(chat_id)
-    .bind(auth.0)
-    .fetch_all(&pool)
-    .await
+    let mut messages = if let Some(since) = query.since {
+        sqlx::query_as::<_, Message>(
+            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at, m.deleted_for_everyone, m.deleted_at
+             FROM messages m
+             JOIN users u ON u.id = m.sender_id
+             JOIN chat_participants cp ON cp.chat_id = m.chat_id AND cp.user_id = $2
+             WHERE m.chat_id = $1 
+               AND (cp.cleared_at IS NULL OR m.created_at > cp.cleared_at)
+               AND (m.created_at > $3 OR m.deleted_at > $3)
+             ORDER BY m.created_at ASC",
+        )
+        .bind(chat_id)
+        .bind(auth.0)
+        .bind(since)
+        .fetch_all(&pool)
+        .await
+    } else {
+        // Initial load: return last 50 messages
+        sqlx::query_as::<_, Message>(
+            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at, m.deleted_for_everyone, m.deleted_at
+             FROM (
+                 SELECT * FROM messages 
+                 WHERE chat_id = $1 
+                 ORDER BY created_at DESC 
+                 LIMIT 50
+             ) m
+             JOIN users u ON u.id = m.sender_id
+             JOIN chat_participants cp ON cp.chat_id = m.chat_id AND cp.user_id = $2
+             WHERE cp.cleared_at IS NULL OR m.created_at > cp.cleared_at
+             ORDER BY m.created_at ASC",
+        )
+        .bind(chat_id)
+        .bind(auth.0)
+        .fetch_all(&pool)
+        .await
+    }
     .map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,

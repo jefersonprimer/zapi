@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Multipart, State},
+    extract::{Multipart, State, Query},
     http::StatusCode,
     Json,
 };
@@ -37,13 +37,17 @@ pub async fn upload_image(
             .unwrap_or("bin")
             .to_lowercase();
 
-        let (subfolder, max_size, label) = match ext.as_str() {
-            "jpg" | "jpeg" | "png" | "gif" | "webp" => ("images", 20 * 1024 * 1024, "Photo (max 20MB)"),
-            "mp4" | "mov" | "webm" | "mkv" | "avi" => ("videos", 250 * 1024 * 1024, "Video (max 250MB)"),
-            "mp3" | "wav" | "caf" | "ogg" => ("audio", 50 * 1024 * 1024, "Audio (max 50MB)"),
-            "3gp" | "aac" | "m4a" | "opus" => ("audio", 25 * 1024 * 1024, "Voice message (max 25MB)"),
-            // Qualquer outro tipo de arquivo é tratado como documento (máx 500MB)
-            _ => ("documents", 500 * 1024 * 1024, "Document (max 500MB)"),
+        let is_audio_name = file_name.to_lowercase().contains("audio");
+        let (subfolder, max_size, label) = if is_audio_name {
+            ("audio", 25 * 1024 * 1024, "Voice message (max 25MB)")
+        } else {
+            match ext.as_str() {
+                "jpg" | "jpeg" | "png" | "gif" | "webp" => ("images", 20 * 1024 * 1024, "Photo (max 20MB)"),
+                "mp4" | "mov" | "webm" | "mkv" | "avi" => ("videos", 250 * 1024 * 1024, "Video (max 250MB)"),
+                "mp3" | "wav" | "caf" | "ogg" => ("audio", 50 * 1024 * 1024, "Audio (max 50MB)"),
+                "3gp" | "aac" | "m4a" | "opus" => ("audio", 25 * 1024 * 1024, "Voice message (max 25MB)"),
+                _ => ("documents", 500 * 1024 * 1024, "Document (max 500MB)"),
+            }
         };
 
         let target_dir = upload_dir.join(subfolder);
@@ -115,4 +119,34 @@ pub async fn upload_image(
         StatusCode::BAD_REQUEST,
         Json(json!({ "error": "no file provided" })),
     ))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct CheckHashQuery {
+    pub hash: String,
+}
+
+pub async fn check_hash(
+    State(pool): State<PgPool>,
+    _auth: AuthUser,
+    Query(query): Query<CheckHashQuery>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let remote_url: Option<String> = sqlx::query_scalar(
+        "SELECT remote_url FROM attachments WHERE sha256 = $1 LIMIT 1"
+    )
+    .bind(&query.hash)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "database error" })),
+        )
+    })?;
+
+    if let Some(url) = remote_url {
+        Ok(Json(json!({ "exists": true, "url": url })))
+    } else {
+        Ok(Json(json!({ "exists": false })))
+    }
 }

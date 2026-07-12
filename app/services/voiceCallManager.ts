@@ -5,7 +5,7 @@ import {
   RTCSessionDescription,
   mediaDevices,
 } from "./webrtcShim";
-import { Audio } from "expo-av";
+import { AudioModule, setAudioModeAsync } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
 import { useCallStore } from "../store/useCallStore";
 import { wsClient } from "./ws";
@@ -160,7 +160,7 @@ class VoiceCallManager {
 
     if (Platform.OS !== "web") {
       try {
-        const audioPermission = await Audio.requestPermissionsAsync();
+        const audioPermission = await AudioModule.requestRecordingPermissionsAsync();
         if (audioPermission.status !== "granted") {
           Alert.alert(
             "Permissão Negada",
@@ -195,7 +195,7 @@ class VoiceCallManager {
 
     if (Platform.OS !== "web") {
       try {
-        const audioPermission = await Audio.requestPermissionsAsync();
+        const audioPermission = await AudioModule.requestRecordingPermissionsAsync();
         if (audioPermission.status !== "granted") {
           Alert.alert(
             "Permissão Negada",
@@ -275,10 +275,10 @@ class VoiceCallManager {
   // Toggle audio output routing via expo-av
   async setSpeaker(speaker: boolean) {
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        playThroughEarpieceAndroid: !speaker, // False routes to speaker
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        shouldRouteThroughEarpiece: !speaker,
       });
     } catch (e) {
       console.warn("Failed to toggle speaker route", e);

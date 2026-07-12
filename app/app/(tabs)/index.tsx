@@ -522,7 +522,7 @@ export default function ChatListScreen() {
                   let iconElement = null;
                   let displayMessage = item.last_message;
 
-                  if (item.last_message.startsWith("Audio")) {
+                  if (item.last_message.startsWith("Audio") || item.last_message.startsWith("🎵 Áudio")) {
                     let durationStr = "";
                     const parts = item.last_message.split("|duration:");
                     if (parts.length > 1) {
@@ -541,8 +541,8 @@ export default function ChatListScreen() {
                         style={{ marginRight: 4 }}
                       />
                     );
-                  } else if (item.last_message === "Photo") {
-                    displayMessage = "Photo";
+                  } else if (item.last_message === "Photo" || item.last_message === "📷 Foto") {
+                    displayMessage = "Foto";
                     iconElement = (
                       <Camera
                         size={15}
@@ -550,8 +550,8 @@ export default function ChatListScreen() {
                         style={{ marginRight: 4 }}
                       />
                     );
-                  } else if (item.last_message === "Video") {
-                    displayMessage = "Video";
+                  } else if (item.last_message === "Video" || item.last_message === "🎥 Vídeo") {
+                    displayMessage = "Vídeo";
                     iconElement = (
                       <Video
                         size={15}

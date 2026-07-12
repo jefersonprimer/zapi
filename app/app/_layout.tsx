@@ -12,6 +12,7 @@ import { voiceCallManager } from "@/services/voiceCallManager";
 import { registerForPushNotifications } from "@/services/notifications";
 import { authFetch, API_URL } from "@/services/api";
 import { initializeDatabase } from "@/services/database";
+import { syncWorker } from "@/services/syncWorker";
 import CallOverlay from "@/components/CallOverlay";
 
 function InitialLayout() {
@@ -38,10 +39,12 @@ function InitialLayout() {
   useEffect(() => {
     if (token && user) {
       wsClient.init(token);
+      syncWorker.init(token);
       voiceCallManager.init(token, user.user_id);
       return () => {
         voiceCallManager.disconnect();
         wsClient.disconnect();
+        syncWorker.disconnect();
       };
     }
   }, [token, user]);

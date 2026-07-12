@@ -2,6 +2,9 @@ import { Platform } from "react-native";
 import Constants from "expo-constants";
 
 export const API_URL = (() => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
   if (Platform.OS === "web") {
     const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
     return `http://${hostname}:3000`;
@@ -120,8 +123,9 @@ export async function login(
   return data;
 }
 
-export async function getChats(token: string): Promise<{ chats: ChatListItem[] }> {
-  return authFetch(`${API_URL}/chats`, token);
+export async function getChats(token: string, chatId?: string): Promise<{ chats: ChatListItem[] }> {
+  const url = chatId ? `${API_URL}/chats?chat_id=${encodeURIComponent(chatId)}` : `${API_URL}/chats`;
+  return authFetch(url, token);
 }
 
 export async function createChat(
@@ -136,9 +140,14 @@ export async function createChat(
 
 export async function getMessages(
   token: string,
-  chatId: string
+  chatId: string,
+  since?: string | null
 ): Promise<{ messages: Message[] }> {
-  return authFetch(`${API_URL}/chats/${chatId}/messages`, token);
+  let url = `${API_URL}/chats/${chatId}/messages`;
+  if (since) {
+    url += `?since=${encodeURIComponent(since)}`;
+  }
+  return authFetch(url, token);
 }
 
 export interface UserSearchResult {
@@ -224,15 +233,27 @@ export async function uploadImage(
   return uploadFile(token, uri, "photo.jpg", "image/jpeg");
 }
 
+export async function checkFileHash(
+  token: string,
+  hash: string
+): Promise<{ exists: boolean; url?: string }> {
+  return authFetch(`${API_URL}/upload/check-hash?hash=${encodeURIComponent(hash)}`, token);
+}
+
 export async function sendMessage(
   token: string,
   chatId: string,
   content: string,
-  imageUrl?: string
+  imageUrl?: string,
+  sha256?: string
 ): Promise<{ message: Message }> {
   return authFetch(`${API_URL}/chats/${chatId}/messages`, token, {
     method: "POST",
-    body: JSON.stringify({ content: content || null, image_url: imageUrl || null }),
+    body: JSON.stringify({ 
+      content: content || null, 
+      image_url: imageUrl || null,
+      sha256: sha256 || null
+    }),
   });
 }
 
