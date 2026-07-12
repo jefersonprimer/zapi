@@ -1072,6 +1072,7 @@ export default function ChatScreen() {
                       participantId,
                       participantUsername,
                       chatId,
+                      avatarUrl: participantAvatarUrl || undefined,
                     },
                   });
                 }
@@ -1499,6 +1500,7 @@ export default function ChatScreen() {
                 participantId,
                 participantUsername,
                 chatId,
+                avatarUrl: participantAvatarUrl || undefined,
               },
             });
           }

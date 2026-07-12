@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -28,6 +29,7 @@ import {
   unblockContact,
   clearChatMessages,
   type Contact,
+  API_URL,
 } from "@/services/api";
 import { voiceCallManager } from "@/services/voiceCallManager";
 
@@ -37,10 +39,11 @@ export default function ContactDetailScreen() {
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  const { participantId, participantUsername, chatId } = useLocalSearchParams<{
+  const { participantId, participantUsername, chatId, avatarUrl } = useLocalSearchParams<{
     participantId: string;
     participantUsername: string;
     chatId?: string;
+    avatarUrl?: string;
   }>();
 
   const [contact, setContact] = useState<Contact | null>(null);
@@ -140,6 +143,13 @@ export default function ContactDetailScreen() {
   const displayName = participantUsername || contact?.username || "Carregando...";
   const displayEmail = contact?.email || "Email indisponível";
 
+  const currentAvatarUrl = contact?.avatar_url || avatarUrl;
+  const avatarUri = currentAvatarUrl
+    ? (currentAvatarUrl.startsWith("http")
+      ? currentAvatarUrl
+      : `${API_URL}${currentAvatarUrl}`)
+    : null;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Custom Header */}
@@ -166,8 +176,15 @@ export default function ContactDetailScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
-            <View style={[styles.avatar, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]}>
-              <Text style={[styles.avatarText, { color: colors.text }]}>{nameInitial}</Text>
+            <View style={[styles.avatar, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA", overflow: "hidden" }]}>
+              {avatarUri ? (
+                <Image
+                  source={{ uri: avatarUri }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={[styles.avatarText, { color: colors.text }]}>{nameInitial}</Text>
+              )}
             </View>
             <Text style={[styles.displayName, { color: colors.text }]}>{displayName}</Text>
             {isBlocked && (
@@ -324,6 +341,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   avatarText: {
     fontSize: 40,
