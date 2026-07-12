@@ -33,6 +33,7 @@ import { useAuth } from "@/context/AuthContext";
 interface MessageBubbleProps {
   item: Message;
   currentUserId?: string;
+  isGroup?: boolean;
 }
 
 const isImageUrl = (url: string) =>
@@ -79,6 +80,7 @@ const MessageVideo: React.FC<MessageVideoProps> = ({ uri, isFullScreen }) => {
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   item,
   currentUserId,
+  isGroup,
 }) => {
   const { colors, isDark } = useAppTheme();
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -210,6 +212,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           { borderColor: colors.border }
         ]}
       >
+        {isGroup && !isMine && item.sender_username ? (
+          <Text style={[styles.senderUsername, { color: colors.tint, marginBottom: 8 }]}>
+            {item.sender_username}
+          </Text>
+        ) : null}
         <View style={styles.contactShareHeader}>
           <View style={[styles.contactShareAvatar, { backgroundColor: isMine ? "rgba(255, 255, 255, 0.2)" : (isDark ? "#2C2C2E" : "#E5E5EA") }]}>
             {avatarUri ? (
@@ -298,6 +305,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           : [styles.theirMessage, { backgroundColor: colors.surface }],
       ]}
     >
+      {isGroup && !isMine && item.sender_username ? (
+        <Text style={[styles.senderUsername, { color: colors.tint }]}>
+          {item.sender_username}
+        </Text>
+      ) : null}
       {fullUrl && (
         <>
           {isImage ? (
@@ -489,6 +501,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 };
 
 const styles = StyleSheet.create({
+  senderUsername: {
+    fontSize: 12,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
   messageBubble: {
     maxWidth: "75%",
     padding: 12,

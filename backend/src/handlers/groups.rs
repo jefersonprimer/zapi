@@ -186,3 +186,91 @@ pub async fn remove_participant(
         )),
     }
 }
+
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+pub struct GroupParticipant {
+    pub id: Uuid,
+    pub username: String,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct GroupDetailsResponse {
+    pub id: Uuid,
+    pub name: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub is_group: bool,
+    pub participants: Vec<GroupParticipant>,
+}
+
+pub async fn get_group_details(
+    State(pool): State<PgPool>,
+    auth: AuthUser,
+    Path(chat_id): Path<Uuid>,
+) -> Result<Json<GroupDetailsResponse>, (StatusCode, Json<Value>)> {
+    let is_participant: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT chat_id FROM chat_participants WHERE chat_id = $1 AND user_id = $2",
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "database error" })),
+        )
+    })?;
+
+    if is_participant.is_none() {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "you are not a participant of this chat" })),
+        ));
+    }
+
+    let chat: Option<(Option<String>, Option<Uuid>, bool)> = sqlx::query_as(
+        "SELECT name, created_by, is_group FROM chats WHERE id = $1",
+    )
+    .bind(chat_id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "database error" })),
+        )
+    })?;
+
+    let (name, created_by, is_group) = chat.ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "chat not found" })),
+        )
+    })?;
+
+    let participants = sqlx::query_as::<_, GroupParticipant>(
+        "SELECT u.id, u.username, u.avatar_url 
+         FROM chat_participants cp
+         JOIN users u ON u.id = cp.user_id
+         WHERE cp.chat_id = $1",
+    )
+    .bind(chat_id)
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "database error fetching participants" })),
+        )
+    })?;
+
+    Ok(Json(GroupDetailsResponse {
+        id: chat_id,
+        name,
+        created_by,
+        is_group,
+        participants,
+    }))
+}
+

@@ -332,4 +332,47 @@ export async function updateProfile(
   });
 }
 
+export interface GroupParticipant {
+  id: string;
+  username: string;
+  avatar_url?: string | null;
+}
+
+export interface GroupDetails {
+  id: string;
+  name: string | null;
+  created_by: string | null;
+  is_group: boolean;
+  participants: GroupParticipant[];
+}
+
+export async function getGroupDetails(
+  token: string,
+  chatId: string
+): Promise<GroupDetails> {
+  return authFetch(`${API_URL}/groups/${chatId}`, token);
+}
+
+export async function addParticipant(
+  token: string,
+  chatId: string,
+  userId: string
+): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/groups/${chatId}/add`, token, {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId }),
+  });
+}
+
+export async function removeParticipant(
+  token: string,
+  chatId: string,
+  userId: string
+): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/groups/${chatId}/remove/${userId}`, token, {
+    method: "DELETE",
+  });
+}
+
+
 
