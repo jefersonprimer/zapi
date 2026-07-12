@@ -36,6 +36,7 @@ import {
   PhoneOutgoing,
   PhoneMissed,
   Ban,
+  User,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -628,6 +629,20 @@ export default function ChatListScreen() {
                       <PhoneMissed
                         size={15}
                         color={colors.danger}
+                        style={{ marginRight: 4 }}
+                      />
+                    );
+                  } else if (item.last_message && item.last_message.startsWith('{"type":"contact_share"')) {
+                    try {
+                      const parsed = JSON.parse(item.last_message);
+                      displayMessage = parsed.username;
+                    } catch {
+                      displayMessage = "Contato";
+                    }
+                    iconElement = (
+                      <User
+                        size={15}
+                        color={colors.textSecondary}
                         style={{ marginRight: 4 }}
                       />
                     );

@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
   Image,
+  Modal,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -19,6 +20,7 @@ import {
   ArrowLeft,
   User,
   Mail,
+  MoreVertical,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -39,17 +41,20 @@ export default function ContactDetailScreen() {
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  const { participantId, participantUsername, chatId, avatarUrl } = useLocalSearchParams<{
-    participantId: string;
-    participantUsername: string;
-    chatId?: string;
-    avatarUrl?: string;
-  }>();
+  const { participantId, participantUsername, chatId, avatarUrl } =
+    useLocalSearchParams<{
+      participantId: string;
+      participantUsername: string;
+      chatId?: string;
+      avatarUrl?: string;
+    }>();
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
 
   const fetchContactDetails = useCallback(async () => {
     if (!token || !participantId) return;
@@ -76,7 +81,7 @@ export default function ContactDetailScreen() {
     if (!participantId) return;
     voiceCallManager.startCall(
       participantId,
-      participantUsername || contact?.username || "Contato"
+      participantUsername || contact?.username || "Contato",
     );
   };
 
@@ -85,7 +90,7 @@ export default function ContactDetailScreen() {
     voiceCallManager.startCall(
       participantId,
       participantUsername || contact?.username || "Contato",
-      true
+      true,
     );
   };
 
@@ -103,7 +108,10 @@ export default function ContactDetailScreen() {
         Alert.alert("Sucesso", "Contato bloqueado com sucesso.");
       }
     } catch (err: any) {
-      Alert.alert("Erro", err.message || "Não foi possível alterar o status de bloqueio.");
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível alterar o status de bloqueio.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -129,41 +137,70 @@ export default function ContactDetailScreen() {
               await clearChatMessages(token, chatId);
               Alert.alert("Sucesso", "Histórico de conversa apagado.");
             } catch (err: any) {
-              Alert.alert("Erro", err.message || "Não foi possível limpar a conversa.");
+              Alert.alert(
+                "Erro",
+                err.message || "Não foi possível limpar a conversa.",
+              );
             } finally {
               setActionLoading(false);
             }
           },
         },
-      ]
+      ],
     );
   };
 
-  const nameInitial = (participantUsername || contact?.username || "?")[0]?.toUpperCase();
-  const displayName = participantUsername || contact?.username || "Carregando...";
+  const nameInitial = (participantUsername ||
+    contact?.username ||
+    "?")[0]?.toUpperCase();
+  const displayName =
+    participantUsername || contact?.username || "Carregando...";
   const displayEmail = contact?.email || "Email indisponível";
 
   const currentAvatarUrl = contact?.avatar_url || avatarUrl;
   const avatarUri = currentAvatarUrl
-    ? (currentAvatarUrl.startsWith("http")
+    ? currentAvatarUrl.startsWith("http")
       ? currentAvatarUrl
-      : `${API_URL}${currentAvatarUrl}`)
+      : `${API_URL}${currentAvatarUrl}`
     : null;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Custom Header */}
-      <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: colors.headerBackground }]}>
+      <View
+        style={[
+          styles.customHeader,
+          { paddingTop: insets.top, backgroundColor: colors.headerBackground },
+        ]}
+      >
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+          >
             <ArrowLeft size={24} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.headerText }]}>Detalhes do Contato</Text>
+          <Text
+            style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
+          >
+            Detalhes do Contato
+          </Text>
+          <TouchableOpacity
+            onPress={() => setMenuVisible(true)}
+            style={styles.headerMenuBtn}
+          >
+            <MoreVertical size={24} color={colors.headerText} />
+          </TouchableOpacity>
         </View>
       </View>
 
       {actionLoading && (
-        <View style={[styles.overlayLoading, { backgroundColor: colors.modalOverlay }]}>
+        <View
+          style={[
+            styles.overlayLoading,
+            { backgroundColor: colors.modalOverlay },
+          ]}
+        >
           <ActivityIndicator size="large" color={colors.tint} />
         </View>
       )}
@@ -176,19 +213,36 @@ export default function ContactDetailScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
-            <View style={[styles.avatar, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA", overflow: "hidden" }]}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => avatarUri && setIsAvatarFullScreen(true)}
+              disabled={!avatarUri}
+              style={[
+                styles.avatar,
+                {
+                  backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA",
+                  overflow: "hidden",
+                },
+              ]}
+            >
               {avatarUri ? (
-                <Image
-                  source={{ uri: avatarUri }}
-                  style={styles.avatarImage}
-                />
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
               ) : (
-                <Text style={[styles.avatarText, { color: colors.text }]}>{nameInitial}</Text>
+                <Text style={[styles.avatarText, { color: colors.text }]}>
+                  {nameInitial}
+                </Text>
               )}
-            </View>
-            <Text style={[styles.displayName, { color: colors.text }]}>{displayName}</Text>
+            </TouchableOpacity>
+            <Text style={[styles.displayName, { color: colors.text }]}>
+              {displayName}
+            </Text>
             {isBlocked && (
-              <View style={[styles.blockedBadge, { backgroundColor: colors.danger }]}>
+              <View
+                style={[
+                  styles.blockedBadge,
+                  { backgroundColor: colors.danger },
+                ]}
+              >
                 <Text style={styles.blockedBadgeText}>BLOQUEADO</Text>
               </View>
             )}
@@ -201,7 +255,9 @@ export default function ContactDetailScreen() {
               onPress={handleVoiceCall}
             >
               <Phone size={24} color={colors.tint} />
-              <Text style={[styles.actionButtonText, { color: colors.tint }]}>Ligar</Text>
+              <Text style={[styles.actionButtonText, { color: colors.tint }]}>
+                Ligar
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -209,34 +265,76 @@ export default function ContactDetailScreen() {
               onPress={handleVideoCall}
             >
               <Video size={24} color={colors.tint} />
-              <Text style={[styles.actionButtonText, { color: colors.tint }]}>Vídeo</Text>
+              <Text style={[styles.actionButtonText, { color: colors.tint }]}>
+                Vídeo
+              </Text>
             </TouchableOpacity>
           </View>
 
           {/* Details Section */}
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>Informações</Text>
-            
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>
+              Informações
+            </Text>
+
             <View style={styles.infoRow}>
-              <User size={20} color={colors.textSecondary} style={styles.infoIcon} />
+              <User
+                size={20}
+                color={colors.textSecondary}
+                style={styles.infoIcon}
+              />
               <View>
-                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Nome</Text>
-                <Text style={[styles.infoValue, { color: colors.text }]}>{displayName}</Text>
+                <Text
+                  style={[styles.infoLabel, { color: colors.textSecondary }]}
+                >
+                  Nome
+                </Text>
+                <Text style={[styles.infoValue, { color: colors.text }]}>
+                  {displayName}
+                </Text>
               </View>
             </View>
 
-            <View style={[styles.infoRow, styles.borderTop, { borderTopColor: colors.border }]}>
-              <Mail size={20} color={colors.textSecondary} style={styles.infoIcon} />
+            <View
+              style={[
+                styles.infoRow,
+                styles.borderTop,
+                { borderTopColor: colors.border },
+              ]}
+            >
+              <Mail
+                size={20}
+                color={colors.textSecondary}
+                style={styles.infoIcon}
+              />
               <View>
-                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>E-mail</Text>
-                <Text style={[styles.infoValue, { color: colors.text }]}>{displayEmail}</Text>
+                <Text
+                  style={[styles.infoLabel, { color: colors.textSecondary }]}
+                >
+                  E-mail
+                </Text>
+                <Text style={[styles.infoValue, { color: colors.text }]}>
+                  {displayEmail}
+                </Text>
               </View>
             </View>
           </View>
 
           {/* Danger Zone Options */}
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.danger }]}>Opções</Text>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: colors.danger }]}>
+              Opções
+            </Text>
 
             <TouchableOpacity
               style={styles.optionRow}
@@ -244,33 +342,66 @@ export default function ContactDetailScreen() {
             >
               <Trash2 size={20} color={colors.danger} style={styles.infoIcon} />
               <View style={styles.optionTextContainer}>
-                <Text style={[styles.optionTitle, { color: colors.danger }]}>Limpar conversa</Text>
-                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                <Text style={[styles.optionTitle, { color: colors.danger }]}>
+                  Limpar conversa
+                </Text>
+                <Text
+                  style={[styles.optionSub, { color: colors.textSecondary }]}
+                >
                   Apaga todas as mensagens e histórico deste chat.
                 </Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.optionRow, styles.borderTop, { borderTopColor: colors.border }]}
+              style={[
+                styles.optionRow,
+                styles.borderTop,
+                { borderTopColor: colors.border },
+              ]}
               onPress={handleToggleBlock}
             >
               {isBlocked ? (
                 <>
-                  <Shield size={20} color={colors.tint} style={styles.infoIcon} />
+                  <Shield
+                    size={20}
+                    color={colors.tint}
+                    style={styles.infoIcon}
+                  />
                   <View style={styles.optionTextContainer}>
-                    <Text style={[styles.optionTitle, { color: colors.tint }]}>Desbloquear contato</Text>
-                    <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
-                      Permite que este usuário envie mensagens para você novamente.
+                    <Text style={[styles.optionTitle, { color: colors.tint }]}>
+                      Desbloquear contato
+                    </Text>
+                    <Text
+                      style={[
+                        styles.optionSub,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Permite que este usuário envie mensagens para você
+                      novamente.
                     </Text>
                   </View>
                 </>
               ) : (
                 <>
-                  <ShieldAlert size={20} color={colors.danger} style={styles.infoIcon} />
+                  <ShieldAlert
+                    size={20}
+                    color={colors.danger}
+                    style={styles.infoIcon}
+                  />
                   <View style={styles.optionTextContainer}>
-                    <Text style={[styles.optionTitle, { color: colors.danger }]}>Bloquear contato</Text>
-                    <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                    <Text
+                      style={[styles.optionTitle, { color: colors.danger }]}
+                    >
+                      Bloquear contato
+                    </Text>
+                    <Text
+                      style={[
+                        styles.optionSub,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       Impede que este usuário envie mensagens para você.
                     </Text>
                   </View>
@@ -279,6 +410,79 @@ export default function ContactDetailScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+      )}
+
+      {/* Dropdown Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View
+            style={[
+              styles.menuContainer,
+              {
+                backgroundColor: colors.menuBackground || colors.surface,
+                borderColor: colors.border,
+                top: insets.top + 10,
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                router.push({
+                  pathname: "/share-contact",
+                  params: {
+                    contactId: participantId,
+                    contactUsername:
+                      participantUsername || contact?.username || "",
+                    contactAvatarUrl: currentAvatarUrl || "",
+                  },
+                });
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                Compartilhar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Full Screen Avatar Modal */}
+      {avatarUri && (
+        <Modal
+          visible={isAvatarFullScreen}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsAvatarFullScreen(false)}
+        >
+          <View style={styles.fullScreenBg}>
+            <View style={[styles.fullScreenHeader, { paddingTop: insets.top }]}>
+              <TouchableOpacity
+                onPress={() => setIsAvatarFullScreen(false)}
+                style={styles.fullScreenBackBtn}
+              >
+                <ArrowLeft size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.fullScreenImageContainer}>
+              <Image
+                source={{ uri: avatarUri }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+        </Modal>
       )}
     </View>
   );
@@ -443,5 +647,61 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     lineHeight: 16,
+  },
+  headerMenuBtn: {
+    padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  menuContainer: {
+    position: "absolute",
+    right: 6,
+    borderRadius: 8,
+    paddingVertical: 4,
+    width: 220,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 8,
+    borderWidth: 1,
+  },
+  menuItem: {
+    padding: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  fullScreenBg: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  fullScreenHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  fullScreenBackBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  fullScreenImageContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullScreenImage: {
+    width: "100%",
+    height: "100%",
   },
 });

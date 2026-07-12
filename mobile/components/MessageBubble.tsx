@@ -9,6 +9,8 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -21,10 +23,12 @@ import {
   AlertCircle,
   Ban,
 } from "lucide-react-native";
-import { type Message, API_URL } from "../services/api";
+import { type Message, API_URL, createChat } from "../services/api";
 import { AudioPlayer } from "./AudioPlayer";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { useRouter } from "expo-router";
+import { useAuth } from "@/context/AuthContext";
 
 interface MessageBubbleProps {
   item: Message;
@@ -76,9 +80,49 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   item,
   currentUserId,
 }) => {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [loadingChat, setLoadingChat] = useState(false);
+  const router = useRouter();
+  const { token } = useAuth();
+  
   const isMine = item.sender_id === currentUserId;
+
+  let isContactShare = false;
+  let contactShareData: { contact_id: string; username: string; avatar_url?: string | null } | null = null;
+  
+  if (item.content) {
+    try {
+      const parsed = JSON.parse(item.content);
+      if (parsed && parsed.type === "contact_share") {
+        isContactShare = true;
+        contactShareData = parsed;
+      }
+    } catch {
+      // not JSON or not contact share
+    }
+  }
+
+  const handleStartChat = async () => {
+    if (!token || !contactShareData) return;
+    setLoadingChat(true);
+    try {
+      const data = await createChat(token, contactShareData.contact_id);
+      router.push({
+        pathname: "/chat",
+        params: {
+          chatId: data.id,
+          participantId: contactShareData.contact_id,
+          participantUsername: contactShareData.username,
+          participantAvatarUrl: contactShareData.avatar_url || "",
+        },
+      });
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Não foi possível abrir o chat.");
+    } finally {
+      setLoadingChat(false);
+    }
+  };
 
   const attachment =
     item.attachments && item.attachments.length > 0
@@ -141,6 +185,106 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             minute: "2-digit",
           })}
         </Text>
+      </View>
+    );
+  }
+
+  if (isContactShare && contactShareData) {
+    const currentAvatarUrl = contactShareData.avatar_url;
+    const avatarUri = currentAvatarUrl
+      ? (currentAvatarUrl.startsWith("http")
+        ? currentAvatarUrl
+        : `${API_URL}${currentAvatarUrl.startsWith("/") ? "" : "/"}${currentAvatarUrl}`)
+      : null;
+
+    const nameInitial = contactShareData.username[0]?.toUpperCase() || "?";
+    
+    return (
+      <View
+        style={[
+          styles.messageBubble,
+          isMine
+            ? [styles.myMessage, { backgroundColor: colors.tint }]
+            : [styles.theirMessage, { backgroundColor: colors.surface }],
+          styles.contactShareCard,
+          { borderColor: colors.border }
+        ]}
+      >
+        <View style={styles.contactShareHeader}>
+          <View style={[styles.contactShareAvatar, { backgroundColor: isMine ? "rgba(255, 255, 255, 0.2)" : (isDark ? "#2C2C2E" : "#E5E5EA") }]}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.contactShareAvatarImage} />
+            ) : (
+              <Text style={[styles.contactShareAvatarText, { color: isMine ? "#fff" : colors.text }]}>
+                {nameInitial}
+              </Text>
+            )}
+          </View>
+          <View style={styles.contactShareInfo}>
+            <Text style={[styles.contactShareName, { color: isMine ? "#fff" : colors.text }]} numberOfLines={1}>
+              {contactShareData.username}
+            </Text>
+          </View>
+        </View>
+        
+        <TouchableOpacity
+          style={[
+            styles.contactShareButton,
+            {
+              backgroundColor: isMine ? "#fff" : colors.tint,
+              marginTop: 12,
+            }
+          ]}
+          onPress={handleStartChat}
+          disabled={loadingChat}
+          activeOpacity={0.8}
+        >
+          {loadingChat ? (
+            <ActivityIndicator size="small" color={isMine ? colors.tint : "#fff"} />
+          ) : (
+            <Text style={[styles.contactShareButtonText, { color: isMine ? colors.tint : "#fff" }]}>
+              Conversar
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.timeContainer}>
+          <Text
+            style={[
+              styles.messageTime,
+              isMine
+                ? styles.myMessageTime
+                : [styles.theirMessageTime, { color: colors.textSecondary }],
+            ]}
+          >
+            {new Date(item.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+          {isMine && (
+            <View style={styles.statusIconContainer}>
+              {(item.status === "pending" ||
+                item.status === "uploading" ||
+                item.status === "sending") && (
+                <Clock size={13} color="rgba(255,255,255,0.7)" />
+              )}
+              {item.status === "failed" && (
+                <AlertCircle size={13} color="#FF3B30" />
+              )}
+              {item.status === "sent" && (
+                <Check size={14} color="rgba(255,255,255,0.8)" />
+              )}
+              {item.status === "delivered" && (
+                <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+              )}
+              {item.status === "read" && <CheckCheck size={14} color="#34B7F1" />}
+              {!item.status && (
+                <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+              )}
+            </View>
+          )}
+        </View>
       </View>
     );
   }
@@ -475,5 +619,55 @@ const styles = StyleSheet.create({
   },
   statusIconContainer: {
     marginLeft: 4,
+  },
+  contactShareCard: {
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 16,
+    width: 220,
+  },
+  contactShareHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  contactShareAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+    overflow: "hidden",
+  },
+  contactShareAvatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  contactShareAvatarText: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  contactShareInfo: {
+    flex: 1,
+  },
+  contactShareLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  contactShareName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginTop: 2,
+  },
+  contactShareButton: {
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  contactShareButtonText: {
+    fontSize: 14,
+    fontWeight: "bold",
   },
 });

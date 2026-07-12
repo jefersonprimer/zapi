@@ -95,6 +95,7 @@ function InitialLayout() {
       <Stack.Screen name="register" options={{ headerShown: true, title: "Register", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
       <Stack.Screen name="chat" options={{ headerShown: false }} />
       <Stack.Screen name="contact-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="share-contact" options={{ headerShown: false }} />
       <Stack.Screen name="new-chat" options={{ headerShown: false }} />
       <Stack.Screen name="new-group" options={{ headerShown: false }} />
       <Stack.Screen name="contacts" options={{ headerShown: false }} />
