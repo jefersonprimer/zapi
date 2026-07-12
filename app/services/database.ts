@@ -18,6 +18,7 @@ export async function initializeDatabase() {
       id TEXT PRIMARY KEY,
       participant_id TEXT,
       participant_username TEXT,
+      participant_avatar_url TEXT,
       is_group INTEGER DEFAULT 0,
       name TEXT,
       last_message TEXT,
@@ -38,7 +39,8 @@ export async function initializeDatabase() {
       local_file_path TEXT,
       created_at TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'sent', -- 'pending', 'uploading', 'uploaded', 'sending', 'sent', 'delivered', 'read', 'failed'
-      deleted_for_everyone INTEGER DEFAULT 0
+      deleted_for_everyone INTEGER DEFAULT 0,
+      deleted_at TEXT DEFAULT NULL
     );
 
     CREATE TABLE IF NOT EXISTS attachments (
@@ -62,25 +64,57 @@ export async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status);
     CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
 
-    -- Indices for attachments lookup optimization
+     -- Indices for attachments lookup optimization
     CREATE INDEX IF NOT EXISTS idx_attachments_message_id ON attachments(message_id);
     CREATE INDEX IF NOT EXISTS idx_attachments_download_status ON attachments(download_status);
   `);
+
+  try {
+    await db.execAsync("ALTER TABLE messages ADD COLUMN deleted_at TEXT DEFAULT NULL;");
+  } catch (_) {
+    // Column already exists
+  }
+
+  // Migration logic to ensure existing tables get the new column
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN participant_avatar_url TEXT;");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
 }
 
 // Bulk save chats fetched from server
 export async function saveChats(chats: ChatListItem[]) {
   const db = await getDatabase();
+
+  // Delete local chats and messages that are no longer on the server
+  const serverChatIds = chats.map((c) => c.id);
+  if (serverChatIds.length > 0) {
+    const placeholders = serverChatIds.map(() => "?").join(",");
+    await db.runAsync(
+      `DELETE FROM messages WHERE chat_id NOT IN (${placeholders})`,
+      serverChatIds
+    );
+    await db.runAsync(
+      `DELETE FROM chats WHERE id NOT IN (${placeholders})`,
+      serverChatIds
+    );
+  } else {
+    await db.runAsync("DELETE FROM messages");
+    await db.runAsync("DELETE FROM chats");
+  }
+
   for (const chat of chats) {
     await db.runAsync(
       `INSERT INTO chats (
-        id, participant_id, participant_username, is_group, name, 
+        id, participant_id, participant_username, participant_avatar_url, is_group, name, 
         last_message, last_message_at, created_at, unread_count, 
         is_blocked_by_me, is_blocked_by_them
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         participant_id=excluded.participant_id,
         participant_username=excluded.participant_username,
+        participant_avatar_url=excluded.participant_avatar_url,
         is_group=excluded.is_group,
         name=excluded.name,
         last_message=excluded.last_message,
@@ -93,6 +127,7 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.id,
         chat.participant_id || null,
         chat.participant_username || null,
+        chat.participant_avatar_url || null,
         chat.is_group ? 1 : 0,
         chat.name || null,
         chat.last_message || null,
@@ -122,21 +157,23 @@ export async function saveMessages(messages: Message[]) {
           content = ?,
           image_url = ?,
           created_at = ?,
-          deleted_for_everyone = ?
+          deleted_for_everyone = ?,
+          deleted_at = ?
          WHERE id = ?`,
         [
           msg.content || null,
           msg.image_url || null,
           msg.created_at,
           msg.deleted_for_everyone ? 1 : 0,
+          msg.deleted_at || null,
           msg.id,
         ]
       );
     } else {
       await db.runAsync(
         `INSERT INTO messages (
-          id, chat_id, sender_id, sender_username, content, image_url, created_at, status, deleted_for_everyone
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'sent', ?)`,
+          id, chat_id, sender_id, sender_username, content, image_url, created_at, status, deleted_for_everyone, deleted_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'sent', ?, ?)`,
         [
           msg.id,
           msg.chat_id,
@@ -146,6 +183,7 @@ export async function saveMessages(messages: Message[]) {
           msg.image_url || null,
           msg.created_at,
           msg.deleted_for_everyone ? 1 : 0,
+          msg.deleted_at || null,
         ]
       );
     }
@@ -193,6 +231,7 @@ export async function getChatsFromLocal(): Promise<ChatListItem[]> {
     id: r.id,
     participant_id: r.participant_id,
     participant_username: r.participant_username,
+    participant_avatar_url: r.participant_avatar_url,
     is_group: r.is_group === 1,
     name: r.name,
     last_message: r.last_message,
@@ -210,12 +249,12 @@ export async function getMessagesFromLocal(
   offset?: number
 ): Promise<Message[]> {
   const db = await getDatabase();
-  let query = "SELECT * FROM messages WHERE chat_id = ? ORDER BY created_at ASC";
+  let query = "SELECT * FROM messages WHERE chat_id = ? AND deleted_at IS NULL ORDER BY created_at ASC";
   const params: any[] = [chatId];
 
   if (limit !== undefined) {
     // If paginating, sort descending to get the newest messages first
-    query = "SELECT * FROM messages WHERE chat_id = ? ORDER BY created_at DESC LIMIT ?";
+    query = "SELECT * FROM messages WHERE chat_id = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT ?";
     params.push(limit);
     if (offset !== undefined) {
       query += " OFFSET ?";
@@ -266,6 +305,7 @@ export async function getMessagesFromLocal(
       created_at: r.created_at,
       status: r.status,
       deleted_for_everyone: r.deleted_for_everyone === 1,
+      deleted_at: r.deleted_at || null,
       attachments,
     });
   }
@@ -341,7 +381,10 @@ export async function insertMessageLocal(msg: {
     } else if (url.includes("videos") || url.includes("video") || (msg.attachments && msg.attachments[0]?.type === "video")) {
       lastMsg = "🎥 Vídeo";
     } else {
-      lastMsg = "📁 Arquivo";
+      const fileName = url.split("/").pop() || "Arquivo";
+      const match = fileName.match(/^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/);
+      const cleanName = match ? match[1] : fileName;
+      lastMsg = `File|${cleanName}`;
     }
   }
   await db.runAsync(
@@ -364,22 +407,52 @@ export async function updateMessageStatusLocal(
   
   // Update messages
   if (updates?.serverId && updates.serverId !== id) {
-    // Delete/replace with server ID (which will cascade to attachments if set, but we also manually update message_id below to be safe)
-    await db.runAsync(
-      `UPDATE messages SET
-        id = ?,
-        status = ?,
-        image_url = COALESCE(?, image_url),
-        local_file_path = COALESCE(?, local_file_path)
-       WHERE id = ?`,
-      [
-        updates.serverId,
-        status,
-        updates.image_url || null,
-        updates.local_file_path || null,
-        id,
-      ]
+    // Check if the message with the server ID already exists (e.g., inserted by websocket first)
+    const existing = await db.getFirstAsync<{ id: string }>(
+      "SELECT id FROM messages WHERE id = ?",
+      [updates.serverId]
     );
+
+    if (existing) {
+      // 1. Update the existing message with any local-only metadata (e.g. local_file_path) and status
+      await db.runAsync(
+        `UPDATE messages SET
+          status = ?,
+          local_file_path = COALESCE(?, local_file_path)
+         WHERE id = ?`,
+        [
+          status,
+          updates.local_file_path || null,
+          updates.serverId
+        ]
+      );
+
+      // 2. Point any attachments referencing the local ID to the server ID
+      await db.runAsync(
+        "UPDATE attachments SET message_id = ? WHERE message_id = ?",
+        [updates.serverId, id]
+      );
+
+      // 3. Delete the temporary message (it has been replaced by the server message)
+      await db.runAsync("DELETE FROM messages WHERE id = ?", [id]);
+    } else {
+      // Normal update changing the local ID to the server ID
+      await db.runAsync(
+        `UPDATE messages SET
+          id = ?,
+          status = ?,
+          image_url = COALESCE(?, image_url),
+          local_file_path = COALESCE(?, local_file_path)
+         WHERE id = ?`,
+        [
+          updates.serverId,
+          status,
+          updates.image_url || null,
+          updates.local_file_path || null,
+          id,
+        ]
+      );
+    }
   } else {
     await db.runAsync(
       `UPDATE messages SET
@@ -465,6 +538,22 @@ export async function markChatReadLocal(chatId: string) {
   await db.runAsync("UPDATE chats SET unread_count = 0 WHERE id = ?", [chatId]);
 }
 
+export async function markSentMessagesReadLocal(chatId: string, myUserId: string, readAtIso: string) {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE messages SET status = 'read' WHERE chat_id = ? AND sender_id = ? AND created_at <= ?",
+    [chatId, myUserId, readAtIso]
+  );
+}
+
+export async function markSentMessagesDeliveredLocal(chatId: string, myUserId: string) {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE messages SET status = 'delivered' WHERE chat_id = ? AND sender_id = ? AND status = 'sent'",
+    [chatId, myUserId]
+  );
+}
+
 export async function clearChatMessagesLocal(chatId: string) {
   const db = await getDatabase();
   await db.runAsync("DELETE FROM messages WHERE chat_id = ?", [chatId]);
@@ -474,11 +563,25 @@ export async function clearChatMessagesLocal(chatId: string) {
   );
 }
 
+export async function deleteChatLocal(chatId: string) {
+  const db = await getDatabase();
+  await db.runAsync("DELETE FROM messages WHERE chat_id = ?", [chatId]);
+  await db.runAsync("DELETE FROM chats WHERE id = ?", [chatId]);
+}
+
 export async function deleteMessageLocal(messageId: string) {
   const db = await getDatabase();
   await db.runAsync(
     "UPDATE messages SET content = NULL, image_url = NULL, deleted_for_everyone = 1 WHERE id = ?",
     [messageId]
+  );
+}
+
+export async function deleteMessageForMeLocal(messageId: string) {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE messages SET deleted_at = ? WHERE id = ?",
+    [new Date().toISOString(), messageId]
   );
 }
 

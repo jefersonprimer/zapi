@@ -8,11 +8,16 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Image,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { getChats, type ChatListItem } from "@/services/api";
-import { getChatsFromLocal, saveChats } from "@/services/database";
+import { getChats, type ChatListItem, deleteChat, API_URL } from "@/services/api";
+import {
+  getChatsFromLocal,
+  saveChats,
+  deleteChatLocal,
+} from "@/services/database";
 import {
   Camera,
   MoreVertical,
@@ -26,6 +31,11 @@ import {
   Video,
   FileText,
   Trash2,
+  ArrowLeft,
+  PhoneIncoming,
+  PhoneOutgoing,
+  PhoneMissed,
+  Ban,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -39,6 +49,66 @@ export default function ChatListScreen() {
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
   const [themeModalVisible, setThemeModalVisible] = useState(false);
+  const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
+
+  const handleLongPress = (chatId: string) => {
+    setSelectedChatIds((prev) => {
+      if (prev.includes(chatId)) {
+        return prev.filter((id) => id !== chatId);
+      } else {
+        return [...prev, chatId];
+      }
+    });
+  };
+
+  const handlePress = (item: ChatListItem) => {
+    if (selectedChatIds.length > 0) {
+      handleLongPress(item.id);
+    } else {
+      router.push({
+        pathname: "/chat",
+        params: {
+          chatId: item.id,
+          participantId: item.participant_id || "",
+          participantUsername:
+            item.name ?? item.participant_username ?? "Unknown",
+          participantAvatarUrl: item.participant_avatar_url || "",
+        },
+      });
+    }
+  };
+
+  const handleDeleteSelectedChats = () => {
+    if (selectedChatIds.length === 0) return;
+
+    const message =
+      selectedChatIds.length === 1
+        ? "Deseja apagar esta conversa?"
+        : `Deseja apagar as ${selectedChatIds.length} conversas selecionadas?`;
+
+    Alert.alert("Apagar conversa", message, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Apagar",
+        style: "destructive",
+        onPress: async () => {
+          if (!token) return;
+          try {
+            for (const chatId of selectedChatIds) {
+              await deleteChat(token, chatId);
+              await deleteChatLocal(chatId);
+            }
+            setSelectedChatIds([]);
+            const updatedChats = await getChatsFromLocal();
+            setChats(updatedChats);
+          } catch (err: any) {
+            console.error("Error deleting chat(s):", err);
+            Alert.alert("Erro", "Não foi possível apagar a conversa.");
+          }
+        },
+      },
+    ]);
+  };
 
   const loadChats = useCallback(async () => {
     if (!token) return;
@@ -46,17 +116,17 @@ export default function ChatListScreen() {
       // 1. Get from local SQLite database immediately
       const localChats = await getChatsFromLocal();
       setChats(localChats);
-      
+
       if (localChats.length > 0) {
         setLoading(false);
       }
 
       // 2. Sincroniza em background com a API
       const data = await getChats(token);
-      
+
       // 3. Salva no SQLite local
       await saveChats(data.chats);
-      
+
       // 4. Recarrega as informações atualizadas do SQLite
       const updatedChats = await getChatsFromLocal();
       setChats(updatedChats);
@@ -70,6 +140,7 @@ export default function ChatListScreen() {
   useFocusEffect(
     useCallback(() => {
       loadChats();
+      setSelectedChatIds([]);
     }, [loadChats]),
   );
 
@@ -89,25 +160,55 @@ export default function ChatListScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[styles.header, { backgroundColor: colors.headerBackground }]}
-      >
-        <Text style={[styles.title, { color: colors.headerText }]}>Zapi</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.headerIcon}
-            onPress={() => Alert.alert("Câmera", "Câmera em desenvolvimento.")}
-          >
-            <Camera color={colors.headerText} size={22} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerIcon}
-            onPress={() => setMenuVisible(true)}
-          >
-            <MoreVertical color={colors.headerText} size={22} />
-          </TouchableOpacity>
+      {selectedChatIds.length > 0 ? (
+        <View
+          style={[styles.header, { backgroundColor: colors.headerBackground }]}
+        >
+          <View style={styles.headerLeftSelected}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={() => setSelectedChatIds([])}
+            >
+              <ArrowLeft color={colors.headerText} size={22} />
+            </TouchableOpacity>
+            <Text
+              style={[styles.selectedCountText, { color: colors.headerText }]}
+            >
+              {selectedChatIds.length}
+            </Text>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={handleDeleteSelectedChats}
+            >
+              <Trash2 color={colors.headerText} size={22} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      ) : (
+        <View
+          style={[styles.header, { backgroundColor: colors.headerBackground }]}
+        >
+          <Text style={[styles.title, { color: colors.headerText }]}>Zapi</Text>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={() =>
+                Alert.alert("Câmera", "Câmera em desenvolvimento.")
+              }
+            >
+              <Camera color={colors.headerText} size={22} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={() => setMenuVisible(true)}
+            >
+              <MoreVertical color={colors.headerText} size={22} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Main Options Menu Dropdown */}
       <Modal
@@ -364,31 +465,40 @@ export default function ChatListScreen() {
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.chatItem, { borderBottomColor: colors.border }]}
-              onPress={() =>
-                router.push({
-                  pathname: "/chat",
-                  params: {
-                    chatId: item.id,
-                    participantId: item.participant_id || "",
-                    participantUsername:
-                      item.name ?? item.participant_username ?? "Unknown",
-                  },
-                })
-              }
+              style={[
+                styles.chatItem,
+                { borderBottomColor: colors.border },
+                selectedChatIds.includes(item.id) && {
+                  backgroundColor: colors.tint + "22",
+                },
+              ]}
+              onPress={() => handlePress(item)}
+              onLongPress={() => handleLongPress(item.id)}
             >
               <View
                 style={[
                   styles.avatar,
                   { backgroundColor: colors.tint },
                   item.is_group && styles.groupAvatar,
+                  { justifyContent: "center", alignItems: "center", overflow: "hidden" },
                 ]}
               >
-                <Text style={styles.avatarText}>
-                  {item.is_group
-                    ? (item.name ?? "G")[0].toUpperCase()
-                    : (item.participant_username ?? "?")[0].toUpperCase()}
-                </Text>
+                {!item.is_group && item.participant_avatar_url ? (
+                  <Image
+                    source={{
+                      uri: item.participant_avatar_url.startsWith("http")
+                        ? item.participant_avatar_url
+                        : `${API_URL}${item.participant_avatar_url}`,
+                    }}
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                ) : (
+                  <Text style={styles.avatarText}>
+                    {item.is_group
+                      ? (item.name ?? "G")[0].toUpperCase()
+                      : (item.participant_username ?? "?")[0].toUpperCase()}
+                  </Text>
+                )}
               </View>
               <View style={styles.chatInfo}>
                 <Text style={[styles.chatName, { color: colors.text }]}>
@@ -449,8 +559,35 @@ export default function ChatListScreen() {
                         style={{ marginRight: 4 }}
                       />
                     );
-                  } else if (item.last_message === "File") {
-                    displayMessage = "File";
+                  } else if (
+                    item.last_message &&
+                    (item.last_message === "File" ||
+                      item.last_message.startsWith("File|") ||
+                      item.last_message === "📁 Arquivo" ||
+                      item.last_message.startsWith("📁 Arquivo|") ||
+                      item.last_message.startsWith("Arquivo|"))
+                  ) {
+                    let fileName = "Arquivo";
+                    let rawFileName = "";
+                    if (item.last_message.startsWith("File|")) {
+                      rawFileName = item.last_message.substring(5);
+                    } else if (item.last_message.startsWith("📁 Arquivo|")) {
+                      rawFileName = item.last_message.substring(11);
+                    } else if (item.last_message.startsWith("Arquivo|")) {
+                      rawFileName = item.last_message.substring(8);
+                    }
+
+                    if (rawFileName) {
+                      const match = rawFileName.match(/^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/);
+                      if (match) {
+                        fileName = match[1];
+                      } else {
+                        const oldMatch = rawFileName.match(/^[^_]+_([0-9a-fA-F\-]{36}\..+)$/);
+                        fileName = oldMatch ? oldMatch[1] : rawFileName;
+                      }
+                    }
+
+                    displayMessage = fileName;
                     iconElement = (
                       <FileText
                         size={15}
@@ -459,11 +596,38 @@ export default function ChatListScreen() {
                       />
                     );
                   } else if (item.last_message === "Message deleted") {
-                    displayMessage = "Message deleted";
+                    displayMessage = "Mensagem apagada";
                     iconElement = (
-                      <Trash2
+                      <Ban
                         size={15}
                         color={colors.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                    );
+                  } else if (item.last_message === "Chamada efetuada") {
+                    displayMessage = "Chamada efetuada";
+                    iconElement = (
+                      <PhoneOutgoing
+                        size={15}
+                        color={colors.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                    );
+                  } else if (item.last_message === "Chamada recebida") {
+                    displayMessage = "Chamada recebida";
+                    iconElement = (
+                      <PhoneIncoming
+                        size={15}
+                        color={colors.textSecondary}
+                        style={{ marginRight: 4 }}
+                      />
+                    );
+                  } else if (item.last_message === "Chamada perdida") {
+                    displayMessage = "Chamada perdida";
+                    iconElement = (
+                      <PhoneMissed
+                        size={15}
+                        color={colors.danger}
                         style={{ marginRight: 4 }}
                       />
                     );
@@ -557,6 +721,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   title: { fontSize: 22, fontWeight: "bold" },
+  headerLeftSelected: { flexDirection: "row", alignItems: "center", gap: 12 },
+  selectedCountText: { fontSize: 20, fontWeight: "bold", marginLeft: 8 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 16 },
   headerIcon: {
     padding: 4,

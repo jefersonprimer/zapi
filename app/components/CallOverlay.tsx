@@ -1,5 +1,6 @@
 import React from "react";
-import { StyleSheet, Modal, SafeAreaView } from "react-native";
+import { StyleSheet, Modal } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useWebRTC } from "../hooks/useWebRTC";
 import IncomingCallScreen from "./IncomingCallScreen";
 import OutgoingCallScreen from "./OutgoingCallScreen";

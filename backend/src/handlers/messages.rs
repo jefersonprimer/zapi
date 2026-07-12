@@ -160,6 +160,9 @@ pub async fn send_message(
         }
     }
 
+
+    msg.status = Some("sent".to_string());
+
     let _ = ws_state
         .broadcast(chat_id, &serde_json::to_string(&json!({"type": "new_message", "message": msg})).unwrap())
         .await;
@@ -228,6 +231,7 @@ pub async fn send_message(
 
 pub async fn get_messages(
     State(pool): State<PgPool>,
+    State(ws_state): State<ws::WsState>,
     auth: AuthUser,
     Path(chat_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -252,21 +256,55 @@ pub async fn get_messages(
         ));
     }
 
-    // Update last_read_at for this participant to mark all messages as read
-    let _ = sqlx::query("UPDATE chat_participants SET last_read_at = NOW() WHERE chat_id = $1 AND user_id = $2")
+    // Update last_read_at and last_delivered_at for this participant
+    let _ = sqlx::query("UPDATE chat_participants SET last_read_at = NOW(), last_delivered_at = NOW() WHERE chat_id = $1 AND user_id = $2")
         .bind(chat_id)
         .bind(auth.0)
         .execute(&pool)
         .await;
 
+    // Broadcast delivery event via WebSocket so the sender can turn checkmarks double-grey
+    let ws_event = json!({
+        "type": "messages_delivered",
+        "chat_id": chat_id,
+        "receiver_id": auth.0,
+        "delivered_at": chrono::Utc::now()
+    }).to_string();
+    let _ = ws_state.broadcast(chat_id, &ws_event).await;
+
+    let other_participants: Vec<(Uuid, Option<chrono::DateTime<chrono::Utc>>, Option<chrono::DateTime<chrono::Utc>>)> = sqlx::query_as(
+        "SELECT user_id, last_read_at, last_delivered_at FROM chat_participants WHERE chat_id = $1 AND user_id != $2"
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_all(&pool)
+    .await
+    .unwrap_or_default();
+
+    let is_group = sqlx::query_scalar::<_, bool>(
+        "SELECT is_group FROM chats WHERE id = $1"
+    )
+    .bind(chat_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap_or_default();
+
+    let (_other_id, other_read_at, other_delivered_at) = if !is_group && !other_participants.is_empty() {
+        (Some(other_participants[0].0), other_participants[0].1, other_participants[0].2)
+    } else {
+        (None, None, None)
+    };
+
     let mut messages = sqlx::query_as::<_, Message>(
         "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at, m.deleted_for_everyone
          FROM messages m
          JOIN users u ON u.id = m.sender_id
-         WHERE m.chat_id = $1
+         JOIN chat_participants cp ON cp.chat_id = m.chat_id AND cp.user_id = $2
+         WHERE m.chat_id = $1 AND (cp.cleared_at IS NULL OR m.created_at > cp.cleared_at)
          ORDER BY m.created_at ASC",
     )
     .bind(chat_id)
+    .bind(auth.0)
     .fetch_all(&pool)
     .await
     .map_err(|_| {
@@ -296,6 +334,22 @@ pub async fn get_messages(
                 .cloned()
                 .collect();
             msg.attachments = Some(msg_atts);
+
+            // Compute message status on the fly for A's own messages
+            if msg.sender_id == auth.0 {
+                let status = if is_group {
+                    "sent"
+                } else {
+                    match other_read_at {
+                        Some(read_time) if msg.created_at <= read_time => "read",
+                        _ => match other_delivered_at {
+                            Some(delivered_time) if msg.created_at <= delivered_time => "delivered",
+                            _ => "sent",
+                        }
+                    }
+                };
+                msg.status = Some(status.to_string());
+            }
         }
     }
 
@@ -304,6 +358,7 @@ pub async fn get_messages(
 
 pub async fn mark_chat_read(
     State(pool): State<PgPool>,
+    State(ws_state): State<ws::WsState>,
     auth: AuthUser,
     Path(chat_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -328,7 +383,7 @@ pub async fn mark_chat_read(
         ));
     }
 
-    sqlx::query("UPDATE chat_participants SET last_read_at = NOW() WHERE chat_id = $1 AND user_id = $2")
+    sqlx::query("UPDATE chat_participants SET last_read_at = NOW(), last_delivered_at = NOW() WHERE chat_id = $1 AND user_id = $2")
         .bind(chat_id)
         .bind(auth.0)
         .execute(&pool)
@@ -339,6 +394,15 @@ pub async fn mark_chat_read(
                 Json(json!({ "error": "failed to update last read status" })),
             )
         })?;
+
+    // Broadcast read event via WebSocket so the sender can turn the checkmarks blue
+    let ws_event = json!({
+        "type": "messages_read",
+        "chat_id": chat_id,
+        "reader_id": auth.0,
+        "read_at": chrono::Utc::now()
+    }).to_string();
+    let _ = ws_state.broadcast(chat_id, &ws_event).await;
 
     Ok(Json(json!({ "status": "success" })))
 }
@@ -469,7 +533,7 @@ pub async fn delete_message(
 
 pub async fn clear_chat_messages(
     State(pool): State<PgPool>,
-    State(ws_state): State<ws::WsState>,
+    State(_ws_state): State<ws::WsState>,
     State(call_manager): State<crate::signaling::CallManager>,
     auth: AuthUser,
     Path(chat_id): Path<Uuid>,
@@ -496,30 +560,10 @@ pub async fn clear_chat_messages(
         ));
     }
 
-    // Delete physical media files associated with the messages
-    let messages_with_images: Vec<(Option<String>,)> = sqlx::query_as(
-        "SELECT image_url FROM messages WHERE chat_id = $1 AND image_url IS NOT NULL"
-    )
-    .bind(chat_id)
-    .fetch_all(&pool)
-    .await
-    .unwrap_or_default();
-
-    for (url_opt,) in messages_with_images {
-        if let Some(url) = url_opt {
-            if url.starts_with("/uploads/") {
-                let relative_path = url.trim_start_matches('/').to_string();
-                tokio::spawn(async move {
-                    let filepath = std::path::Path::new(&relative_path).to_path_buf();
-                    let _ = tokio::fs::remove_file(&filepath).await;
-                });
-            }
-        }
-    }
-
-    // Delete all messages in the database
-    sqlx::query("DELETE FROM messages WHERE chat_id = $1")
+    // Set cleared_at = NOW() for the requesting user in chat_participants
+    sqlx::query("UPDATE chat_participants SET cleared_at = NOW() WHERE chat_id = $1 AND user_id = $2")
         .bind(chat_id)
+        .bind(auth.0)
         .execute(&pool)
         .await
         .map_err(|e| {
@@ -529,29 +573,19 @@ pub async fn clear_chat_messages(
             )
         })?;
 
-    // Broadcast clear event via WebSocket
+    // Send clear event via WebSocket only to the user who cleared the chat
     let ws_event = json!({
         "type": "messages_cleared",
         "chat_id": chat_id
     }).to_string();
-    let _ = ws_state.broadcast(chat_id, &ws_event).await;
+    call_manager.send_to_user(auth.0, &ws_event);
 
-    // Notify participants to refresh chat list (since last message is deleted)
-    let participants: Vec<(Uuid,)> = sqlx::query_as(
-        "SELECT user_id FROM chat_participants WHERE chat_id = $1"
-    )
-    .bind(chat_id)
-    .fetch_all(&pool)
-    .await
-    .unwrap_or_default();
-
-    for (p_id,) in participants {
-        let update_msg = json!({
-            "type": "chat_list_update",
-            "chat_id": chat_id
-        }).to_string();
-        call_manager.send_to_user(p_id, &update_msg);
-    }
+    // Notify the user to refresh their chat list (since last message preview changes)
+    let update_msg = json!({
+        "type": "chat_list_update",
+        "chat_id": chat_id
+    }).to_string();
+    call_manager.send_to_user(auth.0, &update_msg);
 
     Ok(Json(json!({ "status": "success", "chat_id": chat_id })))
 }

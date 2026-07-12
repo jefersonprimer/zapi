@@ -69,6 +69,7 @@ pub async fn start_call(
         
         // Log missed call directly to DB since Bob is offline
         let pool: PgPool = state.pool.clone();
+        let call_manager = state.call_manager.clone();
         tokio::spawn(async move {
             sqlx::query(
                 "INSERT INTO call_logs (caller_id, callee_id, status, duration) VALUES ($1, $2, $3, $4)"
@@ -80,6 +81,29 @@ pub async fn start_call(
             .execute(&pool)
             .await
             .ok();
+
+            // Notify participants of chat update
+            let chat_id: Option<(Uuid,)> = sqlx::query_as(
+                "SELECT c.id FROM chats c
+                 JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
+                 JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.user_id = $2
+                 WHERE c.is_group = false
+                 LIMIT 1"
+            )
+            .bind(caller_id)
+            .bind(callee_id)
+            .fetch_optional(&pool)
+            .await
+            .unwrap_or_default();
+
+            if let Some((cid,)) = chat_id {
+                let update_msg = serde_json::json!({
+                    "type": "chat_list_update",
+                    "chat_id": cid
+                }).to_string();
+                call_manager.send_to_user(caller_id, &update_msg);
+                call_manager.send_to_user(callee_id, &update_msg);
+            }
         });
 
         return Err((
@@ -117,6 +141,7 @@ pub async fn end_call(
 
     // Save to Database
     let pool = state.pool.clone();
+    let call_manager = state.call_manager.clone();
     let caller_id = active_call.caller_id;
     let callee_id = active_call.callee_id;
     let status_str = status.to_string();
@@ -133,6 +158,29 @@ pub async fn end_call(
         .execute(&pool)
         .await
         .ok();
+
+        // Notify participants of chat update
+        let chat_id: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT c.id FROM chats c
+             JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
+             JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.user_id = $2
+             WHERE c.is_group = false
+             LIMIT 1"
+        )
+        .bind(caller_id)
+        .bind(callee_id)
+        .fetch_optional(&pool)
+        .await
+        .unwrap_or_default();
+
+        if let Some((cid,)) = chat_id {
+            let update_msg = serde_json::json!({
+                "type": "chat_list_update",
+                "chat_id": cid
+            }).to_string();
+            call_manager.send_to_user(caller_id, &update_msg);
+            call_manager.send_to_user(callee_id, &update_msg);
+        }
     });
 
     // Notify other participant that the call ended

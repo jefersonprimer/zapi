@@ -70,7 +70,35 @@ pub async fn upload_image(
             ));
         }
 
-        let filename = format!("{}_{}.{}", auth.0, Uuid::new_v4(), ext);
+        let file_stem = std::path::Path::new(&file_name)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("file");
+
+        let sanitized_stem: String = file_stem
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else if c.is_whitespace() {
+                    '-'
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+
+        let truncated_stem = if sanitized_stem.len() > 50 {
+            &sanitized_stem[..50]
+        } else {
+            &sanitized_stem
+        };
+
+        let filename = if truncated_stem.is_empty() {
+            format!("{}_{}.{}", auth.0, Uuid::new_v4(), ext)
+        } else {
+            format!("{}_{}_{}.{}", auth.0, Uuid::new_v4(), truncated_stem, ext)
+        };
         let filepath = target_dir.join(&filename);
 
         tokio::fs::write(&filepath, &data).await.map_err(|_| {

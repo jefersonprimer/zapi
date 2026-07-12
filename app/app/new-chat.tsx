@@ -55,6 +55,7 @@ export default function NewChatScreen() {
           chatId: data.id,
           participantId: userId,
           participantUsername: chosenUser?.username ?? "Unknown",
+          participantAvatarUrl: chosenUser?.avatar_url ?? "",
         },
       });
     } catch (err: any) {

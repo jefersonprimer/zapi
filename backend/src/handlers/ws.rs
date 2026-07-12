@@ -86,6 +86,27 @@ async fn handle_socket(socket: WebSocket, state: AppState, user_id: Uuid) {
                             WsCommand::Ping => {
                                 let _ = tx2_clone.send(json!({"type": "pong"}).to_string());
                             }
+                            WsCommand::DeliveredAck { chat_id } => {
+                                let pool = state_clone.pool.clone();
+                                let ws_state = state_clone.ws.clone();
+                                tokio::spawn(async move {
+                                    if sqlx::query("UPDATE chat_participants SET last_delivered_at = NOW() WHERE chat_id = $1 AND user_id = $2")
+                                        .bind(chat_id)
+                                        .bind(user_id)
+                                        .execute(&pool)
+                                        .await
+                                        .is_ok() 
+                                    {
+                                        let ws_event = json!({
+                                            "type": "messages_delivered",
+                                            "chat_id": chat_id,
+                                            "receiver_id": user_id,
+                                            "delivered_at": chrono::Utc::now()
+                                        }).to_string();
+                                        let _ = ws_state.broadcast(chat_id, &ws_event).await;
+                                    }
+                                });
+                            }
                         }
                     }
                 }
@@ -114,6 +135,8 @@ enum WsCommand {
     Unsubscribe { chat_id: Uuid },
     #[serde(rename = "ping")]
     Ping,
+    #[serde(rename = "delivered_ack")]
+    DeliveredAck { chat_id: Uuid },
 }
 
 async fn handle_signaling_message(
@@ -155,7 +178,7 @@ async fn handle_signaling_message(
                     } else {
                         // Recipient offline (cleanup and record missed)
                         state.call_manager.terminate_call(call_id, "callee offline").ok();
-                        save_call_db(&state.pool, user_id, target_user_id, "missed", 0, chrono::Utc::now());
+                        save_call_db(&state.pool, &state.call_manager, user_id, target_user_id, "missed", 0, chrono::Utc::now());
                         
                         let fail = WsMessage::CallFailed {
                             call_id,
@@ -193,7 +216,7 @@ async fn handle_signaling_message(
         }
         WsMessage::CallRejected { call_id } => {
             if let Ok(call) = state.call_manager.terminate_call(call_id, "rejected") {
-                save_call_db(&state.pool, call.caller_id, call.callee_id, "rejected", 0, call.created_at);
+                save_call_db(&state.pool, &state.call_manager, call.caller_id, call.callee_id, "rejected", 0, call.created_at);
                 let reject_json = serde_json::to_string(&WsMessage::CallRejected { call_id }).unwrap();
                 state.call_manager.send_to_user(call.caller_id, &reject_json);
             }
@@ -202,7 +225,7 @@ async fn handle_signaling_message(
             if let Ok(call) = state.call_manager.end_call(call_id, user_id) {
                 let duration = (chrono::Utc::now() - call.created_at).num_seconds() as i32;
                 let status = if call.state == CallState::Connected { "completed" } else { "missed" };
-                save_call_db(&state.pool, call.caller_id, call.callee_id, status, duration, call.created_at);
+                save_call_db(&state.pool, &state.call_manager, call.caller_id, call.callee_id, status, duration, call.created_at);
 
                 let other_id = if user_id == call.caller_id { call.callee_id } else { call.caller_id };
                 let end_json = serde_json::to_string(&WsMessage::CallEnded { call_id }).unwrap();
@@ -211,7 +234,7 @@ async fn handle_signaling_message(
         }
         WsMessage::CallFailed { call_id, reason } => {
             if let Ok(call) = state.call_manager.terminate_call(call_id, &reason) {
-                save_call_db(&state.pool, call.caller_id, call.callee_id, "failed", 0, call.created_at);
+                save_call_db(&state.pool, &state.call_manager, call.caller_id, call.callee_id, "failed", 0, call.created_at);
 
                 let other_id = if user_id == call.caller_id { call.callee_id } else { call.caller_id };
                 let fail_json = serde_json::to_string(&WsMessage::CallFailed { call_id, reason }).unwrap();
@@ -284,6 +307,7 @@ async fn broadcast_presence(state: &AppState, user_id: Uuid, status: &str) {
 
 fn save_call_db(
     pool: &sqlx::PgPool,
+    call_manager: &crate::signaling::CallManager,
     caller_id: Uuid,
     callee_id: Uuid,
     status: &'static str,
@@ -291,6 +315,7 @@ fn save_call_db(
     created_at: chrono::DateTime<chrono::Utc>,
 ) {
     let pool = pool.clone();
+    let call_manager = call_manager.clone();
     let status_str = status.to_string();
     tokio::spawn(async move {
         sqlx::query(
@@ -304,5 +329,28 @@ fn save_call_db(
         .execute(&pool)
         .await
         .ok();
+
+        // Notify participants of chat update
+        let chat_id: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT c.id FROM chats c
+             JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
+             JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.user_id = $2
+             WHERE c.is_group = false
+             LIMIT 1"
+        )
+        .bind(caller_id)
+        .bind(callee_id)
+        .fetch_optional(&pool)
+        .await
+        .unwrap_or_default();
+
+        if let Some((cid,)) = chat_id {
+            let update_msg = serde_json::json!({
+                "type": "chat_list_update",
+                "chat_id": cid
+            }).to_string();
+            call_manager.send_to_user(caller_id, &update_msg);
+            call_manager.send_to_user(callee_id, &update_msg);
+        }
     });
 }

@@ -9,6 +9,8 @@ import {
   Switch,
   Alert,
   Platform,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
@@ -25,21 +27,118 @@ import {
   Sun,
   Moon,
   Laptop,
+  Camera,
+  Image as ImageIcon,
 } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
+import { API_URL, uploadImage, updateProfile } from "@/services/api";
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, token, signOut, updateUser } = useAuth();
   const { colors, themePreference, setThemePreference } = useAppTheme();
 
   // Modals visibility states
   const [langModalVisible, setLangModalVisible] = useState(false);
   const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Privacy dummy states
   const [readReceipts, setReadReceipts] = useState(true);
   const [onlineStatus, setOnlineStatus] = useState(true);
+
+  const uploadAndSaveAvatar = async (uri: string) => {
+    if (!token) return;
+    setIsUpdating(true);
+    try {
+      const uploadRes = await uploadImage(token, uri);
+      await updateProfile(token, uploadRes.url);
+      await updateUser({ avatar_url: uploadRes.url });
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Falha ao atualizar foto de perfil");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCamera = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissão necessária", "Precisamos de permissão para usar a câmera.");
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setAvatarModalVisible(false);
+        await uploadAndSaveAvatar(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Erro", "Ocorreu um erro ao abrir a câmera.");
+    }
+  };
+
+  const handleGallery = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissão necessária", "Precisamos de permissão para acessar a galeria.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setAvatarModalVisible(false);
+        await uploadAndSaveAvatar(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Erro", "Ocorreu um erro ao abrir a galeria.");
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    Alert.alert(
+      "Remover Foto",
+      "Tem certeza que deseja remover sua foto de perfil?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Remover",
+          style: "destructive",
+          onPress: async () => {
+            setAvatarModalVisible(false);
+            setIsUpdating(true);
+            try {
+              if (token) {
+                await updateProfile(token, null);
+                await updateUser({ avatar_url: null });
+              }
+            } catch (err: any) {
+              Alert.alert("Erro", err.message || "Falha ao remover foto de perfil");
+            } finally {
+              setIsUpdating(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   // Format theme text
   const getThemeLabel = (pref: string) => {
@@ -99,25 +198,49 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Profile Card */}
+        {/* Profile Card (Vertical Layout) */}
         <View
           style={[
-            styles.profileCard,
+            styles.profileCardVertical,
             {
               backgroundColor: colors.menuBackground,
               borderColor: colors.border,
             },
           ]}
         >
-          <View style={[styles.avatarContainer, { backgroundColor: colors.tint }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
-            <View style={styles.onlineBadge} />
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={[styles.usernameText, { color: colors.text }]}>
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={() => setAvatarModalVisible(true)}
+            activeOpacity={0.8}
+            disabled={isUpdating}
+          >
+            <View style={[styles.largeAvatarContainer, { backgroundColor: colors.tint }]}>
+              {isUpdating ? (
+                <ActivityIndicator size="large" color="#FFF" />
+              ) : user?.avatar_url ? (
+                <Image
+                  source={{
+                    uri: user.avatar_url.startsWith("http")
+                      ? user.avatar_url
+                      : `${API_URL}${user.avatar_url}`,
+                  }}
+                  style={styles.largeAvatarImage}
+                />
+              ) : (
+                <Text style={styles.largeAvatarText}>{initials}</Text>
+              )}
+              
+              <View style={[styles.editBadge, { backgroundColor: colors.tint }]}>
+                <Camera size={12} color="#FFF" />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.profileInfoVertical}>
+            <Text style={[styles.usernameTextVertical, { color: colors.text }]}>
               {user?.username || "Usuário"}
             </Text>
-            <Text style={[styles.emailText, { color: colors.textSecondary }]}>
+            <Text style={[styles.emailTextVertical, { color: colors.textSecondary }]}>
               {user?.email || "usuario@exemplo.com"}
             </Text>
           </View>
@@ -237,6 +360,83 @@ export default function SettingsScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Avatar Selection Modal */}
+      <Modal
+        visible={avatarModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setAvatarModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
+          activeOpacity={1}
+          onPress={() => setAvatarModalVisible(false)}
+        >
+          <View
+            style={[
+              styles.bottomSheet,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={[styles.sheetIndicator, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>
+              Foto do perfil
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.sheetOption, { backgroundColor: colors.background }]}
+              onPress={handleCamera}
+              activeOpacity={0.8}
+            >
+              <View style={styles.sheetOptionLeft}>
+                <Camera size={20} color={colors.tint} />
+                <Text style={[styles.sheetOptionText, { color: colors.text, fontWeight: "600" }]}>
+                  Câmera
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sheetOption, { backgroundColor: colors.background }]}
+              onPress={handleGallery}
+              activeOpacity={0.8}
+            >
+              <View style={styles.sheetOptionLeft}>
+                <ImageIcon size={20} color={colors.tint} />
+                <Text style={[styles.sheetOptionText, { color: colors.text, fontWeight: "600" }]}>
+                  Galeria
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {user?.avatar_url && (
+              <TouchableOpacity
+                style={[styles.sheetOption, { backgroundColor: colors.background }]}
+                onPress={handleRemovePhoto}
+                activeOpacity={0.8}
+              >
+                <View style={styles.sheetOptionLeft}>
+                  <LogOut size={20} color={colors.danger} />
+                  <Text style={[styles.sheetOptionText, { color: colors.danger, fontWeight: "600" }]}>
+                    Remover Foto
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={[styles.sheetCloseButton, { backgroundColor: colors.tint, marginTop: 8 }]}
+              onPress={() => setAvatarModalVisible(false)}
+            >
+              <Text style={styles.sheetCloseButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Language Selection Modal */}
       <Modal
@@ -561,6 +761,67 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     marginBottom: 24,
+  },
+  profileCardVertical: {
+    alignItems: "center",
+    padding: 24,
+    borderRadius: 24,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+    marginBottom: 24,
+  },
+  avatarButton: {
+    marginBottom: 16,
+  },
+  largeAvatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  largeAvatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  largeAvatarText: {
+    color: "#fff",
+    fontSize: 32,
+    fontWeight: "bold",
+  },
+  editBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#FFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileInfoVertical: {
+    alignItems: "center",
+  },
+  usernameTextVertical: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  emailTextVertical: {
+    fontSize: 14,
   },
   avatarContainer: {
     width: 64,

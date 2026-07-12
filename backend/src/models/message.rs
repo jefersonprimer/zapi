@@ -35,4 +35,7 @@ pub struct Message {
     
     #[sqlx(skip)]
     pub attachments: Option<Vec<Attachment>>,
+
+    #[sqlx(skip)]
+    pub status: Option<String>,
 }

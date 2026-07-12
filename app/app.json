@@ -69,7 +69,8 @@
           "microphonePermission": "Allow Zapi Chat to access your microphone to make voice and video calls."
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

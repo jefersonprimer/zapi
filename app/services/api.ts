@@ -19,12 +19,14 @@ export interface AuthResponse {
   user_id: string;
   username: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 export interface ChatListItem {
   id: string;
   participant_id: string | null;
   participant_username: string | null;
+  participant_avatar_url: string | null;
   is_group: boolean;
   name: string | null;
   last_message: string | null;
@@ -33,6 +35,7 @@ export interface ChatListItem {
   unread_count: number;
   is_blocked_by_me?: boolean;
   is_blocked_by_them?: boolean;
+  cleared_at?: string | null;
 }
 
 export interface Attachment {
@@ -62,6 +65,7 @@ export interface Message {
   status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed"; // Delivery status
   created_at: string;
   deleted_for_everyone?: boolean;
+  deleted_at?: string | null;
   attachments?: Attachment[];
 }
 
@@ -141,6 +145,7 @@ export interface UserSearchResult {
   id: string;
   username: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 export async function searchUsers(
@@ -236,6 +241,7 @@ export interface Contact {
   username: string;
   email: string;
   is_blocked: boolean;
+  avatar_url?: string | null;
 }
 
 export async function getContacts(token: string): Promise<Contact[]> {
@@ -288,4 +294,21 @@ export async function deleteMessageForEveryone(
     method: "DELETE",
   });
 }
+
+export async function deleteChat(token: string, chatId: string): Promise<{ status: string; chat_id: string }> {
+  return authFetch(`${API_URL}/chats/${chatId}`, token, {
+    method: "DELETE",
+  });
+}
+
+export async function updateProfile(
+  token: string,
+  avatarUrl: string | null
+): Promise<{ status: string; avatar_url: string | null }> {
+  return authFetch(`${API_URL}/users/profile`, token, {
+    method: "POST",
+    body: JSON.stringify({ avatar_url: avatarUrl }),
+  });
+}
+
 

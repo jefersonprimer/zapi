@@ -11,6 +11,7 @@ import {
   Clipboard,
   Modal,
   Keyboard,
+  Image,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -44,7 +45,7 @@ import { ChatMenuModal } from "@/components/ChatMenuModal";
 import { MessageBubble } from "@/components/MessageBubble";
 import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
-import { useAuth, getStorageItem, setStorageItem } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
   getMessages,
@@ -58,6 +59,7 @@ import {
   deleteMessageForEveryone,
   getChats,
   unblockContact,
+  API_URL,
 } from "@/services/api";
 import {
   getMessagesFromLocal,
@@ -65,8 +67,11 @@ import {
   insertMessageLocal,
   updateMessageStatusLocal,
   markChatReadLocal,
+  markSentMessagesReadLocal,
+  markSentMessagesDeliveredLocal,
   clearChatMessagesLocal,
   deleteMessageLocal,
+  deleteMessageForMeLocal,
 } from "@/services/database";
 import { cacheMediaFile } from "@/services/mediaCache";
 import { wsClient } from "@/services/ws";
@@ -173,6 +178,7 @@ export default function ChatScreen() {
     chatId: string;
     participantId?: string;
     participantUsername?: string;
+    participantAvatarUrl?: string;
   }>();
   const router = useRouter();
   const navigation = useNavigation();
@@ -180,6 +186,13 @@ export default function ChatScreen() {
   const chatId = params.chatId;
   const participantId = params.participantId || "";
   const participantUsername = params.participantUsername || "Unknown";
+  const [participantAvatarUrl, setParticipantAvatarUrl] = useState(params.participantAvatarUrl || "");
+
+  useEffect(() => {
+    if (params.participantAvatarUrl) {
+      setParticipantAvatarUrl(params.participantAvatarUrl);
+    }
+  }, [params.participantAvatarUrl]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -218,10 +231,10 @@ export default function ChatScreen() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
-  const [deletedIds, setDeletedIds] = useState<string[]>([]);
 
   const [isBlockedByMe, setIsBlockedByMe] = useState(false);
   const [isBlockedByThem, setIsBlockedByThem] = useState(false);
+  const [clearedAt, setClearedAt] = useState<string | null>(null);
 
   const loadChatDetails = useCallback(async () => {
     if (!token) return;
@@ -231,6 +244,10 @@ export default function ChatScreen() {
       if (currentChat) {
         setIsBlockedByMe(!!currentChat.is_blocked_by_me);
         setIsBlockedByThem(!!currentChat.is_blocked_by_them);
+        setClearedAt(currentChat.cleared_at || null);
+        if (currentChat.participant_avatar_url) {
+          setParticipantAvatarUrl(currentChat.participant_avatar_url);
+        }
       }
     } catch (err) {
       console.error("Failed to load chat details for blocking status:", err);
@@ -243,13 +260,12 @@ export default function ChatScreen() {
     }, [loadChatDetails]),
   );
 
-  const deletedKey = `deleted_messages_${chatId}`;
 
   const chatItems = useMemo(() => {
     const items: ChatItem[] = [];
 
     messages.forEach((msg) => {
-      if (!deletedIds.includes(msg.id)) {
+      if (!msg.deleted_at) {
         items.push({ type: "message", data: msg });
       }
     });
@@ -260,7 +276,11 @@ export default function ChatScreen() {
       const isIncoming =
         call.caller_id === participantId && call.callee_id === user?.user_id;
       if (isOutgoing || isIncoming) {
-        items.push({ type: "call", data: call });
+        const callTime = new Date(call.created_at).getTime();
+        const clearTime = clearedAt ? new Date(clearedAt).getTime() : 0;
+        if (callTime > clearTime) {
+          items.push({ type: "call", data: call });
+        }
       }
     });
 
@@ -275,30 +295,19 @@ export default function ChatScreen() {
     });
 
     return items;
-  }, [messages, calls, deletedIds, user?.user_id, participantId]);
-
-  // Load deleted messages from platform-aware storage
-  useEffect(() => {
-    (async () => {
-      try {
-        const stored = await getStorageItem(deletedKey);
-        if (stored) {
-          setDeletedIds(JSON.parse(stored));
-        } else {
-          setDeletedIds([]);
-        }
-      } catch (err) {
-        console.error("Error loading deleted messages:", err);
-      }
-    })();
-  }, [chatId, deletedKey]);
+  }, [messages, calls, user?.user_id, participantId, clearedAt]);
 
   async function handleDeleteForMe() {
     if (!selectedMessage) return;
-    const newDeleted = [...deletedIds, selectedMessage.id];
-    setDeletedIds(newDeleted);
     try {
-      await setStorageItem(deletedKey, JSON.stringify(newDeleted));
+      await deleteMessageForMeLocal(selectedMessage.id);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === selectedMessage.id
+            ? { ...msg, deleted_at: new Date().toISOString() }
+            : msg
+        )
+      );
     } catch (err) {
       console.error("Error saving deleted message:", err);
     }
@@ -369,8 +378,13 @@ export default function ChatScreen() {
     (async () => {
       try {
         const contactsList = await getContacts(token);
-        const exists = contactsList.some((c) => c.contact_id === participantId);
-        setIsContact(exists);
+        const contact = contactsList.find((c) => c.contact_id === participantId);
+        if (contact) {
+          setIsContact(true);
+          if (contact.avatar_url) {
+            setParticipantAvatarUrl(contact.avatar_url);
+          }
+        }
       } catch (err) {
         console.error("Error checking contact status:", err);
       }
@@ -499,21 +513,86 @@ export default function ChatScreen() {
 
     const unsub = wsClient.on("new_message", (data) => {
       if (data.message.chat_id === chatId) {
+        if (data.message.sender_id !== user?.user_id) {
+          wsClient.send({ type: "delivered_ack", chat_id: chatId });
+        }
         // Salva localmente primeiro
         saveMessages([data.message]).then(async () => {
-          // Pega o caminho local da mídia se for cacheado
-          if (data.message.image_url) {
-            cacheMediaFile(data.message.image_url, data.message.id).then((localPath) => {
-              setMessages((prev) => [
-                ...prev,
-                { ...data.message, local_file_path: localPath.startsWith("file://") ? localPath : null }
-              ]);
-            }).catch(() => {
-              setMessages((prev) => [...prev, data.message]);
-            });
-          } else {
-            setMessages((prev) => [...prev, data.message]);
-          }
+          // Evita duplicar na interface caso já esteja lá
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === data.message.id)) {
+              return prev;
+            }
+
+            if (data.message.image_url) {
+              cacheMediaFile(data.message.image_url, data.message.id).then((localPath) => {
+                setMessages((curr) => {
+                  if (curr.some((m) => m.id === data.message.id)) return curr;
+
+                  // Se for nosso próprio envio, tenta substituir a mensagem pendente correspondente em vez de criar duplicada
+                  if (data.message.sender_id === user?.user_id) {
+                    const pendingIndex = curr.findIndex(
+                      (m) =>
+                        (m.status === "pending" || m.status === "uploading" || m.status === "sending") &&
+                        m.sender_id === user?.user_id &&
+                        m.content === data.message.content
+                    );
+                    if (pendingIndex !== -1) {
+                      const next = [...curr];
+                      next[pendingIndex] = {
+                        ...data.message,
+                        local_file_path: localPath.startsWith("file://") ? localPath : null
+                      };
+                      return next;
+                    }
+                  }
+
+                  return [
+                    ...curr,
+                    { ...data.message, local_file_path: localPath.startsWith("file://") ? localPath : null }
+                  ];
+                });
+              }).catch(() => {
+                setMessages((curr) => {
+                  if (curr.some((m) => m.id === data.message.id)) return curr;
+
+                  // Se for nosso próprio envio, tenta substituir a mensagem pendente correspondente em vez de criar duplicada
+                  if (data.message.sender_id === user?.user_id) {
+                    const pendingIndex = curr.findIndex(
+                      (m) =>
+                        (m.status === "pending" || m.status === "uploading" || m.status === "sending") &&
+                        m.sender_id === user?.user_id &&
+                        m.content === data.message.content
+                    );
+                    if (pendingIndex !== -1) {
+                      const next = [...curr];
+                      next[pendingIndex] = data.message;
+                      return next;
+                    }
+                  }
+
+                  return [...curr, data.message];
+                });
+              });
+              return prev;
+            } else {
+              // Se for nosso próprio envio, tenta substituir a mensagem pendente correspondente em vez de criar duplicada
+              if (data.message.sender_id === user?.user_id) {
+                const pendingIndex = prev.findIndex(
+                  (m) =>
+                    (m.status === "pending" || m.status === "uploading" || m.status === "sending") &&
+                    m.sender_id === user?.user_id &&
+                    m.content === data.message.content
+                );
+                if (pendingIndex !== -1) {
+                  const next = [...prev];
+                  next[pendingIndex] = data.message;
+                  return next;
+                }
+              }
+              return [...prev, data.message];
+            }
+          });
           
           await markChatReadLocal(chatId);
         });
@@ -552,6 +631,50 @@ export default function ChatScreen() {
         // Limpa SQLite local
         clearChatMessagesLocal(chatId).catch(console.error);
         setMessages([]);
+        setCalls([]);
+        setClearedAt(new Date().toISOString());
+      }
+    });
+
+    const unsubRead = wsClient.on("messages_read", (data) => {
+      if (data.chat_id === chatId && data.reader_id !== user?.user_id) {
+        // Alguém leu nossas mensagens! Atualiza localmente no SQLite
+        markSentMessagesReadLocal(chatId, user?.user_id || "", data.read_at).catch(console.error);
+
+        // Atualiza a interface
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (
+              msg.sender_id === user?.user_id &&
+              msg.status !== "read" &&
+              new Date(msg.created_at) <= new Date(data.read_at)
+            ) {
+              return { ...msg, status: "read" };
+            }
+            return msg;
+          })
+        );
+      }
+    });
+
+    const unsubDelivered = wsClient.on("messages_delivered", (data) => {
+      if (data.chat_id === chatId && data.receiver_id !== user?.user_id) {
+        // Mensagens entregues! Atualiza localmente no SQLite
+        markSentMessagesDeliveredLocal(chatId, user?.user_id || "").catch(console.error);
+
+        // Atualiza a interface
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (
+              msg.sender_id === user?.user_id &&
+              msg.status === "sent" &&
+              new Date(msg.created_at) <= new Date(data.delivered_at)
+            ) {
+              return { ...msg, status: "delivered" };
+            }
+            return msg;
+          })
+        );
       }
     });
 
@@ -559,6 +682,8 @@ export default function ChatScreen() {
       unsub();
       unsubDelete();
       unsubClear();
+      unsubRead();
+      unsubDelivered();
       wsClient.unsubscribe(chatId);
     };
   }, [chatId, token, user]);
@@ -628,7 +753,22 @@ export default function ChatScreen() {
       local_file_path: attachmentInfo?.uri || null,
       created_at: new Date().toISOString(),
       status: attachmentInfo ? "uploading" : "pending",
-      deleted_for_everyone: false
+      deleted_for_everyone: false,
+      attachments: attachmentInfo ? [{
+        id: localId + "_att",
+        message_id: localId,
+        type: attachmentInfo.type,
+        remote_url: "",
+        local_path: attachmentInfo.uri,
+        mime_type: attachmentInfo.mimeType || null,
+        width: null,
+        height: null,
+        duration: attachmentInfo.duration || null,
+        size: attachmentInfo.size || null,
+        sha256: null,
+        thumbnail_path: null,
+        download_status: "downloaded"
+      } as any] : undefined
     };
 
     try {
@@ -688,8 +828,11 @@ export default function ChatScreen() {
         });
 
         // Update UI state with server representation
-        setMessages((prev) =>
-          prev.map((m) =>
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === serverMsg.id)) {
+            return prev.filter((m) => m.id !== localId);
+          }
+          return prev.map((m) =>
             m.id === localId
               ? {
                   ...serverMsg,
@@ -697,8 +840,8 @@ export default function ChatScreen() {
                   local_file_path: attachmentInfo?.uri || null
                 }
               : m
-          )
-        );
+          );
+        });
       } catch (err) {
         console.error("Failed to send offline message in background:", err);
 
@@ -1061,6 +1204,33 @@ export default function ChatScreen() {
               }}
               style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingVertical: 8 }}
             >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: colors.tint,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 10,
+                  overflow: "hidden",
+                }}
+              >
+                {participantAvatarUrl ? (
+                  <Image
+                    source={{
+                      uri: participantAvatarUrl.startsWith("http")
+                        ? participantAvatarUrl
+                        : `${API_URL}${participantAvatarUrl}`,
+                    }}
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                ) : (
+                  <Text style={{ color: "#FFF", fontSize: 14, fontWeight: "bold" }}>
+                    {participantUsername[0]?.toUpperCase()}
+                  </Text>
+                )}
+              </View>
               <Text
                 style={[styles.headerTitleText, { color: colors.text }]}
                 numberOfLines={1}
@@ -1223,14 +1393,14 @@ export default function ChatScreen() {
 
             if (isOutgoing) {
               StatusIcon = PhoneOutgoing;
-              bubbleBg = isDark ? "rgba(10, 132, 255, 0.15)" : "#e1f5fe"; // light blue
+              bubbleBg = isDark ? "#1E293B" : "#e1f5fe"; // light blue
               textColor = isDark ? "#0A84FF" : "#01579b";
               timeColor = isDark
                 ? "rgba(10, 132, 255, 0.7)"
                 : "rgba(1, 87, 155, 0.6)";
             } else {
               if (call.status === "completed") {
-                bubbleBg = isDark ? "rgba(48, 209, 88, 0.15)" : "#e8f5e9"; // light green
+                bubbleBg = isDark ? "#1E293B" : "#e8f5e9"; // light green
                 textColor = isDark ? "#30D158" : "#1b5e20";
                 timeColor = isDark
                   ? "rgba(48, 209, 88, 0.7)"
@@ -1243,7 +1413,7 @@ export default function ChatScreen() {
                   StatusIcon = PhoneOff;
                   iconColor = "#FF9500"; // Orange
                 }
-                bubbleBg = isDark ? "rgba(255, 69, 58, 0.15)" : "#ffebee"; // light red
+                bubbleBg = isDark ? "#1E293B" : "#ffebee"; // light red
                 textColor = isDark ? "#FF453A" : "#b71c1c";
                 timeColor = isDark
                   ? "rgba(255, 69, 58, 0.7)"
@@ -1303,12 +1473,7 @@ export default function ChatScreen() {
                     style={[styles.callBubble, { backgroundColor: bubbleBg }]}
                   >
                     <View style={styles.callBubbleContent}>
-                      <View
-                        style={[
-                          styles.callIconContainer,
-                          { backgroundColor: iconColor + "20" },
-                        ]}
-                      >
+                      <View style={styles.callIconContainer}>
                         <StatusIcon size={20} color={iconColor} />
                       </View>
                       <View style={styles.callTextContainer}>

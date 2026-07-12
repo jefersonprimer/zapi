@@ -14,6 +14,7 @@ interface User {
   user_id: string;
   username: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {
@@ -22,6 +23,7 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: (token: string, user: User) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUser: (updatedFields: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -103,8 +105,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateUser = useCallback(async (updatedFields: Partial<User>) => {
+    try {
+      const storedUser = await getStorageItem("user");
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        const updated = { ...parsed, ...updatedFields };
+        await setStorageItem("user", JSON.stringify(updated));
+        setUser(updated);
+      } else if (user) {
+        const updated = { ...user, ...updatedFields };
+        await setStorageItem("user", JSON.stringify(updated));
+        setUser(updated);
+      }
+    } catch (e) {
+      console.error("Update user storage failed:", e);
+    }
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, token, isLoading, signIn, signOut, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

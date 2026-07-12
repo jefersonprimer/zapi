@@ -88,31 +88,49 @@ pub async fn list_chats(
             c.id,
             (SELECT u2.id FROM chat_participants cp2 JOIN users u2 ON u2.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1) AS participant_id,
             (SELECT u2.username FROM chat_participants cp2 JOIN users u2 ON u2.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1) AS participant_username,
+            (SELECT u2.avatar_url FROM chat_participants cp2 JOIN users u2 ON u2.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1) AS participant_avatar_url,
             c.is_group,
             c.name,
             CASE
-                WHEN m.deleted_for_everyone = TRUE THEN 'Message deleted'
-                WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' AND m.image_url ~* '\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$' THEN
+                WHEN cal.created_at IS NOT NULL AND (m.created_at IS NULL OR cal.created_at > m.created_at) THEN
                     CASE
-                        WHEN m.content IS NOT NULL AND m.content LIKE 'duration:%' THEN 'Audio|' || m.content
-                        ELSE 'Audio'
+                        WHEN cal.caller_id = $1 THEN 'Chamada efetuada'
+                        ELSE 
+                            CASE 
+                                WHEN cal.status = 'completed' THEN 'Chamada recebida'
+                                ELSE 'Chamada perdida'
+                            END
                     END
-                WHEN m.content IS NOT NULL AND TRIM(m.content) != '' THEN m.content
-                WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' THEN
+                WHEN m.created_at IS NOT NULL THEN
                     CASE
-                        WHEN m.image_url ~* '\.(jpg|jpeg|png|gif|webp)(\?.*)?$' THEN 'Photo'
-                        WHEN m.image_url ~* '\.(mp4|mov|webm|mkv|avi)(\?.*)?$' THEN 'Video'
-                        ELSE 'File'
+                        WHEN m.deleted_for_everyone = TRUE THEN 'Message deleted'
+                        WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' AND m.image_url ~* '\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$' THEN
+                            CASE
+                                WHEN m.content IS NOT NULL AND m.content LIKE 'duration:%' THEN 'Audio|' || m.content
+                                ELSE 'Audio'
+                            END
+                        WHEN m.content IS NOT NULL AND TRIM(m.content) != '' THEN m.content
+                        WHEN m.image_url IS NOT NULL AND TRIM(m.image_url) != '' THEN
+                            CASE
+                                WHEN m.image_url ~* '\.(jpg|jpeg|png|gif|webp)(\?.*)?$' THEN 'Photo'
+                                WHEN m.image_url ~* '\.(mp4|mov|webm|mkv|avi)(\?.*)?$' THEN 'Video'
+                                ELSE 'File|' || COALESCE(substring(split_part(m.image_url, '?', 1) from '[^/]+$'), 'File')
+                            END
+                        ELSE NULL
                     END
                 ELSE NULL
             END AS last_message,
-            m.created_at AS last_message_at,
+            CASE
+                WHEN cal.created_at IS NOT NULL AND (m.created_at IS NULL OR cal.created_at > m.created_at) THEN cal.created_at
+                ELSE m.created_at
+            END AS last_message_at,
             c.created_at,
             (
                 SELECT COALESCE(COUNT(*), 0) FROM messages msg
                 WHERE msg.chat_id = c.id
                   AND msg.sender_id != $1
                   AND msg.created_at > cp1.last_read_at
+                  AND (cp1.cleared_at IS NULL OR msg.created_at > cp1.cleared_at)
             ) AS unread_count,
             (
                 SELECT COALESCE(
@@ -129,16 +147,36 @@ pub async fn list_chats(
                     ) AND con.contact_id = $1),
                     false
                 )
-            ) AS is_blocked_by_them
+            ) AS is_blocked_by_them,
+            cp1.cleared_at
          FROM chats c
          JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
          LEFT JOIN LATERAL (
+             SELECT u2.id AS p_id FROM chat_participants cp2 JOIN users u2 ON u2.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1
+         ) p ON true
+         LEFT JOIN LATERAL (
+             SELECT caller_id, callee_id, status, created_at FROM call_logs
+             WHERE c.is_group = false 
+               AND p.p_id IS NOT NULL 
+               AND ((caller_id = $1 AND callee_id = p.p_id) OR (caller_id = p.p_id AND callee_id = $1))
+               AND (cp1.cleared_at IS NULL OR created_at > cp1.cleared_at)
+             ORDER BY created_at DESC
+             LIMIT 1
+         ) cal ON true
+         LEFT JOIN LATERAL (
              SELECT content, image_url, deleted_for_everyone, created_at FROM messages
-             WHERE chat_id = c.id
+             WHERE chat_id = c.id AND (cp1.cleared_at IS NULL OR created_at > cp1.cleared_at)
              ORDER BY created_at DESC
              LIMIT 1
          ) m ON true
-         ORDER BY m.created_at DESC NULLS LAST"#,
+         WHERE cp1.cleared_at IS NULL OR m.created_at IS NOT NULL OR cal.created_at IS NOT NULL
+         ORDER BY COALESCE(
+             CASE
+                 WHEN cal.created_at IS NOT NULL AND (m.created_at IS NULL OR cal.created_at > m.created_at) THEN cal.created_at
+                 ELSE m.created_at
+             END,
+             c.created_at
+         ) DESC NULLS LAST"#,
     )
     .bind(auth.0)
     .fetch_all(&pool)
@@ -152,3 +190,56 @@ pub async fn list_chats(
 
     Ok(Json(json!({ "chats": chats })))
 }
+
+pub async fn delete_chat(
+    State(pool): State<PgPool>,
+    State(_ws_state): State<crate::ws::WsState>,
+    State(call_manager): State<crate::signaling::CallManager>,
+    auth: AuthUser,
+    axum::extract::Path(chat_id): axum::extract::Path<Uuid>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // 1. Verify participant
+    let is_participant: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT chat_id FROM chat_participants WHERE chat_id = $1 AND user_id = $2",
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
+    if is_participant.is_none() {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "you are not a participant of this chat" })),
+        ));
+    }
+
+    // 2. Set cleared_at = NOW() for the requesting user in chat_participants
+    sqlx::query("UPDATE chat_participants SET cleared_at = NOW() WHERE chat_id = $1 AND user_id = $2")
+        .bind(chat_id)
+        .bind(auth.0)
+        .execute(&pool)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+        })?;
+
+    // 3. Notify current user's websocket connections to refresh chat list
+    let update_msg = json!({
+        "type": "chat_list_update",
+        "chat_id": chat_id
+    }).to_string();
+    call_manager.send_to_user(auth.0, &update_msg);
+
+    Ok(Json(json!({ "status": "success", "chat_id": chat_id })))
+}
+

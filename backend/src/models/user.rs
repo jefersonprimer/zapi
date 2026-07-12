@@ -11,4 +11,6 @@ pub struct User {
     #[serde(skip_serializing)]
     pub password_hash: String,
     pub created_at: DateTime<Utc>,
+    pub avatar_url: Option<String>,
 }
+

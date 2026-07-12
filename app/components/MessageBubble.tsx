@@ -1,6 +1,26 @@
 import React, { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, Linking, Modal, TouchableWithoutFeedback, SafeAreaView, Platform } from "react-native";
-import { FileText as FileIcon, X as XIcon, Play as PlayIcon, Clock, CheckCheck, AlertCircle } from "lucide-react-native";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Linking,
+  Modal,
+  TouchableWithoutFeedback,
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  FileText as FileIcon,
+  X as XIcon,
+  Play as PlayIcon,
+  Clock,
+  Check,
+  CheckCheck,
+  AlertCircle,
+  Ban,
+} from "lucide-react-native";
 import { type Message, API_URL } from "../services/api";
 import { AudioPlayer } from "./AudioPlayer";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -17,6 +37,15 @@ const isAudioUrl = (url: string) =>
   /\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$/i.test(url);
 const isVideoUrl = (url: string) =>
   /\.(mp4|mov|webm|mkv|avi)(\?.*)?$/i.test(url);
+
+const formatFileSize = (bytes: number | null | undefined): string => {
+  if (bytes === null || bytes === undefined || bytes === 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+};
 
 interface MessageVideoProps {
   uri: string;
@@ -43,11 +72,21 @@ const MessageVideo: React.FC<MessageVideoProps> = ({ uri, isFullScreen }) => {
   );
 };
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserId }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({
+  item,
+  currentUserId,
+}) => {
   const { colors } = useAppTheme();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const isMine = item.sender_id === currentUserId;
-  
+
+  const attachment =
+    item.attachments && item.attachments.length > 0
+      ? item.attachments[0]
+      : null;
+  const fileSize = attachment ? attachment.size : null;
+  const fileSizeStr = formatFileSize(fileSize);
+
   // Use local_file_path if available to bypass network entirely
   const mediaUrl = item.local_file_path || item.image_url;
   const fullUrl = mediaUrl
@@ -57,22 +96,40 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
     : null;
 
   if (item.deleted_for_everyone) {
+    const deletedColor = isMine
+      ? "rgba(255, 255, 255, 0.8)"
+      : colors.textSecondary;
+
     return (
       <View
         style={[
           styles.messageBubble,
-          isMine ? [styles.myMessage, { backgroundColor: colors.tint }] : [styles.theirMessage, { backgroundColor: colors.surface }],
+          isMine
+            ? [styles.myMessage, { backgroundColor: colors.tint }]
+            : [styles.theirMessage, { backgroundColor: colors.surface }],
           styles.deletedBubble,
-          { borderColor: colors.border }
+          { borderColor: colors.border },
         ]}
       >
-        <Text style={[styles.deletedText, isMine ? styles.myMessageDeletedText : [styles.messageDeletedText, { color: colors.textSecondary }]]}>
-          🚫 Esta mensagem foi apagada
-        </Text>
+        <View style={styles.deletedTextContainer}>
+          <Ban size={14} color={deletedColor} style={{ marginRight: 4 }} />
+          <Text
+            style={[
+              styles.deletedText,
+              isMine
+                ? styles.myMessageDeletedText
+                : [styles.messageDeletedText, { color: colors.textSecondary }],
+            ]}
+          >
+            Esta mensagem foi apagada
+          </Text>
+        </View>
         <Text
           style={[
             styles.messageTime,
-            isMine ? styles.myMessageTime : [styles.theirMessageTime, { color: colors.textSecondary }],
+            isMine
+              ? styles.myMessageTime
+              : [styles.theirMessageTime, { color: colors.textSecondary }],
           ]}
         >
           {new Date(item.created_at).toLocaleTimeString([], {
@@ -88,13 +145,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
     <View
       style={[
         styles.messageBubble,
-        isMine ? [styles.myMessage, { backgroundColor: colors.tint }] : [styles.theirMessage, { backgroundColor: colors.surface }],
+        isMine
+          ? [styles.myMessage, { backgroundColor: colors.tint }]
+          : [styles.theirMessage, { backgroundColor: colors.surface }],
       ]}
     >
       {fullUrl && (
         <>
           {isImageUrl(mediaUrl!) ? (
-            <TouchableOpacity onPress={() => setIsFullScreen(true)} activeOpacity={0.9}>
+            <TouchableOpacity
+              onPress={() => setIsFullScreen(true)}
+              activeOpacity={0.9}
+            >
               <Image
                 source={{ uri: fullUrl }}
                 style={styles.messageImage}
@@ -132,18 +194,34 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
                   numberOfLines={1}
                   style={[
                     styles.docName,
-                    isMine ? styles.docNameMine : [styles.docNameTheir, { color: colors.text }],
+                    isMine
+                      ? styles.docNameMine
+                      : [styles.docNameTheir, { color: colors.text }],
                   ]}
                 >
-                  {mediaUrl!.split("/").pop()}
+                  {(() => {
+                    const rawFileName = mediaUrl!.split("/").pop() || "";
+                    const match = rawFileName.match(
+                      /^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/,
+                    );
+                    if (match) return match[1];
+                    const oldMatch = rawFileName.match(
+                      /^[^_]+_([0-9a-fA-F\-]{36}\..+)$/,
+                    );
+                    return oldMatch ? oldMatch[1] : rawFileName;
+                  })()}
                 </Text>
                 <Text
                   style={[
                     styles.docSubtitle,
-                    isMine ? styles.docSubMine : [styles.docSubTheir, { color: colors.textSecondary }],
+                    isMine
+                      ? styles.docSubMine
+                      : [styles.docSubTheir, { color: colors.textSecondary }],
                   ]}
                 >
-                  Tap to open document
+                  {fileSizeStr
+                    ? `${fileSizeStr} • Tap to open`
+                    : "Tap to open document"}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -151,16 +229,24 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
         </>
       )}
       {item.content && !(mediaUrl && isAudioUrl(mediaUrl)) ? (
-        <Text style={isMine ? styles.myMessageText : [styles.messageText, { color: colors.text }]}>
+        <Text
+          style={
+            isMine
+              ? styles.myMessageText
+              : [styles.messageText, { color: colors.text }]
+          }
+        >
           {item.content}
         </Text>
       ) : null}
-      
+
       <View style={styles.timeContainer}>
         <Text
           style={[
             styles.messageTime,
-            isMine ? styles.myMessageTime : [styles.theirMessageTime, { color: colors.textSecondary }],
+            isMine
+              ? styles.myMessageTime
+              : [styles.theirMessageTime, { color: colors.textSecondary }],
           ]}
         >
           {new Date(item.created_at).toLocaleTimeString([], {
@@ -170,10 +256,24 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ item, currentUserI
         </Text>
         {isMine && (
           <View style={styles.statusIconContainer}>
-            {item.status === "pending" && <Clock size={11} color="rgba(255,255,255,0.7)" />}
-            {item.status === "uploading" && <Clock size={11} color="rgba(255,255,255,0.7)" />}
-            {item.status === "failed" && <AlertCircle size={11} color="#FF3B30" />}
-            {(item.status === "sent" || !item.status) && <CheckCheck size={11} color="rgba(255,255,255,0.8)" />}
+            {(item.status === "pending" ||
+              item.status === "uploading" ||
+              item.status === "sending") && (
+              <Clock size={13} color="rgba(255,255,255,0.7)" />
+            )}
+            {item.status === "failed" && (
+              <AlertCircle size={13} color="#FF3B30" />
+            )}
+            {item.status === "sent" && (
+              <Check size={14} color="rgba(255,255,255,0.8)" />
+            )}
+            {item.status === "delivered" && (
+              <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+            )}
+            {item.status === "read" && <CheckCheck size={14} color="#34B7F1" />}
+            {!item.status && (
+              <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+            )}
           </View>
         )}
       </View>
@@ -265,7 +365,7 @@ const styles = StyleSheet.create({
   myMessageText: { fontSize: 16, color: "#fff" },
   messageTime: { fontSize: 11, marginTop: 4 },
   myMessageTime: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
-  theirMessageTime: { },
+  theirMessageTime: {},
   videoContainer: {
     width: 200,
     height: 200,
@@ -309,10 +409,14 @@ const styles = StyleSheet.create({
   docInfo: { flex: 1 },
   docName: { fontSize: 14, fontWeight: "600" },
   docNameMine: { color: "#fff" },
-  docNameTheir: { },
+  docNameTheir: {},
   docSubtitle: { fontSize: 11, marginTop: 2 },
   docSubMine: { color: "rgba(255, 255, 255, 0.7)" },
-  docSubTheir: { },
+  docSubTheir: {},
+  deletedTextContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   deletedBubble: {
     borderStyle: "dashed",
     borderWidth: 1,
@@ -325,7 +429,7 @@ const styles = StyleSheet.create({
   myMessageDeletedText: {
     color: "rgba(255, 255, 255, 0.8)",
   },
-  messageDeletedText: { },
+  messageDeletedText: {},
   modalBackground: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.95)",

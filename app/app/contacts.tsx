@@ -59,6 +59,7 @@ export default function ContactsScreen() {
           chatId: data.id,
           participantId: contact.contact_id,
           participantUsername: contact.username,
+          participantAvatarUrl: contact.avatar_url || "",
         },
       });
     } catch (err: any) {
