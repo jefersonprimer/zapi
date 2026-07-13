@@ -31,4 +31,5 @@ pub struct ChatListItem {
     pub notification_muted_until: Option<DateTime<Utc>>,
     pub notification_muted_forever: Option<bool>,
     pub is_archived: Option<bool>,
+    pub is_favorite: Option<bool>,
 }

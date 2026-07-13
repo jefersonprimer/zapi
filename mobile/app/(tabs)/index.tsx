@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,28 @@ import {
   Alert,
   Modal,
   Image,
+  TextInput,
+  ScrollView,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { getChats, type ChatListItem, deleteChat, muteChat, archiveChat, API_URL, clearChatMessages, blockContact, unblockContact } from "@/services/api";
+import {
+  getChats,
+  type ChatListItem,
+  deleteChat,
+  muteChat,
+  archiveChat,
+  API_URL,
+  clearChatMessages,
+  blockContact,
+  unblockContact,
+  favoriteChat,
+  getChatLists,
+  createChatList,
+  deleteChatList,
+  updateChatLists,
+  updateChatList as updateChatListApi,
+} from "@/services/api";
 import {
   getChatsFromLocal,
   saveChats,
@@ -22,14 +40,18 @@ import {
   setChatArchivedLocal,
   clearChatMessagesLocal,
   setChatBlockedLocal,
+  setChatFavoriteLocal,
+  getLocalChatLists,
+  saveLocalChatLists,
+  type LocalChatList,
+  getDatabase,
+  getListPositionsLocal,
+  saveListPositionLocal,
 } from "@/services/database";
 import {
   Camera,
   MoreVertical,
   MessageSquarePlus,
-  Sun,
-  Moon,
-  Laptop,
   Check,
   Lock,
   Mic,
@@ -47,9 +69,24 @@ import {
   Bell,
   BellOff,
   Archive,
+  Search,
+  GripVertical,
+  Heart,
+  Star,
+  Briefcase,
+  Home,
+  Gamepad2,
+  BookOpen,
+  Folder,
+  Pencil,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
+import ThemeModal from "@/components/ThemeModal";
+import MuteModal from "@/components/MuteModal";
+import MainMenuModal from "@/components/MainMenuModal";
+import CreateListModal from "@/components/CreateListModal";
+import EditListModal from "@/components/EditListModal";
 
 const isChatMuted = (chat: ChatListItem) => {
   if (chat.notification_muted_forever) return true;
@@ -59,10 +96,42 @@ const isChatMuted = (chat: ChatListItem) => {
   return false;
 };
 
+const renderListIcon = (
+  iconName: string | null,
+  colorColor: string | null,
+  tintColor: string,
+  size: number = 20,
+) => {
+  let hexColor = tintColor;
+  if (colorColor === "🔴") hexColor = "#ef4444";
+  else if (colorColor === "🟠") hexColor = "#f97316";
+  else if (colorColor === "🟡") hexColor = "#eab308";
+  else if (colorColor === "🟢") hexColor = "#22c55e";
+  else if (colorColor === "🔵") hexColor = "#3b82f6";
+  else if (colorColor === "🟣") hexColor = "#a855f7";
+
+  switch (iconName) {
+    case "❤️":
+      return <Heart size={size} color={hexColor} fill={hexColor + "22"} />;
+    case "⭐":
+      return <Star size={size} color={hexColor} fill={hexColor + "22"} />;
+    case "💼":
+      return <Briefcase size={size} color={hexColor} fill={hexColor + "22"} />;
+    case "🏠":
+      return <Home size={size} color={hexColor} fill={hexColor + "22"} />;
+    case "🎮":
+      return <Gamepad2 size={size} color={hexColor} fill={hexColor + "22"} />;
+    case "📚":
+      return <BookOpen size={size} color={hexColor} fill={hexColor + "22"} />;
+    default:
+      return <Folder size={size} color={hexColor} fill={hexColor + "22"} />;
+  }
+};
+
 export default function ChatListScreen() {
   const router = useRouter();
-  const { signOut, token } = useAuth();
-  const { colors, themePreference, setThemePreference } = useAppTheme();
+   const { token } = useAuth();
+  const { colors } = useAppTheme();
 
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +141,64 @@ export default function ChatListScreen() {
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
   const [moreMenuVisible, setMoreMenuVisible] = useState(false);
 
+  // Custom states for Lists and Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userLists, setUserLists] = useState<LocalChatList[]>([]);
+  const [activeFilterId, setActiveFilterId] = useState<string>("all");
+  const [createListModalVisible, setCreateListModalVisible] = useState(false);
+  const [activeMenuChat, setActiveMenuChat] = useState<ChatListItem | null>(
+    null,
+  );
+  const [listSelectorVisible, setListSelectorVisible] = useState(false);
+  const [listSelectorChat, setListSelectorChat] = useState<ChatListItem | null>(
+    null,
+  );
+  const [chatSelectorVisible, setChatSelectorVisible] = useState(false);
+  const [selectorListId, setSelectorListId] = useState<string | null>(null);
+  const [selectorChatIds, setSelectorChatIds] = useState<string[]>([]);
+
+  // List menu and reordering states
+  const [activeMenuList, setActiveMenuList] = useState<any | null>(null);
+  const [editListModalVisible, setEditListModalVisible] = useState(false);
+  const [listToEdit, setListToEdit] = useState<any | null>(null);
+  const [muteSelectorList, setMuteSelectorList] =
+    useState<LocalChatList | null>(null);
+
+  // Drag-and-drop sortable lists states
+  const [reorderModalVisible, setReorderModalVisible] = useState(false);
+  const [reorderLists, setReorderLists] = useState<any[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [orderedFilters, setOrderedFilters] = useState<any[]>([]);
+
   const activeChats = chats.filter((c) => !c.is_archived);
+
+  const filteredChats = activeChats.filter((c) => {
+    // 1. Filter by Search Query
+    if (searchQuery.trim().length > 0) {
+      const query = searchQuery.toLowerCase();
+      const chatName = (c.name ?? c.participant_username ?? "").toLowerCase();
+      if (!chatName.includes(query)) return false;
+    }
+
+    // 2. Filter by Active List Chip
+    if (activeFilterId === "all") {
+      return true;
+    } else if (activeFilterId === "unread") {
+      return c.unread_count > 0;
+    } else if (activeFilterId === "favorites") {
+      return !!c.is_favorite;
+    } else if (activeFilterId === "groups") {
+      return c.is_group;
+    } else {
+      // Custom user list ID
+      const customList = userLists.find((l) => l.id === activeFilterId);
+      if (customList) {
+        return customList.chat_ids.includes(c.id);
+      }
+      return true;
+    }
+  });
+
   const archivedChatsCount = chats.filter((c) => c.is_archived).length;
 
   const handleLongPress = (chatId: string) => {
@@ -183,7 +309,14 @@ export default function ChatListScreen() {
   };
 
   const handleMuteChats = async (durationHours: number | "always") => {
-    if (selectedChatIds.length === 0) return;
+    let chatIdsToMute: string[] = [];
+    if (muteSelectorList) {
+      chatIdsToMute = muteSelectorList.chat_ids;
+    } else {
+      chatIdsToMute = selectedChatIds;
+    }
+
+    if (chatIdsToMute.length === 0) return;
 
     let mutedUntil: string | null = null;
     let mutedForever = false;
@@ -191,17 +324,20 @@ export default function ChatListScreen() {
     if (durationHours === "always") {
       mutedForever = true;
     } else {
-      mutedUntil = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
+      mutedUntil = new Date(
+        Date.now() + durationHours * 60 * 60 * 1000,
+      ).toISOString();
     }
 
     try {
-      for (const chatId of selectedChatIds) {
+      for (const chatId of chatIdsToMute) {
         if (token) {
           await muteChat(token, chatId, mutedUntil, mutedForever);
         }
         await setChatMuteLocal(chatId, mutedUntil, mutedForever);
       }
       setMuteModalVisible(false);
+      setMuteSelectorList(null);
       setSelectedChatIds([]);
       const updatedChats = await getChatsFromLocal();
       setChats(updatedChats);
@@ -248,7 +384,8 @@ export default function ChatListScreen() {
       pathname: "/contact-detail",
       params: {
         participantId: chatItem.participant_id || "",
-        participantUsername: chatItem.participant_username || chatItem.name || "Unknown",
+        participantUsername:
+          chatItem.participant_username || chatItem.name || "Unknown",
         chatId: chatItem.id,
         avatarUrl: chatItem.participant_avatar_url || undefined,
       },
@@ -300,7 +437,10 @@ export default function ChatListScreen() {
     const nonGroupChats = selectedChats.filter((c) => !c.is_group);
 
     if (nonGroupChats.length === 0) {
-      Alert.alert("Erro", "Selecione pelo menos uma conversa individual para bloquear.");
+      Alert.alert(
+        "Erro",
+        "Selecione pelo menos uma conversa individual para bloquear.",
+      );
       return;
     }
 
@@ -337,16 +477,99 @@ export default function ChatListScreen() {
             setChats(updatedChats);
           } catch (err: any) {
             console.error("Error blocking/unblocking chat(s):", err);
-            Alert.alert("Erro", "Não foi possível alterar o status de bloqueio.");
+            Alert.alert(
+              "Erro",
+              "Não foi possível alterar o status de bloqueio.",
+            );
           }
         },
       },
     ]);
   };
 
+  const loadLists = useCallback(async () => {
+    const buildOrderedFilters = async (localLists: LocalChatList[]) => {
+      try {
+        const positions = await getListPositionsLocal();
+        const systemFilters = [
+          { id: "all", name: "Todas", color: null, icon: null, isSystem: true },
+          {
+            id: "unread",
+            name: "Não lidas",
+            color: null,
+            icon: null,
+            isSystem: true,
+          },
+          {
+            id: "favorites",
+            name: "Favoritos",
+            color: null,
+            icon: null,
+            isSystem: true,
+          },
+          {
+            id: "groups",
+            name: "Grupos",
+            color: null,
+            icon: null,
+            isSystem: true,
+          },
+        ];
+        const customFilters = localLists.map((l) => ({
+          id: l.id,
+          name: l.name,
+          color: l.color,
+          icon: l.icon,
+          chat_ids: l.chat_ids,
+          isSystem: false,
+        }));
+        const combined = [...systemFilters, ...customFilters];
+        combined.sort((a, b) => {
+          const posA = positions[a.id] !== undefined ? positions[a.id] : 999;
+          const posB = positions[b.id] !== undefined ? positions[b.id] : 999;
+          return posA - posB;
+        });
+        setOrderedFilters(combined);
+      } catch (err) {
+        console.error("Error building ordered filters:", err);
+      }
+    };
+
+    try {
+      const localLists = await getLocalChatLists();
+      setUserLists(localLists);
+      await buildOrderedFilters(localLists);
+
+      if (token) {
+        const response = await getChatLists(token);
+        if (response && response.lists) {
+          const mappedLists: LocalChatList[] = response.lists.map((l) => ({
+            id: l.id,
+            user_id: l.user_id,
+            name: l.name,
+            color: l.color,
+            icon: l.icon,
+            position: l.position,
+            created_at: l.created_at,
+            updated_at: l.updated_at,
+            chat_ids: l.chat_ids,
+          }));
+          await saveLocalChatLists(mappedLists);
+          setUserLists(mappedLists);
+          await buildOrderedFilters(mappedLists);
+        }
+      }
+    } catch (err) {
+      console.warn("Offline or sync error loading lists:", err);
+    }
+  }, [token]);
+
   const loadChats = useCallback(async () => {
     if (!token) return;
     try {
+      // Load lists in background
+      loadLists();
+
       // 1. Get from local SQLite database immediately
       const localChats = await getChatsFromLocal();
       setChats(localChats);
@@ -369,7 +592,273 @@ export default function ChatListScreen() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, loadLists]);
+
+  const handleToggleFavorite = async (chat: ChatListItem) => {
+    const nextFavorite = !chat.is_favorite;
+    try {
+      await setChatFavoriteLocal(chat.id, nextFavorite);
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === chat.id ? { ...c, is_favorite: nextFavorite } : c,
+        ),
+      );
+
+      if (token) {
+        await favoriteChat(token, chat.id, nextFavorite);
+      }
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+      Alert.alert("Erro", "Não foi possível alterar o status de favorito.");
+      await setChatFavoriteLocal(chat.id, !nextFavorite);
+      const updated = await getChatsFromLocal();
+      setChats(updated);
+    }
+  };
+
+  const handleToggleFavoriteSelectedChats = async () => {
+    if (selectedChatIds.length === 0) return;
+
+    setMoreMenuVisible(false);
+    const selectedChats = chats.filter((c) => selectedChatIds.includes(c.id));
+    const allFavorited = selectedChats.every((c) => c.is_favorite);
+    const nextFavorite = !allFavorited;
+
+    try {
+      for (const chatId of selectedChatIds) {
+        await setChatFavoriteLocal(chatId, nextFavorite);
+        if (token) {
+          await favoriteChat(token, chatId, nextFavorite);
+        }
+      }
+      setSelectedChatIds([]);
+      const updatedChats = await getChatsFromLocal();
+      setChats(updatedChats);
+    } catch (err) {
+      console.error("Error toggling favorite on selected chats:", err);
+      Alert.alert("Erro", "Não foi possível alterar o status de favorito.");
+      const updatedChats = await getChatsFromLocal();
+      setChats(updatedChats);
+    }
+  };
+
+  const handleCreateList = async (name: string, color: string, icon: string) => {
+    try {
+      if (token) {
+        const response = await createChatList(
+          token,
+          name,
+          color,
+          icon,
+        );
+        if (response && response.list) {
+          setCreateListModalVisible(false);
+          await loadLists();
+
+          // Open selector to add chats to this new list
+          setSelectorListId(response.list.id);
+          setSelectorChatIds([]);
+          setChatSelectorVisible(true);
+        }
+      }
+    } catch (err) {
+      console.error("Error creating list:", err);
+      Alert.alert("Erro", "Não foi possível criar a lista.");
+    }
+  };
+
+  const handleDeleteList = async (listId: string) => {
+    Alert.alert("Apagar lista", "Deseja realmente apagar esta lista?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Apagar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            if (token) {
+              await deleteChatList(token, listId);
+              if (activeFilterId === listId) {
+                setActiveFilterId("all");
+              }
+              await loadLists();
+            }
+          } catch (err) {
+            console.error("Error deleting list:", err);
+            Alert.alert("Erro", "Não foi possível apagar a lista.");
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleUpdateChatLists = async (
+    chatId: string,
+    selectedListIds: string[],
+  ) => {
+    try {
+      const db = await getDatabase();
+      await db.runAsync(
+        "DELETE FROM chat_list_items WHERE chat_id = ? AND list_id IN (SELECT id FROM chat_lists)",
+        [chatId],
+      );
+      for (const lid of selectedListIds) {
+        await db.runAsync(
+          "INSERT INTO chat_list_items (list_id, chat_id, created_at) VALUES (?, ?, ?)",
+          [lid, chatId, new Date().toISOString()],
+        );
+      }
+
+      if (token) {
+        await updateChatLists(token, chatId, selectedListIds);
+      }
+
+      await loadLists();
+    } catch (err) {
+      console.error("Error updating chat lists:", err);
+      Alert.alert("Erro", "Não foi possível atualizar as listas da conversa.");
+    }
+  };
+
+  const handleSaveListChats = async () => {
+    if (!selectorListId) return;
+    try {
+      const db = await getDatabase();
+      await db.runAsync("DELETE FROM chat_list_items WHERE list_id = ?", [
+        selectorListId,
+      ]);
+      for (const cid of selectorChatIds) {
+        await db.runAsync(
+          "INSERT INTO chat_list_items (list_id, chat_id, created_at) VALUES (?, ?, ?)",
+          [selectorListId, cid, new Date().toISOString()],
+        );
+      }
+
+      if (token) {
+        for (const cid of activeChats.map((c) => c.id)) {
+          const customListsForChat = userLists
+            .map((l) => {
+              if (l.id === selectorListId) {
+                return selectorChatIds.includes(cid) ? l.id : null;
+              }
+              return l.chat_ids.includes(cid) ? l.id : null;
+            })
+            .filter(Boolean) as string[];
+
+          await updateChatLists(token, cid, customListsForChat);
+        }
+      }
+
+      setChatSelectorVisible(false);
+      setSelectorListId(null);
+      setSelectorChatIds([]);
+      await loadLists();
+    } catch (err) {
+      console.error("Error saving chats to list:", err);
+      Alert.alert("Erro", "Não foi possível salvar as conversas na lista.");
+    }
+  };
+
+  const handleEditList = async (name: string, color: string, icon: string) => {
+    if (!listToEdit) return;
+
+    try {
+      const db = await getDatabase();
+      await db.runAsync(
+        "UPDATE chat_lists SET name = ?, color = ?, icon = ?, updated_at = ? WHERE id = ?",
+        [
+          name,
+          color,
+          icon,
+          new Date().toISOString(),
+          listToEdit.id,
+        ],
+      );
+
+      if (token) {
+        await updateChatListApi(token, listToEdit.id, {
+          name: name,
+          color: color,
+          icon: icon,
+        });
+      }
+
+      setEditListModalVisible(false);
+      setListToEdit(null);
+      await loadLists();
+    } catch (err) {
+      console.error("Error editing list:", err);
+      Alert.alert("Erro", "Não foi possível editar a lista.");
+    }
+  };
+
+  // Touch-drag sorting handlers for the custom list bottom sheet
+  const activeDragIndex = useRef<number | null>(null);
+  const startTouchY = useRef<number>(0);
+  const currentTouchY = useRef<number>(0);
+
+  const openReorderModal = () => {
+    setReorderLists([...orderedFilters]);
+    setReorderModalVisible(true);
+  };
+
+  const handleTouchStart = (index: number, pageY: number) => {
+    activeDragIndex.current = index;
+    startTouchY.current = pageY;
+    currentTouchY.current = pageY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (pageY: number) => {
+    if (activeDragIndex.current === null) return;
+    currentTouchY.current = pageY;
+
+    const diffY = currentTouchY.current - startTouchY.current;
+    const itemHeight = 60; // height of each list row
+    const indexShift = Math.round(diffY / itemHeight);
+
+    if (indexShift !== 0) {
+      const fromIndex = activeDragIndex.current;
+      const toIndex = fromIndex + indexShift;
+
+      if (toIndex >= 0 && toIndex < reorderLists.length) {
+        const updated = [...reorderLists];
+        const [movedItem] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, movedItem);
+
+        setReorderLists(updated);
+        activeDragIndex.current = toIndex;
+        startTouchY.current = currentTouchY.current;
+      }
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    activeDragIndex.current = null;
+    setIsDragging(false);
+
+    try {
+      const db = await getDatabase();
+      const updated = [...reorderLists];
+
+      for (let i = 0; i < updated.length; i++) {
+        await saveListPositionLocal(updated[i].id, i);
+
+        if (!updated[i].isSystem) {
+          await db.runAsync("UPDATE chat_lists SET position = ? WHERE id = ?", [
+            i,
+            updated[i].id,
+          ]);
+          if (token) {
+            await updateChatListApi(token, updated[i].id, { position: i });
+          }
+        }
+      }
+
+      await loadLists();
+    } catch (err) {
+      console.error("Error saving reordered lists:", err);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -418,7 +907,7 @@ export default function ChatListScreen() {
             >
               {(() => {
                 const selectedChats = chats.filter((c) =>
-                  selectedChatIds.includes(c.id)
+                  selectedChatIds.includes(c.id),
                 );
                 const isAllPinned = selectedChats.every((c) => c.is_pinned);
                 return isAllPinned ? (
@@ -434,7 +923,7 @@ export default function ChatListScreen() {
             >
               {(() => {
                 const selectedChats = chats.filter((c) =>
-                  selectedChatIds.includes(c.id)
+                  selectedChatIds.includes(c.id),
                 );
                 const allSelectedAreMuted = selectedChats.every(isChatMuted);
                 return allSelectedAreMuted ? (
@@ -520,15 +1009,15 @@ export default function ChatListScreen() {
                   </Text>
                 </TouchableOpacity>
                 <View
-                  style={[styles.menuDivider, { backgroundColor: colors.border }]}
+                  style={[
+                    styles.menuDivider,
+                    { backgroundColor: colors.border },
+                  ]}
                 />
               </>
             )}
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={handleSelectAll}
-            >
+            <TouchableOpacity style={styles.menuItem} onPress={handleSelectAll}>
               <Text style={[styles.menuItemText, { color: colors.text }]}>
                 Selecionar tudo
               </Text>
@@ -547,21 +1036,69 @@ export default function ChatListScreen() {
               </Text>
             </TouchableOpacity>
 
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleToggleFavoriteSelectedChats}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                {(() => {
+                  const selectedChats = chats.filter((c) =>
+                    selectedChatIds.includes(c.id),
+                  );
+                  const allFavorited = selectedChats.every(
+                    (c) => c.is_favorite,
+                  );
+                  return allFavorited ? "Remover dos favoritos" : "Favoritar";
+                })()}
+              </Text>
+            </TouchableOpacity>
+
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMoreMenuVisible(false);
+                setListSelectorChat(null);
+                setSelectorChatIds([]);
+                setListSelectorVisible(true);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                Adicionar à lista
+              </Text>
+            </TouchableOpacity>
+
             {(() => {
-              const selectedChats = chats.filter((c) => selectedChatIds.includes(c.id));
+              const selectedChats = chats.filter((c) =>
+                selectedChatIds.includes(c.id),
+              );
               const nonGroupChats = selectedChats.filter((c) => !c.is_group);
               if (nonGroupChats.length > 0) {
-                const allBlocked = nonGroupChats.every((c) => c.is_blocked_by_me);
+                const allBlocked = nonGroupChats.every(
+                  (c) => c.is_blocked_by_me,
+                );
                 return (
                   <>
                     <View
-                      style={[styles.menuDivider, { backgroundColor: colors.border }]}
+                      style={[
+                        styles.menuDivider,
+                        { backgroundColor: colors.border },
+                      ]}
                     />
                     <TouchableOpacity
                       style={styles.menuItem}
                       onPress={handleBlockSelectedChats}
                     >
-                      <Text style={[styles.menuItemText, { color: colors.danger }]}>
+                      <Text
+                        style={[styles.menuItemText, { color: colors.danger }]}
+                      >
                         {allBlocked ? "Desbloquear" : "Bloquear"}
                       </Text>
                     </TouchableOpacity>
@@ -575,330 +1112,27 @@ export default function ChatListScreen() {
       </Modal>
 
       {/* Main Options Menu Dropdown */}
-      <Modal
+      <MainMenuModal
         visible={menuVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setMenuVisible(false)}
-        >
-          <View
-            style={[
-              styles.menuContainer,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                setThemeModalVisible(true);
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Alterar Tema
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                router.push("/settings");
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Configurações
-              </Text>
-            </TouchableOpacity>
-
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                signOut();
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.danger }]}>
-                Sair
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setMenuVisible(false)}
+        onThemePress={() => setThemeModalVisible(true)}
+      />
 
       {/* Theme Choice Dialog Modal */}
-      <Modal
+      <ThemeModal
         visible={themeModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setThemeModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={[
-            styles.dialogOverlay,
-            { backgroundColor: colors.modalOverlay },
-          ]}
-          activeOpacity={1}
-          onPress={() => setThemeModalVisible(false)}
-        >
-          <View
-            style={[
-              styles.themeDialog,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Text style={[styles.dialogTitle, { color: colors.text }]}>
-              Escolher tema
-            </Text>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={async () => {
-                await setThemePreference("light");
-                setThemeModalVisible(false);
-              }}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Sun
-                  size={20}
-                  color={
-                    themePreference === "light"
-                      ? colors.tint
-                      : colors.textSecondary
-                  }
-                />
-                <Text
-                  style={[
-                    styles.dialogOptionText,
-                    { color: colors.text },
-                    themePreference === "light" && {
-                      color: colors.tint,
-                      fontWeight: "600",
-                    },
-                  ]}
-                >
-                  Claro
-                </Text>
-              </View>
-              {themePreference === "light" && (
-                <Check size={18} color={colors.tint} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={async () => {
-                await setThemePreference("dark");
-                setThemeModalVisible(false);
-              }}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Moon
-                  size={20}
-                  color={
-                    themePreference === "dark"
-                      ? colors.tint
-                      : colors.textSecondary
-                  }
-                />
-                <Text
-                  style={[
-                    styles.dialogOptionText,
-                    { color: colors.text },
-                    themePreference === "dark" && {
-                      color: colors.tint,
-                      fontWeight: "600",
-                    },
-                  ]}
-                >
-                  Escuro
-                </Text>
-              </View>
-              {themePreference === "dark" && (
-                <Check size={18} color={colors.tint} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={async () => {
-                await setThemePreference("system");
-                setThemeModalVisible(false);
-              }}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Laptop
-                  size={20}
-                  color={
-                    themePreference === "system"
-                      ? colors.tint
-                      : colors.textSecondary
-                  }
-                />
-                <Text
-                  style={[
-                    styles.dialogOptionText,
-                    { color: colors.text },
-                    themePreference === "system" && {
-                      color: colors.tint,
-                      fontWeight: "600",
-                    },
-                  ]}
-                >
-                  Padrão do sistema
-                </Text>
-              </View>
-              {themePreference === "system" && (
-                <Check size={18} color={colors.tint} />
-              )}
-            </TouchableOpacity>
-
-            <View
-              style={[
-                styles.menuDivider,
-                { backgroundColor: colors.border, marginVertical: 8 },
-              ]}
-            />
-
-            <TouchableOpacity
-              style={styles.dialogCloseButton}
-              onPress={() => setThemeModalVisible(false)}
-            >
-              <Text style={[styles.dialogCloseText, { color: colors.tint }]}>
-                Cancelar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setThemeModalVisible(false)}
+      />
 
       {/* Mute Chat Dialog Modal */}
-      <Modal
+      <MuteModal
         visible={muteModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setMuteModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={[
-            styles.dialogOverlay,
-            { backgroundColor: colors.modalOverlay },
-          ]}
-          activeOpacity={1}
-          onPress={() => setMuteModalVisible(false)}
-        >
-          <View
-            style={[
-              styles.themeDialog,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Text style={[styles.dialogTitle, { color: colors.text }]}>
-              Silenciar notificações
-            </Text>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(1)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  1 hora
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(8)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  8 horas
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(24)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  24 horas
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(7 * 24)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  1 semana
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(30 * 24)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  1 mês
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats("always")}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  Sempre
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <View
-              style={[
-                styles.menuDivider,
-                { backgroundColor: colors.border, marginVertical: 8 },
-              ]}
-            />
-
-            <TouchableOpacity
-              style={styles.dialogCloseButton}
-              onPress={() => setMuteModalVisible(false)}
-            >
-              <Text style={[styles.dialogCloseText, { color: colors.tint }]}>
-                Cancelar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => {
+          setMuteModalVisible(false);
+          setMuteSelectorList(null);
+        }}
+        onMute={handleMuteChats}
+      />
 
       {loading ? (
         <ActivityIndicator
@@ -906,63 +1140,157 @@ export default function ChatListScreen() {
           color={colors.tint}
           style={{ marginTop: 40 }}
         />
-      ) : (activeChats.length === 0 && archivedChatsCount === 0) ? (
-        <View style={styles.empty}>
-          <View style={styles.emptyContent}>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Nenhuma conversa ainda
-            </Text>
-            <Text
-              style={[styles.emptySubtext, { color: colors.textSecondary }]}
-            >
-              Toque no botão abaixo para iniciar
-            </Text>
-          </View>
-          <View style={[styles.footerContainer, { marginBottom: 60 }]}>
-            <Lock color={colors.textSecondary} size={13} />
-            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-              Suas mensagens estão protegidas por criptografia.
-            </Text>
-          </View>
-        </View>
       ) : (
-        <FlatList
-          data={activeChats}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          ListFooterComponent={
-            <View>
-              {archivedChatsCount > 0 && (
+        <>
+          {/* SEARCH BAR & FILTER CHIPS CONTAINER */}
+          {selectedChatIds.length === 0 && (
+            <View
+              style={{
+                paddingHorizontal: 16,
+                paddingTop: 12,
+                paddingBottom: 6,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: colors.border + "33",
+                  borderRadius: 24,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 14,
+                  height: 40,
+                  marginBottom: 10,
+                }}
+              >
+                <Search
+                  size={18}
+                  color={colors.textSecondary}
+                  style={{ marginRight: 8 }}
+                />
+                <TextInput
+                  placeholder="Buscar..."
+                  placeholderTextColor={colors.textSecondary}
+                  style={{
+                    flex: 1,
+                    color: colors.text,
+                    fontSize: 15,
+                    padding: 0,
+                  }}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
+              >
+                {orderedFilters.map((item) => {
+                  const isActive = activeFilterId === item.id;
+                  const isCustom = !item.isSystem;
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[
+                        styles.filterChip,
+                        {
+                          backgroundColor: colors.border + "33",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        },
+                        isActive && { backgroundColor: colors.tint },
+                      ]}
+                      onPress={() => setActiveFilterId(item.id)}
+                      onLongPress={() => {
+                        if (isCustom) {
+                          const list = userLists.find((l) => l.id === item.id);
+                          if (list) {
+                            setActiveMenuList(list);
+                          }
+                        } else {
+                          const virtualList: any = {
+                            id: item.id,
+                            name: item.name,
+                            isSystem: true,
+                            chat_ids:
+                              item.id === "all"
+                                ? chats.map((c) => c.id)
+                                : item.id === "unread"
+                                  ? chats
+                                      .filter((c) => c.unread_count > 0)
+                                      .map((c) => c.id)
+                                  : item.id === "favorites"
+                                    ? chats
+                                        .filter((c) => c.is_favorite)
+                                        .map((c) => c.id)
+                                    : item.id === "groups"
+                                      ? chats
+                                          .filter((c) => c.is_group)
+                                          .map((c) => c.id)
+                                      : [],
+                          };
+                          setActiveMenuList(virtualList);
+                        }
+                      }}
+                      delayLongPress={600}
+                    >
+                      {item.icon &&
+                        renderListIcon(
+                          item.icon,
+                          item.color,
+                          isActive ? "#fff" : colors.tint,
+                          14,
+                        )}
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          { color: colors.textSecondary, fontSize: 14 },
+                          isActive && { color: "#fff", fontWeight: "600" },
+                        ]}
+                      >
+                        {item.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+
                 <TouchableOpacity
                   style={[
-                    styles.archivedRow,
+                    styles.filterChip,
                     {
-                      borderBottomColor: colors.border,
-                      borderTopColor: colors.border,
-                      backgroundColor: colors.menuBackground,
+                      backgroundColor: colors.border + "11",
+                      borderWidth: 1,
+                      borderColor: colors.tint,
+                      borderStyle: "dashed",
                     },
                   ]}
-                  onPress={() => router.push("/archived" as any)}
+                  onPress={() => setCreateListModalVisible(true)}
                 >
-                  <View style={styles.archivedLeft}>
-                    <Archive color={colors.tint} size={20} />
-                    <Text style={[styles.archivedText, { color: colors.text }]}>
-                      Conversas arquivadas
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.archivedBadge,
-                      { backgroundColor: colors.tint + "22" },
-                    ]}
-                  >
-                    <Text style={[styles.archivedCountText, { color: colors.tint, fontWeight: "bold" }]}>
-                      {archivedChatsCount}
-                    </Text>
-                  </View>
+                  <Text style={{ color: colors.tint, fontWeight: "bold" }}>
+                    ＋
+                  </Text>
                 </TouchableOpacity>
-              )}
-              <View style={styles.footerContainer}>
+              </ScrollView>
+            </View>
+          )}
+
+          {activeChats.length === 0 && archivedChatsCount === 0 ? (
+            <View style={styles.empty}>
+              <View style={styles.emptyContent}>
+                <Text
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
+                  Nenhuma conversa ainda
+                </Text>
+                <Text
+                  style={[styles.emptySubtext, { color: colors.textSecondary }]}
+                >
+                  Toque no botão abaixo para iniciar
+                </Text>
+              </View>
+              <View style={[styles.footerContainer, { marginBottom: 60 }]}>
                 <Lock color={colors.textSecondary} size={13} />
                 <Text
                   style={[styles.footerText, { color: colors.textSecondary }]}
@@ -971,266 +1299,359 @@ export default function ChatListScreen() {
                 </Text>
               </View>
             </View>
-          }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.chatItem,
-                { borderBottomColor: colors.border },
-                selectedChatIds.includes(item.id) && {
-                  backgroundColor: colors.tint + "22",
-                },
-              ]}
-              onPress={() => handlePress(item)}
-              onLongPress={() => handleLongPress(item.id)}
-            >
-              <View
-                style={[
-                  styles.avatar,
-                  { backgroundColor: colors.tint },
-                  item.is_group && styles.groupAvatar,
-                  { justifyContent: "center", alignItems: "center", overflow: "hidden" },
-                ]}
-              >
-                {!item.is_group && item.participant_avatar_url ? (
-                  <Image
-                    source={{
-                      uri: item.participant_avatar_url.startsWith("http")
-                        ? item.participant_avatar_url
-                        : `${API_URL}${item.participant_avatar_url}`,
-                    }}
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                ) : (
-                  <Text style={styles.avatarText}>
-                    {item.is_group
-                      ? (item.name ?? "G")[0].toUpperCase()
-                      : (item.participant_username ?? "?")[0].toUpperCase()}
-                  </Text>
-                )}
-              </View>
-              <View style={styles.chatInfo}>
-                <Text style={[styles.chatName, { color: colors.text }]}>
-                  {item.name ?? item.participant_username ?? "Unknown"}
-                </Text>
-                {(() => {
-                  if (!item.last_message) {
-                    return (
-                      <Text
+          ) : (
+            <FlatList
+              data={filteredChats}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingBottom: 100 }}
+              ListFooterComponent={
+                <View>
+                  {archivedChatsCount > 0 && (
+                    <TouchableOpacity
+                      style={[
+                        styles.archivedRow,
+                        {
+                          borderBottomColor: colors.border,
+                          borderTopColor: colors.border,
+                          backgroundColor: colors.menuBackground,
+                        },
+                      ]}
+                      onPress={() => router.push("/archived" as any)}
+                    >
+                      <View style={styles.archivedLeft}>
+                        <Archive color={colors.tint} size={20} />
+                        <Text
+                          style={[styles.archivedText, { color: colors.text }]}
+                        >
+                          Conversas arquivadas
+                        </Text>
+                      </View>
+                      <View
                         style={[
-                          styles.lastMessage,
-                          { color: colors.textSecondary },
+                          styles.archivedBadge,
+                          { backgroundColor: colors.tint + "22" },
                         ]}
-                        numberOfLines={1}
                       >
-                        Nenhuma mensagem ainda
+                        <Text
+                          style={[
+                            styles.archivedCountText,
+                            { color: colors.tint, fontWeight: "bold" },
+                          ]}
+                        >
+                          {archivedChatsCount}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  <View style={styles.footerContainer}>
+                    <Lock color={colors.textSecondary} size={13} />
+                    <Text
+                      style={[
+                        styles.footerText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Suas mensagens estão protegidas por criptografia.
+                    </Text>
+                  </View>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.chatItem,
+                    { borderBottomColor: colors.border },
+                    selectedChatIds.includes(item.id) && {
+                      backgroundColor: colors.tint + "22",
+                    },
+                  ]}
+                  onPress={() => handlePress(item)}
+                  onLongPress={() => handleLongPress(item.id)}
+                >
+                  <View
+                    style={[
+                      styles.avatar,
+                      { backgroundColor: colors.tint },
+                      item.is_group && styles.groupAvatar,
+                      {
+                        justifyContent: "center",
+                        alignItems: "center",
+                        overflow: "hidden",
+                      },
+                    ]}
+                  >
+                    {!item.is_group && item.participant_avatar_url ? (
+                      <Image
+                        source={{
+                          uri: item.participant_avatar_url.startsWith("http")
+                            ? item.participant_avatar_url
+                            : `${API_URL}${item.participant_avatar_url}`,
+                        }}
+                        style={{ width: "100%", height: "100%" }}
+                      />
+                    ) : (
+                      <Text style={styles.avatarText}>
+                        {item.is_group
+                          ? (item.name ?? "G")[0].toUpperCase()
+                          : (item.participant_username ?? "?")[0].toUpperCase()}
                       </Text>
-                    );
-                  }
-
-                  let iconElement = null;
-                  let displayMessage = item.last_message;
-
-                  if (item.last_message.startsWith("Audio") || item.last_message.startsWith("🎵 Áudio")) {
-                    let durationStr = "";
-                    const parts = item.last_message.split("|duration:");
-                    if (parts.length > 1) {
-                      const secs = parseInt(parts[1], 10);
-                      if (!isNaN(secs)) {
-                        const m = Math.floor(secs / 60);
-                        const s = secs % 60;
-                        durationStr = ` (${m}:${s < 10 ? "0" : ""}${s})`;
+                    )}
+                  </View>
+                  <View style={styles.chatInfo}>
+                    <Text style={[styles.chatName, { color: colors.text }]}>
+                      {item.name ?? item.participant_username ?? "Unknown"}
+                    </Text>
+                    {(() => {
+                      if (!item.last_message) {
+                        return (
+                          <Text
+                            style={[
+                              styles.lastMessage,
+                              { color: colors.textSecondary },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            Nenhuma mensagem ainda
+                          </Text>
+                        );
                       }
-                    }
-                    displayMessage = `Mensagem de voz ${durationStr}`;
-                    iconElement = (
-                      <Mic
-                        size={15}
-                        color={colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                    );
-                  } else if (item.last_message === "Photo" || item.last_message === "📷 Foto") {
-                    displayMessage = "Foto";
-                    iconElement = (
-                      <Camera
-                        size={15}
-                        color={colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                    );
-                  } else if (item.last_message === "Video" || item.last_message === "🎥 Vídeo") {
-                    displayMessage = "Vídeo";
-                    iconElement = (
-                      <Video
-                        size={15}
-                        color={colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                    );
-                  } else if (
-                    item.last_message &&
-                    (item.last_message === "File" ||
-                      item.last_message.startsWith("File|") ||
-                      item.last_message === "📁 Arquivo" ||
-                      item.last_message.startsWith("📁 Arquivo|") ||
-                      item.last_message.startsWith("Arquivo|"))
-                  ) {
-                    let fileName = "Arquivo";
-                    let rawFileName = "";
-                    if (item.last_message.startsWith("File|")) {
-                      rawFileName = item.last_message.substring(5);
-                    } else if (item.last_message.startsWith("📁 Arquivo|")) {
-                      rawFileName = item.last_message.substring(11);
-                    } else if (item.last_message.startsWith("Arquivo|")) {
-                      rawFileName = item.last_message.substring(8);
-                    }
 
-                    if (rawFileName) {
-                      const match = rawFileName.match(/^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/);
-                      if (match) {
-                        fileName = match[1];
-                      } else {
-                        const oldMatch = rawFileName.match(/^[^_]+_([0-9a-fA-F\-]{36}\..+)$/);
-                        fileName = oldMatch ? oldMatch[1] : rawFileName;
+                      let iconElement = null;
+                      let displayMessage = item.last_message;
+
+                      if (
+                        item.last_message.startsWith("Audio") ||
+                        item.last_message.startsWith("🎵 Áudio")
+                      ) {
+                        let durationStr = "";
+                        const parts = item.last_message.split("|duration:");
+                        if (parts.length > 1) {
+                          const secs = parseInt(parts[1], 10);
+                          if (!isNaN(secs)) {
+                            const m = Math.floor(secs / 60);
+                            const s = secs % 60;
+                            durationStr = ` (${m}:${s < 10 ? "0" : ""}${s})`;
+                          }
+                        }
+                        displayMessage = `Mensagem de voz ${durationStr}`;
+                        iconElement = (
+                          <Mic
+                            size={15}
+                            color={colors.textSecondary}
+                            style={{ marginRight: 4 }}
+                          />
+                        );
+                      } else if (
+                        item.last_message === "Photo" ||
+                        item.last_message === "📷 Foto"
+                      ) {
+                        displayMessage = "Foto";
+                        iconElement = (
+                          <Camera
+                            size={15}
+                            color={colors.textSecondary}
+                            style={{ marginRight: 4 }}
+                          />
+                        );
+                      } else if (
+                        item.last_message === "Video" ||
+                        item.last_message === "🎥 Vídeo"
+                      ) {
+                        displayMessage = "Vídeo";
+                        iconElement = (
+                          <Video
+                            size={15}
+                            color={colors.textSecondary}
+                            style={{ marginRight: 4 }}
+                          />
+                        );
+                      } else if (
+                        item.last_message &&
+                        (item.last_message === "File" ||
+                          item.last_message.startsWith("File|") ||
+                          item.last_message === "📁 Arquivo" ||
+                          item.last_message.startsWith("📁 Arquivo|") ||
+                          item.last_message.startsWith("Arquivo|"))
+                      ) {
+                        let fileName = "Arquivo";
+                        let rawFileName = "";
+                        if (item.last_message.startsWith("File|")) {
+                          rawFileName = item.last_message.substring(5);
+                        } else if (
+                          item.last_message.startsWith("📁 Arquivo|")
+                        ) {
+                          rawFileName = item.last_message.substring(11);
+                        } else if (item.last_message.startsWith("Arquivo|")) {
+                          rawFileName = item.last_message.substring(8);
+                        }
+
+                        if (rawFileName) {
+                          const match = rawFileName.match(
+                            /^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/,
+                          );
+                          if (match) {
+                            fileName = match[1];
+                          } else {
+                            const oldMatch = rawFileName.match(
+                              /^[^_]+_([0-9a-fA-F\-]{36}\..+)$/,
+                            );
+                            fileName = oldMatch ? oldMatch[1] : rawFileName;
+                          }
+                        }
+
+                        displayMessage = fileName;
+                        iconElement = (
+                          <FileText
+                            size={15}
+                            color={colors.textSecondary}
+                            style={{ marginRight: 4 }}
+                          />
+                        );
+                      } else if (item.last_message === "Message deleted") {
+                        displayMessage = "Mensagem apagada";
+                        iconElement = (
+                          <Ban
+                            size={15}
+                            color={colors.textSecondary}
+                            style={{ marginRight: 4 }}
+                          />
+                        );
+                      } else if (item.last_message === "Chamada efetuada") {
+                        displayMessage = "Chamada efetuada";
+                        iconElement = (
+                          <PhoneOutgoing
+                            size={15}
+                            color={colors.textSecondary}
+                            style={{ marginRight: 4 }}
+                          />
+                        );
+                      } else if (item.last_message === "Chamada recebida") {
+                        displayMessage = "Chamada recebida";
+                        iconElement = (
+                          <PhoneIncoming
+                            size={15}
+                            color={colors.textSecondary}
+                            style={{ marginRight: 4 }}
+                          />
+                        );
+                      } else if (item.last_message === "Chamada perdida") {
+                        displayMessage = "Chamada perdida";
+                        iconElement = (
+                          <PhoneMissed
+                            size={15}
+                            color={colors.danger}
+                            style={{ marginRight: 4 }}
+                          />
+                        );
+                      } else if (
+                        item.last_message &&
+                        item.last_message.startsWith('{"type":"contact_share"')
+                      ) {
+                        try {
+                          const parsed = JSON.parse(item.last_message);
+                          displayMessage = parsed.username;
+                        } catch {
+                          displayMessage = "Contato";
+                        }
+                        iconElement = (
+                          <User
+                            size={15}
+                            color={colors.textSecondary}
+                            style={{ marginRight: 4 }}
+                          />
+                        );
                       }
-                    }
 
-                    displayMessage = fileName;
-                    iconElement = (
-                      <FileText
-                        size={15}
-                        color={colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                    );
-                  } else if (item.last_message === "Message deleted") {
-                    displayMessage = "Mensagem apagada";
-                    iconElement = (
-                      <Ban
-                        size={15}
-                        color={colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                    );
-                  } else if (item.last_message === "Chamada efetuada") {
-                    displayMessage = "Chamada efetuada";
-                    iconElement = (
-                      <PhoneOutgoing
-                        size={15}
-                        color={colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                    );
-                  } else if (item.last_message === "Chamada recebida") {
-                    displayMessage = "Chamada recebida";
-                    iconElement = (
-                      <PhoneIncoming
-                        size={15}
-                        color={colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                    );
-                  } else if (item.last_message === "Chamada perdida") {
-                    displayMessage = "Chamada perdida";
-                    iconElement = (
-                      <PhoneMissed
-                        size={15}
-                        color={colors.danger}
-                        style={{ marginRight: 4 }}
-                      />
-                    );
-                  } else if (item.last_message && item.last_message.startsWith('{"type":"contact_share"')) {
-                    try {
-                      const parsed = JSON.parse(item.last_message);
-                      displayMessage = parsed.username;
-                    } catch {
-                      displayMessage = "Contato";
-                    }
-                    iconElement = (
-                      <User
-                        size={15}
-                        color={colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                    );
-                  }
+                      if (iconElement) {
+                        return (
+                          <View style={styles.lastMessageAudioContainer}>
+                            {iconElement}
+                            <Text
+                              style={[
+                                styles.lastMessage,
+                                { color: colors.textSecondary, flex: 1 },
+                                item.unread_count > 0 &&
+                                  styles.lastMessageUnread,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {displayMessage}
+                            </Text>
+                          </View>
+                        );
+                      }
 
-                  if (iconElement) {
-                    return (
-                      <View style={styles.lastMessageAudioContainer}>
-                        {iconElement}
+                      return (
                         <Text
                           style={[
                             styles.lastMessage,
-                            { color: colors.textSecondary, flex: 1 },
+                            { color: colors.textSecondary },
                             item.unread_count > 0 && styles.lastMessageUnread,
                           ]}
                           numberOfLines={1}
                         >
-                          {displayMessage}
+                          {item.last_message}
                         </Text>
-                      </View>
-                    );
-                  }
-
-                  return (
+                      );
+                    })()}
+                  </View>
+                  <View style={styles.rightContainer}>
                     <Text
                       style={[
-                        styles.lastMessage,
+                        styles.time,
                         { color: colors.textSecondary },
-                        item.unread_count > 0 && styles.lastMessageUnread,
+                        item.unread_count > 0 && [
+                          styles.timeUnread,
+                          { color: colors.tint },
+                        ],
                       ]}
-                      numberOfLines={1}
                     >
-                      {item.last_message}
+                      {formatTime(item.last_message_at)}
                     </Text>
-                  );
-                })()}
-              </View>
-              <View style={styles.rightContainer}>
-                <Text
-                  style={[
-                    styles.time,
-                    { color: colors.textSecondary },
-                    item.unread_count > 0 && [
-                      styles.timeUnread,
-                      { color: colors.tint },
-                    ],
-                  ]}
-                >
-                  {formatTime(item.last_message_at)}
-                </Text>
-                 <View style={styles.rightIconsRow}>
-                  {isChatMuted(item) && (
-                    <BellOff
-                      color={colors.textSecondary}
-                      size={14}
-                    />
-                  )}
-                  {item.is_pinned && (
-                    <Pin
-                      color={colors.textSecondary}
-                      size={14}
-                      style={[styles.pinIcon, { transform: [{ rotate: "45deg" }] }]}
-                    />
-                  )}
-                  {item.unread_count > 0 && (
-                    <View
-                      style={[styles.badge, { backgroundColor: colors.badge }]}
-                    >
-                      <Text
-                        style={[styles.badgeText, { color: colors.badgeText }]}
+                    <View style={styles.rightIconsRow}>
+                      {isChatMuted(item) && (
+                        <BellOff color={colors.textSecondary} size={14} />
+                      )}
+                      {item.is_pinned && (
+                        <Pin
+                          color={colors.textSecondary}
+                          size={14}
+                          style={[
+                            styles.pinIcon,
+                            { transform: [{ rotate: "45deg" }] },
+                          ]}
+                        />
+                      )}
+                      {item.unread_count > 0 && (
+                        <View
+                          style={[
+                            styles.badge,
+                            { backgroundColor: colors.badge },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.badgeText,
+                              { color: colors.badgeText },
+                            ]}
+                          >
+                            {item.unread_count}
+                          </Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        style={{ padding: 4, marginLeft: 2 }}
+                        onPress={() => setActiveMenuChat(item)}
                       >
-                        {item.unread_count}
-                      </Text>
+                        <MoreVertical color={colors.textSecondary} size={16} />
+                      </TouchableOpacity>
                     </View>
-                  )}
-                </View>
-              </View>
-            </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
           )}
-        />
+        </>
       )}
 
       <TouchableOpacity
@@ -1239,6 +1660,804 @@ export default function ChatListScreen() {
       >
         <MessageSquarePlus color="#fff" size={24} />
       </TouchableOpacity>
+
+      {/* Create List Modal */}
+      <CreateListModal
+        visible={createListModalVisible}
+        onClose={() => setCreateListModalVisible(false)}
+        onCreate={handleCreateList}
+      />
+
+      {/* Choose Chats Selector Modal */}
+      <Modal
+        visible={chatSelectorVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setChatSelectorVisible(false);
+          setSelectorListId(null);
+          setSelectorChatIds([]);
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: colors.modalOverlay,
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.menuBackground,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              height: "70%",
+              padding: 20,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Text
+              style={[
+                styles.dialogTitle,
+                { color: colors.text, marginBottom: 12 },
+              ]}
+            >
+              Escolher conversas para a lista
+            </Text>
+
+            <FlatList
+              data={activeChats}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const isSelected = selectorChatIds.includes(item.id);
+                return (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingVertical: 12,
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: colors.border,
+                    }}
+                    onPress={() => {
+                      setSelectorChatIds((prev) =>
+                        prev.includes(item.id)
+                          ? prev.filter((id) => id !== item.id)
+                          : [...prev, item.id],
+                      );
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 12,
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.avatar,
+                          {
+                            backgroundColor: colors.tint,
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                          },
+                        ]}
+                      >
+                        {!item.is_group && item.participant_avatar_url ? (
+                          <Image
+                            source={{
+                              uri: item.participant_avatar_url.startsWith(
+                                "http",
+                              )
+                                ? item.participant_avatar_url
+                                : `${API_URL}${item.participant_avatar_url}`,
+                            }}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              borderRadius: 18,
+                            }}
+                          />
+                        ) : (
+                          <Text style={[styles.avatarText, { fontSize: 14 }]}>
+                            {item.is_group
+                              ? (item.name ?? "G")[0].toUpperCase()
+                              : (item.participant_username ??
+                                  "?")[0].toUpperCase()}
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={{ color: colors.text, fontSize: 16 }}>
+                        {item.name ?? item.participant_username ?? "Unknown"}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        {
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          borderWidth: 2,
+                          borderColor: colors.textSecondary,
+                          justifyContent: "center",
+                          alignItems: "center",
+                        },
+                        isSelected && {
+                          backgroundColor: colors.tint,
+                          borderColor: colors.tint,
+                        },
+                      ]}
+                    >
+                      {isSelected && <Check size={14} color="#fff" />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                gap: 12,
+                marginTop: 16,
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  setChatSelectorVisible(false);
+                  setSelectorListId(null);
+                  setSelectorChatIds([]);
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 16,
+                    padding: 8,
+                  }}
+                >
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSaveListChats}>
+                <Text
+                  style={{
+                    color: colors.tint,
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    padding: 8,
+                  }}
+                >
+                  Salvar
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Individual Chat Options Menu */}
+      <Modal
+        visible={!!activeMenuChat}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setActiveMenuChat(null)}
+      >
+        <TouchableOpacity
+          style={[
+            styles.dialogOverlay,
+            { backgroundColor: colors.modalOverlay },
+          ]}
+          activeOpacity={1}
+          onPress={() => setActiveMenuChat(null)}
+        >
+          <View
+            style={[
+              styles.themeDialog,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.dialogTitle,
+                { color: colors.text, marginBottom: 8 },
+              ]}
+            >
+              {activeMenuChat?.name ??
+                activeMenuChat?.participant_username ??
+                "Opções de conversa"}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => {
+                if (activeMenuChat) {
+                  handleToggleFavorite(activeMenuChat);
+                  setActiveMenuChat(null);
+                }
+              }}
+            >
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                {activeMenuChat?.is_favorite
+                  ? "⭐ Remover dos favoritos"
+                  : "⭐ Favoritar"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => {
+                if (activeMenuChat) {
+                  setListSelectorChat(activeMenuChat);
+                  const currentListsForChat = userLists
+                    .filter((l) => l.chat_ids.includes(activeMenuChat.id))
+                    .map((l) => l.id);
+                  setSelectorChatIds(currentListsForChat);
+                  setListSelectorVisible(true);
+                  setActiveMenuChat(null);
+                }
+              }}
+            >
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                📁 Adicionar à lista
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={async () => {
+                if (activeMenuChat && token) {
+                  const nextArchive = !activeMenuChat.is_archived;
+                  await archiveChat(token, activeMenuChat.id, nextArchive);
+                  await setChatArchivedLocal(activeMenuChat.id, nextArchive);
+                  const updated = await getChatsFromLocal();
+                  setChats(updated);
+                  setActiveMenuChat(null);
+                }
+              }}
+            >
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                📦 {activeMenuChat?.is_archived ? "Desarquivar" : "Arquivar"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => {
+                if (activeMenuChat) {
+                  setSelectedChatIds([activeMenuChat.id]);
+                  setMuteModalVisible(true);
+                  setActiveMenuChat(null);
+                }
+              }}
+            >
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                🔔{" "}
+                {activeMenuChat && isChatMuted(activeMenuChat)
+                  ? "Desativar silenciamento"
+                  : "Silenciar"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={async () => {
+                if (activeMenuChat && token) {
+                  if (activeMenuChat.is_group) {
+                    Alert.alert("Grupo", "Não é possível bloquear um grupo.");
+                    return;
+                  }
+                  if (activeMenuChat.participant_id) {
+                    const nextBlock = !activeMenuChat.is_blocked_by_me;
+                    if (nextBlock) {
+                      await blockContact(token, activeMenuChat.participant_id);
+                    } else {
+                      await unblockContact(
+                        token,
+                        activeMenuChat.participant_id,
+                      );
+                    }
+                    await setChatBlockedLocal(activeMenuChat.id, nextBlock);
+                    const updated = await getChatsFromLocal();
+                    setChats(updated);
+                  }
+                  setActiveMenuChat(null);
+                }
+              }}
+            >
+              <Text style={{ color: colors.danger, fontSize: 16 }}>
+                🚫{" "}
+                {activeMenuChat?.is_blocked_by_me ? "Desbloquear" : "Bloquear"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => {
+                if (activeMenuChat) {
+                  setSelectedChatIds([activeMenuChat.id]);
+                  handleDeleteSelectedChats();
+                  setActiveMenuChat(null);
+                }
+              }}
+            >
+              <Text style={{ color: colors.danger, fontSize: 16 }}>
+                🗑️ Apagar conversa
+              </Text>
+            </TouchableOpacity>
+
+            <View
+              style={[
+                styles.menuDivider,
+                { backgroundColor: colors.border, marginVertical: 8 },
+              ]}
+            />
+
+            <TouchableOpacity
+              style={styles.dialogCloseButton}
+              onPress={() => setActiveMenuChat(null)}
+            >
+              <Text
+                style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}
+              >
+                Fechar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Add/Remove Chat lists Membership Modal */}
+      <Modal
+        visible={listSelectorVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setListSelectorVisible(false);
+          setListSelectorChat(null);
+        }}
+      >
+        <TouchableOpacity
+          style={[
+            styles.dialogOverlay,
+            { backgroundColor: colors.modalOverlay },
+          ]}
+          activeOpacity={1}
+          onPress={() => {
+            setListSelectorVisible(false);
+            setListSelectorChat(null);
+          }}
+        >
+          <View
+            style={[
+              styles.themeDialog,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.dialogTitle,
+                { color: colors.text, marginBottom: 12 },
+              ]}
+            >
+              Marcar Listas
+            </Text>
+
+            {userLists.length === 0 ? (
+              <Text
+                style={{
+                  color: colors.textSecondary,
+                  marginVertical: 12,
+                  textAlign: "center",
+                }}
+              >
+                Nenhuma lista personalizada criada.
+              </Text>
+            ) : (
+              <FlatList
+                data={userLists}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => {
+                  const isChecked = selectorChatIds.includes(item.id);
+                  return (
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingVertical: 12,
+                      }}
+                      onPress={() => {
+                        setSelectorChatIds((prev) =>
+                          prev.includes(item.id)
+                            ? prev.filter((id) => id !== item.id)
+                            : [...prev, item.id],
+                        );
+                      }}
+                    >
+                      <Text style={{ color: colors.text, fontSize: 16 }}>
+                        {item.icon ? `${item.icon} ` : ""}
+                        {item.name}
+                      </Text>
+                      <View
+                        style={[
+                          {
+                            width: 22,
+                            height: 22,
+                            borderRadius: 4,
+                            borderWidth: 2,
+                            borderColor: colors.textSecondary,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          },
+                          isChecked && {
+                            backgroundColor: colors.tint,
+                            borderColor: colors.tint,
+                          },
+                        ]}
+                      >
+                        {isChecked && <Check size={14} color="#fff" />}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                paddingVertical: 12,
+                marginTop: 8,
+              }}
+              onPress={() => {
+                setListSelectorVisible(false);
+                setCreateListModalVisible(true);
+              }}
+            >
+              <Text
+                style={{ color: colors.tint, fontSize: 16, fontWeight: "bold" }}
+              >
+                ＋ Nova lista
+              </Text>
+            </TouchableOpacity>
+
+            <View
+              style={[
+                styles.menuDivider,
+                { backgroundColor: colors.border, marginVertical: 8 },
+              ]}
+            />
+
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                gap: 12,
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  setListSelectorVisible(false);
+                  setListSelectorChat(null);
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 16,
+                    padding: 8,
+                  }}
+                >
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (listSelectorChat) {
+                    await handleUpdateChatLists(
+                      listSelectorChat.id,
+                      selectorChatIds,
+                    );
+                  } else if (selectedChatIds.length > 0) {
+                    // Bulk update for selectedChatIds
+                    try {
+                      for (const cid of selectedChatIds) {
+                        await handleUpdateChatLists(cid, selectorChatIds);
+                      }
+                      setSelectedChatIds([]);
+                    } catch (err) {
+                      console.error("Error bulk updating lists:", err);
+                    }
+                  }
+                  setListSelectorVisible(false);
+                  setListSelectorChat(null);
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.tint,
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    padding: 8,
+                  }}
+                >
+                  Salvar
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Custom List Options Menu Modal */}
+      <Modal
+        visible={!!activeMenuList}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setActiveMenuList(null)}
+      >
+        <TouchableOpacity
+          style={[
+            styles.dialogOverlay,
+            { backgroundColor: colors.modalOverlay },
+          ]}
+          activeOpacity={1}
+          onPress={() => setActiveMenuList(null)}
+        >
+          <View
+            style={[
+              styles.themeDialog,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.dialogTitle,
+                { color: colors.text, marginBottom: 8 },
+              ]}
+            >
+              {activeMenuList?.icon ? `${activeMenuList.icon} ` : ""}
+              {activeMenuList?.name ?? "Opções da lista"}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => {
+                if (activeMenuList) {
+                  setMuteSelectorList(activeMenuList);
+                  setMuteModalVisible(true);
+                  setActiveMenuList(null);
+                }
+              }}
+            >
+              <Bell size={20} />
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                Silenciar conversas
+              </Text>
+            </TouchableOpacity>
+
+            {!activeMenuList?.isSystem && (
+              <TouchableOpacity
+                style={styles.dialogOption}
+                onPress={() => {
+                  if (activeMenuList) {
+                    setListToEdit(activeMenuList);
+                    setEditListModalVisible(true);
+                    setActiveMenuList(null);
+                  }
+                }}
+              >
+                <Text style={{ color: colors.text, fontSize: 16 }}>
+                  <Pencil size={20} />
+                  Editar lista
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => {
+                setActiveMenuList(null);
+                openReorderModal();
+              }}
+            >
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                <GripVertical size={14} /> Reorganizar listas
+              </Text>
+            </TouchableOpacity>
+
+            {!activeMenuList?.isSystem && (
+              <TouchableOpacity
+                style={styles.dialogOption}
+                onPress={() => {
+                  if (activeMenuList) {
+                    handleDeleteList(activeMenuList.id);
+                    setActiveMenuList(null);
+                  }
+                }}
+              >
+                <Text style={{ color: colors.danger, fontSize: 16 }}>
+                  <Trash2 size={14} /> Apagar lista
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <View
+              style={[
+                styles.menuDivider,
+                { backgroundColor: colors.border, marginVertical: 8 },
+              ]}
+            />
+
+            <TouchableOpacity
+              style={styles.dialogCloseButton}
+              onPress={() => setActiveMenuList(null)}
+            >
+              <Text
+                style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}
+              >
+                Fechar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Edit List Modal */}
+      <EditListModal
+        visible={editListModalVisible}
+        initialName={listToEdit?.name ?? ""}
+        initialColor={listToEdit?.color ?? "🔴"}
+        initialIcon={listToEdit?.icon ?? "❤️"}
+        onClose={() => {
+          setEditListModalVisible(false);
+          setListToEdit(null);
+        }}
+        onSave={handleEditList}
+      />
+
+      {/* Bottom Sheet Reorganizar Listas Modal */}
+      <Modal
+        visible={reorderModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setReorderModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: colors.modalOverlay,
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.menuBackground,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              height: "60%",
+              padding: 20,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <Text
+                style={[
+                  styles.dialogTitle,
+                  { color: colors.text, marginBottom: 0 },
+                ]}
+              >
+                Reorganizar Listas
+              </Text>
+              <TouchableOpacity onPress={() => setReorderModalVisible(false)}>
+                <Text
+                  style={{
+                    color: colors.tint,
+                    fontWeight: "bold",
+                    fontSize: 16,
+                  }}
+                >
+                  Concluir
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text
+              style={{
+                color: colors.textSecondary,
+                marginBottom: 12,
+                fontSize: 13,
+              }}
+            >
+              Arrastar o ícone no lado direito para cima ou para baixo para
+              reordenar.
+            </Text>
+
+            <ScrollView scrollEnabled={!isDragging}>
+              {reorderLists.map((item, index) => {
+                const isItemDragging =
+                  isDragging && activeDragIndex.current === index;
+                return (
+                  <View
+                    key={item.id}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingHorizontal: 8,
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: colors.border,
+                      height: 60,
+                      backgroundColor: isItemDragging
+                        ? colors.border + "66"
+                        : "transparent",
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 12,
+                      }}
+                    >
+                      {!item.isSystem &&
+                        renderListIcon(item.icon, item.color, colors.tint, 20)}
+                      <Text
+                        style={{
+                          color: colors.text,
+                          fontSize: 16,
+                          fontWeight: "500",
+                        }}
+                      >
+                        {item.name}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{ padding: 12 }}
+                      onStartShouldSetResponder={() => true}
+                      onResponderGrant={(e) =>
+                        handleTouchStart(index, e.nativeEvent.pageY)
+                      }
+                      onResponderMove={(e) =>
+                        handleTouchMove(e.nativeEvent.pageY)
+                      }
+                      onResponderRelease={handleTouchEnd}
+                    >
+                      <GripVertical size={20} color={colors.textSecondary} />
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1462,5 +2681,15 @@ const styles = StyleSheet.create({
   },
   archivedCountText: {
     fontSize: 12,
+  },
+  filterChip: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  filterChipText: {
+    fontSize: 14,
   },
 });

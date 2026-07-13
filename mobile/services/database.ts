@@ -28,7 +28,33 @@ export async function initializeDatabase() {
       is_blocked_by_me INTEGER DEFAULT 0,
       is_blocked_by_them INTEGER DEFAULT 0,
       is_pinned INTEGER DEFAULT 0,
-      is_archived INTEGER DEFAULT 0
+      is_archived INTEGER DEFAULT 0,
+      is_favorite INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_lists (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      name TEXT NOT NULL,
+      color TEXT,
+      icon TEXT,
+      position INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_list_items (
+      list_id TEXT NOT NULL,
+      chat_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (list_id, chat_id),
+      FOREIGN KEY (list_id) REFERENCES chat_lists(id) ON DELETE CASCADE,
+      FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_list_order (
+      list_id TEXT PRIMARY KEY,
+      position INTEGER NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS messages (
@@ -91,6 +117,12 @@ export async function initializeDatabase() {
   }
 
   try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN is_favorite INTEGER DEFAULT 0;");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
+
+  try {
     await db.execAsync("ALTER TABLE chats ADD COLUMN notification_muted_until TEXT DEFAULT NULL;");
   } catch (err) {
     // Ignore error if column already exists
@@ -136,8 +168,8 @@ export async function saveChats(chats: ChatListItem[]) {
         id, participant_id, participant_username, participant_avatar_url, is_group, name, 
         last_message, last_message_at, created_at, unread_count, 
         is_blocked_by_me, is_blocked_by_them, notification_muted_until, notification_muted_forever,
-        is_archived
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        is_archived, is_favorite
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         participant_id=excluded.participant_id,
         participant_username=excluded.participant_username,
@@ -152,7 +184,8 @@ export async function saveChats(chats: ChatListItem[]) {
         is_blocked_by_them=excluded.is_blocked_by_them,
         notification_muted_until=excluded.notification_muted_until,
         notification_muted_forever=excluded.notification_muted_forever,
-        is_archived=excluded.is_archived`,
+        is_archived=excluded.is_archived,
+        is_favorite=excluded.is_favorite`,
       [
         chat.id,
         chat.participant_id || null,
@@ -169,6 +202,7 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.notification_muted_until || null,
         chat.notification_muted_forever ? 1 : 0,
         chat.is_archived ? 1 : 0,
+        chat.is_favorite ? 1 : 0,
       ]
     );
   }
@@ -260,6 +294,7 @@ export async function getChatsFromLocal(): Promise<ChatListItem[]> {
     notification_muted_until: r.notification_muted_until,
     notification_muted_forever: r.notification_muted_forever === 1,
     is_archived: r.is_archived === 1,
+    is_favorite: r.is_favorite === 1,
   }));
 }
 
@@ -652,6 +687,111 @@ export async function setChatBlockedLocal(chatId: string, isBlocked: boolean) {
   await db.runAsync(
     "UPDATE chats SET is_blocked_by_me = ? WHERE id = ?",
     [isBlocked ? 1 : 0, chatId]
+  );
+}
+
+export async function setChatFavoriteLocal(chatId: string, isFavorite: boolean) {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE chats SET is_favorite = ? WHERE id = ?",
+    [isFavorite ? 1 : 0, chatId]
+  );
+}
+
+export interface LocalChatList {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  chat_ids: string[];
+}
+
+export async function saveLocalChatLists(lists: LocalChatList[]) {
+  const db = await getDatabase();
+  
+  // Clean all local lists not in server response
+  const listIds = lists.map((l) => l.id);
+  if (listIds.length > 0) {
+    const placeholders = listIds.map(() => "?").join(",");
+    await db.runAsync(`DELETE FROM chat_list_items WHERE list_id NOT IN (${placeholders})`, listIds);
+    await db.runAsync(`DELETE FROM chat_lists WHERE id NOT IN (${placeholders})`, listIds);
+  } else {
+    await db.runAsync("DELETE FROM chat_list_items");
+    await db.runAsync("DELETE FROM chat_lists");
+  }
+
+  for (const list of lists) {
+    await db.runAsync(
+      `INSERT INTO chat_lists (id, user_id, name, color, icon, position, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         name = excluded.name,
+         color = excluded.color,
+         icon = excluded.icon,
+         position = excluded.position,
+         updated_at = excluded.updated_at`,
+      [list.id, list.user_id, list.name, list.color, list.icon, list.position, list.created_at, list.updated_at]
+    );
+
+    // Save items
+    await db.runAsync("DELETE FROM chat_list_items WHERE list_id = ?", [list.id]);
+    for (const chatId of list.chat_ids) {
+      await db.runAsync(
+        "INSERT INTO chat_list_items (list_id, chat_id, created_at) VALUES (?, ?, ?)",
+        [list.id, chatId, new Date().toISOString()]
+      );
+    }
+  }
+}
+
+export async function getLocalChatLists(): Promise<LocalChatList[]> {
+  const db = await getDatabase();
+  const lists = await db.getAllAsync<any>(
+    "SELECT * FROM chat_lists ORDER BY position ASC, created_at ASC"
+  );
+  
+  const response: LocalChatList[] = [];
+  for (const list of lists) {
+    const items = await db.getAllAsync<{ chat_id: string }>(
+      "SELECT chat_id FROM chat_list_items WHERE list_id = ?",
+      [list.id]
+    );
+    response.push({
+      id: list.id,
+      user_id: list.user_id,
+      name: list.name,
+      color: list.color,
+      icon: list.icon,
+      position: list.position,
+      created_at: list.created_at,
+      updated_at: list.updated_at,
+      chat_ids: items.map(i => i.chat_id),
+    });
+  }
+  return response;
+}
+
+export async function getListPositionsLocal(): Promise<Record<string, number>> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ list_id: string; position: number }>(
+    "SELECT list_id, position FROM chat_list_order"
+  );
+  const positions: Record<string, number> = {};
+  for (const row of rows) {
+    positions[row.list_id] = row.position;
+  }
+  return positions;
+}
+
+export async function saveListPositionLocal(listId: string, position: number): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    "INSERT INTO chat_list_order (list_id, position) VALUES (?, ?) ON CONFLICT(list_id) DO UPDATE SET position = excluded.position",
+    [listId, position]
   );
 }
 

@@ -43,6 +43,7 @@ export interface ChatListItem {
   notification_muted_until?: string | null;
   notification_muted_forever?: boolean;
   is_archived?: boolean;
+  is_favorite?: boolean;
 }
 
 export interface Attachment {
@@ -407,6 +408,94 @@ export async function removeParticipant(
 ): Promise<{ status: string }> {
   return authFetch(`${API_URL}/groups/${chatId}/remove/${userId}`, token, {
     method: "DELETE",
+  });
+}
+
+export async function favoriteChat(
+  token: string,
+  chatId: string,
+  isFavorite: boolean
+): Promise<{ status: string; chat_id: string; is_favorite: boolean }> {
+  return authFetch(`${API_URL}/chats/${chatId}/favorite`, token, {
+    method: "POST",
+    body: JSON.stringify({ is_favorite: isFavorite }),
+  });
+}
+
+export interface ChatList {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatListResponse {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  chat_ids: string[];
+}
+
+export async function getChatLists(
+  token: string
+): Promise<{ lists: ChatListResponse[] }> {
+  return authFetch(`${API_URL}/chat-lists`, token);
+}
+
+export async function createChatList(
+  token: string,
+  name: string,
+  color?: string,
+  icon?: string
+): Promise<{ list: ChatList; chat_ids: string[] }> {
+  return authFetch(`${API_URL}/chat-lists`, token, {
+    method: "POST",
+    body: JSON.stringify({ name, color, icon }),
+  });
+}
+
+export async function deleteChatList(
+  token: string,
+  listId: string
+): Promise<{ status: string; id: string }> {
+  return authFetch(`${API_URL}/chat-lists/${listId}`, token, {
+    method: "DELETE",
+  });
+}
+
+export async function updateChatLists(
+  token: string,
+  chatId: string,
+  listIds: string[]
+): Promise<{ status: string; chat_id: string; list_ids: string[] }> {
+  return authFetch(`${API_URL}/chats/${chatId}/lists`, token, {
+    method: "POST",
+    body: JSON.stringify({ list_ids: listIds }),
+  });
+}
+
+export async function updateChatList(
+  token: string,
+  listId: string,
+  updates: {
+    name?: string;
+    color?: string | null;
+    icon?: string | null;
+    position?: number;
+  }
+): Promise<{ status: string; id: string }> {
+  return authFetch(`${API_URL}/chat-lists/${listId}`, token, {
+    method: "POST",
+    body: JSON.stringify(updates),
   });
 }
 
