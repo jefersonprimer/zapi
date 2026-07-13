@@ -149,9 +149,27 @@ export default function ChatScreen() {
   const [muteModalVisible, setMuteModalVisible] = useState(false);
   const [isContact, setIsContact] = useState(false);
 
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+
+  const isSelectionMode = selectedMessageIds.length > 0;
+
+  const selectedMessages = useMemo(
+    () => messages.filter((msg) => selectedMessageIds.includes(msg.id)),
+    [messages, selectedMessageIds],
+  );
+
+  const clearSelection = useCallback(() => setSelectedMessageIds([]), []);
+
+  const toggleMessageSelection = useCallback((msg: Message) => {
+    if (msg.deleted_for_everyone) return;
+    setSelectedMessageIds((prev) =>
+      prev.includes(msg.id)
+        ? prev.filter((id) => id !== msg.id)
+        : [...prev, msg.id],
+    );
+  }, []);
 
   const [isBlockedByMe, setIsBlockedByMe] = useState(false);
   const [isBlockedByThem, setIsBlockedByThem] = useState(false);
@@ -231,31 +249,34 @@ export default function ChatScreen() {
   }, [messages, calls, user?.user_id, participantId, clearedAt]);
 
   async function handleDeleteForMe() {
-    if (!selectedMessage) return;
+    if (selectedMessageIds.length === 0) return;
     try {
-      await deleteMessageForMeLocal(selectedMessage.id);
+      for (const id of selectedMessageIds) {
+        await deleteMessageForMeLocal(id);
+      }
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === selectedMessage.id
+          selectedMessageIds.includes(msg.id)
             ? { ...msg, deleted_at: new Date().toISOString() }
-            : msg
-        )
+            : msg,
+        ),
       );
     } catch (err) {
-      console.error("Error saving deleted message:", err);
+      console.error("Error saving deleted messages:", err);
     }
-    setSelectedMessage(null);
+    clearSelection();
     setDeleteModalVisible(false);
   }
 
   async function handleDeleteForEveryone() {
-    if (!selectedMessage || !token) return;
+    if (selectedMessageIds.length === 0 || !token) return;
     try {
-      await deleteMessageForEveryone(token, chatId, selectedMessage.id);
-      // Update local messages state immediately
+      for (const id of selectedMessageIds) {
+        await deleteMessageForEveryone(token, chatId, id);
+      }
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === selectedMessage.id
+          selectedMessageIds.includes(msg.id)
             ? {
                 ...msg,
                 deleted_for_everyone: true,
@@ -268,24 +289,26 @@ export default function ChatScreen() {
     } catch (err: any) {
       Alert.alert(
         "Erro",
-        err.message || "Não foi possível apagar a mensagem para todos.",
+        err.message || "Não foi possível apagar as mensagens para todos.",
       );
     }
-    setSelectedMessage(null);
+    clearSelection();
     setDeleteModalVisible(false);
   }
 
   const handleCopy = () => {
-    if (selectedMessage && selectedMessage.content) {
+    const messageToCopy =
+      selectedMessages.length === 1 ? selectedMessages[0] : null;
+    if (messageToCopy?.content) {
       try {
         if (Platform.OS === "web") {
           if (navigator.clipboard) {
-            navigator.clipboard.writeText(selectedMessage.content);
+            navigator.clipboard.writeText(messageToCopy.content);
           } else {
             throw new Error("Web clipboard not available");
           }
         } else {
-          Clipboard.setString(selectedMessage.content);
+          Clipboard.setString(messageToCopy.content);
         }
         Alert.alert(
           "Sucesso",
@@ -302,7 +325,7 @@ export default function ChatScreen() {
       );
     }
     setOptionsModalVisible(false);
-    setSelectedMessage(null);
+    clearSelection();
   };
 
   // Check if participant is a contact
@@ -1024,14 +1047,16 @@ export default function ChatScreen() {
     }
   }
 
-  const isDeleteForEveryoneAvailable = (() => {
-    if (!selectedMessage || selectedMessage.sender_id !== user?.user_id)
-      return false;
-    const sentTime = new Date(selectedMessage.created_at).getTime();
+  const isDeleteForEveryoneAvailable = useMemo(() => {
+    if (selectedMessages.length === 0) return false;
     const now = Date.now();
-    const ageInHours = (now - sentTime) / (1000 * 60 * 60);
-    return ageInHours < 24;
-  })();
+    return selectedMessages.every((msg) => {
+      if (msg.sender_id !== user?.user_id) return false;
+      const sentTime = new Date(msg.created_at).getTime();
+      const ageInHours = (now - sentTime) / (1000 * 60 * 60);
+      return ageInHours < 24;
+    });
+  }, [selectedMessages, user?.user_id]);
 
   return (
     <KeyboardAvoidingView
@@ -1060,13 +1085,20 @@ export default function ChatScreen() {
         <View style={styles.headerLeftContainer}>
           <TouchableOpacity
             onPress={() =>
-              selectedMessage ? setSelectedMessage(null) : router.back()
+              isSelectionMode ? clearSelection() : router.back()
             }
             style={styles.headerBackBtn}
           >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
-          {!selectedMessage && (
+          {isSelectionMode ? (
+            <Text
+              style={[styles.headerTitleText, { color: colors.text, marginLeft: 4 }]}
+            >
+              {selectedMessageIds.length}
+            </Text>
+          ) : null}
+          {!isSelectionMode && (
             <TouchableOpacity
               onPress={() => {
                 if (isGroup) {
@@ -1123,7 +1155,7 @@ export default function ChatScreen() {
         </View>
 
         <View style={styles.headerRightContainer}>
-          {selectedMessage ? (
+          {isSelectionMode ? (
             <>
               <TouchableOpacity
                 onPress={() => setDeleteModalVisible(true)}
@@ -1131,12 +1163,14 @@ export default function ChatScreen() {
               >
                 <Trash2 size={22} color={colors.text} />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setOptionsModalVisible(true)}
-                style={styles.headerActionBtn}
-              >
-                <MoreVerticalIcon size={22} color={colors.text} />
-              </TouchableOpacity>
+              {selectedMessageIds.length === 1 && (
+                <TouchableOpacity
+                  onPress={() => setOptionsModalVisible(true)}
+                  style={styles.headerActionBtn}
+                >
+                  <MoreVerticalIcon size={22} color={colors.text} />
+                </TouchableOpacity>
+              )}
             </>
           ) : (
             <>
@@ -1214,7 +1248,7 @@ export default function ChatScreen() {
 
           if (item.type === "message") {
             const msg = item.data;
-            const isSelected = selectedMessage?.id === msg.id;
+            const isSelected = selectedMessageIds.includes(msg.id);
 
             return (
               <View>
@@ -1238,9 +1272,10 @@ export default function ChatScreen() {
                   </View>
                 )}
                 <TouchableOpacity
-                  onLongPress={() =>
-                    !msg.deleted_for_everyone && setSelectedMessage(msg)
-                  }
+                  onPress={() => {
+                    if (isSelectionMode) toggleMessageSelection(msg);
+                  }}
+                  onLongPress={() => toggleMessageSelection(msg)}
                   delayLongPress={500}
                   style={[
                     styles.messageRow,
@@ -1432,7 +1467,9 @@ export default function ChatScreen() {
             ]}
           >
             <Text style={[styles.alertTitle, { color: colors.text }]}>
-              Deseja apagar a mensagem?
+              {selectedMessageIds.length === 1
+                ? "Deseja apagar a mensagem?"
+                : `Deseja apagar ${selectedMessageIds.length} mensagens?`}
             </Text>
             <View
               style={
