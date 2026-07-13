@@ -79,6 +79,7 @@ import {
   BookOpen,
   Folder,
   Pencil,
+  Users,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -126,6 +127,41 @@ const renderListIcon = (
     default:
       return <Folder size={size} color={hexColor} fill={hexColor + "22"} />;
   }
+};
+
+const renderReorderListLeading = (
+  item: {
+    id: string;
+    icon: string | null;
+    color: string | null;
+    isSystem: boolean;
+  },
+  tintColor: string,
+  secondaryColor: string,
+) => {
+  const size = 20;
+  let icon = null;
+
+  if (item.isSystem) {
+    switch (item.id) {
+      case "all":
+        icon = <Folder size={size} color={secondaryColor} />;
+        break;
+      case "unread":
+        icon = <Bell size={size} color={secondaryColor} />;
+        break;
+      case "favorites":
+        icon = <Star size={size} color={secondaryColor} />;
+        break;
+      case "groups":
+        icon = <Users size={size} color={secondaryColor} />;
+        break;
+    }
+  } else {
+    icon = renderListIcon(item.icon, item.color, tintColor, size);
+  }
+
+  return <View style={styles.reorderListIconSlot}>{icon}</View>;
 };
 
 export default function ChatListScreen() {
@@ -2226,16 +2262,42 @@ export default function ChatListScreen() {
                 borderColor: colors.border,
               },
             ]}
+            onStartShouldSetResponder={() => true}
           >
+            <View style={[styles.dialogOptionLabel, { marginBottom: 4 }]}>
+              {activeMenuList?.icon &&
+                renderListIcon(
+                  activeMenuList.icon,
+                  activeMenuList.color,
+                  colors.tint,
+                  22,
+                )}
+              <Text
+                style={[
+                  styles.dialogTitle,
+                  { color: colors.text, marginBottom: 0, flex: 1 },
+                ]}
+                numberOfLines={1}
+              >
+                {activeMenuList?.name ?? "Lista"}
+              </Text>
+            </View>
             <Text
-              style={[
-                styles.dialogTitle,
-                { color: colors.text, marginBottom: 8 },
-              ]}
+              style={{
+                color: colors.textSecondary,
+                fontSize: 13,
+                marginBottom: 12,
+              }}
             >
-              {activeMenuList?.icon ? `${activeMenuList.icon} ` : ""}
-              {activeMenuList?.name ?? "Opções da lista"}
+              Opções da lista
             </Text>
+
+            <View
+              style={[
+                styles.menuDivider,
+                { backgroundColor: colors.border, marginBottom: 4 },
+              ]}
+            />
 
             <TouchableOpacity
               style={styles.dialogOption}
@@ -2247,10 +2309,12 @@ export default function ChatListScreen() {
                 }
               }}
             >
-              <Bell size={20} />
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                Silenciar conversas
-              </Text>
+              <View style={styles.dialogOptionLabel}>
+                <Bell size={20} color={colors.textSecondary} />
+                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+                  Silenciar conversas
+                </Text>
+              </View>
             </TouchableOpacity>
 
             {!activeMenuList?.isSystem && (
@@ -2264,10 +2328,14 @@ export default function ChatListScreen() {
                   }
                 }}
               >
-                <Text style={{ color: colors.text, fontSize: 16 }}>
-                  <Pencil size={20} />
-                  Editar lista
-                </Text>
+                <View style={styles.dialogOptionLabel}>
+                  <Pencil size={20} color={colors.textSecondary} />
+                  <Text
+                    style={[styles.dialogOptionText, { color: colors.text }]}
+                  >
+                    Editar lista
+                  </Text>
+                </View>
               </TouchableOpacity>
             )}
 
@@ -2278,25 +2346,44 @@ export default function ChatListScreen() {
                 openReorderModal();
               }}
             >
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                <GripVertical size={14} /> Reorganizar listas
-              </Text>
+              <View style={styles.dialogOptionLabel}>
+                <GripVertical size={20} color={colors.textSecondary} />
+                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+                  Reorganizar listas
+                </Text>
+              </View>
             </TouchableOpacity>
 
             {!activeMenuList?.isSystem && (
-              <TouchableOpacity
-                style={styles.dialogOption}
-                onPress={() => {
-                  if (activeMenuList) {
-                    handleDeleteList(activeMenuList.id);
-                    setActiveMenuList(null);
-                  }
-                }}
-              >
-                <Text style={{ color: colors.danger, fontSize: 16 }}>
-                  <Trash2 size={14} /> Apagar lista
-                </Text>
-              </TouchableOpacity>
+              <>
+                <View
+                  style={[
+                    styles.menuDivider,
+                    { backgroundColor: colors.border, marginVertical: 4 },
+                  ]}
+                />
+                <TouchableOpacity
+                  style={styles.dialogOption}
+                  onPress={() => {
+                    if (activeMenuList) {
+                      handleDeleteList(activeMenuList.id);
+                      setActiveMenuList(null);
+                    }
+                  }}
+                >
+                  <View style={styles.dialogOptionLabel}>
+                    <Trash2 size={20} color={colors.danger} />
+                    <Text
+                      style={[
+                        styles.dialogOptionText,
+                        { color: colors.danger },
+                      ]}
+                    >
+                      Apagar lista
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </>
             )}
 
             <View
@@ -2418,21 +2505,18 @@ export default function ChatListScreen() {
                         : "transparent",
                     }}
                   >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 12,
-                      }}
-                    >
-                      {!item.isSystem &&
-                        renderListIcon(item.icon, item.color, colors.tint, 20)}
+                    <View style={styles.reorderListLeading}>
+                      {renderReorderListLeading(
+                        item,
+                        colors.tint,
+                        colors.textSecondary,
+                      )}
                       <Text
-                        style={{
-                          color: colors.text,
-                          fontSize: 16,
-                          fontWeight: "500",
-                        }}
+                        style={[
+                          styles.reorderListName,
+                          { color: colors.text },
+                        ]}
+                        numberOfLines={1}
                       >
                         {item.name}
                       </Text>
@@ -2652,6 +2736,26 @@ const styles = StyleSheet.create({
   dialogCloseText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  reorderListLeading: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingRight: 8,
+  },
+  reorderListIconSlot: {
+    width: 28,
+    height: 28,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  reorderListName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   archivedRow: {
     flexDirection: "row",
