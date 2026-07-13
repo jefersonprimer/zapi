@@ -21,6 +21,8 @@ import {
   User,
   Mail,
   MoreVertical,
+  Bell,
+  BellOff,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -32,7 +34,12 @@ import {
   clearChatMessages,
   type Contact,
   API_URL,
+  muteChat,
 } from "@/services/api";
+import {
+  getChatsFromLocal,
+  setChatMuteLocal,
+} from "@/services/database";
 import { voiceCallManager } from "@/services/voiceCallManager";
 
 export default function ContactDetailScreen() {
@@ -55,6 +62,130 @@ export default function ContactDetailScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
+
+  const [muteModalVisible, setMuteModalVisible] = useState(false);
+  const [chatSettings, setChatSettings] = useState<{
+    notification_muted_until?: string | null;
+    notification_muted_forever?: boolean;
+  } | null>(null);
+
+  // Load local chat settings when chatId or participantId changes
+  useEffect(() => {
+    const loadLocalChatSettings = async () => {
+      try {
+        const chats = await getChatsFromLocal();
+        let foundChat = null;
+        if (chatId) {
+          foundChat = chats.find((c) => c.id === chatId);
+        } else if (participantId) {
+          foundChat = chats.find((c) => c.participant_id === participantId);
+        }
+        if (foundChat) {
+          setChatSettings({
+            notification_muted_until: foundChat.notification_muted_until,
+            notification_muted_forever: foundChat.notification_muted_forever,
+          });
+        }
+      } catch (err) {
+        console.error("Error loading chat settings from SQLite:", err);
+      }
+    };
+    loadLocalChatSettings();
+  }, [chatId, participantId]);
+
+  const isMuted = (() => {
+    if (!chatSettings) return false;
+    if (chatSettings.notification_muted_forever) return true;
+    if (chatSettings.notification_muted_until) {
+      return new Date(chatSettings.notification_muted_until) > new Date();
+    }
+    return false;
+  })();
+
+  const getMuteStatusLabel = () => {
+    if (!chatSettings) return "Todos";
+
+    const { notification_muted_until, notification_muted_forever } = chatSettings;
+
+    if (notification_muted_forever) {
+      return "Silenciado para sempre";
+    }
+
+    if (notification_muted_until) {
+      const untilDate = new Date(notification_muted_until);
+      const now = new Date();
+      if (untilDate > now) {
+        const diffMs = untilDate.getTime() - now.getTime();
+        const diffHours = Math.round(diffMs / (60 * 60 * 1000));
+
+        if (diffHours <= 1) {
+          return "Silenciado por 1 hora";
+        }
+        if (diffHours <= 8) {
+          return "Silenciado por 8 horas";
+        }
+        if (diffHours <= 24) {
+          if (untilDate.getDate() === now.getDate()) {
+            return `Silenciado até hoje às ${untilDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          } else {
+            return `Silenciado até amanhã às ${untilDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          }
+        }
+
+        const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
+        return `Silenciado até ${untilDate.toLocaleDateString('pt-BR', options)}`;
+      }
+    }
+
+    return "Todos";
+  };
+
+  const handleMuteChats = async (durationHours: number | "always" | "unmute") => {
+    let targetChatId = chatId;
+    if (!targetChatId) {
+      try {
+        const chats = await getChatsFromLocal();
+        const found = chats.find((c) => c.participant_id === participantId);
+        if (found) {
+          targetChatId = found.id;
+        }
+      } catch (err) {
+        console.error("Error finding chat id:", err);
+      }
+    }
+
+    if (!targetChatId) {
+      Alert.alert("Erro", "Não foi possível encontrar a conversa correspondente.");
+      return;
+    }
+
+    let mutedUntil: string | null = null;
+    let mutedForever = false;
+
+    if (durationHours === "always") {
+      mutedForever = true;
+    } else if (durationHours === "unmute") {
+      mutedForever = false;
+      mutedUntil = null;
+    } else {
+      mutedUntil = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
+    }
+
+    try {
+      if (token) {
+        await muteChat(token, targetChatId, mutedUntil, mutedForever);
+      }
+      await setChatMuteLocal(targetChatId, mutedUntil, mutedForever);
+      setChatSettings({
+        notification_muted_until: mutedUntil,
+        notification_muted_forever: mutedForever,
+      });
+      setMuteModalVisible(false);
+    } catch (err) {
+      console.error("Error updating mute settings:", err);
+      Alert.alert("Erro", "Não foi possível alterar as configurações de notificação.");
+    }
+  };
 
   const fetchContactDetails = useCallback(async () => {
     if (!token || !participantId) return;
@@ -325,6 +456,39 @@ export default function ContactDetailScreen() {
             </View>
           </View>
 
+          {/* Chat Settings */}
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: colors.tint }]}>
+              Configurações
+            </Text>
+
+            <TouchableOpacity
+              style={styles.optionRow}
+              onPress={() => setMuteModalVisible(true)}
+            >
+              {isMuted ? (
+                <BellOff size={20} color={colors.textSecondary} style={styles.infoIcon} />
+              ) : (
+                <Bell size={20} color={colors.tint} style={styles.infoIcon} />
+              )}
+              <View style={styles.optionTextContainer}>
+                <Text style={[styles.optionTitle, { color: colors.text }]}>
+                  Notificações
+                </Text>
+                <Text
+                  style={[styles.optionSub, { color: colors.textSecondary }]}
+                >
+                  {getMuteStatusLabel()}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {/* Danger Zone Options */}
           <View
             style={[
@@ -484,6 +648,132 @@ export default function ContactDetailScreen() {
           </View>
         </Modal>
       )}
+
+      {/* Mute Chat Dialog Modal */}
+      <Modal
+        visible={muteModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMuteModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={[
+            styles.dialogOverlay,
+            { backgroundColor: colors.modalOverlay },
+          ]}
+          activeOpacity={1}
+          onPress={() => setMuteModalVisible(false)}
+        >
+          <View
+            style={[
+              styles.themeDialog,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.dialogTitle, { color: colors.text }]}>
+              Silenciar notificações
+            </Text>
+
+            {isMuted && (
+              <TouchableOpacity
+                style={styles.dialogOption}
+                onPress={() => handleMuteChats("unmute")}
+              >
+                <View style={styles.dialogOptionLabel}>
+                  <Text style={[styles.dialogOptionText, { color: colors.tint, fontWeight: "bold" }]}>
+                    Ativar notificações (Desilenciar)
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => handleMuteChats(1)}
+            >
+              <View style={styles.dialogOptionLabel}>
+                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+                  1 hora
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => handleMuteChats(8)}
+            >
+              <View style={styles.dialogOptionLabel}>
+                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+                  8 horas
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => handleMuteChats(24)}
+            >
+              <View style={styles.dialogOptionLabel}>
+                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+                  24 horas
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => handleMuteChats(7 * 24)}
+            >
+              <View style={styles.dialogOptionLabel}>
+                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+                  1 semana
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => handleMuteChats(30 * 24)}
+            >
+              <View style={styles.dialogOptionLabel}>
+                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+                  1 mês
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => handleMuteChats("always")}
+            >
+              <View style={styles.dialogOptionLabel}>
+                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+                  Sempre
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <View
+              style={[
+                styles.menuDivider,
+                { backgroundColor: colors.border, marginVertical: 8 },
+              ]}
+            />
+
+            <TouchableOpacity
+              style={styles.dialogCloseButton}
+              onPress={() => setMuteModalVisible(false)}
+            >
+              <Text style={[styles.dialogCloseText, { color: colors.tint }]}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -703,5 +993,54 @@ const styles = StyleSheet.create({
   fullScreenImage: {
     width: "100%",
     height: "100%",
+  },
+  dialogOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  themeDialog: {
+    width: "80%",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  dialogOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+  },
+  dialogOptionLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dialogOptionText: {
+    fontSize: 16,
+  },
+  dialogCloseButton: {
+    alignItems: "flex-end",
+    paddingTop: 8,
+    paddingRight: 4,
+  },
+  dialogCloseText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  menuDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 12,
   },
 });

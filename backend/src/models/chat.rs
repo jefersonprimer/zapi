@@ -28,4 +28,6 @@ pub struct ChatListItem {
     pub is_blocked_by_me: Option<bool>,
     pub is_blocked_by_them: Option<bool>,
     pub cleared_at: Option<DateTime<Utc>>,
+    pub notification_muted_until: Option<DateTime<Utc>>,
+    pub notification_muted_forever: Option<bool>,
 }

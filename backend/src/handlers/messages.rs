@@ -179,8 +179,8 @@ pub async fn send_message(
 
     // Notify all participants of this chat to refresh their chat lists,
     // and deliver websocket or push notifications.
-    let participants: Vec<(Uuid,)> = sqlx::query_as(
-        "SELECT user_id FROM chat_participants WHERE chat_id = $1"
+    let participants: Vec<(Uuid, Option<chrono::DateTime<chrono::Utc>>, Option<bool>)> = sqlx::query_as(
+        "SELECT user_id, notification_muted_until, notification_muted_forever FROM chat_participants WHERE chat_id = $1"
     )
     .bind(chat_id)
     .fetch_all(&pool)
@@ -188,9 +188,19 @@ pub async fn send_message(
     .unwrap_or_default();
 
     let mut offline_user_ids = Vec::new();
-    for (p_id,) in &participants {
+    for (p_id, p_muted_until, p_muted_forever) in &participants {
         let p_id = *p_id;
+        let p_muted_forever = p_muted_forever.unwrap_or(false);
         if p_id != auth.0 {
+            // Check if user muted notifications for this chat
+            let is_muted = if p_muted_forever {
+                true
+            } else if let Some(until) = p_muted_until {
+                *until > chrono::Utc::now()
+            } else {
+                false
+            };
+
             let presence = call_manager.get_presence(p_id);
             match presence {
                 Some(crate::signaling::PresenceState::Active) => {
@@ -210,11 +220,15 @@ pub async fn send_message(
                         "message": msg.clone()
                     }).to_string();
                     call_manager.send_to_user(p_id, &ws_notif);
-                    offline_user_ids.push(p_id);
+                    if !is_muted {
+                        offline_user_ids.push(p_id);
+                    }
                 }
                 None => {
                     // OFFLINE: only Push
-                    offline_user_ids.push(p_id);
+                    if !is_muted {
+                        offline_user_ids.push(p_id);
+                    }
                 }
             }
         }

@@ -88,6 +88,18 @@ export async function initializeDatabase() {
   } catch (err) {
     // Ignore error if column already exists
   }
+
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN notification_muted_until TEXT DEFAULT NULL;");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
+
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN notification_muted_forever INTEGER DEFAULT 0;");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
 }
 
 // Bulk save chats fetched from server
@@ -116,8 +128,8 @@ export async function saveChats(chats: ChatListItem[]) {
       `INSERT INTO chats (
         id, participant_id, participant_username, participant_avatar_url, is_group, name, 
         last_message, last_message_at, created_at, unread_count, 
-        is_blocked_by_me, is_blocked_by_them
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        is_blocked_by_me, is_blocked_by_them, notification_muted_until, notification_muted_forever
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         participant_id=excluded.participant_id,
         participant_username=excluded.participant_username,
@@ -129,7 +141,9 @@ export async function saveChats(chats: ChatListItem[]) {
         created_at=excluded.created_at,
         unread_count=excluded.unread_count,
         is_blocked_by_me=excluded.is_blocked_by_me,
-        is_blocked_by_them=excluded.is_blocked_by_them`,
+        is_blocked_by_them=excluded.is_blocked_by_them,
+        notification_muted_until=excluded.notification_muted_until,
+        notification_muted_forever=excluded.notification_muted_forever`,
       [
         chat.id,
         chat.participant_id || null,
@@ -143,6 +157,8 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.unread_count || 0,
         chat.is_blocked_by_me ? 1 : 0,
         chat.is_blocked_by_them ? 1 : 0,
+        chat.notification_muted_until || null,
+        chat.notification_muted_forever ? 1 : 0,
       ]
     );
   }
@@ -231,7 +247,21 @@ export async function getChatsFromLocal(): Promise<ChatListItem[]> {
     is_blocked_by_me: r.is_blocked_by_me === 1,
     is_blocked_by_them: r.is_blocked_by_them === 1,
     is_pinned: r.is_pinned === 1,
+    notification_muted_until: r.notification_muted_until,
+    notification_muted_forever: r.notification_muted_forever === 1,
   }));
+}
+
+export async function setChatMuteLocal(
+  chatId: string,
+  mutedUntil: string | null,
+  mutedForever: boolean
+) {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE chats SET notification_muted_until = ?, notification_muted_forever = ? WHERE id = ?",
+    [mutedUntil, mutedForever ? 1 : 0, chatId]
+  );
 }
 
 export async function getMessagesFromLocal(

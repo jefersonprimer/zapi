@@ -3,6 +3,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use sqlx::PgPool;
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
 use crate::auth::AuthUser;
 use crate::models::chat::ChatListItem;
@@ -154,7 +155,9 @@ pub async fn list_chats(
                     false
                 )
             ) AS is_blocked_by_them,
-            cp1.cleared_at
+            cp1.cleared_at,
+            cp1.notification_muted_until,
+            cp1.notification_muted_forever
          FROM chats c
          JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
          LEFT JOIN LATERAL (
@@ -241,6 +244,70 @@ pub async fn delete_chat(
         })?;
 
     // 3. Notify current user's websocket connections to refresh chat list
+    let update_msg = json!({
+        "type": "chat_list_update",
+        "chat_id": chat_id
+    }).to_string();
+    call_manager.send_to_user(auth.0, &update_msg);
+
+    Ok(Json(json!({ "status": "success", "chat_id": chat_id })))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MuteChatPayload {
+    pub muted_until: Option<DateTime<Utc>>,
+    pub muted_forever: bool,
+}
+
+pub async fn mute_chat(
+    State(pool): State<PgPool>,
+    State(call_manager): State<crate::signaling::CallManager>,
+    auth: AuthUser,
+    axum::extract::Path(chat_id): axum::extract::Path<Uuid>,
+    Json(payload): Json<MuteChatPayload>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // 1. Verify participant
+    let is_participant: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT chat_id FROM chat_participants WHERE chat_id = $1 AND user_id = $2",
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
+    if is_participant.is_none() {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "you are not a participant of this chat" })),
+        ));
+    }
+
+    // 2. Update mute settings in chat_participants
+    sqlx::query(
+        "UPDATE chat_participants \
+         SET notification_muted_until = $1, notification_muted_forever = $2 \
+         WHERE chat_id = $3 AND user_id = $4"
+    )
+    .bind(payload.muted_until)
+    .bind(payload.muted_forever)
+    .bind(chat_id)
+    .bind(auth.0)
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
+    // 3. Notify user's websocket connections to refresh chat list
     let update_msg = json!({
         "type": "chat_list_update",
         "chat_id": chat_id

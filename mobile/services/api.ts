@@ -40,6 +40,8 @@ export interface ChatListItem {
   is_blocked_by_them?: boolean;
   cleared_at?: string | null;
   is_pinned?: boolean;
+  notification_muted_until?: string | null;
+  notification_muted_forever?: boolean;
 }
 
 export interface Attachment {
@@ -320,6 +322,21 @@ export async function deleteMessageForEveryone(
 export async function deleteChat(token: string, chatId: string): Promise<{ status: string; chat_id: string }> {
   return authFetch(`${API_URL}/chats/${chatId}`, token, {
     method: "DELETE",
+  });
+}
+
+export async function muteChat(
+  token: string,
+  chatId: string,
+  mutedUntil: string | null,
+  mutedForever: boolean
+): Promise<{ status: string; chat_id: string }> {
+  return authFetch(`${API_URL}/chats/${chatId}/mute`, token, {
+    method: "POST",
+    body: JSON.stringify({
+      muted_until: mutedUntil,
+      muted_forever: mutedForever,
+    }),
   });
 }
 
