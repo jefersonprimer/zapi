@@ -27,7 +27,8 @@ export async function initializeDatabase() {
       unread_count INTEGER DEFAULT 0,
       is_blocked_by_me INTEGER DEFAULT 0,
       is_blocked_by_them INTEGER DEFAULT 0,
-      is_pinned INTEGER DEFAULT 0
+      is_pinned INTEGER DEFAULT 0,
+      is_archived INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS messages (
@@ -100,6 +101,12 @@ export async function initializeDatabase() {
   } catch (err) {
     // Ignore error if column already exists
   }
+
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN is_archived INTEGER DEFAULT 0;");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
 }
 
 // Bulk save chats fetched from server
@@ -128,8 +135,9 @@ export async function saveChats(chats: ChatListItem[]) {
       `INSERT INTO chats (
         id, participant_id, participant_username, participant_avatar_url, is_group, name, 
         last_message, last_message_at, created_at, unread_count, 
-        is_blocked_by_me, is_blocked_by_them, notification_muted_until, notification_muted_forever
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        is_blocked_by_me, is_blocked_by_them, notification_muted_until, notification_muted_forever,
+        is_archived
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         participant_id=excluded.participant_id,
         participant_username=excluded.participant_username,
@@ -143,7 +151,8 @@ export async function saveChats(chats: ChatListItem[]) {
         is_blocked_by_me=excluded.is_blocked_by_me,
         is_blocked_by_them=excluded.is_blocked_by_them,
         notification_muted_until=excluded.notification_muted_until,
-        notification_muted_forever=excluded.notification_muted_forever`,
+        notification_muted_forever=excluded.notification_muted_forever,
+        is_archived=excluded.is_archived`,
       [
         chat.id,
         chat.participant_id || null,
@@ -159,6 +168,7 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.is_blocked_by_them ? 1 : 0,
         chat.notification_muted_until || null,
         chat.notification_muted_forever ? 1 : 0,
+        chat.is_archived ? 1 : 0,
       ]
     );
   }
@@ -249,6 +259,7 @@ export async function getChatsFromLocal(): Promise<ChatListItem[]> {
     is_pinned: r.is_pinned === 1,
     notification_muted_until: r.notification_muted_until,
     notification_muted_forever: r.notification_muted_forever === 1,
+    is_archived: r.is_archived === 1,
   }));
 }
 
@@ -625,5 +636,13 @@ export async function setChatPinnedLocal(chatId: string, isPinned: boolean) {
   await db.runAsync(
     "UPDATE chats SET is_pinned = ? WHERE id = ?",
     [isPinned ? 1 : 0, chatId]
+  );
+}
+
+export async function setChatArchivedLocal(chatId: string, isArchived: boolean) {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE chats SET is_archived = ? WHERE id = ?",
+    [isArchived ? 1 : 0, chatId]
   );
 }

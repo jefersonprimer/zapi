@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, getStorageItem, setStorageItem } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
   ArrowLeft,
@@ -49,7 +49,31 @@ export default function SettingsScreen() {
   // Privacy dummy states
   const [readReceipts, setReadReceipts] = useState(true);
   const [onlineStatus, setOnlineStatus] = useState(true);
+  const [keepChatsArchived, setKeepChatsArchived] = useState(false);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedKeepArchived = await getStorageItem("keep_chats_archived");
+        if (savedKeepArchived !== null) {
+          setKeepChatsArchived(savedKeepArchived === "true");
+        }
+      } catch (e) {
+        console.warn("Error loading keep_chats_archived preference:", e);
+      }
+    })();
+  }, []);
+  const handleKeepChatsArchivedChange = async (value: boolean) => {
+    setKeepChatsArchived(value);
+    try {
+      await setStorageItem("keep_chats_archived", value ? "true" : "false");
+      if (token) {
+        await updateProfile(token, undefined, value);
+      }
+    } catch (err) {
+      console.warn("Failed to update keep_chats_archived setting:", err);
+    }
+  };
   const uploadAndSaveAvatar = async (uri: string) => {
     if (!token) return;
     setIsUpdating(true);
@@ -540,8 +564,8 @@ export default function SettingsScreen() {
               />
             </View>
 
-            {/* Toggle Online status */}
-            <View style={styles.toggleRow}>
+             {/* Toggle Online status */}
+            <View style={[styles.toggleRow, { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
               <View style={styles.toggleTextContainer}>
                 <Text style={[styles.toggleTitle, { color: colors.text }]}>
                   Visto por último e online
@@ -555,6 +579,24 @@ export default function SettingsScreen() {
                 onValueChange={setOnlineStatus}
                 trackColor={{ false: colors.border, true: colors.tint }}
                 thumbColor={Platform.OS === "android" ? (onlineStatus ? colors.tint : "#f4f3f4") : undefined}
+              />
+            </View>
+
+            {/* Toggle Keep chats archived */}
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleTextContainer}>
+                <Text style={[styles.toggleTitle, { color: colors.text }]}>
+                  Manter conversas arquivadas
+                </Text>
+                <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
+                  As conversas arquivadas continuarão arquivadas quando você receber novas mensagens.
+                </Text>
+              </View>
+              <Switch
+                value={keepChatsArchived}
+                onValueChange={handleKeepChatsArchivedChange}
+                trackColor={{ false: colors.border, true: colors.tint }}
+                thumbColor={Platform.OS === "android" ? (keepChatsArchived ? colors.tint : "#f4f3f4") : undefined}
               />
             </View>
 

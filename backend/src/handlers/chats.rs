@@ -157,7 +157,8 @@ pub async fn list_chats(
             ) AS is_blocked_by_them,
             cp1.cleared_at,
             cp1.notification_muted_until,
-            cp1.notification_muted_forever
+            cp1.notification_muted_forever,
+            cp1.is_archived
          FROM chats c
          JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
          LEFT JOIN LATERAL (
@@ -316,4 +317,67 @@ pub async fn mute_chat(
 
     Ok(Json(json!({ "status": "success", "chat_id": chat_id })))
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ArchiveChatPayload {
+    pub is_archived: bool,
+}
+
+pub async fn archive_chat(
+    State(pool): State<PgPool>,
+    State(call_manager): State<crate::signaling::CallManager>,
+    auth: AuthUser,
+    axum::extract::Path(chat_id): axum::extract::Path<Uuid>,
+    Json(payload): Json<ArchiveChatPayload>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // 1. Verify participant
+    let is_participant: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT chat_id FROM chat_participants WHERE chat_id = $1 AND user_id = $2",
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
+    if is_participant.is_none() {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "you are not a participant of this chat" })),
+        ));
+    }
+
+    // 2. Update archive setting in chat_participants
+    sqlx::query(
+        "UPDATE chat_participants \
+         SET is_archived = $1 \
+         WHERE chat_id = $2 AND user_id = $3"
+    )
+    .bind(payload.is_archived)
+    .bind(chat_id)
+    .bind(auth.0)
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
+    // 3. Notify user's websocket connections to refresh chat list
+    let update_msg = json!({
+        "type": "chat_list_update",
+        "chat_id": chat_id
+    }).to_string();
+    call_manager.send_to_user(auth.0, &update_msg);
+
+    Ok(Json(json!({ "status": "success", "chat_id": chat_id, "is_archived": payload.is_archived })))
+}
+
 

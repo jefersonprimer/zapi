@@ -12,13 +12,14 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { getChats, type ChatListItem, deleteChat, muteChat, API_URL } from "@/services/api";
+import { getChats, type ChatListItem, deleteChat, muteChat, archiveChat, API_URL } from "@/services/api";
 import {
   getChatsFromLocal,
   saveChats,
   deleteChatLocal,
   setChatPinnedLocal,
   setChatMuteLocal,
+  setChatArchivedLocal,
 } from "@/services/database";
 import {
   Camera,
@@ -43,6 +44,7 @@ import {
   PinOff,
   Bell,
   BellOff,
+  Archive,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -66,6 +68,9 @@ export default function ChatListScreen() {
   const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [muteModalVisible, setMuteModalVisible] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
+
+  const activeChats = chats.filter((c) => !c.is_archived);
+  const archivedChatsCount = chats.filter((c) => c.is_archived).length;
 
   const handleLongPress = (chatId: string) => {
     setSelectedChatIds((prev) => {
@@ -203,6 +208,26 @@ export default function ChatListScreen() {
     }
   };
 
+  const handleArchiveSelectedChats = async () => {
+    if (!token || selectedChatIds.length === 0) return;
+    try {
+      const selectedChats = chats.filter((c) => selectedChatIds.includes(c.id));
+      const shouldArchive = !selectedChats.every((c) => c.is_archived);
+
+      for (const chatId of selectedChatIds) {
+        await archiveChat(token, chatId, shouldArchive);
+        await setChatArchivedLocal(chatId, shouldArchive);
+      }
+
+      setSelectedChatIds([]);
+      const updatedChats = await getChatsFromLocal();
+      setChats(updatedChats);
+    } catch (err) {
+      console.error("Error archiving chat(s):", err);
+      Alert.alert("Erro", "Não foi possível arquivar as conversas.");
+    }
+  };
+
   const loadChats = useCallback(async () => {
     if (!token) return;
     try {
@@ -302,6 +327,12 @@ export default function ChatListScreen() {
                   <BellOff color={colors.headerText} size={22} />
                 );
               })()}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={handleArchiveSelectedChats}
+            >
+              <Archive color={colors.headerText} size={22} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
@@ -667,7 +698,7 @@ export default function ChatListScreen() {
           color={colors.tint}
           style={{ marginTop: 40 }}
         />
-      ) : chats.length === 0 ? (
+      ) : (activeChats.length === 0 && archivedChatsCount === 0) ? (
         <View style={styles.empty}>
           <View style={styles.emptyContent}>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
@@ -688,17 +719,49 @@ export default function ChatListScreen() {
         </View>
       ) : (
         <FlatList
-          data={chats}
+          data={activeChats}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 100 }}
           ListFooterComponent={
-            <View style={styles.footerContainer}>
-              <Lock color={colors.textSecondary} size={13} />
-              <Text
-                style={[styles.footerText, { color: colors.textSecondary }]}
-              >
-                Suas mensagens estão protegidas por criptografia.
-              </Text>
+            <View>
+              {archivedChatsCount > 0 && (
+                <TouchableOpacity
+                  style={[
+                    styles.archivedRow,
+                    {
+                      borderBottomColor: colors.border,
+                      borderTopColor: colors.border,
+                      backgroundColor: colors.menuBackground,
+                    },
+                  ]}
+                  onPress={() => router.push("/archived" as any)}
+                >
+                  <View style={styles.archivedLeft}>
+                    <Archive color={colors.tint} size={20} />
+                    <Text style={[styles.archivedText, { color: colors.text }]}>
+                      Conversas arquivadas
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.archivedBadge,
+                      { backgroundColor: colors.tint + "22" },
+                    ]}
+                  >
+                    <Text style={[styles.archivedCountText, { color: colors.tint, fontWeight: "bold" }]}>
+                      {archivedChatsCount}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              <View style={styles.footerContainer}>
+                <Lock color={colors.textSecondary} size={13} />
+                <Text
+                  style={[styles.footerText, { color: colors.textSecondary }]}
+                >
+                  Suas mensagens estão protegidas por criptografia.
+                </Text>
+              </View>
             </View>
           }
           renderItem={({ item }) => (
@@ -1162,5 +1225,34 @@ const styles = StyleSheet.create({
   dialogCloseText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  archivedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginVertical: 8,
+  },
+  archivedLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  archivedText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  archivedBadge: {
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  archivedCountText: {
+    fontSize: 12,
   },
 });

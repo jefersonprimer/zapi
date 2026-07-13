@@ -120,6 +120,22 @@ pub async fn send_message(
         )
     })?;
 
+    // Unarchive the chat for participants who do not have keep_chats_archived enabled
+    if let Err(e) = sqlx::query(
+        "UPDATE chat_participants \
+         SET is_archived = FALSE \
+         FROM users \
+         WHERE chat_participants.user_id = users.id \
+           AND chat_participants.chat_id = $1 \
+           AND users.keep_chats_archived = FALSE"
+    )
+    .bind(chat_id)
+    .execute(&pool)
+    .await
+    {
+        tracing::error!("failed to unarchive chat for participants: {}", e);
+    }
+
     if let Some(ref url) = body.image_url {
         if !url.trim().is_empty() {
             let url_lower = url.to_lowercase();

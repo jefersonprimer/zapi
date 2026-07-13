@@ -17,6 +17,7 @@ pub struct UserSearchResult {
 #[derive(Debug, serde::Deserialize)]
 pub struct UpdateProfileRequest {
     pub avatar_url: Option<String>,
+    pub keep_chats_archived: Option<bool>,
 }
 
 pub async fn search_users(
@@ -62,20 +63,46 @@ pub async fn update_profile(
     auth: AuthUser,
     Json(body): Json<UpdateProfileRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    sqlx::query(
-        "UPDATE users SET avatar_url = $1 WHERE id = $2"
-    )
-    .bind(&body.avatar_url)
-    .bind(auth.0)
-    .execute(&pool)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": format!("database error: {}", e) })),
-        )
-    })?;
+    if let Some(ref avatar) = body.avatar_url {
+        sqlx::query("UPDATE users SET avatar_url = $1 WHERE id = $2")
+            .bind(avatar)
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": format!("database error: {}", e) })),
+                )
+            })?;
+    } else if body.avatar_url.is_none() && body.keep_chats_archived.is_none() {
+        // original behavior of setting avatar to NULL if only avatar is None and keep_chats_archived is None
+        sqlx::query("UPDATE users SET avatar_url = NULL WHERE id = $1")
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": format!("database error: {}", e) })),
+                )
+            })?;
+    }
 
-    Ok(Json(json!({ "status": "success", "avatar_url": body.avatar_url })))
+    if let Some(keep_archived) = body.keep_chats_archived {
+        sqlx::query("UPDATE users SET keep_chats_archived = $1 WHERE id = $2")
+            .bind(keep_archived)
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": format!("database error: {}", e) })),
+                )
+            })?;
+    }
+
+    Ok(Json(json!({ "status": "success", "avatar_url": body.avatar_url, "keep_chats_archived": body.keep_chats_archived })))
 }
 

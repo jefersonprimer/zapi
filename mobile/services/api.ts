@@ -42,6 +42,7 @@ export interface ChatListItem {
   is_pinned?: boolean;
   notification_muted_until?: string | null;
   notification_muted_forever?: boolean;
+  is_archived?: boolean;
 }
 
 export interface Attachment {
@@ -340,13 +341,30 @@ export async function muteChat(
   });
 }
 
+export async function archiveChat(
+  token: string,
+  chatId: string,
+  isArchived: boolean
+): Promise<{ status: string; chat_id: string; is_archived: boolean }> {
+  return authFetch(`${API_URL}/chats/${chatId}/archive`, token, {
+    method: "POST",
+    body: JSON.stringify({
+      is_archived: isArchived,
+    }),
+  });
+}
+
 export async function updateProfile(
   token: string,
-  avatarUrl: string | null
-): Promise<{ status: string; avatar_url: string | null }> {
+  avatarUrl?: string | null,
+  keepChatsArchived?: boolean
+): Promise<{ status: string; avatar_url: string | null; keep_chats_archived?: boolean }> {
+  const body: any = {};
+  if (avatarUrl !== undefined) body.avatar_url = avatarUrl;
+  if (keepChatsArchived !== undefined) body.keep_chats_archived = keepChatsArchived;
   return authFetch(`${API_URL}/users/profile`, token, {
     method: "POST",
-    body: JSON.stringify({ avatar_url: avatarUrl }),
+    body: JSON.stringify(body),
   });
 }
 

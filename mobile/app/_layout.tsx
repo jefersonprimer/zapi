@@ -199,6 +199,7 @@ function InitialLayout() {
       <Stack.Screen name="new-group" options={{ headerShown: false }} />
       <Stack.Screen name="contacts" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Screen name="archived" options={{ headerShown: false }} />
     </Stack>
   );
 }
