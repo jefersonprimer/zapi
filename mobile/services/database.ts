@@ -646,3 +646,12 @@ export async function setChatArchivedLocal(chatId: string, isArchived: boolean) 
     [isArchived ? 1 : 0, chatId]
   );
 }
+
+export async function setChatBlockedLocal(chatId: string, isBlocked: boolean) {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE chats SET is_blocked_by_me = ? WHERE id = ?",
+    [isBlocked ? 1 : 0, chatId]
+  );
+}
+

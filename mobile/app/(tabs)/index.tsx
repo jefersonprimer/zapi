@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { getChats, type ChatListItem, deleteChat, muteChat, archiveChat, API_URL } from "@/services/api";
+import { getChats, type ChatListItem, deleteChat, muteChat, archiveChat, API_URL, clearChatMessages, blockContact, unblockContact } from "@/services/api";
 import {
   getChatsFromLocal,
   saveChats,
@@ -20,6 +20,8 @@ import {
   setChatPinnedLocal,
   setChatMuteLocal,
   setChatArchivedLocal,
+  clearChatMessagesLocal,
+  setChatBlockedLocal,
 } from "@/services/database";
 import {
   Camera,
@@ -68,6 +70,7 @@ export default function ChatListScreen() {
   const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [muteModalVisible, setMuteModalVisible] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
+  const [moreMenuVisible, setMoreMenuVisible] = useState(false);
 
   const activeChats = chats.filter((c) => !c.is_archived);
   const archivedChatsCount = chats.filter((c) => c.is_archived).length;
@@ -228,6 +231,119 @@ export default function ChatListScreen() {
     }
   };
 
+  const handleViewContact = () => {
+    if (selectedChatIds.length !== 1) return;
+    const chatItem = chats.find((c) => c.id === selectedChatIds[0]);
+    if (!chatItem) return;
+
+    if (chatItem.is_group) {
+      Alert.alert("Grupo", "Não é possível ver o contato de um grupo.");
+      return;
+    }
+
+    setMoreMenuVisible(false);
+    setSelectedChatIds([]);
+
+    router.push({
+      pathname: "/contact-detail",
+      params: {
+        participantId: chatItem.participant_id || "",
+        participantUsername: chatItem.participant_username || chatItem.name || "Unknown",
+        chatId: chatItem.id,
+        avatarUrl: chatItem.participant_avatar_url || undefined,
+      },
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedChatIds(activeChats.map((c) => c.id));
+    setMoreMenuVisible(false);
+  };
+
+  const handleClearSelectedChats = () => {
+    if (selectedChatIds.length === 0) return;
+
+    const message =
+      selectedChatIds.length === 1
+        ? "Deseja realmente limpar todo o histórico de mensagens desta conversa? Esta ação não pode ser desfeita."
+        : `Deseja realmente limpar todo o histórico de mensagens das ${selectedChatIds.length} conversas selecionadas? Esta ação não pode ser desfeita.`;
+
+    Alert.alert("Limpar conversa", message, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Limpar",
+        style: "destructive",
+        onPress: async () => {
+          if (!token) return;
+          try {
+            for (const chatId of selectedChatIds) {
+              await clearChatMessages(token, chatId);
+              await clearChatMessagesLocal(chatId);
+            }
+            setSelectedChatIds([]);
+            setMoreMenuVisible(false);
+            const updatedChats = await getChatsFromLocal();
+            setChats(updatedChats);
+          } catch (err: any) {
+            console.error("Error clearing chat(s):", err);
+            Alert.alert("Erro", "Não foi possível limpar as conversas.");
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleBlockSelectedChats = () => {
+    if (selectedChatIds.length === 0) return;
+
+    const selectedChats = chats.filter((c) => selectedChatIds.includes(c.id));
+    const nonGroupChats = selectedChats.filter((c) => !c.is_group);
+
+    if (nonGroupChats.length === 0) {
+      Alert.alert("Erro", "Selecione pelo menos uma conversa individual para bloquear.");
+      return;
+    }
+
+    const allBlocked = nonGroupChats.every((c) => c.is_blocked_by_me);
+    const newBlockState = !allBlocked;
+
+    const title = newBlockState ? "Bloquear contato" : "Desbloquear contato";
+    const message =
+      nonGroupChats.length === 1
+        ? `Deseja realmente ${newBlockState ? "bloquear" : "desbloquear"} este contato?`
+        : `Deseja realmente ${newBlockState ? "bloquear" : "desbloquear"} os ${nonGroupChats.length} contatos selecionados?`;
+
+    Alert.alert(title, message, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: newBlockState ? "Bloquear" : "Desbloquear",
+        style: "destructive",
+        onPress: async () => {
+          if (!token) return;
+          try {
+            for (const chat of nonGroupChats) {
+              if (chat.participant_id) {
+                if (newBlockState) {
+                  await blockContact(token, chat.participant_id);
+                } else {
+                  await unblockContact(token, chat.participant_id);
+                }
+                await setChatBlockedLocal(chat.id, newBlockState);
+              }
+            }
+            setSelectedChatIds([]);
+            setMoreMenuVisible(false);
+            const updatedChats = await getChatsFromLocal();
+            setChats(updatedChats);
+          } catch (err: any) {
+            console.error("Error blocking/unblocking chat(s):", err);
+            Alert.alert("Erro", "Não foi possível alterar o status de bloqueio.");
+          }
+        },
+      },
+    ]);
+  };
+
   const loadChats = useCallback(async () => {
     if (!token) return;
     try {
@@ -340,6 +456,12 @@ export default function ChatListScreen() {
             >
               <Trash2 color={colors.headerText} size={22} />
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={() => setMoreMenuVisible(true)}
+            >
+              <MoreVertical color={colors.headerText} size={22} />
+            </TouchableOpacity>
           </View>
         </View>
       ) : (
@@ -365,6 +487,92 @@ export default function ChatListScreen() {
           </View>
         </View>
       )}
+
+      {/* Selected Chats Options Menu Dropdown */}
+      <Modal
+        visible={moreMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMoreMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMoreMenuVisible(false)}
+        >
+          <View
+            style={[
+              styles.menuContainer,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            {selectedChatIds.length === 1 && (
+              <>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={handleViewContact}
+                >
+                  <Text style={[styles.menuItemText, { color: colors.text }]}>
+                    Ver contato
+                  </Text>
+                </TouchableOpacity>
+                <View
+                  style={[styles.menuDivider, { backgroundColor: colors.border }]}
+                />
+              </>
+            )}
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleSelectAll}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                Selecionar tudo
+              </Text>
+            </TouchableOpacity>
+
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleClearSelectedChats}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                Limpar conversa
+              </Text>
+            </TouchableOpacity>
+
+            {(() => {
+              const selectedChats = chats.filter((c) => selectedChatIds.includes(c.id));
+              const nonGroupChats = selectedChats.filter((c) => !c.is_group);
+              if (nonGroupChats.length > 0) {
+                const allBlocked = nonGroupChats.every((c) => c.is_blocked_by_me);
+                return (
+                  <>
+                    <View
+                      style={[styles.menuDivider, { backgroundColor: colors.border }]}
+                    />
+                    <TouchableOpacity
+                      style={styles.menuItem}
+                      onPress={handleBlockSelectedChats}
+                    >
+                      <Text style={[styles.menuItemText, { color: colors.danger }]}>
+                        {allBlocked ? "Desbloquear" : "Bloquear"}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                );
+              }
+              return null;
+            })()}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Main Options Menu Dropdown */}
       <Modal
