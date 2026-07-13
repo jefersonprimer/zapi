@@ -13,8 +13,6 @@ import {
   Keyboard,
   Image,
   ActivityIndicator,
-  TextInput,
-  ScrollView,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -25,11 +23,6 @@ import {
   Video,
   ArrowLeft,
   Trash2,
-  PhoneIncoming,
-  PhoneOutgoing,
-  PhoneMissed,
-  PhoneOff,
-  LogOut,
 } from "lucide-react-native";
 import {
   useLocalSearchParams,
@@ -47,8 +40,10 @@ import {
 import { SendOrMicButton } from "@/components/SendOrMicButton";
 import { ChatMenuModal } from "@/components/ChatMenuModal";
 import { MessageBubble } from "@/components/MessageBubble";
+import { CallBubble } from "@/components/CallBubble";
 import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
+import { GroupDetailsModal } from "@/components/GroupDetailsModal";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
@@ -61,12 +56,6 @@ import {
   getChats,
   unblockContact,
   API_URL,
-  getGroupDetails,
-  addParticipant,
-  removeParticipant,
-  searchUsers,
-  type UserSearchResult,
-  type GroupDetails,
 } from "@/services/api";
 import {
   getDatabase,
@@ -88,96 +77,12 @@ import { generateUUIDv7 } from "@/services/uuidv7";
 import { getCallHistory, type CallHistoryItem } from "@/services/callApi";
 import { useCallStore } from "@/store/useCallStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { isSameDay, getDateLabel } from "@/utils/date";
+import { validateAttachmentSize } from "@/utils/file";
 
 type ChatItem =
   | { type: "message"; data: Message }
   | { type: "call"; data: CallHistoryItem };
-
-function isSameDay(dateStr1: string, dateStr2: string): boolean {
-  if (!dateStr1 || !dateStr2) return false;
-  const d1 = new Date(dateStr1);
-  const d2 = new Date(dateStr2);
-  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
-  return (
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate()
-  );
-}
-
-function getDateLabel(dateStr: string): string {
-  const msgDate = new Date(dateStr);
-  if (isNaN(msgDate.getTime())) return "";
-
-  const today = new Date();
-
-  // Clear times
-  const dMsg = new Date(
-    msgDate.getFullYear(),
-    msgDate.getMonth(),
-    msgDate.getDate(),
-  );
-  const dToday = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
-
-  const diffTime = dToday.getTime() - dMsg.getTime();
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) {
-    return "Hoje";
-  }
-  if (diffDays === 1) {
-    return "Ontem";
-  }
-  if (diffDays === 2) {
-    return "Anteontem";
-  }
-  if (diffDays > 2 && diffDays < 7) {
-    return "Esta semana";
-  }
-  if (diffDays >= 7 && diffDays < 14) {
-    return "Semana passada";
-  }
-
-  // Check if it's the same month and year
-  if (
-    dMsg.getFullYear() === dToday.getFullYear() &&
-    dMsg.getMonth() === dToday.getMonth()
-  ) {
-    return "Este mês";
-  }
-
-  // Check if it's last month
-  const isLastMonth =
-    (dToday.getFullYear() === dMsg.getFullYear() &&
-      dToday.getMonth() - dMsg.getMonth() === 1) ||
-    (dToday.getFullYear() - dMsg.getFullYear() === 1 &&
-      dToday.getMonth() === 0 &&
-      dMsg.getMonth() === 11);
-
-  if (isLastMonth) {
-    return "Mês passado";
-  }
-
-  const months = [
-    "janeiro",
-    "fevereiro",
-    "março",
-    "abril",
-    "maio",
-    "junho",
-    "julho",
-    "agosto",
-    "setembro",
-    "outubro",
-    "novembro",
-    "dezembro",
-  ];
-  return `${dMsg.getDate()} de ${months[dMsg.getMonth()]} de ${dMsg.getFullYear()}`;
-}
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
@@ -246,103 +151,6 @@ export default function ChatScreen() {
   const [clearedAt, setClearedAt] = useState<string | null>(null);
   const [isGroup, setIsGroup] = useState(false);
   const [groupModalVisible, setGroupModalVisible] = useState(false);
-  const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
-  const [loadingGroupDetails, setLoadingGroupDetails] = useState(false);
-  const [searchMemberQuery, setSearchMemberQuery] = useState("");
-  const [searchingMembers, setSearchingMembers] = useState(false);
-  const [searchedUsers, setSearchedUsers] = useState<UserSearchResult[]>([]);
-
-  const fetchGroupInfo = useCallback(async () => {
-    if (!token || !chatId) return;
-    setLoadingGroupDetails(true);
-    try {
-      const details = await getGroupDetails(token, chatId);
-      setGroupDetails(details);
-    } catch (err) {
-      console.error("Failed to fetch group details:", err);
-    } finally {
-      setLoadingGroupDetails(false);
-    }
-  }, [token, chatId]);
-
-  useEffect(() => {
-    if (groupModalVisible) {
-      fetchGroupInfo();
-    }
-  }, [groupModalVisible, fetchGroupInfo]);
-
-  const handleSearchMembers = async () => {
-    if (!searchMemberQuery.trim() || !token) return;
-    setSearchingMembers(true);
-    try {
-      const data = await searchUsers(token, searchMemberQuery.trim());
-      setSearchedUsers(data.users);
-    } catch (err: any) {
-      Alert.alert("Erro", err.message || "Erro ao buscar usuários.");
-    } finally {
-      setSearchingMembers(false);
-    }
-  };
-
-  const handleAddParticipant = async (userId: string) => {
-    if (!token || !chatId) return;
-    try {
-      await addParticipant(token, chatId, userId);
-      Alert.alert("Sucesso", "Membro adicionado com sucesso!");
-      setSearchMemberQuery("");
-      setSearchedUsers([]);
-      fetchGroupInfo();
-    } catch (err: any) {
-      Alert.alert("Erro", err.message || "Não foi possível adicionar o membro.");
-    }
-  };
-
-  const handleRemoveParticipant = async (userId: string, username: string) => {
-    Alert.alert(
-      "Remover Membro",
-      `Tem certeza que deseja remover ${username} do grupo?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Remover",
-          style: "destructive",
-          onPress: async () => {
-            if (!token || !chatId) return;
-            try {
-              await removeParticipant(token, chatId, userId);
-              fetchGroupInfo();
-            } catch (err: any) {
-              Alert.alert("Erro", err.message || "Não foi possível remover o membro.");
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleLeaveGroup = async () => {
-    Alert.alert(
-      "Sair do Grupo",
-      "Tem certeza que deseja sair deste grupo?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Sair",
-          style: "destructive",
-          onPress: async () => {
-            if (!token || !chatId || !user) return;
-            try {
-              await removeParticipant(token, chatId, user.user_id);
-              setGroupModalVisible(false);
-              router.replace("/(tabs)");
-            } catch (err: any) {
-              Alert.alert("Erro", err.message || "Não foi possível sair do grupo.");
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const loadChatDetails = useCallback(async () => {
     if (!token) return;
@@ -756,40 +564,17 @@ export default function ChatScreen() {
       return;
 
     if (selectedAttachment && selectedAttachment.size !== undefined) {
-      const size = selectedAttachment.size;
-      const type = selectedAttachment.type;
-      const mime = selectedAttachment.mimeType || "";
-      let maxBytes = 0;
-      let label = "";
+      const validation = validateAttachmentSize(
+        selectedAttachment.size,
+        selectedAttachment.type,
+        selectedAttachment.name,
+        selectedAttachment.mimeType || ""
+      );
 
-      if (type === "image") {
-        maxBytes = 20 * 1024 * 1024;
-        label = "fotos (máx 20MB)";
-      } else if (type === "video") {
-        maxBytes = 250 * 1024 * 1024;
-        label = "vídeos (máx 250MB)";
-      } else if (type === "document") {
-        maxBytes = 500 * 1024 * 1024;
-        label = "documentos (máx 500MB)";
-      } else if (type === "audio") {
-        const isVoiceMsg =
-          selectedAttachment.name.startsWith("audio_") ||
-          mime === "audio/m4a" ||
-          mime === "audio/aac" ||
-          mime === "audio/3gp";
-        if (isVoiceMsg) {
-          maxBytes = 25 * 1024 * 1024;
-          label = "mensagens de voz (máx 25MB)";
-        } else {
-          maxBytes = 50 * 1024 * 1024;
-          label = "áudios (máx 50MB)";
-        }
-      }
-
-      if (size > maxBytes) {
+      if (!validation.valid) {
         Alert.alert(
           "Arquivo muito grande",
-          `O tamanho do arquivo excede o limite permitido para ${label}.`,
+          `O tamanho do arquivo excede o limite permitido para ${validation.label}.`,
         );
         return;
       }
@@ -1374,136 +1159,14 @@ export default function ChatScreen() {
               </View>
             );
           } else {
-            const call = item.data;
-            const isOutgoing = call.caller_id === user?.user_id;
-
-            let StatusIcon = PhoneIncoming;
-            let iconColor = "#34C759"; // Green
-            let statusText = isOutgoing
-              ? "Ligação efetuada"
-              : "Ligação recebida";
-            let bubbleBg = isDark ? "#1E293B" : "#f1f0f0";
-            let textColor = colors.text;
-            let timeColor = colors.textSecondary;
-
-            if (isOutgoing) {
-              StatusIcon = PhoneOutgoing;
-              bubbleBg = isDark ? "#1E293B" : "#e1f5fe"; // light blue
-              textColor = isDark ? "#0A84FF" : "#01579b";
-              timeColor = isDark
-                ? "rgba(10, 132, 255, 0.7)"
-                : "rgba(1, 87, 155, 0.6)";
-            } else {
-              if (call.status === "completed") {
-                bubbleBg = isDark ? "#1E293B" : "#e8f5e9"; // light green
-                textColor = isDark ? "#30D158" : "#1b5e20";
-                timeColor = isDark
-                  ? "rgba(48, 209, 88, 0.7)"
-                  : "rgba(27, 94, 32, 0.6)";
-              } else {
-                StatusIcon = PhoneMissed;
-                iconColor = "#FF3B30"; // Red
-                statusText = "Chamada perdida";
-                if (call.status === "failed") {
-                  StatusIcon = PhoneOff;
-                  iconColor = "#FF9500"; // Orange
-                }
-                bubbleBg = isDark ? "#1E293B" : "#ffebee"; // light red
-                textColor = isDark ? "#FF453A" : "#b71c1c";
-                timeColor = isDark
-                  ? "rgba(255, 69, 58, 0.7)"
-                  : "rgba(183, 28, 28, 0.6)";
-              }
-            }
-
-            const formattedTime = new Date(call.created_at).toLocaleTimeString(
-              [],
-              {
-                hour: "2-digit",
-                minute: "2-digit",
-              },
-            );
-
-            const formatDuration = (secs: number) => {
-              if (secs === 0) return "";
-              const mins = Math.floor(secs / 60);
-              const remainingSecs = secs % 60;
-              if (mins > 0) {
-                return `${mins}m ${remainingSecs}s`;
-              }
-              return `${remainingSecs}s`;
-            };
-
-            const durationStr =
-              call.duration > 0 ? ` (${formatDuration(call.duration)})` : "";
-
             return (
-              <View>
-                {showDateHeader && (
-                  <View style={styles.dateHeaderContainer}>
-                    <View
-                      style={[
-                        styles.dateHeaderBackground,
-                        { backgroundColor: isDark ? "#1E293B" : "#eaeaea" },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.dateHeaderText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {getDateLabel(call.created_at)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                <View
-                  style={[
-                    styles.messageRow,
-                    isOutgoing ? styles.myCallRow : styles.theirCallRow,
-                  ]}
-                >
-                  <View
-                    style={[styles.callBubble, { backgroundColor: bubbleBg }]}
-                  >
-                    <View style={styles.callBubbleContent}>
-                      <View style={styles.callIconContainer}>
-                        <StatusIcon size={20} color={iconColor} />
-                      </View>
-                      <View style={styles.callTextContainer}>
-                        <Text
-                          style={[styles.callStatusText, { color: textColor }]}
-                        >
-                          {statusText}
-                          {durationStr}
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.callbackButton}
-                          onPress={() => {
-                            voiceCallManager.startCall(
-                              participantId,
-                              participantUsername || "User",
-                            );
-                          }}
-                        >
-                          <Text
-                            style={[
-                              styles.callbackButtonText,
-                              { color: colors.tint },
-                            ]}
-                          >
-                            Retornar ligação
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    <Text style={[styles.callTimeText, { color: timeColor }]}>
-                      {formattedTime}
-                    </Text>
-                  </View>
-                </View>
-              </View>
+              <CallBubble
+                call={item.data}
+                currentUserId={user?.user_id}
+                participantId={participantId}
+                participantUsername={participantUsername}
+                showDateHeader={showDateHeader}
+              />
             );
           }
         }}
@@ -1628,240 +1291,12 @@ export default function ChatScreen() {
       />
 
       {/* Group Details Modal */}
-      <Modal
+      <GroupDetailsModal
         visible={groupModalVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setGroupModalVisible(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
-          {/* Header */}
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: colors.border,
-            backgroundColor: colors.headerBackground,
-          }}>
-            <TouchableOpacity onPress={() => setGroupModalVisible(false)} style={{ padding: 4, marginRight: 16 }}>
-              <ArrowLeft size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            <Text style={{ fontSize: 18, fontWeight: "bold", color: colors.headerText, flex: 1 }} numberOfLines={1}>
-              Informações do Grupo
-            </Text>
-          </View>
-
-          <ScrollView contentContainerStyle={{ padding: 20 }}>
-            {/* Group Logo / Name */}
-            <View style={{ alignItems: "center", marginBottom: 24 }}>
-              <View style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: "#34C759", // Group green
-                justifyContent: "center",
-                alignItems: "center",
-                marginBottom: 12,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 2,
-              }}>
-                <Text style={{ color: "#fff", fontSize: 32, fontWeight: "bold" }}>
-                  {participantUsername[0]?.toUpperCase()}
-                </Text>
-              </View>
-              <Text style={{ fontSize: 22, fontWeight: "bold", color: colors.text, textAlign: "center" }}>
-                {participantUsername}
-              </Text>
-              {groupDetails && (
-                <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 4 }}>
-                  {groupDetails.participants.length} membros
-                </Text>
-              )}
-            </View>
-
-            {loadingGroupDetails ? (
-              <ActivityIndicator size="large" color={colors.tint} style={{ marginVertical: 20 }} />
-            ) : (
-              <>
-                {/* Manage Members (Only for Creator) */}
-                {groupDetails && groupDetails.created_by === user?.user_id && (
-                  <View style={{
-                    backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
-                    borderRadius: 16,
-                    padding: 16,
-                    marginBottom: 20,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}>
-                    <Text style={{ fontSize: 16, fontWeight: "bold", color: colors.text, marginBottom: 12 }}>
-                      Adicionar Membro
-                    </Text>
-                    <View style={{ flexDirection: "row", gap: 8 }}>
-                      <TextInput
-                        style={{
-                          flex: 1,
-                          borderWidth: 1,
-                          borderColor: colors.border,
-                          borderRadius: 8,
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          color: colors.text,
-                          backgroundColor: colors.background,
-                        }}
-                        placeholder="Nome de usuário..."
-                        placeholderTextColor={colors.textSecondary}
-                        value={searchMemberQuery}
-                        onChangeText={setSearchMemberQuery}
-                        onSubmitEditing={handleSearchMembers}
-                      />
-                      <TouchableOpacity
-                        style={{
-                          backgroundColor: colors.tint,
-                          paddingHorizontal: 16,
-                          borderRadius: 8,
-                          justifyContent: "center",
-                        }}
-                        onPress={handleSearchMembers}
-                        disabled={searchingMembers}
-                      >
-                        {searchingMembers ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <Text style={{ color: "#fff", fontWeight: "600" }}>Buscar</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Search Results */}
-                    {searchedUsers.length > 0 && (
-                      <View style={{ marginTop: 12 }}>
-                        {searchedUsers.map((item) => {
-                          const isAlreadyMember = groupDetails.participants.some(p => p.id === item.id);
-                          return (
-                            <View key={item.id} style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              paddingVertical: 8,
-                              borderTopWidth: StyleSheet.hairlineWidth,
-                              borderTopColor: colors.border,
-                              justifyContent: "space-between",
-                            }}>
-                              <Text style={{ color: colors.text, fontWeight: "500" }}>{item.username}</Text>
-                              {isAlreadyMember ? (
-                                <Text style={{ fontSize: 12, color: colors.textSecondary }}>Já é membro</Text>
-                              ) : (
-                                <TouchableOpacity
-                                  style={{
-                                    backgroundColor: colors.tint,
-                                    paddingHorizontal: 10,
-                                    paddingVertical: 4,
-                                    borderRadius: 6,
-                                  }}
-                                  onPress={() => handleAddParticipant(item.id)}
-                                >
-                                  <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Adicionar</Text>
-                                </TouchableOpacity>
-                              )}
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {/* Members List */}
-                <View style={{ marginBottom: 24 }}>
-                  <Text style={{ fontSize: 16, fontWeight: "bold", color: colors.text, marginBottom: 12 }}>
-                    Membros
-                  </Text>
-                  {groupDetails?.participants.map((member) => {
-                    const isCreator = groupDetails.created_by === member.id;
-                    const isMe = member.id === user?.user_id;
-                    const showRemoveButton = groupDetails.created_by === user?.user_id && !isCreator && !isMe;
-
-                    return (
-                      <View key={member.id} style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        paddingVertical: 12,
-                        borderBottomWidth: StyleSheet.hairlineWidth,
-                        borderBottomColor: colors.border,
-                        justifyContent: "space-between",
-                      }}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                          <View style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 18,
-                            backgroundColor: colors.tint,
-                            justifyContent: "center",
-                            alignItems: "center",
-                            marginRight: 12,
-                          }}>
-                            <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                              {member.username[0].toUpperCase()}
-                            </Text>
-                          </View>
-                          <View>
-                            <Text style={{ color: colors.text, fontWeight: "600" }}>
-                              {member.username} {isMe && "(Você)"}
-                            </Text>
-                            {isCreator && (
-                              <Text style={{ fontSize: 11, color: colors.tint, fontWeight: "500" }}>
-                                Dono do grupo
-                              </Text>
-                            )}
-                          </View>
-                        </View>
-
-                        {showRemoveButton && (
-                          <TouchableOpacity
-                            style={{
-                              backgroundColor: colors.danger || "#FF3B30",
-                              paddingHorizontal: 10,
-                              paddingVertical: 6,
-                              borderRadius: 6,
-                            }}
-                            onPress={() => handleRemoveParticipant(member.id, member.username)}
-                          >
-                            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Remover</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
-
-                {/* Leave Group Button */}
-                {groupDetails && groupDetails.created_by !== user?.user_id && (
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: colors.danger || "#FF3B30",
-                      padding: 16,
-                      borderRadius: 12,
-                      alignItems: "center",
-                      flexDirection: "row",
-                      justifyContent: "center",
-                      gap: 8,
-                      marginTop: 10,
-                    }}
-                    onPress={handleLeaveGroup}
-                  >
-                    <LogOut size={20} color="#fff" />
-                    <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>Sair do Grupo</Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </ScrollView>
-        </View>
-      </Modal>
+        onClose={() => setGroupModalVisible(false)}
+        chatId={chatId}
+        participantUsername={participantUsername}
+      />
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -2210,62 +1645,7 @@ const styles = StyleSheet.create({
     color: "#666",
     fontWeight: "600",
   },
-  myCallRow: {
-    alignSelf: "flex-end",
-    alignItems: "flex-end",
-  },
-  theirCallRow: {
-    alignSelf: "flex-start",
-    alignItems: "flex-start",
-  },
-  callBubble: {
-    width: "75%",
-    maxWidth: "75%",
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  callBubbleContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexShrink: 1,
-    width: "100%",
-  },
-  callIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  callTextContainer: {
-    flex: 1,
-    minWidth: 120,
-  },
-  callStatusText: {
-    fontSize: 15,
-    fontWeight: "600",
-    flexShrink: 1,
-  },
-  callbackButton: {
-    marginTop: 4,
-  },
-  callbackButtonText: {
-    color: "#007AFF",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  callTimeText: {
-    fontSize: 10,
-    textAlign: "right",
-    marginTop: 4,
-  },
+
   customHeader: {
     flexDirection: "row",
     alignItems: "center",
