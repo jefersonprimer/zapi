@@ -44,6 +44,7 @@ import {
   AttachCameraButton,
   type Attachment,
 } from "@/components/AttachCameraButton";
+import { AttachMediaSheet } from "@/components/AttachMediaSheet";
 import { SendOrMicButton } from "@/components/SendOrMicButton";
 import { ChatMenuModal } from "@/components/ChatMenuModal";
 import MuteModal from "@/components/MuteModal";
@@ -522,6 +523,7 @@ export default function ChatScreen() {
 
   const [selectedAttachment, setSelectedAttachment] =
     useState<Attachment | null>(null);
+  const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [hasRecordingSession, setHasRecordingSession] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -949,25 +951,7 @@ export default function ChatScreen() {
       return;
     }
 
-    Alert.alert(
-      "Anexar Arquivo",
-      "Escolha de onde deseja selecionar o arquivo:",
-      [
-        {
-          text: "Galeria (Fotos e Vídeos)",
-          onPress: handlePickFromGallery,
-        },
-        {
-          text: "Documentos",
-          onPress: handlePickFile,
-        },
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-      ],
-      { cancelable: true },
-    );
+    setAttachSheetVisible(true);
   }
 
   async function startRecording() {
@@ -1588,6 +1572,14 @@ export default function ChatScreen() {
         visible={muteModalVisible}
         onClose={() => setMuteModalVisible(false)}
         onMute={handleMuteChats}
+      />
+
+      <AttachMediaSheet
+        visible={attachSheetVisible}
+        onClose={() => setAttachSheetVisible(false)}
+        onPickGallery={handlePickFromGallery}
+        onPickDocument={handlePickFile}
+        onSelectMedia={setSelectedAttachment}
       />
 
       {/* Group Details Modal */}

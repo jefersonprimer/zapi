@@ -71,7 +71,15 @@
       ],
       "expo-video",
       "expo-sqlite",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Zapi to access your photos to share images and videos.",
+          "savePhotosPermission": "Allow Zapi to save photos.",
+          "granularPermissions": ["photo", "video"]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
