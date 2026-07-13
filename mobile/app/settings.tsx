@@ -11,6 +11,7 @@ import {
   Platform,
   Image,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth, getStorageItem, setStorageItem } from "@/context/AuthContext";
@@ -29,9 +30,12 @@ import {
   Laptop,
   Camera,
   Image as ImageIcon,
+  MessageSquareText,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { API_URL, uploadImage, updateProfile } from "@/services/api";
+
+const ABOUT_MAX_LEN = 139;
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -43,6 +47,8 @@ export default function SettingsScreen() {
   const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [aboutModalVisible, setAboutModalVisible] = useState(false);
+  const [aboutDraft, setAboutDraft] = useState("");
 
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -164,6 +170,30 @@ export default function SettingsScreen() {
     );
   };
 
+  const openAboutModal = () => {
+    setAboutDraft(user?.about || "");
+    setAboutModalVisible(true);
+  };
+
+  const handleSaveAbout = async () => {
+    if (!token) return;
+    const trimmed = aboutDraft.trim();
+    if (trimmed.length > ABOUT_MAX_LEN) {
+      Alert.alert("Erro", `O recado pode ter no máximo ${ABOUT_MAX_LEN} caracteres.`);
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      await updateProfile(token, undefined, undefined, trimmed);
+      await updateUser({ about: trimmed || null });
+      setAboutModalVisible(false);
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Falha ao atualizar recado");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   // Format theme text
   const getThemeLabel = (pref: string) => {
     switch (pref) {
@@ -267,6 +297,25 @@ export default function SettingsScreen() {
             <Text style={[styles.emailTextVertical, { color: colors.textSecondary }]}>
               {user?.email || "usuario@exemplo.com"}
             </Text>
+            <TouchableOpacity
+              style={styles.aboutTapArea}
+              onPress={openAboutModal}
+              activeOpacity={0.7}
+              disabled={isUpdating}
+            >
+              <Text
+                style={[
+                  styles.aboutText,
+                  {
+                    color: user?.about ? colors.textSecondary : colors.textSecondary,
+                    fontStyle: user?.about ? "normal" : "italic",
+                  },
+                ]}
+                numberOfLines={2}
+              >
+                {user?.about || "Toque para adicionar um recado"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -459,6 +508,85 @@ export default function SettingsScreen() {
               <Text style={styles.sheetCloseButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* About / Recado Modal */}
+      <Modal
+        visible={aboutModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setAboutModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
+          activeOpacity={1}
+          onPress={() => setAboutModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              styles.bottomSheet,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={[styles.sheetIndicator, { backgroundColor: colors.border }]} />
+            <View style={styles.sheetHeaderWithIcon}>
+              <MessageSquareText size={24} color={colors.tint} />
+              <Text style={[styles.sheetTitle, { color: colors.text, marginLeft: 8 }]}>
+                Recado
+              </Text>
+            </View>
+
+            <TextInput
+              style={[
+                styles.aboutInput,
+                {
+                  color: colors.text,
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+              value={aboutDraft}
+              onChangeText={(text) => {
+                if (text.length <= ABOUT_MAX_LEN) setAboutDraft(text);
+              }}
+              placeholder="Escreva um recado..."
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              maxLength={ABOUT_MAX_LEN}
+              autoFocus
+            />
+            <Text style={[styles.aboutCounter, { color: colors.textSecondary }]}>
+              {aboutDraft.length}/{ABOUT_MAX_LEN}
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.sheetCloseButton, { backgroundColor: colors.tint, marginTop: 8 }]}
+              onPress={handleSaveAbout}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.sheetCloseButtonText}>Salvar</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sheetCloseButton, { backgroundColor: colors.background, marginTop: 8 }]}
+              onPress={() => setAboutModalVisible(false)}
+              disabled={isUpdating}
+            >
+              <Text style={[styles.sheetCloseButtonText, { color: colors.text }]}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
@@ -864,6 +992,31 @@ const styles = StyleSheet.create({
   },
   emailTextVertical: {
     fontSize: 14,
+  },
+  aboutTapArea: {
+    marginTop: 10,
+    paddingHorizontal: 16,
+    maxWidth: "100%",
+  },
+  aboutText: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  aboutInput: {
+    minHeight: 88,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    textAlignVertical: "top",
+  },
+  aboutCounter: {
+    alignSelf: "flex-end",
+    fontSize: 12,
+    marginTop: 6,
+    marginBottom: 4,
   },
   avatarContainer: {
     width: 64,

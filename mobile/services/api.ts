@@ -23,6 +23,7 @@ export interface AuthResponse {
   username: string;
   email: string;
   avatar_url?: string | null;
+  about?: string | null;
 }
 
 export interface ChatListItem {
@@ -160,6 +161,7 @@ export interface UserSearchResult {
   username: string;
   email: string;
   avatar_url?: string | null;
+  about?: string | null;
 }
 
 export async function searchUsers(
@@ -268,6 +270,7 @@ export interface Contact {
   email: string;
   is_blocked: boolean;
   avatar_url?: string | null;
+  about?: string | null;
 }
 
 export async function getContacts(token: string): Promise<Contact[]> {
@@ -358,11 +361,18 @@ export async function archiveChat(
 export async function updateProfile(
   token: string,
   avatarUrl?: string | null,
-  keepChatsArchived?: boolean
-): Promise<{ status: string; avatar_url: string | null; keep_chats_archived?: boolean }> {
+  keepChatsArchived?: boolean,
+  about?: string | null
+): Promise<{
+  status: string;
+  avatar_url: string | null;
+  keep_chats_archived?: boolean;
+  about?: string | null;
+}> {
   const body: any = {};
   if (avatarUrl !== undefined) body.avatar_url = avatarUrl;
   if (keepChatsArchived !== undefined) body.keep_chats_archived = keepChatsArchived;
+  if (about !== undefined) body.about = about;
   return authFetch(`${API_URL}/users/profile`, token, {
     method: "POST",
     body: JSON.stringify(body),

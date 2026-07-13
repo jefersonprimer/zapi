@@ -30,6 +30,7 @@ pub struct AuthResponse {
     pub username: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    pub about: Option<String>,
 }
 
 pub async fn register(
@@ -59,7 +60,7 @@ pub async fn register(
         .to_string();
 
     let user = sqlx::query_as::<_, crate::models::user::User>(
-        "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, password_hash, created_at, avatar_url",
+        "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, password_hash, created_at, avatar_url, about",
     )
     .bind(&body.username)
     .bind(&body.email)
@@ -91,6 +92,7 @@ pub async fn register(
         username: user.username,
         email: user.email,
         avatar_url: user.avatar_url,
+        about: user.about,
     }))
 }
 
@@ -99,7 +101,7 @@ pub async fn login(
     Json(body): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, Json<Value>)> {
     let user = sqlx::query_as::<_, crate::models::user::User>(
-        "SELECT id, username, email, password_hash, created_at, avatar_url FROM users WHERE email = $1",
+        "SELECT id, username, email, password_hash, created_at, avatar_url, about FROM users WHERE email = $1",
     )
     .bind(&body.email)
     .fetch_optional(&pool)
@@ -146,5 +148,6 @@ pub async fn login(
         username: user.username,
         email: user.email,
         avatar_url: user.avatar_url,
+        about: user.about,
     }))
 }

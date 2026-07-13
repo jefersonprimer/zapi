@@ -23,6 +23,7 @@ import {
   MoreVertical,
   Bell,
   BellOff,
+  MessageSquareText,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -367,6 +368,14 @@ export default function ContactDetailScreen() {
             <Text style={[styles.displayName, { color: colors.text }]}>
               {displayName}
             </Text>
+            {!!contact?.about && (
+              <Text
+                style={[styles.aboutText, { color: colors.textSecondary }]}
+                numberOfLines={3}
+              >
+                {contact.about}
+              </Text>
+            )}
             {isBlocked && (
               <View
                 style={[
@@ -451,6 +460,40 @@ export default function ContactDetailScreen() {
                 </Text>
                 <Text style={[styles.infoValue, { color: colors.text }]}>
                   {displayEmail}
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.infoRow,
+                styles.borderTop,
+                { borderTopColor: colors.border },
+              ]}
+            >
+              <MessageSquareText
+                size={20}
+                color={colors.textSecondary}
+                style={styles.infoIcon}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[styles.infoLabel, { color: colors.textSecondary }]}
+                >
+                  Recado
+                </Text>
+                <Text
+                  style={[
+                    styles.infoValue,
+                    {
+                      color: contact?.about
+                        ? colors.text
+                        : colors.textSecondary,
+                      fontStyle: contact?.about ? "normal" : "italic",
+                    },
+                  ]}
+                >
+                  {contact?.about || "Sem recado"}
                 </Text>
               </View>
             </View>
@@ -848,6 +891,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
+  },
+  aboutText: {
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
+    paddingHorizontal: 24,
+    lineHeight: 20,
   },
   blockedBadge: {
     marginTop: 8,
