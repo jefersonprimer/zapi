@@ -39,6 +39,7 @@ import {
 } from "@/components/AttachCameraButton";
 import { SendOrMicButton } from "@/components/SendOrMicButton";
 import { ChatMenuModal } from "@/components/ChatMenuModal";
+import MuteModal from "@/components/MuteModal";
 import { MessageBubble } from "@/components/MessageBubble";
 import { CallBubble } from "@/components/CallBubble";
 import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
@@ -55,6 +56,9 @@ import {
   deleteMessageForEveryone,
   getChats,
   unblockContact,
+  blockContact,
+  clearChatMessages,
+  muteChat,
   API_URL,
 } from "@/services/api";
 import {
@@ -68,6 +72,8 @@ import {
   clearChatMessagesLocal,
   deleteMessageLocal,
   deleteMessageForMeLocal,
+  setChatMuteLocal,
+  setChatBlockedLocal,
 } from "@/services/database";
 import { syncWorker } from "@/services/syncWorker";
 import { cacheMediaFile } from "@/services/mediaCache";
@@ -140,6 +146,7 @@ export default function ChatScreen() {
   const callState = useCallStore((state) => state.callState);
 
   const [menuVisible, setMenuVisible] = useState(false);
+  const [muteModalVisible, setMuteModalVisible] = useState(false);
   const [isContact, setIsContact] = useState(false);
 
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -337,6 +344,100 @@ export default function ChatScreen() {
       );
     }
   }
+
+  const handleMutePress = () => {
+    setMuteModalVisible(true);
+  };
+
+  const handleMuteChats = async (durationHours: number | "always") => {
+    if (!token) return;
+
+    let mutedUntil: string | null = null;
+    let mutedForever = false;
+
+    if (durationHours === "always") {
+      mutedForever = true;
+    } else {
+      mutedUntil = new Date(
+        Date.now() + durationHours * 60 * 60 * 1000,
+      ).toISOString();
+    }
+
+    try {
+      await muteChat(token, chatId, mutedUntil, mutedForever);
+      await setChatMuteLocal(chatId, mutedUntil, mutedForever);
+      setMuteModalVisible(false);
+    } catch (err) {
+      console.error("Error muting chat:", err);
+      Alert.alert("Erro", "Não foi possível silenciar as notificações.");
+    }
+  };
+
+  const handleBlockPress = () => {
+    if (!token || !participantId || isGroup) {
+      Alert.alert("Erro", "Não é possível bloquear um grupo.");
+      return;
+    }
+
+    const title = isBlockedByMe ? "Desbloquear contato" : "Bloquear contato";
+    const message = isBlockedByMe
+      ? "Deseja realmente desbloquear este contato?"
+      : "Deseja realmente bloquear este contato?";
+
+    Alert.alert(title, message, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: isBlockedByMe ? "Desbloquear" : "Bloquear",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            if (isBlockedByMe) {
+              await unblockContact(token, participantId);
+              setIsBlockedByMe(false);
+            } else {
+              await blockContact(token, participantId);
+              setIsBlockedByMe(true);
+            }
+            await setChatBlockedLocal(chatId, !isBlockedByMe);
+          } catch (err: any) {
+            Alert.alert(
+              "Erro",
+              err.message || "Não foi possível alterar o status de bloqueio.",
+            );
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleClearChatPress = () => {
+    if (!token) return;
+
+    Alert.alert(
+      "Limpar conversa",
+      "Deseja realmente apagar todo o histórico de mensagens desta conversa? Esta ação não pode ser desfeita.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Limpar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await clearChatMessages(token, chatId);
+              await clearChatMessagesLocal(chatId);
+              setMessages([]);
+              setClearedAt(new Date().toISOString());
+            } catch (err: any) {
+              Alert.alert(
+                "Erro",
+                err.message || "Não foi possível limpar a conversa.",
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
 
   // Disable native header to render custom styled header bar
   useEffect(() => {
@@ -1274,20 +1375,33 @@ export default function ChatScreen() {
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
         isContact={isContact}
+        isGroup={isGroup}
+        isBlocked={isBlockedByMe}
         onToggleContact={handleToggleContact}
-        onViewContact={() => {
-          if (participantId) {
-            router.push({
-              pathname: "/contact-detail",
-              params: {
-                participantId,
-                participantUsername,
-                chatId,
-                avatarUrl: participantAvatarUrl || undefined,
-              },
-            });
-          }
-        }}
+        onMutePress={handleMutePress}
+        onBlockPress={handleBlockPress}
+        onClearChatPress={handleClearChatPress}
+        onViewContact={
+          !isGroup && participantId
+            ? () => {
+                router.push({
+                  pathname: "/contact-detail",
+                  params: {
+                    participantId,
+                    participantUsername,
+                    chatId,
+                    avatarUrl: participantAvatarUrl || undefined,
+                  },
+                });
+              }
+            : undefined
+        }
+      />
+
+      <MuteModal
+        visible={muteModalVisible}
+        onClose={() => setMuteModalVisible(false)}
+        onMute={handleMuteChats}
       />
 
       {/* Group Details Modal */}

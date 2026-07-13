@@ -8,6 +8,11 @@ interface ChatMenuModalProps {
   isContact: boolean;
   onToggleContact: () => void;
   onViewContact?: () => void;
+  isGroup?: boolean;
+  isBlocked?: boolean;
+  onMutePress?: () => void;
+  onBlockPress?: () => void;
+  onClearChatPress?: () => void;
 }
 
 export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
@@ -16,6 +21,11 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
   isContact,
   onToggleContact,
   onViewContact,
+  isGroup = false,
+  isBlocked = false,
+  onMutePress,
+  onBlockPress,
+  onClearChatPress,
 }) => {
   const { colors } = useAppTheme();
 
@@ -40,6 +50,54 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
             },
           ]}
         >
+          {onMutePress && (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                onMutePress();
+                onClose();
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                Silenciar notificações
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {!isGroup && onBlockPress && (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                onBlockPress();
+                onClose();
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.danger }]}>
+                {isBlocked ? "Desbloquear" : "Bloquear"}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {onClearChatPress && (
+            <TouchableOpacity
+              style={[
+                styles.menuItem,
+                onViewContact && {
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.border,
+                },
+              ]}
+              onPress={() => {
+                onClearChatPress();
+                onClose();
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                Limpar conversa
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {onViewContact && (
             <TouchableOpacity
               style={[

@@ -43,6 +43,18 @@ export default function MainMenuModal({
             style={styles.menuItem}
             onPress={() => {
               onClose();
+              router.push("/new-group");
+            }}
+          >
+            <Text style={[styles.menuItemText, { color: colors.text }]}>
+              Criar grupo
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              onClose();
               onThemePress();
             }}
           >
