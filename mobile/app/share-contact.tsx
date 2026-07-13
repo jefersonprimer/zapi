@@ -19,6 +19,10 @@ import { getContacts, createChat, type Contact, API_URL } from "@/services/api";
 import { insertMessageLocal } from "@/services/database";
 import { syncWorker } from "@/services/syncWorker";
 import { generateUUIDv7 } from "@/services/uuidv7";
+import {
+  buildForwardContent,
+  type ForwardedMessageData,
+} from "@/utils/forwardMessage";
 
 export default function ShareContactScreen() {
   const router = useRouter();
@@ -26,11 +30,21 @@ export default function ShareContactScreen() {
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  const { contactId, contactUsername, contactAvatarUrl } = useLocalSearchParams<{
-    contactId: string;
-    contactUsername: string;
+  const {
+    contactId,
+    contactUsername,
+    contactAvatarUrl,
+    mode,
+    forwardMessages,
+  } = useLocalSearchParams<{
+    contactId?: string;
+    contactUsername?: string;
     contactAvatarUrl?: string;
+    mode?: string;
+    forwardMessages?: string;
   }>();
+
+  const isForwardMode = mode === "forward";
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +83,72 @@ export default function ShareContactScreen() {
   }
 
   async function handleSend() {
-    if (!token || selected.size === 0 || !contactId || !contactUsername) return;
+    if (!token || selected.size === 0) return;
+
+    if (isForwardMode) {
+      if (!forwardMessages) return;
+      setActionLoading(true);
+      try {
+        let messagesToForward: ForwardedMessageData[] = [];
+        try {
+          messagesToForward = JSON.parse(forwardMessages);
+        } catch {
+          Alert.alert("Erro", "Dados da mensagem inválidos.");
+          return;
+        }
+
+        if (!Array.isArray(messagesToForward) || messagesToForward.length === 0) {
+          Alert.alert("Erro", "Nenhuma mensagem para encaminhar.");
+          return;
+        }
+
+        const selectedContacts = Array.from(selected.values());
+
+        for (const recipient of selectedContacts) {
+          const chatData = await createChat(token, recipient.contact_id);
+          const chatId = chatData.id;
+
+          for (const forwarded of messagesToForward) {
+            const localId = generateUUIDv7();
+            const content = buildForwardContent(forwarded);
+
+            await insertMessageLocal({
+              id: localId,
+              chat_id: chatId,
+              sender_id: user?.user_id || "",
+              sender_username: user?.username || "",
+              content,
+              image_url: null,
+              created_at: new Date().toISOString(),
+              status: "pending",
+            });
+
+            syncWorker.notifyMessagesChanged(chatId);
+            syncWorker.triggerSync(chatId);
+          }
+        }
+
+        Alert.alert("Sucesso", "Mensagem encaminhada com sucesso!", [
+          {
+            text: "OK",
+            onPress: () => {
+              router.back();
+            },
+          },
+        ]);
+      } catch (err: any) {
+        console.error("Failed to forward message:", err);
+        Alert.alert(
+          "Erro",
+          err.message || "Não foi possível encaminhar a mensagem.",
+        );
+      } finally {
+        setActionLoading(false);
+      }
+      return;
+    }
+
+    if (!contactId || !contactUsername) return;
     setActionLoading(true);
 
     try {
@@ -82,14 +161,11 @@ export default function ShareContactScreen() {
       });
 
       for (const recipient of selectedContacts) {
-        // 1. Create or get the chat for the recipient
         const chatData = await createChat(token, recipient.contact_id);
         const chatId = chatData.id;
 
-        // 2. Generate UUIDv7 for the message
         const localId = generateUUIDv7();
 
-        // 3. Create the local message structure
         const newLocalMsg = {
           id: localId,
           chat_id: chatId,
@@ -101,10 +177,8 @@ export default function ShareContactScreen() {
           status: "pending" as const,
         };
 
-        // 4. Save to local DB
         await insertMessageLocal(newLocalMsg);
 
-        // 5. Notify changes and trigger sync
         syncWorker.notifyMessagesChanged(chatId);
         syncWorker.triggerSync(chatId);
       }
@@ -125,34 +199,51 @@ export default function ShareContactScreen() {
     }
   }
 
-  const filteredContacts = contacts.filter((c) =>
-    c.username.toLowerCase().includes(query.toLowerCase()) ||
-    c.email.toLowerCase().includes(query.toLowerCase())
+  const filteredContacts = contacts.filter(
+    (c) =>
+      c.username.toLowerCase().includes(query.toLowerCase()) ||
+      c.email.toLowerCase().includes(query.toLowerCase()),
   );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Custom Header */}
-      <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: colors.headerBackground }]}>
+      <View
+        style={[
+          styles.customHeader,
+          { paddingTop: insets.top, backgroundColor: colors.headerBackground },
+        ]}
+      >
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <ArrowLeft size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, { color: colors.headerText }]}>Enviar para ...</Text>
+            <Text style={[styles.headerTitle, { color: colors.headerText }]}>
+              {isForwardMode ? "Encaminhar para..." : "Enviar para ..."}
+            </Text>
           </View>
         </View>
       </View>
 
       {actionLoading && (
-        <View style={[styles.overlayLoading, { backgroundColor: colors.modalOverlay }]}>
+        <View
+          style={[styles.overlayLoading, { backgroundColor: colors.modalOverlay }]}
+        >
           <ActivityIndicator size="large" color={colors.tint} />
         </View>
       )}
 
       <View style={styles.searchContainer}>
         <TextInput
-          style={[styles.searchInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
+          style={[
+            styles.searchInput,
+            {
+              color: colors.text,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+            },
+          ]}
           placeholder="Pesquisar contatos..."
           placeholderTextColor={colors.textSecondary}
           value={query}
@@ -172,9 +263,9 @@ export default function ShareContactScreen() {
             const isSelected = selected.has(item.contact_id);
             const nameInitial = item.username[0]?.toUpperCase() ?? "?";
             const avatarUri = item.avatar_url
-              ? (item.avatar_url.startsWith("http")
+              ? item.avatar_url.startsWith("http")
                 ? item.avatar_url
-                : `${API_URL}${item.avatar_url.startsWith("/") ? "" : "/"}${item.avatar_url}`)
+                : `${API_URL}${item.avatar_url.startsWith("/") ? "" : "/"}${item.avatar_url}`
               : null;
 
             return (
@@ -183,7 +274,12 @@ export default function ShareContactScreen() {
                 onPress={() => toggleContact(item)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.avatar, { backgroundColor: isDark ? "#2C2C2E" : "#e5e5ea" }]}>
+                <View
+                  style={[
+                    styles.avatar,
+                    { backgroundColor: isDark ? "#2C2C2E" : "#e5e5ea" },
+                  ]}
+                >
                   {avatarUri ? (
                     <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
                   ) : (
@@ -192,17 +288,26 @@ export default function ShareContactScreen() {
                     </Text>
                   )}
                 </View>
-                
+
                 <View style={styles.textContainer}>
-                  <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
-                  <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
+                  <Text style={[styles.username, { color: colors.text }]}>
+                    {item.username}
+                  </Text>
+                  <Text style={[styles.email, { color: colors.textSecondary }]}>
+                    {item.email}
+                  </Text>
                 </View>
 
-                <View style={[
-                  styles.checkbox,
-                  { borderColor: colors.border },
-                  isSelected && [styles.checked, { backgroundColor: colors.tint, borderColor: colors.tint }]
-                ]}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    { borderColor: colors.border },
+                    isSelected && [
+                      styles.checked,
+                      { backgroundColor: colors.tint, borderColor: colors.tint },
+                    ],
+                  ]}
+                >
                   {isSelected && <Check size={14} color="#fff" strokeWidth={3} />}
                 </View>
               </TouchableOpacity>
@@ -211,7 +316,9 @@ export default function ShareContactScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {query ? "Nenhum contato encontrado." : "Nenhum contato adicionado ainda."}
+                {query
+                  ? "Nenhum contato encontrado."
+                  : "Nenhum contato adicionado ainda."}
               </Text>
             </View>
           }
@@ -222,7 +329,10 @@ export default function ShareContactScreen() {
       {/* FAB Button */}
       {selected.size > 0 && !loading && (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.tint, bottom: insets.bottom + 24 }]}
+          style={[
+            styles.fab,
+            { backgroundColor: colors.tint, bottom: insets.bottom + 24 },
+          ]}
           onPress={handleSend}
           activeOpacity={0.8}
         >

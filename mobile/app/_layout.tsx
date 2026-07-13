@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View, Platform, AppState } from "react-native";
+import { ActivityIndicator, View, Platform, AppState, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -218,11 +219,19 @@ function RootLayoutInner() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <AppThemeProvider>
-        <RootLayoutInner />
-      </AppThemeProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <AuthProvider>
+        <AppThemeProvider>
+          <RootLayoutInner />
+        </AppThemeProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});
 

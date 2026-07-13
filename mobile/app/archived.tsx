@@ -28,6 +28,7 @@ import {
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
+import { resolveLastMessagePreview } from "@/utils/forwardMessage";
 
 const isChatMuted = (chat: ChatListItem) => {
   if (chat.notification_muted_forever) return true;
@@ -286,7 +287,8 @@ export default function ArchivedScreen() {
                     style={[styles.lastMessage, { color: colors.textSecondary }]}
                     numberOfLines={1}
                   >
-                    {item.last_message || "Nenhuma mensagem"}
+                    {resolveLastMessagePreview(item.last_message) ||
+                      "Nenhuma mensagem"}
                   </Text>
                   <View style={styles.chatStatusRow}>
                     {item.is_pinned && (

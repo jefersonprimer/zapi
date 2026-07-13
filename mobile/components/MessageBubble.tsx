@@ -29,6 +29,10 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import {
+  parseForwardContent,
+  getForwardPreviewText,
+} from "@/utils/forwardMessage";
 
 interface MessageBubbleProps {
   item: Message;
@@ -92,8 +96,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   let isContactShare = false;
   let contactShareData: { contact_id: string; username: string; avatar_url?: string | null } | null = null;
-  
-  if (item.content) {
+  const forwardContent = parseForwardContent(item.content);
+
+  if (item.content && !forwardContent) {
     try {
       const parsed = JSON.parse(item.content);
       if (parsed && parsed.type === "contact_share") {
@@ -187,6 +192,142 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             minute: "2-digit",
           })}
         </Text>
+      </View>
+    );
+  }
+
+  const renderStatusIcons = () => (
+    <View style={styles.statusIconContainer}>
+      {(item.status === "pending" ||
+        item.status === "uploading" ||
+        item.status === "sending") && (
+        <Clock size={13} color="rgba(255,255,255,0.7)" />
+      )}
+      {item.status === "failed" && (
+        <AlertCircle size={13} color="#FF3B30" />
+      )}
+      {item.status === "sent" && (
+        <Check size={14} color="rgba(255,255,255,0.8)" />
+      )}
+      {item.status === "delivered" && (
+        <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+      )}
+      {item.status === "read" && <CheckCheck size={14} color="#34B7F1" />}
+      {!item.status && (
+        <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+      )}
+    </View>
+  );
+
+  if (forwardContent) {
+    const forwarded = forwardContent.forwarded;
+    const forwardMediaUrl =
+      forwarded.local_file_path || forwarded.image_url;
+    const forwardFullUrl = forwardMediaUrl
+      ? forwardMediaUrl.startsWith("http") || forwardMediaUrl.startsWith("file://")
+        ? forwardMediaUrl
+        : `${API_URL}${forwardMediaUrl.startsWith("/") ? "" : "/"}${forwardMediaUrl}`
+      : null;
+    const showForwardImage =
+      forwardFullUrl &&
+      (forwarded.attachment_type === "image" ||
+        isImageUrl(forwardMediaUrl || ""));
+
+    return (
+      <View
+        style={[
+          styles.messageBubble,
+          isMine
+            ? [styles.myMessage, { backgroundColor: colors.tint }]
+            : [styles.theirMessage, { backgroundColor: colors.surface }],
+        ]}
+      >
+        {isGroup && !isMine && item.sender_username ? (
+          <Text style={[styles.senderUsername, { color: colors.tint }]}>
+            {item.sender_username}
+          </Text>
+        ) : null}
+
+        <View
+          style={[
+            styles.forwardBox,
+            {
+              borderLeftColor: isMine ? "#fff" : colors.tint,
+              backgroundColor: isMine
+                ? "rgba(255, 255, 255, 0.15)"
+                : isDark
+                  ? "rgba(0, 0, 0, 0.2)"
+                  : "rgba(0, 0, 0, 0.05)",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.forwardLabel,
+              { color: isMine ? "rgba(255,255,255,0.85)" : colors.tint },
+            ]}
+          >
+            Encaminhada
+          </Text>
+          <Text
+            style={[
+              styles.forwardSender,
+              { color: isMine ? "#fff" : colors.text },
+            ]}
+            numberOfLines={1}
+          >
+            {forwarded.sender_username}
+          </Text>
+          {showForwardImage ? (
+            <Image
+              source={{ uri: forwardFullUrl }}
+              style={styles.forwardImage}
+              resizeMode="cover"
+            />
+          ) : null}
+          <Text
+            style={[
+              styles.forwardText,
+              {
+                color: isMine
+                  ? "rgba(255,255,255,0.9)"
+                  : colors.textSecondary,
+              },
+            ]}
+            numberOfLines={3}
+          >
+            {getForwardPreviewText(forwarded)}
+          </Text>
+        </View>
+
+        {forwardContent.text ? (
+          <Text
+            style={
+              isMine
+                ? [styles.myMessageText, styles.forwardNewText]
+                : [styles.messageText, styles.forwardNewText, { color: colors.text }]
+            }
+          >
+            {forwardContent.text}
+          </Text>
+        ) : null}
+
+        <View style={styles.timeContainer}>
+          <Text
+            style={[
+              styles.messageTime,
+              isMine
+                ? styles.myMessageTime
+                : [styles.theirMessageTime, { color: colors.textSecondary }],
+            ]}
+          >
+            {new Date(item.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+          {isMine ? renderStatusIcons() : null}
+        </View>
       </View>
     );
   }
@@ -686,5 +827,33 @@ const styles = StyleSheet.create({
   contactShareButtonText: {
     fontSize: 14,
     fontWeight: "bold",
+  },
+  forwardBox: {
+    borderLeftWidth: 3,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 6,
+  },
+  forwardLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  forwardSender: {
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  forwardText: {
+    fontSize: 13,
+  },
+  forwardImage: {
+    width: "100%",
+    height: 80,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  forwardNewText: {
+    marginTop: 2,
   },
 });

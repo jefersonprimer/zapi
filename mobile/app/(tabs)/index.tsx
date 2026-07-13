@@ -88,6 +88,7 @@ import MuteModal from "@/components/MuteModal";
 import MainMenuModal from "@/components/MainMenuModal";
 import CreateListModal from "@/components/CreateListModal";
 import EditListModal from "@/components/EditListModal";
+import { resolveLastMessagePreview } from "@/utils/forwardMessage";
 
 const isChatMuted = (chat: ChatListItem) => {
   if (chat.notification_muted_forever) return true;
@@ -182,13 +183,7 @@ export default function ChatListScreen() {
   const [userLists, setUserLists] = useState<LocalChatList[]>([]);
   const [activeFilterId, setActiveFilterId] = useState<string>("all");
   const [createListModalVisible, setCreateListModalVisible] = useState(false);
-  const [activeMenuChat, setActiveMenuChat] = useState<ChatListItem | null>(
-    null,
-  );
   const [listSelectorVisible, setListSelectorVisible] = useState(false);
-  const [listSelectorChat, setListSelectorChat] = useState<ChatListItem | null>(
-    null,
-  );
   const [chatSelectorVisible, setChatSelectorVisible] = useState(false);
   const [selectorListId, setSelectorListId] = useState<string | null>(null);
   const [selectorChatIds, setSelectorChatIds] = useState<string[]>([]);
@@ -629,28 +624,6 @@ export default function ChatListScreen() {
       setLoading(false);
     }
   }, [token, loadLists]);
-
-  const handleToggleFavorite = async (chat: ChatListItem) => {
-    const nextFavorite = !chat.is_favorite;
-    try {
-      await setChatFavoriteLocal(chat.id, nextFavorite);
-      setChats((prev) =>
-        prev.map((c) =>
-          c.id === chat.id ? { ...c, is_favorite: nextFavorite } : c,
-        ),
-      );
-
-      if (token) {
-        await favoriteChat(token, chat.id, nextFavorite);
-      }
-    } catch (err) {
-      console.error("Error toggling favorite:", err);
-      Alert.alert("Erro", "Não foi possível alterar o status de favorito.");
-      await setChatFavoriteLocal(chat.id, !nextFavorite);
-      const updated = await getChatsFromLocal();
-      setChats(updated);
-    }
-  };
 
   const handleToggleFavoriteSelectedChats = async () => {
     if (selectedChatIds.length === 0) return;
@@ -1101,7 +1074,6 @@ export default function ChatListScreen() {
               style={styles.menuItem}
               onPress={() => {
                 setMoreMenuVisible(false);
-                setListSelectorChat(null);
                 setSelectorChatIds([]);
                 setListSelectorVisible(true);
               }}
@@ -1453,14 +1425,17 @@ export default function ChatListScreen() {
                       }
 
                       let iconElement = null;
-                      let displayMessage = item.last_message;
+                      const lastMessage = resolveLastMessagePreview(
+                        item.last_message,
+                      );
+                      let displayMessage = lastMessage;
 
                       if (
-                        item.last_message.startsWith("Audio") ||
-                        item.last_message.startsWith("🎵 Áudio")
+                        lastMessage.startsWith("Audio") ||
+                        lastMessage.startsWith("🎵 Áudio")
                       ) {
                         let durationStr = "";
-                        const parts = item.last_message.split("|duration:");
+                        const parts = lastMessage.split("|duration:");
                         if (parts.length > 1) {
                           const secs = parseInt(parts[1], 10);
                           if (!isNaN(secs)) {
@@ -1478,8 +1453,8 @@ export default function ChatListScreen() {
                           />
                         );
                       } else if (
-                        item.last_message === "Photo" ||
-                        item.last_message === "📷 Foto"
+                        lastMessage === "Photo" ||
+                        lastMessage === "📷 Foto"
                       ) {
                         displayMessage = "Foto";
                         iconElement = (
@@ -1490,8 +1465,8 @@ export default function ChatListScreen() {
                           />
                         );
                       } else if (
-                        item.last_message === "Video" ||
-                        item.last_message === "🎥 Vídeo"
+                        lastMessage === "Video" ||
+                        lastMessage === "🎥 Vídeo"
                       ) {
                         displayMessage = "Vídeo";
                         iconElement = (
@@ -1502,23 +1477,20 @@ export default function ChatListScreen() {
                           />
                         );
                       } else if (
-                        item.last_message &&
-                        (item.last_message === "File" ||
-                          item.last_message.startsWith("File|") ||
-                          item.last_message === "📁 Arquivo" ||
-                          item.last_message.startsWith("📁 Arquivo|") ||
-                          item.last_message.startsWith("Arquivo|"))
+                        lastMessage === "File" ||
+                        lastMessage.startsWith("File|") ||
+                        lastMessage === "📁 Arquivo" ||
+                        lastMessage.startsWith("📁 Arquivo|") ||
+                        lastMessage.startsWith("Arquivo|")
                       ) {
                         let fileName = "Arquivo";
                         let rawFileName = "";
-                        if (item.last_message.startsWith("File|")) {
-                          rawFileName = item.last_message.substring(5);
-                        } else if (
-                          item.last_message.startsWith("📁 Arquivo|")
-                        ) {
-                          rawFileName = item.last_message.substring(11);
-                        } else if (item.last_message.startsWith("Arquivo|")) {
-                          rawFileName = item.last_message.substring(8);
+                        if (lastMessage.startsWith("File|")) {
+                          rawFileName = lastMessage.substring(5);
+                        } else if (lastMessage.startsWith("📁 Arquivo|")) {
+                          rawFileName = lastMessage.substring(11);
+                        } else if (lastMessage.startsWith("Arquivo|")) {
+                          rawFileName = lastMessage.substring(8);
                         }
 
                         if (rawFileName) {
@@ -1543,7 +1515,7 @@ export default function ChatListScreen() {
                             style={{ marginRight: 4 }}
                           />
                         );
-                      } else if (item.last_message === "Message deleted") {
+                      } else if (lastMessage === "Message deleted") {
                         displayMessage = "Mensagem apagada";
                         iconElement = (
                           <Ban
@@ -1552,7 +1524,7 @@ export default function ChatListScreen() {
                             style={{ marginRight: 4 }}
                           />
                         );
-                      } else if (item.last_message === "Chamada efetuada") {
+                      } else if (lastMessage === "Chamada efetuada") {
                         displayMessage = "Chamada efetuada";
                         iconElement = (
                           <PhoneOutgoing
@@ -1561,7 +1533,7 @@ export default function ChatListScreen() {
                             style={{ marginRight: 4 }}
                           />
                         );
-                      } else if (item.last_message === "Chamada recebida") {
+                      } else if (lastMessage === "Chamada recebida") {
                         displayMessage = "Chamada recebida";
                         iconElement = (
                           <PhoneIncoming
@@ -1570,7 +1542,7 @@ export default function ChatListScreen() {
                             style={{ marginRight: 4 }}
                           />
                         );
-                      } else if (item.last_message === "Chamada perdida") {
+                      } else if (lastMessage === "Chamada perdida") {
                         displayMessage = "Chamada perdida";
                         iconElement = (
                           <PhoneMissed
@@ -1580,11 +1552,10 @@ export default function ChatListScreen() {
                           />
                         );
                       } else if (
-                        item.last_message &&
-                        item.last_message.startsWith('{"type":"contact_share"')
+                        lastMessage.startsWith('{"type":"contact_share"')
                       ) {
                         try {
-                          const parsed = JSON.parse(item.last_message);
+                          const parsed = JSON.parse(lastMessage);
                           displayMessage = parsed.username;
                         } catch {
                           displayMessage = "Contato";
@@ -1626,7 +1597,7 @@ export default function ChatListScreen() {
                           ]}
                           numberOfLines={1}
                         >
-                          {item.last_message}
+                          {displayMessage}
                         </Text>
                       );
                     })()}
@@ -1675,12 +1646,6 @@ export default function ChatListScreen() {
                           </Text>
                         </View>
                       )}
-                      <TouchableOpacity
-                        style={{ padding: 4, marginLeft: 2 }}
-                        onPress={() => setActiveMenuChat(item)}
-                      >
-                        <MoreVertical color={colors.textSecondary} size={16} />
-                      </TouchableOpacity>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -1877,180 +1842,6 @@ export default function ChatListScreen() {
         </View>
       </Modal>
 
-      {/* Individual Chat Options Menu */}
-      <Modal
-        visible={!!activeMenuChat}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setActiveMenuChat(null)}
-      >
-        <TouchableOpacity
-          style={[
-            styles.dialogOverlay,
-            { backgroundColor: colors.modalOverlay },
-          ]}
-          activeOpacity={1}
-          onPress={() => setActiveMenuChat(null)}
-        >
-          <View
-            style={[
-              styles.themeDialog,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.dialogTitle,
-                { color: colors.text, marginBottom: 8 },
-              ]}
-            >
-              {activeMenuChat?.name ??
-                activeMenuChat?.participant_username ??
-                "Opções de conversa"}
-            </Text>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => {
-                if (activeMenuChat) {
-                  handleToggleFavorite(activeMenuChat);
-                  setActiveMenuChat(null);
-                }
-              }}
-            >
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                {activeMenuChat?.is_favorite
-                  ? "⭐ Remover dos favoritos"
-                  : "⭐ Favoritar"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => {
-                if (activeMenuChat) {
-                  setListSelectorChat(activeMenuChat);
-                  const currentListsForChat = userLists
-                    .filter((l) => l.chat_ids.includes(activeMenuChat.id))
-                    .map((l) => l.id);
-                  setSelectorChatIds(currentListsForChat);
-                  setListSelectorVisible(true);
-                  setActiveMenuChat(null);
-                }
-              }}
-            >
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                📁 Adicionar à lista
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={async () => {
-                if (activeMenuChat && token) {
-                  const nextArchive = !activeMenuChat.is_archived;
-                  await archiveChat(token, activeMenuChat.id, nextArchive);
-                  await setChatArchivedLocal(activeMenuChat.id, nextArchive);
-                  const updated = await getChatsFromLocal();
-                  setChats(updated);
-                  setActiveMenuChat(null);
-                }
-              }}
-            >
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                📦 {activeMenuChat?.is_archived ? "Desarquivar" : "Arquivar"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => {
-                if (activeMenuChat) {
-                  setSelectedChatIds([activeMenuChat.id]);
-                  setMuteModalVisible(true);
-                  setActiveMenuChat(null);
-                }
-              }}
-            >
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                🔔{" "}
-                {activeMenuChat && isChatMuted(activeMenuChat)
-                  ? "Desativar silenciamento"
-                  : "Silenciar"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={async () => {
-                if (activeMenuChat && token) {
-                  if (activeMenuChat.is_group) {
-                    Alert.alert("Grupo", "Não é possível bloquear um grupo.");
-                    return;
-                  }
-                  if (activeMenuChat.participant_id) {
-                    const nextBlock = !activeMenuChat.is_blocked_by_me;
-                    if (nextBlock) {
-                      await blockContact(token, activeMenuChat.participant_id);
-                    } else {
-                      await unblockContact(
-                        token,
-                        activeMenuChat.participant_id,
-                      );
-                    }
-                    await setChatBlockedLocal(activeMenuChat.id, nextBlock);
-                    const updated = await getChatsFromLocal();
-                    setChats(updated);
-                  }
-                  setActiveMenuChat(null);
-                }
-              }}
-            >
-              <Text style={{ color: colors.danger, fontSize: 16 }}>
-                🚫{" "}
-                {activeMenuChat?.is_blocked_by_me ? "Desbloquear" : "Bloquear"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => {
-                if (activeMenuChat) {
-                  setSelectedChatIds([activeMenuChat.id]);
-                  handleDeleteSelectedChats();
-                  setActiveMenuChat(null);
-                }
-              }}
-            >
-              <Text style={{ color: colors.danger, fontSize: 16 }}>
-                🗑️ Apagar conversa
-              </Text>
-            </TouchableOpacity>
-
-            <View
-              style={[
-                styles.menuDivider,
-                { backgroundColor: colors.border, marginVertical: 8 },
-              ]}
-            />
-
-            <TouchableOpacity
-              style={styles.dialogCloseButton}
-              onPress={() => setActiveMenuChat(null)}
-            >
-              <Text
-                style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}
-              >
-                Fechar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
       {/* Add/Remove Chat lists Membership Modal */}
       <Modal
         visible={listSelectorVisible}
@@ -2058,7 +1849,6 @@ export default function ChatListScreen() {
         animationType="fade"
         onRequestClose={() => {
           setListSelectorVisible(false);
-          setListSelectorChat(null);
         }}
       >
         <TouchableOpacity
@@ -2069,7 +1859,6 @@ export default function ChatListScreen() {
           activeOpacity={1}
           onPress={() => {
             setListSelectorVisible(false);
-            setListSelectorChat(null);
           }}
         >
           <View
@@ -2188,7 +1977,6 @@ export default function ChatListScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setListSelectorVisible(false);
-                  setListSelectorChat(null);
                 }}
               >
                 <Text
@@ -2203,13 +1991,7 @@ export default function ChatListScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={async () => {
-                  if (listSelectorChat) {
-                    await handleUpdateChatLists(
-                      listSelectorChat.id,
-                      selectorChatIds,
-                    );
-                  } else if (selectedChatIds.length > 0) {
-                    // Bulk update for selectedChatIds
+                  if (selectedChatIds.length > 0) {
                     try {
                       for (const cid of selectedChatIds) {
                         await handleUpdateChatLists(cid, selectorChatIds);
@@ -2220,7 +2002,6 @@ export default function ChatListScreen() {
                     }
                   }
                   setListSelectorVisible(false);
-                  setListSelectorChat(null);
                 }}
               >
                 <Text

@@ -16,13 +16,20 @@ import {
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from "expo-audio";
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+} from "expo-audio";
 import {
   Phone as PhoneIcon,
   MoreVertical as MoreVerticalIcon,
   Video,
   ArrowLeft,
   Trash2,
+  Forward,
+  CornerUpLeft,
 } from "lucide-react-native";
 import {
   useLocalSearchParams,
@@ -44,6 +51,8 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { CallBubble } from "@/components/CallBubble";
 import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
+import { ForwardPreviewBar } from "@/components/ForwardPreviewBar";
+import { SwipeableMessageRow } from "@/components/SwipeableMessageRow";
 import { GroupDetailsModal } from "@/components/GroupDetailsModal";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -85,6 +94,11 @@ import { useCallStore } from "@/store/useCallStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isSameDay, getDateLabel } from "@/utils/date";
 import { validateAttachmentSize } from "@/utils/file";
+import {
+  extractForwardData,
+  buildForwardContent,
+  type ForwardedMessageData,
+} from "@/utils/forwardMessage";
 
 type ChatItem =
   | { type: "message"; data: Message }
@@ -105,7 +119,9 @@ export default function ChatScreen() {
   const chatId = params.chatId;
   const participantId = params.participantId || "";
   const participantUsername = params.participantUsername || "Unknown";
-  const [participantAvatarUrl, setParticipantAvatarUrl] = useState(params.participantAvatarUrl || "");
+  const [participantAvatarUrl, setParticipantAvatarUrl] = useState(
+    params.participantAvatarUrl || "",
+  );
 
   useEffect(() => {
     if (params.participantAvatarUrl) {
@@ -152,6 +168,8 @@ export default function ChatScreen() {
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [forwardingMessage, setForwardingMessage] =
+    useState<ForwardedMessageData | null>(null);
 
   const isSelectionMode = selectedMessageIds.length > 0;
 
@@ -183,7 +201,7 @@ export default function ChatScreen() {
       const db = await getDatabase();
       const chatRow = await db.getFirstAsync<{ is_group: number }>(
         "SELECT is_group FROM chats WHERE id = ?",
-        [chatId]
+        [chatId],
       );
       if (chatRow) {
         setIsGroup(chatRow.is_group === 1);
@@ -210,7 +228,6 @@ export default function ChatScreen() {
       loadChatDetails();
     }, [loadChatDetails]),
   );
-
 
   const chatItems = useMemo(() => {
     const items: ChatItem[] = [];
@@ -328,13 +345,47 @@ export default function ChatScreen() {
     clearSelection();
   };
 
+  const handleReencaminhar = useCallback(
+    (msg?: Message) => {
+      const target =
+        msg ?? (selectedMessages.length === 1 ? selectedMessages[0] : null);
+      if (!target) {
+        Alert.alert("Erro", "Selecione apenas uma mensagem para reencaminhar.");
+        return;
+      }
+      if (target.deleted_for_everyone) return;
+      setForwardingMessage(extractForwardData(target));
+      clearSelection();
+    },
+    [selectedMessages, clearSelection],
+  );
+
+  const handleEncaminhar = () => {
+    if (selectedMessages.length === 0) return;
+
+    const messagesToForward = selectedMessages.map((msg) =>
+      extractForwardData(msg),
+    );
+
+    clearSelection();
+    router.push({
+      pathname: "/share-contact",
+      params: {
+        mode: "forward",
+        forwardMessages: JSON.stringify(messagesToForward),
+      },
+    });
+  };
+
   // Check if participant is a contact
   useEffect(() => {
     if (!token || !participantId) return;
     (async () => {
       try {
         const contactsList = await getContacts(token);
-        const contact = contactsList.find((c) => c.contact_id === participantId);
+        const contact = contactsList.find(
+          (c) => c.contact_id === participantId,
+        );
         if (contact) {
           setIsContact(true);
           if (contact.avatar_url) {
@@ -493,18 +544,20 @@ export default function ChatScreen() {
     for (const msg of msgs) {
       if (msg.image_url && !msg.local_file_path && !msg.deleted_for_everyone) {
         // Cache in background
-        cacheMediaFile(msg.image_url, msg.id).then((localPath) => {
-          if (localPath.startsWith("file://")) {
-            // Update local state when caching completes
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === msg.id ? { ...m, local_file_path: localPath } : m
-              )
-            );
-          }
-        }).catch((err) => {
-          console.warn("Background media caching failed:", err);
-        });
+        cacheMediaFile(msg.image_url, msg.id)
+          .then((localPath) => {
+            if (localPath.startsWith("file://")) {
+              // Update local state when caching completes
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === msg.id ? { ...m, local_file_path: localPath } : m,
+                ),
+              );
+            }
+          })
+          .catch((err) => {
+            console.warn("Background media caching failed:", err);
+          });
       }
     }
   }, []);
@@ -515,16 +568,18 @@ export default function ChatScreen() {
       // 1. Carrega dados do SQLite local imediatamente
       const localMsgs = await getMessagesFromLocal(chatId);
       setMessages(localMsgs);
-      
+
       // Inicia cache das mídias locais em background
       cacheMediaForMessages(localMsgs);
 
       // Carrega histórico de ligações paralelamente
-      getCallHistory(token).then((callData) => {
-        setCalls(callData);
-      }).catch((err) => {
-        console.error("Failed to fetch call history:", err);
-      });
+      getCallHistory(token)
+        .then((callData) => {
+          setCalls(callData);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch call history:", err);
+        });
 
       // Marca o chat como lido na API e localmente
       markChatRead(token, chatId).catch(() => {});
@@ -562,7 +617,10 @@ export default function ChatScreen() {
         setMessages(localMsgs);
         cacheMediaForMessages(localMsgs);
       } catch (err) {
-        console.error("Failed to reload messages from SQLite on sync update:", err);
+        console.error(
+          "Failed to reload messages from SQLite on sync update:",
+          err,
+        );
       }
     });
 
@@ -583,48 +641,81 @@ export default function ChatScreen() {
         // Save new message locally
         if (data.message.sender_id === user?.user_id) {
           // If it's our own message coming back, remove the temporary pending message
-          getDatabase().then(async (db) => {
-            let attachmentType: "image" | "video" | "audio" | "document" | null = null;
-            if (data.message.attachments && data.message.attachments.length > 0) {
-              attachmentType = data.message.attachments[0].type;
-            } else if (data.message.image_url) {
-              const urlLower = data.message.image_url.toLowerCase();
-              if (urlLower.endsWith(".jpg") || urlLower.endsWith(".jpeg") || urlLower.endsWith(".png") || urlLower.endsWith(".gif") || urlLower.endsWith(".webp")) {
-                attachmentType = "image";
-              } else if (urlLower.endsWith(".mp4") || urlLower.endsWith(".mov") || urlLower.endsWith(".webm") || urlLower.endsWith(".mkv") || urlLower.endsWith(".avi")) {
-                attachmentType = "video";
-              } else if (urlLower.endsWith(".mp3") || urlLower.endsWith(".wav") || urlLower.endsWith(".m4a") || urlLower.endsWith(".caf") || urlLower.endsWith(".ogg") || urlLower.endsWith(".opus")) {
-                attachmentType = "audio";
-              } else {
-                attachmentType = "document";
+          getDatabase()
+            .then(async (db) => {
+              let attachmentType:
+                | "image"
+                | "video"
+                | "audio"
+                | "document"
+                | null = null;
+              if (
+                data.message.attachments &&
+                data.message.attachments.length > 0
+              ) {
+                attachmentType = data.message.attachments[0].type;
+              } else if (data.message.image_url) {
+                const urlLower = data.message.image_url.toLowerCase();
+                if (
+                  urlLower.endsWith(".jpg") ||
+                  urlLower.endsWith(".jpeg") ||
+                  urlLower.endsWith(".png") ||
+                  urlLower.endsWith(".gif") ||
+                  urlLower.endsWith(".webp")
+                ) {
+                  attachmentType = "image";
+                } else if (
+                  urlLower.endsWith(".mp4") ||
+                  urlLower.endsWith(".mov") ||
+                  urlLower.endsWith(".webm") ||
+                  urlLower.endsWith(".mkv") ||
+                  urlLower.endsWith(".avi")
+                ) {
+                  attachmentType = "video";
+                } else if (
+                  urlLower.endsWith(".mp3") ||
+                  urlLower.endsWith(".wav") ||
+                  urlLower.endsWith(".m4a") ||
+                  urlLower.endsWith(".caf") ||
+                  urlLower.endsWith(".ogg") ||
+                  urlLower.endsWith(".opus")
+                ) {
+                  attachmentType = "audio";
+                } else {
+                  attachmentType = "document";
+                }
               }
-            }
 
-            let pending: { id: string } | null = null;
-            if (attachmentType) {
-              pending = await db.getFirstAsync<{ id: string }>(
-                `SELECT m.id FROM messages m 
+              let pending: { id: string } | null = null;
+              if (attachmentType) {
+                pending = await db.getFirstAsync<{ id: string }>(
+                  `SELECT m.id FROM messages m 
                  JOIN attachments a ON m.id = a.message_id 
                  WHERE m.chat_id = ? AND m.sender_id = ? AND a.type = ? AND (m.status = 'pending' OR m.status = 'uploading' OR m.status = 'sending')`,
-                [chatId, user?.user_id || "", attachmentType]
-              );
-            } else {
-              pending = await db.getFirstAsync<{ id: string }>(
-                "SELECT id FROM messages WHERE chat_id = ? AND sender_id = ? AND content = ? AND (status = 'pending' OR status = 'uploading' OR status = 'sending')",
-                [chatId, user?.user_id || "", data.message.content || ""]
-              );
-            }
+                  [chatId, user?.user_id || "", attachmentType],
+                );
+              } else {
+                pending = await db.getFirstAsync<{ id: string }>(
+                  "SELECT id FROM messages WHERE chat_id = ? AND sender_id = ? AND content = ? AND (status = 'pending' OR status = 'uploading' OR status = 'sending')",
+                  [chatId, user?.user_id || "", data.message.content || ""],
+                );
+              }
 
-            if (pending) {
-              await db.runAsync("DELETE FROM messages WHERE id = ?", [pending.id]);
-            }
-            await saveMessages([data.message]);
-            syncWorker.notifyMessagesChanged(chatId);
-          }).catch(console.error);
+              if (pending) {
+                await db.runAsync("DELETE FROM messages WHERE id = ?", [
+                  pending.id,
+                ]);
+              }
+              await saveMessages([data.message]);
+              syncWorker.notifyMessagesChanged(chatId);
+            })
+            .catch(console.error);
         } else {
-          saveMessages([data.message]).then(() => {
-            syncWorker.notifyMessagesChanged(chatId);
-          }).catch(console.error);
+          saveMessages([data.message])
+            .then(() => {
+              syncWorker.notifyMessagesChanged(chatId);
+            })
+            .catch(console.error);
         }
 
         if (data.message.sender_id !== user?.user_id) {
@@ -638,35 +729,43 @@ export default function ChatScreen() {
 
     const unsubDelete = wsClient.on("message_deleted", (data) => {
       if (data.chat_id === chatId) {
-        deleteMessageLocal(data.message_id).then(() => {
-          syncWorker.notifyMessagesChanged(chatId);
-        }).catch(console.error);
+        deleteMessageLocal(data.message_id)
+          .then(() => {
+            syncWorker.notifyMessagesChanged(chatId);
+          })
+          .catch(console.error);
       }
     });
 
     const unsubClear = wsClient.on("messages_cleared", (data) => {
       if (data.chat_id === chatId) {
-        clearChatMessagesLocal(chatId).then(() => {
-          setCalls([]);
-          setClearedAt(new Date().toISOString());
-          syncWorker.notifyMessagesChanged(chatId);
-        }).catch(console.error);
+        clearChatMessagesLocal(chatId)
+          .then(() => {
+            setCalls([]);
+            setClearedAt(new Date().toISOString());
+            syncWorker.notifyMessagesChanged(chatId);
+          })
+          .catch(console.error);
       }
     });
 
     const unsubRead = wsClient.on("messages_read", (data) => {
       if (data.chat_id === chatId && data.reader_id !== user?.user_id) {
-        markSentMessagesReadLocal(chatId, user?.user_id || "", data.read_at).then(() => {
-          syncWorker.notifyMessagesChanged(chatId);
-        }).catch(console.error);
+        markSentMessagesReadLocal(chatId, user?.user_id || "", data.read_at)
+          .then(() => {
+            syncWorker.notifyMessagesChanged(chatId);
+          })
+          .catch(console.error);
       }
     });
 
     const unsubDelivered = wsClient.on("messages_delivered", (data) => {
       if (data.chat_id === chatId && data.receiver_id !== user?.user_id) {
-        markSentMessagesDeliveredLocal(chatId, user?.user_id || "").then(() => {
-          syncWorker.notifyMessagesChanged(chatId);
-        }).catch(console.error);
+        markSentMessagesDeliveredLocal(chatId, user?.user_id || "")
+          .then(() => {
+            syncWorker.notifyMessagesChanged(chatId);
+          })
+          .catch(console.error);
       }
     });
 
@@ -683,8 +782,13 @@ export default function ChatScreen() {
   async function handleSend() {
     const hasContent = content.trim().length > 0;
     const hasAttachment = selectedAttachment !== null;
+    const hasForward = forwardingMessage !== null;
 
-    if ((!hasContent && !hasAttachment && !sending) || !token || sending)
+    if (
+      (!hasContent && !hasAttachment && !hasForward && !sending) ||
+      !token ||
+      sending
+    )
       return;
 
     if (selectedAttachment && selectedAttachment.size !== undefined) {
@@ -692,7 +796,7 @@ export default function ChatScreen() {
         selectedAttachment.size,
         selectedAttachment.type,
         selectedAttachment.name,
-        selectedAttachment.mimeType || ""
+        selectedAttachment.mimeType || "",
       );
 
       if (!validation.valid) {
@@ -707,8 +811,15 @@ export default function ChatScreen() {
     // Save attachment and content info, then clear UI inputs immediately
     const attachmentInfo = selectedAttachment;
     const messageContentText = content;
+    const forwardData = forwardingMessage;
     setContent("");
     setSelectedAttachment(null);
+    setForwardingMessage(null);
+
+    let finalContent = messageContentText || null;
+    if (forwardData) {
+      finalContent = buildForwardContent(forwardData, messageContentText);
+    }
 
     // 1. Generate time-ordered UUIDv7 ID and create local message representation
     const localId = generateUUIDv7();
@@ -717,36 +828,40 @@ export default function ChatScreen() {
       chat_id: chatId,
       sender_id: user?.user_id || "",
       sender_username: user?.username || "",
-      content: messageContentText || null,
+      content: finalContent,
       image_url: null,
       local_file_path: attachmentInfo?.uri || null,
       created_at: new Date().toISOString(),
       status: attachmentInfo ? "uploading" : "pending",
       deleted_for_everyone: false,
-      attachments: attachmentInfo ? [{
-        id: localId + "_att",
-        message_id: localId,
-        type: attachmentInfo.type,
-        remote_url: "",
-        local_path: attachmentInfo.uri,
-        mime_type: attachmentInfo.mimeType || null,
-        width: null,
-        height: null,
-        duration: attachmentInfo.duration || null,
-        size: attachmentInfo.size || null,
-        sha256: null,
-        thumbnail_path: null,
-        download_status: "downloaded"
-      } as any] : undefined
+      attachments: attachmentInfo
+        ? [
+            {
+              id: localId + "_att",
+              message_id: localId,
+              type: attachmentInfo.type,
+              remote_url: "",
+              local_path: attachmentInfo.uri,
+              mime_type: attachmentInfo.mimeType || null,
+              width: null,
+              height: null,
+              duration: attachmentInfo.duration || null,
+              size: attachmentInfo.size || null,
+              sha256: null,
+              thumbnail_path: null,
+              download_status: "downloaded",
+            } as any,
+          ]
+        : undefined,
     };
 
     try {
       // 2. Insert into SQLite local database
       await insertMessageLocal(newLocalMsg);
-      
+
       // Notify SQLite changes to UI listeners to render the new message immediately
       syncWorker.notifyMessagesChanged(chatId);
-      
+
       // Trigger background upload and send in SyncWorker
       syncWorker.triggerSync(chatId);
     } catch (dbErr) {
@@ -1065,8 +1180,8 @@ export default function ChatScreen() {
         Platform.OS === "ios"
           ? "padding"
           : isKeyboardVisible
-          ? "height"
-          : undefined
+            ? "height"
+            : undefined
       }
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 0}
     >
@@ -1084,16 +1199,17 @@ export default function ChatScreen() {
       >
         <View style={styles.headerLeftContainer}>
           <TouchableOpacity
-            onPress={() =>
-              isSelectionMode ? clearSelection() : router.back()
-            }
+            onPress={() => (isSelectionMode ? clearSelection() : router.back())}
             style={styles.headerBackBtn}
           >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           {isSelectionMode ? (
             <Text
-              style={[styles.headerTitleText, { color: colors.text, marginLeft: 4 }]}
+              style={[
+                styles.headerTitleText,
+                { color: colors.text, marginLeft: 4 },
+              ]}
             >
               {selectedMessageIds.length}
             </Text>
@@ -1115,7 +1231,12 @@ export default function ChatScreen() {
                   });
                 }
               }}
-              style={{ flex: 1, flexDirection: "row", alignItems: "center", paddingVertical: 8 }}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 8,
+              }}
             >
               <View
                 style={{
@@ -1139,7 +1260,9 @@ export default function ChatScreen() {
                     style={{ width: "100%", height: "100%" }}
                   />
                 ) : (
-                  <Text style={{ color: "#FFF", fontSize: 14, fontWeight: "bold" }}>
+                  <Text
+                    style={{ color: "#FFF", fontSize: 14, fontWeight: "bold" }}
+                  >
                     {participantUsername[0]?.toUpperCase()}
                   </Text>
                 )}
@@ -1157,6 +1280,20 @@ export default function ChatScreen() {
         <View style={styles.headerRightContainer}>
           {isSelectionMode ? (
             <>
+              {selectedMessageIds.length === 1 && (
+                <TouchableOpacity
+                  onPress={() => handleReencaminhar()}
+                  style={styles.headerActionBtn}
+                >
+                  <CornerUpLeft size={22} color={colors.text} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={handleEncaminhar}
+                style={styles.headerActionBtn}
+              >
+                <Forward size={22} color={colors.text} />
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setDeleteModalVisible(true)}
                 style={styles.headerActionBtn}
@@ -1271,27 +1408,32 @@ export default function ChatScreen() {
                     </View>
                   </View>
                 )}
-                <TouchableOpacity
-                  onPress={() => {
-                    if (isSelectionMode) toggleMessageSelection(msg);
-                  }}
-                  onLongPress={() => toggleMessageSelection(msg)}
-                  delayLongPress={500}
-                  style={[
-                    styles.messageRow,
-                    isSelected && [
-                      styles.selectedMessageRow,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(10, 132, 255, 0.25)"
-                          : "rgba(0, 122, 255, 0.15)",
-                      },
-                    ],
-                  ]}
-                  activeOpacity={0.8}
+                <SwipeableMessageRow
+                  enabled={!isSelectionMode && !msg.deleted_for_everyone}
+                  onSwipeRight={() => handleReencaminhar(msg)}
+                  isSelected={isSelected}
+                  selectedBackgroundColor={
+                    isDark
+                      ? "rgba(10, 132, 255, 0.25)"
+                      : "rgba(0, 122, 255, 0.15)"
+                  }
                 >
-                  <MessageBubble item={msg} currentUserId={user?.user_id} isGroup={isGroup} />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (isSelectionMode) toggleMessageSelection(msg);
+                    }}
+                    onLongPress={() => toggleMessageSelection(msg)}
+                    delayLongPress={500}
+                    style={styles.messageRow}
+                    activeOpacity={0.8}
+                  >
+                    <MessageBubble
+                      item={msg}
+                      currentUserId={user?.user_id}
+                      isGroup={isGroup}
+                    />
+                  </TouchableOpacity>
+                </SwipeableMessageRow>
               </View>
             );
           } else {
@@ -1318,6 +1460,13 @@ export default function ChatScreen() {
           )
         }
       />
+
+      {forwardingMessage && (
+        <ForwardPreviewBar
+          forwarded={forwardingMessage}
+          onClear={() => setForwardingMessage(null)}
+        />
+      )}
 
       {selectedAttachment && (
         <AttachmentPreviewBar
@@ -1396,7 +1545,9 @@ export default function ChatScreen() {
 
             <SendOrMicButton
               hasContent={
-                content.trim().length > 0 || selectedAttachment !== null
+                content.trim().length > 0 ||
+                selectedAttachment !== null ||
+                forwardingMessage !== null
               }
               sending={sending}
               onSend={handleSend}

@@ -1,5 +1,6 @@
 import * as SQLite from "expo-sqlite";
 import { ChatListItem, Message, Attachment } from "./api";
+import { resolveLastMessagePreview } from "@/utils/forwardMessage";
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
@@ -193,7 +194,7 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.participant_avatar_url || null,
         chat.is_group ? 1 : 0,
         chat.name || null,
-        chat.last_message || null,
+        resolveLastMessagePreview(chat.last_message) || null,
         chat.last_message_at || null,
         chat.created_at,
         chat.unread_count || 0,
@@ -438,7 +439,17 @@ export async function insertMessageLocal(msg: {
   }
 
   // Update chat last message
-  let lastMsg = msg.content || "";
+  let lastMsg = resolveLastMessagePreview(msg.content || "");
+  if (lastMsg) {
+    try {
+      const parsed = JSON.parse(lastMsg);
+      if (parsed?.type === "contact_share") {
+        lastMsg = `👤 Contato: ${parsed.username || ""}`;
+      }
+    } catch {
+      // plain text / already resolved forward preview
+    }
+  }
   if (!lastMsg && (msg.local_file_path || msg.image_url || (msg.attachments && msg.attachments.length > 0))) {
     const url = msg.image_url || msg.local_file_path || (msg.attachments && msg.attachments[0]?.remote_url) || "";
     if (url.includes("images") || url.includes("photo") || (msg.attachments && msg.attachments[0]?.type === "image")) {
