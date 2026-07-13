@@ -17,6 +17,7 @@ import {
   getChatsFromLocal,
   saveChats,
   deleteChatLocal,
+  setChatPinnedLocal,
 } from "@/services/database";
 import {
   Camera,
@@ -37,6 +38,8 @@ import {
   PhoneMissed,
   Ban,
   User,
+  Pin,
+  PinOff,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -111,6 +114,26 @@ export default function ChatListScreen() {
     ]);
   };
 
+  const handlePinSelectedChats = async () => {
+    if (selectedChatIds.length === 0) return;
+
+    const selectedChats = chats.filter((c) => selectedChatIds.includes(c.id));
+    const isAllPinned = selectedChats.every((c) => c.is_pinned);
+    const newPinState = !isAllPinned;
+
+    try {
+      for (const chatId of selectedChatIds) {
+        await setChatPinnedLocal(chatId, newPinState);
+      }
+      setSelectedChatIds([]);
+      const updatedChats = await getChatsFromLocal();
+      setChats(updatedChats);
+    } catch (err) {
+      console.error("Error toggling pin status:", err);
+      Alert.alert("Erro", "Não foi possível alterar o status de fixação.");
+    }
+  };
+
   const loadChats = useCallback(async () => {
     if (!token) return;
     try {
@@ -179,6 +202,22 @@ export default function ChatListScreen() {
             </Text>
           </View>
           <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={handlePinSelectedChats}
+            >
+              {(() => {
+                const selectedChats = chats.filter((c) =>
+                  selectedChatIds.includes(c.id)
+                );
+                const isAllPinned = selectedChats.every((c) => c.is_pinned);
+                return isAllPinned ? (
+                  <PinOff color={colors.headerText} size={22} />
+                ) : (
+                  <Pin color={colors.headerText} size={22} />
+                );
+              })()}
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
               onPress={handleDeleteSelectedChats}
@@ -693,17 +732,26 @@ export default function ChatListScreen() {
                 >
                   {formatTime(item.last_message_at)}
                 </Text>
-                {item.unread_count > 0 && (
-                  <View
-                    style={[styles.badge, { backgroundColor: colors.badge }]}
-                  >
-                    <Text
-                      style={[styles.badgeText, { color: colors.badgeText }]}
+                <View style={styles.rightIconsRow}>
+                  {item.is_pinned && (
+                    <Pin
+                      color={colors.textSecondary}
+                      size={14}
+                      style={[styles.pinIcon, { transform: [{ rotate: "45deg" }] }]}
+                    />
+                  )}
+                  {item.unread_count > 0 && (
+                    <View
+                      style={[styles.badge, { backgroundColor: colors.badge }]}
                     >
-                      {item.unread_count}
-                    </Text>
-                  </View>
-                )}
+                      <Text
+                        style={[styles.badgeText, { color: colors.badgeText }]}
+                      >
+                        {item.unread_count}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </TouchableOpacity>
           )}
@@ -781,7 +829,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 6,
+  },
+  rightIconsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     marginTop: 6,
+  },
+  pinIcon: {
+    marginRight: 2,
   },
   badgeText: {
     fontSize: 11,

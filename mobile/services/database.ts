@@ -26,7 +26,8 @@ export async function initializeDatabase() {
       created_at TEXT,
       unread_count INTEGER DEFAULT 0,
       is_blocked_by_me INTEGER DEFAULT 0,
-      is_blocked_by_them INTEGER DEFAULT 0
+      is_blocked_by_them INTEGER DEFAULT 0,
+      is_pinned INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS messages (
@@ -78,6 +79,12 @@ export async function initializeDatabase() {
   // Migration logic to ensure existing tables get the new column
   try {
     await db.execAsync("ALTER TABLE chats ADD COLUMN participant_avatar_url TEXT;");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
+
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN is_pinned INTEGER DEFAULT 0;");
   } catch (err) {
     // Ignore error if column already exists
   }
@@ -208,7 +215,7 @@ export async function saveMessages(messages: Message[]) {
 export async function getChatsFromLocal(): Promise<ChatListItem[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
-    "SELECT * FROM chats ORDER BY last_message_at DESC, created_at DESC"
+    "SELECT * FROM chats ORDER BY is_pinned DESC, last_message_at DESC, created_at DESC"
   );
   return rows.map((r) => ({
     id: r.id,
@@ -223,6 +230,7 @@ export async function getChatsFromLocal(): Promise<ChatListItem[]> {
     unread_count: r.unread_count,
     is_blocked_by_me: r.is_blocked_by_me === 1,
     is_blocked_by_them: r.is_blocked_by_them === 1,
+    is_pinned: r.is_pinned === 1,
   }));
 }
 
@@ -580,4 +588,12 @@ export async function clearAllLocalData() {
   const db = await getDatabase();
   await db.execAsync("DELETE FROM messages;");
   await db.execAsync("DELETE FROM chats;");
+}
+
+export async function setChatPinnedLocal(chatId: string, isPinned: boolean) {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE chats SET is_pinned = ? WHERE id = ?",
+    [isPinned ? 1 : 0, chatId]
+  );
 }

@@ -39,6 +39,7 @@ export interface ChatListItem {
   is_blocked_by_me?: boolean;
   is_blocked_by_them?: boolean;
   cleared_at?: string | null;
+  is_pinned?: boolean;
 }
 
 export interface Attachment {
