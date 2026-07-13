@@ -6,7 +6,7 @@ const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreCl
 
 
 const getNotificationsModule = () => {
-  if (Platform.OS === "web" || isExpoGo) {
+  if (Platform.OS === "web") {
     return null;
   }
   try {
@@ -21,13 +21,29 @@ const Notifications = getNotificationsModule();
 
 if (Notifications) {
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
+    handleNotification: async (notification: any) => {
+      const data = notification.request.content.data;
+      const chatId = data?.chatId || data?.chat_id;
+      
+      let shouldShow = true;
+      try {
+        const { wsClient } = require("./ws");
+        const currentChatId = wsClient.activeChatId;
+        if (chatId && currentChatId && chatId === currentChatId) {
+          shouldShow = false;
+        }
+      } catch (err) {
+        console.warn("Error checking active chat ID for notification:", err);
+      }
+
+      return {
+        shouldShowAlert: shouldShow,
+        shouldPlaySound: shouldShow,
+        shouldSetBadge: false,
+        shouldShowBanner: shouldShow,
+        shouldShowList: shouldShow,
+      };
+    },
   });
 }
 

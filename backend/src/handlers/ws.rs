@@ -107,6 +107,9 @@ async fn handle_socket(socket: WebSocket, state: AppState, user_id: Uuid) {
                                     }
                                 });
                             }
+                            WsCommand::PresenceUpdate { state } => {
+                                state_clone.call_manager.update_presence(user_id, state);
+                            }
                         }
                     }
                 }
@@ -137,6 +140,8 @@ enum WsCommand {
     Ping,
     #[serde(rename = "delivered_ack")]
     DeliveredAck { chat_id: Uuid },
+    #[serde(rename = "presence_update")]
+    PresenceUpdate { state: crate::signaling::PresenceState },
 }
 
 async fn handle_signaling_message(

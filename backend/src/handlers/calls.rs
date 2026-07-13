@@ -7,7 +7,7 @@ use axum::{
 use chrono::Utc;
 use serde::Deserialize;
 use serde_json::json;
-use sqlx::PgPool;
+
 use uuid::Uuid;
 
 use crate::auth::AuthUser;
@@ -55,7 +55,7 @@ pub async fn start_call(
     let incoming_msg = serde_json::to_string(&WsMessage::CallStart {
         call_id: Some(call_id),
         target_user_id: caller_id,
-        caller_username: Some(caller_username),
+        caller_username: Some(caller_username.clone()),
         is_video: payload.is_video,
     }).unwrap();
 
@@ -64,52 +64,21 @@ pub async fn start_call(
     // If Bob is offline, Bob's peer check returns false.
     let notified = state.call_manager.send_to_user(callee_id, &incoming_msg);
     if !notified {
-        // Callee offline
-        state.call_manager.terminate_call(call_id, "callee offline").ok();
-        
-        // Log missed call directly to DB since Bob is offline
-        let pool: PgPool = state.pool.clone();
-        let call_manager = state.call_manager.clone();
+        // Recipient is offline. Send a high-priority push notification instead of terminating!
+        let pool = state.pool.clone();
+        let caller_username_clone = caller_username.clone();
+        let is_video = payload.is_video.unwrap_or(false);
         tokio::spawn(async move {
-            sqlx::query(
-                "INSERT INTO call_logs (caller_id, callee_id, status, duration) VALUES ($1, $2, $3, $4)"
+            crate::push::send_call_push_notification(
+                &pool,
+                callee_id,
+                &caller_username_clone,
+                call_id,
+                caller_id,
+                is_video,
             )
-            .bind(caller_id)
-            .bind(callee_id)
-            .bind("missed")
-            .bind(0)
-            .execute(&pool)
-            .await
-            .ok();
-
-            // Notify participants of chat update
-            let chat_id: Option<(Uuid,)> = sqlx::query_as(
-                "SELECT c.id FROM chats c
-                 JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
-                 JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.user_id = $2
-                 WHERE c.is_group = false
-                 LIMIT 1"
-            )
-            .bind(caller_id)
-            .bind(callee_id)
-            .fetch_optional(&pool)
-            .await
-            .unwrap_or_default();
-
-            if let Some((cid,)) = chat_id {
-                let update_msg = serde_json::json!({
-                    "type": "chat_list_update",
-                    "chat_id": cid
-                }).to_string();
-                call_manager.send_to_user(caller_id, &update_msg);
-                call_manager.send_to_user(callee_id, &update_msg);
-            }
+            .await;
         });
-
-        return Err((
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "Recipient is offline" })),
-        ));
     }
 
     Ok((StatusCode::CREATED, Json(json!({ "call_id": call_id }))))

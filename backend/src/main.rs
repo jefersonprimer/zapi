@@ -31,6 +31,9 @@ async fn main() {
         .await
         .expect("failed to run migrations");
 
+    // Start background notification queue worker
+    push::start_notification_worker(pool.clone());
+
     let state = AppState {
         pool,
         ws: ws::WsState::default(),

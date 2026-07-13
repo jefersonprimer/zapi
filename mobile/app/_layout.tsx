@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Platform, AppState } from "react-native";
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -14,6 +14,8 @@ import { authFetch, API_URL } from "@/services/api";
 import { initializeDatabase } from "@/services/database";
 import { syncWorker } from "@/services/syncWorker";
 import CallOverlay from "@/components/CallOverlay";
+import { useCallStore } from "@/store/useCallStore";
+import * as Notifications from "expo-notifications";
 
 function InitialLayout() {
   const { token, user, isLoading } = useAuth();
@@ -41,7 +43,49 @@ function InitialLayout() {
       wsClient.init(token);
       syncWorker.init(token);
       voiceCallManager.init(token, user.user_id);
+
+      // Listen for global message notifications when the app is in the foreground
+      // but the user is not actively inside the chat screen for this message
+      const unsub = wsClient.on("new_message_notification", async (data) => {
+        const chatId = data.chat_id;
+        const message = data.message;
+        const currentChatId = wsClient.activeChatId;
+
+        // If we are already in this chat, do not display a notification
+        if (chatId && currentChatId && chatId === currentChatId) {
+          return;
+        }
+
+        try {
+          if (Platform.OS !== "web") {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: message.sender_username || "Nova mensagem",
+                body: message.content || "Mídia",
+                data: { chatId },
+                sound: "default",
+              },
+              trigger: null,
+            });
+          }
+        } catch (err) {
+          console.warn("Failed to schedule local notification:", err);
+        }
+      });
+
+      // Listen to AppState (foreground/background transitions) to update presence state
+      const handleAppStateChange = (nextAppState: string) => {
+        if (nextAppState === "active") {
+          wsClient.send({ type: "presence_update", state: "active" });
+        } else if (nextAppState.match(/inactive|background/)) {
+          wsClient.send({ type: "presence_update", state: "background" });
+        }
+      };
+      const appStateSubscription = AppState.addEventListener("change", handleAppStateChange);
+
       return () => {
+        appStateSubscription.remove();
+        unsub();
         voiceCallManager.disconnect();
         wsClient.disconnect();
         syncWorker.disconnect();
@@ -49,21 +93,76 @@ function InitialLayout() {
     }
   }, [token, user]);
 
-  // Register push notifications
+  // Register push notifications and handle taps
   useEffect(() => {
     if (!token) return;
+    
+    // Register token
     (async () => {
       const pushToken = await registerForPushNotifications();
       if (pushToken) {
         try {
+          const deviceName = Platform.select({
+            android: "Android Device",
+            ios: "iOS Device",
+            default: "Web/Other Device",
+          });
           await authFetch(`${API_URL}/push/register`, token, {
             method: "POST",
-            body: JSON.stringify({ token: pushToken }),
+            body: JSON.stringify({
+              token: pushToken,
+              platform: Platform.OS,
+              device_name: deviceName,
+            }),
           });
         } catch {}
       }
     })();
-  }, [token]);
+
+    // Handle clicks / redirects
+    if (Platform.OS !== "web") {
+      const handleNotificationData = (data: any) => {
+        const chatId = data?.chatId || data?.chat_id;
+        const type = data?.type;
+
+        if (type === "incoming_call" && data.callId) {
+          const store = useCallStore.getState();
+          if (store.callState === "idle") {
+            store.receiveCall(
+              data.callId,
+              data.callerId,
+              data.callerUsername || "Unknown User",
+              !!data.isVideo
+            );
+            if (user) {
+              voiceCallManager.init(token, user.user_id);
+            }
+          }
+        } else if (chatId) {
+          router.push({
+            pathname: "/chat",
+            params: { chatId }
+          });
+        }
+      };
+
+      // Check if launched by notification (cold start)
+      Notifications.getLastNotificationResponseAsync().then((response: any) => {
+        if (response) {
+          handleNotificationData(response.notification.request.content.data);
+        }
+      });
+
+      // Listen for notification taps while app is running (foreground/background)
+      const subscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
+        handleNotificationData(response.notification.request.content.data);
+      });
+
+      return () => {
+        subscription.remove();
+      };
+    }
+  }, [token, user, router]);
 
   // Protected routes redirection
   useEffect(() => {

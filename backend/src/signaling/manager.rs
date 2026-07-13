@@ -28,6 +28,13 @@ pub struct ActiveCall {
     pub created_at: chrono::DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PresenceState {
+    Active,
+    Background,
+}
+
 #[derive(Clone, Default)]
 pub struct CallManager {
     // Maps call_id -> ActiveCall details
@@ -36,6 +43,8 @@ pub struct CallManager {
     pub user_calls: Arc<DashMap<Uuid, Uuid>>,
     // Maps user_id -> WebSocket sender channel (active connections)
     pub peers: Arc<DashMap<Uuid, mpsc::UnboundedSender<String>>>,
+    // Maps user_id -> PresenceState
+    pub presence: Arc<DashMap<Uuid, PresenceState>>,
 }
 
 impl CallManager {
@@ -44,16 +53,19 @@ impl CallManager {
             active_calls: Arc::new(DashMap::new()),
             user_calls: Arc::new(DashMap::new()),
             peers: Arc::new(DashMap::new()),
+            presence: Arc::new(DashMap::new()),
         }
     }
 
     // Peer Management
     pub fn register_peer(&self, user_id: Uuid, tx: mpsc::UnboundedSender<String>) {
         self.peers.insert(user_id, tx);
+        self.presence.insert(user_id, PresenceState::Active);
     }
 
     pub fn unregister_peer(&self, user_id: Uuid) {
         self.peers.remove(&user_id);
+        self.presence.remove(&user_id);
         // If the user disconnected, clean up any active calls they were in
         if let Some((_, call_id)) = self.user_calls.remove(&user_id) {
             self.terminate_call(call_id, "peer disconnected").ok();
@@ -70,6 +82,14 @@ impl CallManager {
 
     pub fn is_online(&self, user_id: Uuid) -> bool {
         self.peers.contains_key(&user_id)
+    }
+
+    pub fn get_presence(&self, user_id: Uuid) -> Option<PresenceState> {
+        self.presence.get(&user_id).map(|r| *r)
+    }
+
+    pub fn update_presence(&self, user_id: Uuid, state: PresenceState) {
+        self.presence.insert(user_id, state);
     }
 
     // Call Actions

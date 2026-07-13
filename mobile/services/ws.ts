@@ -92,6 +92,10 @@ export class WsClient {
     this.send({ type: "unsubscribe", chat_id: chatId });
   }
 
+  get activeChatId(): string | null {
+    return this.chatId;
+  }
+
   on(type: string, handler: MessageHandler) {
     const existing = this.handlers.get(type) ?? [];
     existing.push(handler);

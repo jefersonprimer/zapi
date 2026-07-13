@@ -177,7 +177,8 @@ pub async fn send_message(
         .broadcast(chat_id, &serde_json::to_string(&json!({"type": "new_message", "message": msg})).unwrap())
         .await;
 
-    // Notify all participants of this chat to refresh their chat lists
+    // Notify all participants of this chat to refresh their chat lists,
+    // and deliver websocket or push notifications.
     let participants: Vec<(Uuid,)> = sqlx::query_as(
         "SELECT user_id FROM chat_participants WHERE chat_id = $1"
     )
@@ -186,7 +187,38 @@ pub async fn send_message(
     .await
     .unwrap_or_default();
 
-    for (p_id,) in participants {
+    let mut offline_user_ids = Vec::new();
+    for (p_id,) in &participants {
+        let p_id = *p_id;
+        if p_id != auth.0 {
+            let presence = call_manager.get_presence(p_id);
+            match presence {
+                Some(crate::signaling::PresenceState::Active) => {
+                    // ONLINE_ACTIVE: only WS
+                    let ws_notif = json!({
+                        "type": "new_message_notification",
+                        "chat_id": chat_id,
+                        "message": msg.clone()
+                    }).to_string();
+                    call_manager.send_to_user(p_id, &ws_notif);
+                }
+                Some(crate::signaling::PresenceState::Background) => {
+                    // ONLINE_BACKGROUND: WS + Push
+                    let ws_notif = json!({
+                        "type": "new_message_notification",
+                        "chat_id": chat_id,
+                        "message": msg.clone()
+                    }).to_string();
+                    call_manager.send_to_user(p_id, &ws_notif);
+                    offline_user_ids.push(p_id);
+                }
+                None => {
+                    // OFFLINE: only Push
+                    offline_user_ids.push(p_id);
+                }
+            }
+        }
+
         let update_msg = json!({
             "type": "chat_list_update",
             "chat_id": chat_id
@@ -232,9 +264,12 @@ pub async fn send_message(
     } else {
         push_body
     };
-    tokio::spawn(async move {
-        crate::push::send_push_notification(&pool, chat_id, &sender_name, &push_text, auth.0).await;
-    });
+
+    if !offline_user_ids.is_empty() {
+        tokio::spawn(async move {
+            crate::push::send_push_notification(&pool, chat_id, &sender_name, &push_text, offline_user_ids).await;
+        });
+    }
 
     Ok(Json(json!({ "message": msg })))
 }
