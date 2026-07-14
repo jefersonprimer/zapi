@@ -10,6 +10,7 @@ export function useWebRTC() {
     callerUsername,
     calleeId,
     calleeUsername,
+    remoteAvatarUrl,
     isMuted,
     isSpeakerEnabled,
     isVideo,
@@ -47,8 +48,13 @@ export function useWebRTC() {
     switchCameraStore();
   }, [switchCameraStore]);
 
-  const startCall = useCallback((targetUserId: string, targetUsername: string, isVideo: boolean = false) => {
-    voiceCallManager.startCall(targetUserId, targetUsername, isVideo);
+  const startCall = useCallback((
+    targetUserId: string,
+    targetUsername: string,
+    isVideo: boolean = false,
+    avatarUrl?: string | null,
+  ) => {
+    voiceCallManager.startCall(targetUserId, targetUsername, isVideo, avatarUrl);
   }, []);
 
   const acceptCall = useCallback(() => {
@@ -70,6 +76,7 @@ export function useWebRTC() {
     callerUsername,
     calleeId,
     calleeUsername,
+    remoteAvatarUrl,
     isMuted,
     isSpeakerEnabled,
     isVideo,

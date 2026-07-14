@@ -151,7 +151,7 @@ async fn handle_signaling_message(
     tx: &tokio::sync::mpsc::UnboundedSender<String>,
 ) -> Result<(), String> {
     match msg {
-        WsMessage::CallStart { call_id: _, target_user_id, caller_username: _, is_video } => {
+        WsMessage::CallStart { call_id: _, target_user_id, caller_username: _, caller_avatar_url: _, is_video } => {
             // Check if caller is blocked by callee or if callee has call privacy settings
             let callee_privacy: Option<(String, bool, bool)> = sqlx::query_as(
                 r#"
@@ -195,14 +195,14 @@ async fn handle_signaling_message(
                 }
             }
 
-            // Fetch caller's username
-            let caller_username = sqlx::query_scalar::<_, String>(
-                "SELECT username FROM users WHERE id = $1"
+            // Fetch caller's username and avatar
+            let (caller_username, caller_avatar_url) = sqlx::query_as::<_, (String, Option<String>)>(
+                "SELECT username, avatar_url FROM users WHERE id = $1"
             )
             .bind(user_id)
             .fetch_one(&state.pool)
             .await
-            .unwrap_or_else(|_| "Unknown User".to_string());
+            .unwrap_or_else(|_| ("Unknown User".to_string(), None));
 
             match state.call_manager.start_call(user_id, target_user_id) {
                 Ok(call_id) => {
@@ -211,6 +211,7 @@ async fn handle_signaling_message(
                         call_id: Some(call_id),
                         target_user_id: user_id, // Target sees Alice as the caller
                         caller_username: Some(caller_username),
+                        caller_avatar_url,
                         is_video,
                     };
                     let incoming_json = serde_json::to_string(&incoming).unwrap();
@@ -220,6 +221,7 @@ async fn handle_signaling_message(
                             call_id: Some(call_id),
                             target_user_id,
                             caller_username: None,
+                            caller_avatar_url: None,
                             is_video,
                         };
                         let _ = tx.send(serde_json::to_string(&ack).unwrap());

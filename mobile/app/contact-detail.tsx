@@ -496,6 +496,8 @@ export default function ContactDetailScreen() {
     voiceCallManager.startCall(
       participantId,
       participantUsername || contact?.username || "Contato",
+      false,
+      contact?.avatar_url || avatarUrl || null,
     );
   };
 
@@ -505,6 +507,7 @@ export default function ContactDetailScreen() {
       participantId,
       participantUsername || contact?.username || "Contato",
       true,
+      contact?.avatar_url || avatarUrl || null,
     );
   };
 

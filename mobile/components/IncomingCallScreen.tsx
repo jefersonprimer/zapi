@@ -1,28 +1,43 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Phone, PhoneOff, Video } from "lucide-react-native";
 import { useCallStore } from "../store/useCallStore";
+import { API_URL } from "../services/api";
 
 interface IncomingCallScreenProps {
   callerUsername: string;
+  avatarUrl?: string | null;
   onAccept: () => void;
   onDecline: () => void;
 }
 
+function resolveAvatarUri(avatarUrl?: string | null): string | null {
+  if (!avatarUrl) return null;
+  return avatarUrl.startsWith("http")
+    ? avatarUrl
+    : `${API_URL}${avatarUrl.startsWith("/") ? "" : "/"}${avatarUrl}`;
+}
+
 export default function IncomingCallScreen({
   callerUsername,
+  avatarUrl,
   onAccept,
   onDecline,
 }: IncomingCallScreenProps) {
   const isVideo = useCallStore((state) => state.isVideo);
+  const avatarUri = resolveAvatarUri(avatarUrl);
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={[styles.avatarContainer, isVideo && styles.videoAvatarContainer]}>
-          <Text style={[styles.avatarText, isVideo && styles.videoAvatarText]}>
-            {callerUsername.slice(0, 2).toUpperCase()}
-          </Text>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+          ) : (
+            <Text style={[styles.avatarText, isVideo && styles.videoAvatarText]}>
+              {callerUsername.slice(0, 2).toUpperCase()}
+            </Text>
+          )}
         </View>
 
         <Text style={styles.callerName}>{callerUsername}</Text>
@@ -80,11 +95,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
+    overflow: "hidden",
     shadowColor: "#3b82f6",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 8,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   avatarText: {
     fontSize: 44,

@@ -133,7 +133,8 @@ function InitialLayout() {
               data.callId,
               data.callerId,
               data.callerUsername || "Unknown User",
-              !!data.isVideo
+              !!data.isVideo,
+              data.callerAvatarUrl || null,
             );
             if (user) {
               voiceCallManager.init(token, user.user_id);

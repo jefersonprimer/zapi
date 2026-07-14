@@ -16,6 +16,7 @@ interface CallBubbleProps {
   currentUserId?: string;
   participantId: string;
   participantUsername: string;
+  participantAvatarUrl?: string;
   showDateHeader?: boolean;
 }
 
@@ -24,6 +25,7 @@ export function CallBubble({
   currentUserId,
   participantId,
   participantUsername,
+  participantAvatarUrl,
   showDateHeader = false,
 }: CallBubbleProps) {
   const { colors, isDark } = useAppTheme();
@@ -115,7 +117,9 @@ export function CallBubble({
                 onPress={() => {
                   voiceCallManager.startCall(
                     participantId,
-                    participantUsername || "User"
+                    participantUsername || "User",
+                    false,
+                    participantAvatarUrl || null,
                   );
                 }}
               >

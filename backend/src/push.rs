@@ -71,6 +71,7 @@ pub async fn send_call_push_notification(
     call_id: Uuid,
     caller_id: Uuid,
     is_video: bool,
+    caller_avatar_url: Option<&str>,
 ) {
     let devices: Vec<(String,)> = sqlx::query_as(
         "SELECT token FROM device_tokens WHERE user_id = $1",
@@ -95,6 +96,7 @@ pub async fn send_call_push_notification(
         "callId": call_id.to_string(),
         "callerId": caller_id.to_string(),
         "callerUsername": caller_name.to_string(),
+        "callerAvatarUrl": caller_avatar_url,
         "isVideo": is_video
     });
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Camera, CameraOff, RefreshCw, Mic, MicOff, Volume2, VolumeX, PhoneOff } from "lucide-react-native";
 import MuteButton from "../components/MuteButton";
 import SpeakerButton from "../components/SpeakerButton";
@@ -8,9 +8,11 @@ import CallTimer from "../components/CallTimer";
 import ConnectionStatus from "../components/ConnectionStatus";
 import { type CallState } from "../store/useCallStore";
 import VideoView from "../components/VideoView";
+import { API_URL } from "../services/api";
 
 interface CallScreenProps {
   participantUsername: string;
+  avatarUrl?: string | null;
   callState: CallState;
   isMuted: boolean;
   isSpeakerEnabled: boolean;
@@ -27,8 +29,16 @@ interface CallScreenProps {
   onEndCall: () => void;
 }
 
+function resolveAvatarUri(avatarUrl?: string | null): string | null {
+  if (!avatarUrl) return null;
+  return avatarUrl.startsWith("http")
+    ? avatarUrl
+    : `${API_URL}${avatarUrl.startsWith("/") ? "" : "/"}${avatarUrl}`;
+}
+
 export default function CallScreen({
   participantUsername,
+  avatarUrl,
   callState,
   isMuted,
   isSpeakerEnabled,
@@ -45,6 +55,7 @@ export default function CallScreen({
   onEndCall,
 }: CallScreenProps) {
   const isConnected = callState === "connected";
+  const avatarUri = resolveAvatarUri(avatarUrl);
 
   if (isVideo) {
     return (
@@ -55,9 +66,13 @@ export default function CallScreen({
         ) : (
           <View style={styles.remotePlaceholder}>
             <View style={styles.avatarContainer}>
-              <Text style={styles.avatarText}>
-                {participantUsername.slice(0, 2).toUpperCase()}
-              </Text>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarText}>
+                  {participantUsername.slice(0, 2).toUpperCase()}
+                </Text>
+              )}
             </View>
             <Text style={styles.username}>{participantUsername}</Text>
             <ConnectionStatus state={callState} />
@@ -151,9 +166,13 @@ export default function CallScreen({
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>
-            {participantUsername.slice(0, 2).toUpperCase()}
-          </Text>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarText}>
+              {participantUsername.slice(0, 2).toUpperCase()}
+            </Text>
+          )}
         </View>
 
         <Text style={styles.username}>{participantUsername}</Text>
@@ -220,6 +239,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   avatarText: {
     fontSize: 50,

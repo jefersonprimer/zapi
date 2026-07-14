@@ -62,7 +62,13 @@ class VoiceCallManager {
         const isVideoCall = !!msg.is_video;
         if (store.callState === "calling") {
           // I am the caller: Server generated a call_id, let's update it
-          store.initiateCall(msg.call_id, msg.target_user_id, store.calleeUsername || "User", isVideoCall);
+          store.initiateCall(
+            msg.call_id,
+            msg.target_user_id,
+            store.calleeUsername || "User",
+            isVideoCall,
+            store.remoteAvatarUrl,
+          );
         } else {
           // I am the callee: This is an incoming call alert
           if (store.callState !== "idle") {
@@ -71,7 +77,13 @@ class VoiceCallManager {
           }
           // Shift to ringing state and display incoming calling screen
           const callerName = msg.caller_username || `User_${msg.target_user_id.slice(0, 4)}`;
-          store.receiveCall(msg.call_id, msg.target_user_id, callerName, isVideoCall);
+          store.receiveCall(
+            msg.call_id,
+            msg.target_user_id,
+            callerName,
+            isVideoCall,
+            msg.caller_avatar_url || null,
+          );
           this.send({ type: "call:ringing", call_id: msg.call_id, caller_id: msg.target_user_id });
         }
         break;
@@ -155,7 +167,12 @@ class VoiceCallManager {
   }
 
   // Initiate calling Bob
-  async startCall(targetUserId: string, targetUsername: string, isVideo: boolean = false) {
+  async startCall(
+    targetUserId: string,
+    targetUsername: string,
+    isVideo: boolean = false,
+    avatarUrl?: string | null,
+  ) {
     const store = useCallStore.getState();
 
     if (Platform.OS !== "web") {
@@ -184,7 +201,7 @@ class VoiceCallManager {
       }
     }
 
-    store.initiateCall("", targetUserId, targetUsername, isVideo);
+    store.initiateCall("", targetUserId, targetUsername, isVideo, avatarUrl);
     this.send({ type: "call:start", target_user_id: targetUserId, is_video: isVideo });
   }
 

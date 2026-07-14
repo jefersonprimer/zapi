@@ -19,6 +19,7 @@ interface CallStoreState {
   callerUsername: string | null;
   calleeId: string | null;
   calleeUsername: string | null;
+  remoteAvatarUrl: string | null;
   isMuted: boolean;
   isSpeakerEnabled: boolean;
   isVideo: boolean;
@@ -30,8 +31,20 @@ interface CallStoreState {
 
   // Actions
   setCallState: (state: CallState) => void;
-  initiateCall: (callId: string, calleeId: string, calleeUsername: string, isVideo?: boolean) => void;
-  receiveCall: (callId: string, callerId: string, callerUsername: string, isVideo?: boolean) => void;
+  initiateCall: (
+    callId: string,
+    calleeId: string,
+    calleeUsername: string,
+    isVideo?: boolean,
+    avatarUrl?: string | null,
+  ) => void;
+  receiveCall: (
+    callId: string,
+    callerId: string,
+    callerUsername: string,
+    isVideo?: boolean,
+    avatarUrl?: string | null,
+  ) => void;
   setStreams: (local: any | null, remote: any | null) => void;
   toggleMute: () => void;
   toggleSpeaker: () => void;
@@ -48,6 +61,7 @@ export const useCallStore = create<CallStoreState>((set) => ({
   callerUsername: null,
   calleeId: null,
   calleeUsername: null,
+  remoteAvatarUrl: null,
   isMuted: false,
   isSpeakerEnabled: false,
   isVideo: false,
@@ -59,7 +73,7 @@ export const useCallStore = create<CallStoreState>((set) => ({
 
   setCallState: (callState) => set({ callState }),
 
-  initiateCall: (callId, calleeId, calleeUsername, isVideo = false) =>
+  initiateCall: (callId, calleeId, calleeUsername, isVideo = false, avatarUrl = null) =>
     set({
       callState: "calling",
       callId,
@@ -67,6 +81,7 @@ export const useCallStore = create<CallStoreState>((set) => ({
       calleeUsername,
       callerId: null,
       callerUsername: null,
+      remoteAvatarUrl: avatarUrl || null,
       isMuted: false,
       isSpeakerEnabled: isVideo, // Route to speaker by default for video calls
       isVideo,
@@ -75,7 +90,7 @@ export const useCallStore = create<CallStoreState>((set) => ({
       error: null,
     }),
 
-  receiveCall: (callId, callerId, callerUsername, isVideo = false) =>
+  receiveCall: (callId, callerId, callerUsername, isVideo = false, avatarUrl = null) =>
     set({
       callState: "ringing",
       callId,
@@ -83,6 +98,7 @@ export const useCallStore = create<CallStoreState>((set) => ({
       callerUsername,
       calleeId: null,
       calleeUsername: null,
+      remoteAvatarUrl: avatarUrl || null,
       isMuted: false,
       isSpeakerEnabled: isVideo, // Route to speaker by default for video calls
       isVideo,
@@ -111,6 +127,7 @@ export const useCallStore = create<CallStoreState>((set) => ({
       callerUsername: null,
       calleeId: null,
       calleeUsername: null,
+      remoteAvatarUrl: null,
       isMuted: false,
       isSpeakerEnabled: false,
       isVideo: false,

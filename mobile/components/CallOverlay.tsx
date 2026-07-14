@@ -12,6 +12,7 @@ export default function CallOverlay() {
     callerId,
     callerUsername,
     calleeUsername,
+    remoteAvatarUrl,
     isMuted,
     isSpeakerEnabled,
     isVideo,
@@ -40,6 +41,7 @@ export default function CallOverlay() {
       return (
         <IncomingCallScreen
           callerUsername={callerUsername || "Unknown User"}
+          avatarUrl={remoteAvatarUrl}
           onAccept={acceptCall}
           onDecline={rejectCall}
         />
@@ -52,6 +54,7 @@ export default function CallOverlay() {
       return (
         <OutgoingCallScreen
           calleeUsername={calleeUsername || "User"}
+          avatarUrl={remoteAvatarUrl}
           callState={callState}
           onCancel={endCall}
         />
@@ -63,6 +66,7 @@ export default function CallOverlay() {
     return (
       <CallScreen
         participantUsername={callerUsername || calleeUsername || "User"}
+        avatarUrl={remoteAvatarUrl}
         callState={callState}
         isMuted={isMuted}
         isSpeakerEnabled={isSpeakerEnabled}

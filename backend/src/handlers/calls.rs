@@ -88,20 +88,21 @@ pub async fn start_call(
         )
     })?;
 
-    // Fetch caller's username
-    let caller_username = sqlx::query_scalar::<_, String>(
-        "SELECT username FROM users WHERE id = $1"
+    // Fetch caller's username and avatar
+    let (caller_username, caller_avatar_url) = sqlx::query_as::<_, (String, Option<String>)>(
+        "SELECT username, avatar_url FROM users WHERE id = $1"
     )
     .bind(caller_id)
     .fetch_one(&state.pool)
     .await
-    .unwrap_or_else(|_| "Unknown User".to_string());
+    .unwrap_or_else(|_| ("Unknown User".to_string(), None));
 
     // Attempt to notify callee immediately over WS
     let incoming_msg = serde_json::to_string(&WsMessage::CallStart {
         call_id: Some(call_id),
         target_user_id: caller_id,
         caller_username: Some(caller_username.clone()),
+        caller_avatar_url: caller_avatar_url.clone(),
         is_video: payload.is_video,
     }).unwrap();
 
@@ -113,6 +114,7 @@ pub async fn start_call(
         // Recipient is offline. Send a high-priority push notification instead of terminating!
         let pool = state.pool.clone();
         let caller_username_clone = caller_username.clone();
+        let caller_avatar_url_clone = caller_avatar_url.clone();
         let is_video = payload.is_video.unwrap_or(false);
         tokio::spawn(async move {
             crate::push::send_call_push_notification(
@@ -122,6 +124,7 @@ pub async fn start_call(
                 call_id,
                 caller_id,
                 is_video,
+                caller_avatar_url_clone.as_deref(),
             )
             .await;
         });

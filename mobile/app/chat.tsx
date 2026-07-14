@@ -1334,6 +1334,7 @@ export default function ChatScreen() {
                       participantId,
                       participantUsername || "User",
                       true,
+                      participantAvatarUrl || null,
                     );
                   } else {
                     Alert.alert(
@@ -1352,6 +1353,8 @@ export default function ChatScreen() {
                     voiceCallManager.startCall(
                       participantId,
                       participantUsername || "User",
+                      false,
+                      participantAvatarUrl || null,
                     );
                   } else {
                     Alert.alert(
@@ -1459,6 +1462,7 @@ export default function ChatScreen() {
                 currentUserId={user?.user_id}
                 participantId={participantId}
                 participantUsername={participantUsername}
+                participantAvatarUrl={participantAvatarUrl}
                 showDateHeader={showDateHeader}
               />
             );
