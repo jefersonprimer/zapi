@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
+import * as SystemUI from 'expo-system-ui';
 import { ActivityIndicator, View, Platform, AppState, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import 'react-native-reanimated';
@@ -209,6 +211,15 @@ function InitialLayout() {
 function RootLayoutInner() {
   const { theme, colors } = useAppTheme();
 
+  // Sync Android nav bar + root background with theme (edge-to-edge; see androidNavigationBar.enforceContrast).
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
+
+    if (Platform.OS === "android") {
+      NavigationBar.setStyle(theme === "dark" ? "dark" : "light");
+    }
+  }, [theme, colors.background]);
+
   return (
     <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
       <InitialLayout />
@@ -218,15 +229,24 @@ function RootLayoutInner() {
   );
 }
 
+function ThemedRoot({ children }: { children: ReactNode }) {
+  const { colors } = useAppTheme();
+  return (
+    <GestureHandlerRootView style={[styles.root, { backgroundColor: colors.background }]}>
+      {children}
+    </GestureHandlerRootView>
+  );
+}
+
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <AuthProvider>
-        <AppThemeProvider>
+    <AuthProvider>
+      <AppThemeProvider>
+        <ThemedRoot>
           <RootLayoutInner />
-        </AppThemeProvider>
-      </AuthProvider>
-    </GestureHandlerRootView>
+        </ThemedRoot>
+      </AppThemeProvider>
+    </AuthProvider>
   );
 }
 

@@ -89,7 +89,11 @@ import { cacheMediaFile } from "@/services/mediaCache";
 import { wsClient } from "@/services/ws";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { generateUUIDv7 } from "@/services/uuidv7";
-import { getCallHistory, type CallHistoryItem } from "@/services/callApi";
+import {
+  getCallHistory,
+  deleteCallHistoryItem,
+  type CallHistoryItem,
+} from "@/services/callApi";
 import { useCallStore } from "@/store/useCallStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isSameDay, getDateLabel } from "@/utils/date";
@@ -173,19 +177,28 @@ export default function ChatScreen() {
   const [isContact, setIsContact] = useState(false);
 
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [selectedCallIds, setSelectedCallIds] = useState<string[]>([]);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
   const [forwardingMessage, setForwardingMessage] =
     useState<ForwardedMessageData | null>(null);
 
-  const isSelectionMode = selectedMessageIds.length > 0;
+  const selectedCount = selectedMessageIds.length + selectedCallIds.length;
+  const isSelectionMode = selectedCount > 0;
+  const hasOnlyMessagesSelected =
+    selectedMessageIds.length > 0 && selectedCallIds.length === 0;
+  const hasOnlyCallsSelected =
+    selectedCallIds.length > 0 && selectedMessageIds.length === 0;
 
   const selectedMessages = useMemo(
     () => messages.filter((msg) => selectedMessageIds.includes(msg.id)),
     [messages, selectedMessageIds],
   );
 
-  const clearSelection = useCallback(() => setSelectedMessageIds([]), []);
+  const clearSelection = useCallback(() => {
+    setSelectedMessageIds([]);
+    setSelectedCallIds([]);
+  }, []);
 
   const toggleMessageSelection = useCallback((msg: Message) => {
     if (msg.deleted_for_everyone) return;
@@ -193,6 +206,14 @@ export default function ChatScreen() {
       prev.includes(msg.id)
         ? prev.filter((id) => id !== msg.id)
         : [...prev, msg.id],
+    );
+  }, []);
+
+  const toggleCallSelection = useCallback((callId: string) => {
+    setSelectedCallIds((prev) =>
+      prev.includes(callId)
+        ? prev.filter((id) => id !== callId)
+        : [...prev, callId],
     );
   }, []);
 
@@ -293,27 +314,39 @@ export default function ChatScreen() {
   }, [messages, calls, user?.user_id, participantId, clearedAt]);
 
   async function handleDeleteForMe() {
-    if (selectedMessageIds.length === 0) return;
+    if (selectedCount === 0) return;
     try {
-      for (const id of selectedMessageIds) {
-        await deleteMessageForMeLocal(id);
+      if (selectedMessageIds.length > 0) {
+        for (const id of selectedMessageIds) {
+          await deleteMessageForMeLocal(id);
+        }
+        setMessages((prev) =>
+          prev.map((msg) =>
+            selectedMessageIds.includes(msg.id)
+              ? { ...msg, deleted_at: new Date().toISOString() }
+              : msg,
+          ),
+        );
       }
-      setMessages((prev) =>
-        prev.map((msg) =>
-          selectedMessageIds.includes(msg.id)
-            ? { ...msg, deleted_at: new Date().toISOString() }
-            : msg,
-        ),
-      );
+      if (selectedCallIds.length > 0 && token) {
+        await Promise.all(
+          selectedCallIds.map((id) => deleteCallHistoryItem(token, id)),
+        );
+        setCalls((prev) =>
+          prev.filter((call) => !selectedCallIds.includes(call.id)),
+        );
+      }
     } catch (err) {
-      console.error("Error saving deleted messages:", err);
+      console.error("Error deleting selected items:", err);
+      Alert.alert("Erro", "Não foi possível apagar os itens selecionados.");
     }
     clearSelection();
     setDeleteModalVisible(false);
   }
 
   async function handleDeleteForEveryone() {
-    if (selectedMessageIds.length === 0 || !token) return;
+    if (selectedMessageIds.length === 0 || selectedCallIds.length > 0 || !token)
+      return;
     try {
       for (const id of selectedMessageIds) {
         await deleteMessageForEveryone(token, chatId, id);
@@ -1173,7 +1206,8 @@ export default function ChatScreen() {
   }
 
   const isDeleteForEveryoneAvailable = useMemo(() => {
-    if (selectedMessages.length === 0) return false;
+    if (selectedMessages.length === 0 || selectedCallIds.length > 0)
+      return false;
     const now = Date.now();
     return selectedMessages.every((msg) => {
       if (msg.sender_id !== user?.user_id) return false;
@@ -1181,7 +1215,27 @@ export default function ChatScreen() {
       const ageInHours = (now - sentTime) / (1000 * 60 * 60);
       return ageInHours < 24;
     });
-  }, [selectedMessages, user?.user_id]);
+  }, [selectedMessages, selectedCallIds.length, user?.user_id]);
+
+  const deleteModalTitle = useMemo(() => {
+    if (hasOnlyCallsSelected) {
+      return selectedCallIds.length === 1
+        ? "Deseja apagar a ligação?"
+        : `Deseja apagar ${selectedCallIds.length} ligações?`;
+    }
+    if (hasOnlyMessagesSelected) {
+      return selectedMessageIds.length === 1
+        ? "Deseja apagar a mensagem?"
+        : `Deseja apagar ${selectedMessageIds.length} mensagens?`;
+    }
+    return `Deseja apagar ${selectedCount} itens?`;
+  }, [
+    hasOnlyCallsSelected,
+    hasOnlyMessagesSelected,
+    selectedCallIds.length,
+    selectedMessageIds.length,
+    selectedCount,
+  ]);
 
   return (
     <KeyboardAvoidingView
@@ -1221,7 +1275,7 @@ export default function ChatScreen() {
                 { color: colors.text, marginLeft: 4 },
               ]}
             >
-              {selectedMessageIds.length}
+              {selectedCount}
             </Text>
           ) : null}
           {!isSelectionMode && (
@@ -1296,7 +1350,7 @@ export default function ChatScreen() {
         <View style={styles.headerRightContainer}>
           {isSelectionMode ? (
             <>
-              {selectedMessageIds.length === 1 && (
+              {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
                 <TouchableOpacity
                   onPress={() => handleReencaminhar()}
                   style={styles.headerActionBtn}
@@ -1304,19 +1358,21 @@ export default function ChatScreen() {
                   <CornerUpLeft size={22} color={colors.text} />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity
-                onPress={handleEncaminhar}
-                style={styles.headerActionBtn}
-              >
-                <Forward size={22} color={colors.text} />
-              </TouchableOpacity>
+              {hasOnlyMessagesSelected && (
+                <TouchableOpacity
+                  onPress={handleEncaminhar}
+                  style={styles.headerActionBtn}
+                >
+                  <Forward size={22} color={colors.text} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => setDeleteModalVisible(true)}
                 style={styles.headerActionBtn}
               >
                 <Trash2 size={22} color={colors.text} />
               </TouchableOpacity>
-              {selectedMessageIds.length === 1 && (
+              {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
                 <TouchableOpacity
                   onPress={() => setOptionsModalVisible(true)}
                   style={styles.headerActionBtn}
@@ -1456,14 +1512,28 @@ export default function ChatScreen() {
               </View>
             );
           } else {
+            const call = item.data;
+            const isSelected = selectedCallIds.includes(call.id);
+
             return (
               <CallBubble
-                call={item.data}
+                call={call}
                 currentUserId={user?.user_id}
                 participantId={participantId}
                 participantUsername={participantUsername}
                 participantAvatarUrl={participantAvatarUrl}
                 showDateHeader={showDateHeader}
+                selectionMode={isSelectionMode}
+                isSelected={isSelected}
+                selectedBackgroundColor={
+                  isDark
+                    ? "rgba(10, 132, 255, 0.25)"
+                    : "rgba(0, 122, 255, 0.15)"
+                }
+                onPress={() => {
+                  if (isSelectionMode) toggleCallSelection(call.id);
+                }}
+                onLongPress={() => toggleCallSelection(call.id)}
               />
             );
           }
@@ -1663,9 +1733,7 @@ export default function ChatScreen() {
             ]}
           >
             <Text style={[styles.alertTitle, { color: colors.text }]}>
-              {selectedMessageIds.length === 1
-                ? "Deseja apagar a mensagem?"
-                : `Deseja apagar ${selectedMessageIds.length} mensagens?`}
+              {deleteModalTitle}
             </Text>
             <View
               style={

@@ -18,6 +18,11 @@ interface CallBubbleProps {
   participantUsername: string;
   participantAvatarUrl?: string;
   showDateHeader?: boolean;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  selectedBackgroundColor?: string;
+  onPress?: () => void;
+  onLongPress?: () => void;
 }
 
 export function CallBubble({
@@ -27,6 +32,11 @@ export function CallBubble({
   participantUsername,
   participantAvatarUrl,
   showDateHeader = false,
+  selectionMode = false,
+  isSelected = false,
+  selectedBackgroundColor,
+  onPress,
+  onLongPress,
 }: CallBubbleProps) {
   const { colors, isDark } = useAppTheme();
   const isOutgoing = call.caller_id === currentUserId;
@@ -101,39 +111,62 @@ export function CallBubble({
           </View>
         </View>
       )}
-      <View style={[styles.messageRow, isOutgoing ? styles.myCallRow : styles.theirCallRow]}>
-        <View style={[styles.callBubble, { backgroundColor: bubbleBg }]}>
-          <View style={styles.callBubbleContent}>
-            <View style={styles.callIconContainer}>
-              <StatusIcon size={20} color={iconColor} />
-            </View>
-            <View style={styles.callTextContainer}>
-              <Text style={[styles.callStatusText, { color: textColor }]} numberOfLines={1}>
-                {statusText}
-                {durationStr}
-              </Text>
-              <TouchableOpacity
-                style={styles.callbackButton}
-                onPress={() => {
-                  voiceCallManager.startCall(
-                    participantId,
-                    participantUsername || "User",
-                    false,
-                    participantAvatarUrl || null,
-                  );
-                }}
-              >
-                <Text style={[styles.callbackButtonText, { color: colors.tint }]}>
-                  Retornar ligação
+      <TouchableOpacity
+        onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={500}
+        activeOpacity={0.8}
+        style={[
+          isSelected && selectedBackgroundColor
+            ? { backgroundColor: selectedBackgroundColor }
+            : undefined,
+        ]}
+      >
+        <View style={[styles.messageRow, isOutgoing ? styles.myCallRow : styles.theirCallRow]}>
+          <View style={[styles.callBubble, { backgroundColor: bubbleBg }]}>
+            <View style={styles.callBubbleContent}>
+              <View style={styles.callIconContainer}>
+                <StatusIcon size={20} color={iconColor} />
+              </View>
+              <View style={styles.callTextContainer}>
+                <Text style={[styles.callStatusText, { color: textColor }]} numberOfLines={1}>
+                  {statusText}
+                  {durationStr}
                 </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.callbackButton}
+                  disabled={selectionMode}
+                  onPress={() => {
+                    if (selectionMode) return;
+                    voiceCallManager.startCall(
+                      participantId,
+                      participantUsername || "User",
+                      false,
+                      participantAvatarUrl || null,
+                    );
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.callbackButtonText,
+                      {
+                        color: selectionMode
+                          ? colors.textSecondary
+                          : colors.tint,
+                      },
+                    ]}
+                  >
+                    Retornar ligação
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
+            <Text style={[styles.callTimeText, { color: timeColor }]}>
+              {formattedTime}
+            </Text>
           </View>
-          <Text style={[styles.callTimeText, { color: timeColor }]}>
-            {formattedTime}
-          </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }

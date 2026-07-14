@@ -20,10 +20,10 @@ export const Colors = {
     tabIconDefault: "#9CA3AF",
     tabIconSelected: tintColorLight,
 
-    headerBackground: "#FFFFFF",
+    headerBackground: "#FAFAFA",
     headerText: "#111827",
 
-    tabBarBackground: "#FFFFFF",
+    tabBarBackground: "#FAFAFA",
 
     badge: "#10B981",
     badgeText: "#FFFFFF",
@@ -54,10 +54,10 @@ export const Colors = {
     tabIconDefault: "#6B7280",
     tabIconSelected: tintColorDark,
 
-    headerBackground: "#1A1A1A",
+    headerBackground: "#121212",
     headerText: "#FFFFFF",
 
-    tabBarBackground: "#1A1A1A",
+    tabBarBackground: "#121212",
 
     badge: "#10B981",
     badgeText: "#FFFFFF",
