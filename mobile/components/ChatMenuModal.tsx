@@ -113,7 +113,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
               }}
             >
               <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Ver contato
+                {isGroup ? "Dados do grupo" : "Ver contato"}
               </Text>
             </TouchableOpacity>
           )}

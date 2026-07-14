@@ -84,6 +84,7 @@ import {
   Folder,
   Pencil,
   Users,
+  ChevronRight,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -1413,45 +1414,55 @@ export default function ChatListScreen() {
               contentContainerStyle={{ paddingBottom: 100 }}
               onScroll={handleScroll}
               scrollEventThrottle={16}
-              ListFooterComponent={
-                <View>
-                  {archivedChatsCount > 0 && (
-                    <TouchableOpacity
-                      style={[
-                        styles.archivedRow,
-                        {
-                          borderBottomColor: colors.border,
-                          borderTopColor: colors.border,
-                          backgroundColor: colors.menuBackground,
-                        },
-                      ]}
-                      onPress={() => router.push("/archived" as any)}
-                    >
-                      <View style={styles.archivedLeft}>
+              ListHeaderComponent={
+                archivedChatsCount > 0 && searchQuery.trim().length === 0 && activeFilterId === "all" ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.archivedRow,
+                      {
+                        borderBottomColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => router.push("/archived" as any)}
+                  >
+                    <View style={styles.archivedLeft}>
+                      <View
+                        style={[
+                          styles.archivedIconContainer,
+                          { backgroundColor: colors.tint + "12" },
+                        ]}
+                      >
                         <Archive color={colors.tint} size={20} />
-                        <Text
-                          style={[styles.archivedText, { color: colors.text }]}
-                        >
-                          Conversas arquivadas
-                        </Text>
                       </View>
+                      <Text
+                        style={[styles.archivedText, { color: colors.text }]}
+                      >
+                        Conversas arquivadas
+                      </Text>
+                    </View>
+                    <View style={styles.archivedRight}>
                       <View
                         style={[
                           styles.archivedBadge,
-                          { backgroundColor: colors.tint + "22" },
+                          { backgroundColor: colors.tint + "20" },
                         ]}
                       >
                         <Text
                           style={[
                             styles.archivedCountText,
-                            { color: colors.tint, fontWeight: "bold" },
+                            { color: colors.tint, fontWeight: "600" },
                           ]}
                         >
                           {archivedChatsCount}
                         </Text>
                       </View>
-                    </TouchableOpacity>
-                  )}
+                      <ChevronRight color={colors.textSecondary} size={16} style={{ opacity: 0.7 }} />
+                    </View>
+                  </TouchableOpacity>
+                ) : null
+              }
+              ListFooterComponent={
+                <View>
                   <View style={styles.footerContainer}>
                     <Lock color={colors.textSecondary} size={13} />
                     <Text
@@ -2666,27 +2677,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    marginVertical: 8,
   },
   archivedLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+  },
+  archivedIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
   archivedText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "500",
+  },
+  archivedRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   archivedBadge: {
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    alignItems: "center",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
   },
   archivedCountText: {
     fontSize: 12,

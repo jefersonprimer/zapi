@@ -565,7 +565,10 @@ export default function ContactDetailScreen() {
   };
 
   const displayName =
-    contact?.name || participantUsername || contact?.username || "Carregando...";
+    contact?.name ||
+    participantUsername ||
+    contact?.username ||
+    "Carregando...";
   const nameInitial = (displayName || "?")[0]?.toUpperCase();
   const displayEmail = contact?.email || "Email indisponível";
 
@@ -582,7 +585,11 @@ export default function ContactDetailScreen() {
       <View
         style={[
           styles.customHeader,
-          { paddingTop: insets.top, backgroundColor: colors.headerBackground, borderBottomColor: colors.border },
+          {
+            paddingTop: insets.top,
+            backgroundColor: colors.headerBackground,
+            borderBottomColor: colors.border,
+          },
         ]}
       >
         <View style={styles.headerContent}>
@@ -605,9 +612,17 @@ export default function ContactDetailScreen() {
                 ]}
               >
                 {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.miniAvatarImage} />
+                  <Image
+                    source={{ uri: avatarUri }}
+                    style={styles.miniAvatarImage}
+                  />
                 ) : (
-                  <Text style={[styles.miniAvatarText, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.miniAvatarText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     {nameInitial}
                   </Text>
                 )}
@@ -621,7 +636,10 @@ export default function ContactDetailScreen() {
             </View>
           ) : (
             <Text
-              style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
+              style={[
+                styles.headerTitle,
+                { color: colors.headerText, flex: 1 },
+              ]}
             >
               Detalhes do Contato
             </Text>
@@ -681,7 +699,9 @@ export default function ContactDetailScreen() {
               {avatarUri ? (
                 <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
               ) : (
-                <Text style={[styles.avatarText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.avatarText, { color: colors.textSecondary }]}
+                >
                   {nameInitial}
                 </Text>
               )}
@@ -692,7 +712,9 @@ export default function ContactDetailScreen() {
             </Text>
 
             {!!(contact?.username || participantUsername) && (
-              <Text style={[styles.usernameText, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.usernameText, { color: colors.textSecondary }]}
+              >
                 @{contact?.username || participantUsername}
               </Text>
             )}
@@ -709,12 +731,17 @@ export default function ContactDetailScreen() {
             )}
           </View>
 
-          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+          <View
+            style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+          />
 
           {/* Quick Call Action Row */}
           <View style={styles.actionRow}>
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" }]}
+              style={[
+                styles.actionButton,
+                { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
+              ]}
               onPress={handleVoiceCall}
             >
               <Phone size={20} color={colors.text} />
@@ -724,7 +751,10 @@ export default function ContactDetailScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" }]}
+              style={[
+                styles.actionButton,
+                { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
+              ]}
               onPress={handleVideoCall}
             >
               <Video size={20} color={colors.text} />
@@ -734,7 +764,9 @@ export default function ContactDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+          <View
+            style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+          />
 
           {/* Informações Section (Telegram style: value-first, label-second, copy on press) */}
           <View style={styles.infoSection}>
@@ -747,7 +779,9 @@ export default function ContactDetailScreen() {
               <Text style={[styles.infoValueText, { color: colors.text }]}>
                 {contact?.about || "Sem recado"}
               </Text>
-              <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.infoLabelText, { color: colors.textSecondary }]}
+              >
                 Recado
               </Text>
             </TouchableOpacity>
@@ -755,7 +789,12 @@ export default function ContactDetailScreen() {
             {/* Email Item */}
             {!!displayEmail && (
               <>
-                <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
+                <View
+                  style={[
+                    styles.innerDivider,
+                    { backgroundColor: colors.border },
+                  ]}
+                />
                 <TouchableOpacity
                   activeOpacity={0.6}
                   onPress={handleCopyEmail}
@@ -764,7 +803,12 @@ export default function ContactDetailScreen() {
                   <Text style={[styles.infoValueText, { color: colors.text }]}>
                     {displayEmail}
                   </Text>
-                  <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.infoLabelText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     E-mail
                   </Text>
                 </TouchableOpacity>
@@ -772,7 +816,9 @@ export default function ContactDetailScreen() {
             )}
           </View>
 
-          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+          <View
+            style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+          />
 
           {/* Options Section */}
           <View style={styles.optionsSection}>
@@ -788,7 +834,9 @@ export default function ContactDetailScreen() {
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
                     Notificações
                   </Text>
-                  <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[styles.optionSub, { color: colors.textSecondary }]}
+                  >
                     {getMuteStatusLabel()}
                   </Text>
                 </View>
@@ -797,7 +845,13 @@ export default function ContactDetailScreen() {
                 value={!isMuted}
                 onValueChange={handleToggleMuteSwitch}
                 trackColor={{ false: "#767577", true: colors.tint }}
-                thumbColor={Platform.OS === "android" ? (isMuted ? "#f4f3f4" : colors.tint) : undefined}
+                thumbColor={
+                  Platform.OS === "android"
+                    ? isMuted
+                      ? "#f4f3f4"
+                      : colors.tint
+                    : undefined
+                }
               />
             </View>
 
@@ -819,7 +873,13 @@ export default function ContactDetailScreen() {
                 value={isFavorite}
                 onValueChange={handleToggleFavorite}
                 trackColor={{ false: "#767577", true: colors.tint }}
-                thumbColor={Platform.OS === "android" ? (isFavorite ? colors.tint : "#f4f3f4") : undefined}
+                thumbColor={
+                  Platform.OS === "android"
+                    ? isFavorite
+                      ? colors.tint
+                      : "#f4f3f4"
+                    : undefined
+                }
               />
             </View>
 
@@ -837,7 +897,13 @@ export default function ContactDetailScreen() {
                 value={isPinned}
                 onValueChange={handleTogglePin}
                 trackColor={{ false: "#767577", true: colors.tint }}
-                thumbColor={Platform.OS === "android" ? (isPinned ? colors.tint : "#f4f3f4") : undefined}
+                thumbColor={
+                  Platform.OS === "android"
+                    ? isPinned
+                      ? colors.tint
+                      : "#f4f3f4"
+                    : undefined
+                }
               />
             </View>
 
@@ -853,7 +919,12 @@ export default function ContactDetailScreen() {
                     Adicionar à lista
                   </Text>
                   {selectedListIds.length > 0 && (
-                    <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                    <Text
+                      style={[
+                        styles.optionSub,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       {getSelectedListsLabel()}
                     </Text>
                   )}
@@ -865,7 +936,12 @@ export default function ContactDetailScreen() {
             {/* Mídias compartilhadas */}
             <TouchableOpacity
               style={styles.optionRowClickable}
-              onPress={() => Alert.alert("Mídias Compartilhadas", "Essa funcionalidade estará disponível em breve!")}
+              onPress={() =>
+                Alert.alert(
+                  "Mídias Compartilhadas",
+                  "Essa funcionalidade estará disponível em breve!",
+                )
+              }
             >
               <View style={styles.optionLeft}>
                 <ImageIcon size={20} color={colors.textSecondary} />
@@ -881,7 +957,12 @@ export default function ContactDetailScreen() {
             {/* Buscar nesta conversa */}
             <TouchableOpacity
               style={styles.optionRowClickable}
-              onPress={() => Alert.alert("Buscar na conversa", "Essa funcionalidade estará disponível em breve!")}
+              onPress={() =>
+                Alert.alert(
+                  "Buscar na conversa",
+                  "Essa funcionalidade estará disponível em breve!",
+                )
+              }
             >
               <View style={styles.optionLeft}>
                 <Search size={20} color={colors.textSecondary} />
@@ -895,7 +976,9 @@ export default function ContactDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+          <View
+            style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+          />
 
           {/* Danger Zone Options */}
           <View style={styles.optionsSection}>
@@ -922,7 +1005,9 @@ export default function ContactDetailScreen() {
                   <>
                     <Shield size={20} color={colors.tint} />
                     <View style={styles.optionTextContainer}>
-                      <Text style={[styles.optionTitle, { color: colors.tint }]}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.tint }]}
+                      >
                         Desbloquear contato
                       </Text>
                     </View>
@@ -931,7 +1016,9 @@ export default function ContactDetailScreen() {
                   <>
                     <ShieldAlert size={20} color={colors.danger} />
                     <View style={styles.optionTextContainer}>
-                      <Text style={[styles.optionTitle, { color: colors.danger }]}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.danger }]}
+                      >
                         Bloquear contato
                       </Text>
                     </View>

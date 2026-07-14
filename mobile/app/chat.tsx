@@ -54,7 +54,6 @@ import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
 import { ForwardPreviewBar } from "@/components/ForwardPreviewBar";
 import { SwipeableMessageRow } from "@/components/SwipeableMessageRow";
-import { GroupDetailsModal } from "@/components/GroupDetailsModal";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
@@ -201,7 +200,7 @@ export default function ChatScreen() {
   const [isBlockedByThem, setIsBlockedByThem] = useState(false);
   const [clearedAt, setClearedAt] = useState<string | null>(null);
   const [isGroup, setIsGroup] = useState(false);
-  const [groupModalVisible, setGroupModalVisible] = useState(false);
+
 
   const loadChatDetails = useCallback(async () => {
     if (!token) return;
@@ -1220,7 +1219,13 @@ export default function ChatScreen() {
             <TouchableOpacity
               onPress={() => {
                 if (isGroup) {
-                  setGroupModalVisible(true);
+                  router.push({
+                    pathname: "/group-detail",
+                    params: {
+                      chatId,
+                      participantUsername: displayTitle,
+                    },
+                  });
                 } else if (participantId) {
                   router.push({
                     pathname: "/contact-detail",
@@ -1570,7 +1575,17 @@ export default function ChatScreen() {
         onBlockPress={handleBlockPress}
         onClearChatPress={handleClearChatPress}
         onViewContact={
-          !isGroup && participantId
+          isGroup
+            ? () => {
+                router.push({
+                  pathname: "/group-detail",
+                  params: {
+                    chatId,
+                    participantUsername: displayTitle,
+                  },
+                });
+              }
+            : participantId
             ? () => {
                 router.push({
                   pathname: "/contact-detail",
@@ -1600,16 +1615,7 @@ export default function ChatScreen() {
         onSelectMedia={setSelectedAttachment}
       />
 
-      {/* Group Details Modal */}
-      <GroupDetailsModal
-        visible={groupModalVisible}
-        onClose={() => {
-          setGroupModalVisible(false);
-          loadChatDetails();
-        }}
-        chatId={chatId}
-        participantUsername={displayTitle}
-      />
+
 
       {/* Delete Confirmation Modal */}
       <Modal

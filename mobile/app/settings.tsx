@@ -31,12 +31,11 @@ import {
   Moon,
   Laptop,
   Camera,
-  Image as ImageIcon,
   MessageSquareText,
   User,
 } from "lucide-react-native";
-import * as ImagePicker from "expo-image-picker";
 import { API_URL, uploadImage, updateProfile } from "@/services/api";
+import ImagePickerModal from "@/components/ImagePickerModal";
 
 const ABOUT_MAX_LEN = 139;
 
@@ -105,53 +104,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleCamera = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permissão necessária", "Precisamos de permissão para usar a câmera.");
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setAvatarModalVisible(false);
-        await uploadAndSaveAvatar(result.assets[0].uri);
-      }
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Erro", "Ocorreu um erro ao abrir a câmera.");
-    }
-  };
-
-  const handleGallery = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permissão necessária", "Precisamos de permissão para acessar a galeria.");
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setAvatarModalVisible(false);
-        await uploadAndSaveAvatar(result.assets[0].uri);
-      }
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Erro", "Ocorreu um erro ao abrir a galeria.");
-    }
-  };
 
   const handleRemovePhoto = async () => {
     Alert.alert(
@@ -612,81 +564,14 @@ export default function SettingsScreen() {
       </ScrollView>
 
       {/* Avatar Selection Modal */}
-      <Modal
+      <ImagePickerModal
         visible={avatarModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setAvatarModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
-          activeOpacity={1}
-          onPress={() => setAvatarModalVisible(false)}
-        >
-          <View
-            style={[
-              styles.bottomSheet,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <View style={[styles.sheetIndicator, { backgroundColor: colors.border }]} />
-            <Text style={[styles.sheetTitle, { color: colors.text }]}>
-              Foto do perfil
-            </Text>
-
-            <TouchableOpacity
-              style={[styles.sheetOption, { backgroundColor: colors.background }]}
-              onPress={handleCamera}
-              activeOpacity={0.8}
-            >
-              <View style={styles.sheetOptionLeft}>
-                <Camera size={20} color={colors.tint} />
-                <Text style={[styles.sheetOptionText, { color: colors.text, fontWeight: "600" }]}>
-                  Câmera
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.sheetOption, { backgroundColor: colors.background }]}
-              onPress={handleGallery}
-              activeOpacity={0.8}
-            >
-              <View style={styles.sheetOptionLeft}>
-                <ImageIcon size={20} color={colors.tint} />
-                <Text style={[styles.sheetOptionText, { color: colors.text, fontWeight: "600" }]}>
-                  Galeria
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {user?.avatar_url && (
-              <TouchableOpacity
-                style={[styles.sheetOption, { backgroundColor: colors.background }]}
-                onPress={handleRemovePhoto}
-                activeOpacity={0.8}
-              >
-                <View style={styles.sheetOptionLeft}>
-                  <LogOut size={20} color={colors.danger} />
-                  <Text style={[styles.sheetOptionText, { color: colors.danger, fontWeight: "600" }]}>
-                    Remover Foto
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={[styles.sheetCloseButton, { backgroundColor: colors.tint, marginTop: 8 }]}
-              onPress={() => setAvatarModalVisible(false)}
-            >
-              <Text style={styles.sheetCloseButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setAvatarModalVisible(false)}
+        onImageSelected={uploadAndSaveAvatar}
+        onRemoveImage={handleRemovePhoto}
+        hasImage={!!user?.avatar_url}
+        title="Foto do perfil"
+      />
 
       {/* About / Recado Modal */}
       <Modal
