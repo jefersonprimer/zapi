@@ -15,13 +15,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   FileText as FileIcon,
-  X as XIcon,
   Play as PlayIcon,
   Clock,
   Check,
   CheckCheck,
   AlertCircle,
   Ban,
+  ArrowLeft,
 } from "lucide-react-native";
 import { type Message, API_URL, createChat } from "../services/api";
 import { AudioPlayer } from "./AudioPlayer";
@@ -594,7 +594,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   onPress={() => setIsFullScreen(false)}
                   activeOpacity={0.7}
                 >
-                  <XIcon size={24} color="#fff" />
+                  <ArrowLeft size={24} color="#fff" />
                 </TouchableOpacity>
                 <TouchableWithoutFeedback>
                   <View style={styles.imageContainer}>
@@ -625,7 +625,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   onPress={() => setIsFullScreen(false)}
                   activeOpacity={0.7}
                 >
-                  <XIcon size={24} color="#fff" />
+                  <ArrowLeft size={24} color="#fff" />
                 </TouchableOpacity>
                 <TouchableWithoutFeedback>
                   <View style={styles.videoContainerFull}>
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   closeButton: {
     position: "absolute",
     top: Platform.OS === "ios" ? 20 : 40,
-    right: 20,
+    left: 20,
     zIndex: 10,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     padding: 10,
