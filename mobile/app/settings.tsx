@@ -12,10 +12,12 @@ import {
   Image,
   ActivityIndicator,
   TextInput,
+  Clipboard,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth, getStorageItem, setStorageItem } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ArrowLeft,
   ChevronRight,
@@ -41,7 +43,8 @@ const ABOUT_MAX_LEN = 139;
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, token, signOut, updateUser } = useAuth();
-  const { colors, themePreference, setThemePreference } = useAppTheme();
+  const { colors, themePreference, setThemePreference, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   // Modals visibility states
   const [langModalVisible, setLangModalVisible] = useState(false);
@@ -56,6 +59,7 @@ export default function SettingsScreen() {
   const [usernameDraft, setUsernameDraft] = useState("");
 
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showHeaderProfile, setShowHeaderProfile] = useState(false);
 
   // Privacy dummy states
   const [readReceipts, setReadReceipts] = useState(true);
@@ -74,6 +78,7 @@ export default function SettingsScreen() {
       }
     })();
   }, []);
+
   const handleKeepChatsArchivedChange = async (value: boolean) => {
     setKeepChatsArchived(value);
     try {
@@ -85,6 +90,7 @@ export default function SettingsScreen() {
       console.warn("Failed to update keep_chats_archived setting:", err);
     }
   };
+
   const uploadAndSaveAvatar = async (uri: string) => {
     if (!token) return;
     setIsUpdating(true);
@@ -270,7 +276,6 @@ export default function SettingsScreen() {
     }
   };
 
-  // Format theme text
   const getThemeLabel = (pref: string) => {
     switch (pref) {
       case "light":
@@ -301,212 +306,298 @@ export default function SettingsScreen() {
     );
   };
 
-  const initials = user?.username ? user.username.substring(0, 2).toUpperCase() : "US";
+  const displayName = user?.name || user?.username || "Carregando...";
+  const nameInitial = displayName ? displayName[0]?.toUpperCase() : "?";
+
+  const currentAvatarUrl = user?.avatar_url;
+  const avatarUri = currentAvatarUrl
+    ? currentAvatarUrl.startsWith("http")
+      ? currentAvatarUrl
+      : `${API_URL}${currentAvatarUrl}`
+    : null;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
+      {/* Custom Header */}
       <View
         style={[
-          styles.header,
+          styles.customHeader,
           {
+            paddingTop: insets.top,
             backgroundColor: colors.headerBackground,
             borderBottomColor: colors.border,
           },
         ]}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft color={colors.headerText} size={24} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.headerText }]}>
-          Configurações
-        </Text>
-        <View style={styles.headerRightPlaceholder} />
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+          >
+            <ArrowLeft size={24} color={colors.headerText} />
+          </TouchableOpacity>
+
+          {showHeaderProfile ? (
+            <View style={styles.headerProfileContainer}>
+              <View
+                style={[
+                  styles.miniAvatar,
+                  {
+                    backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7",
+                    overflow: "hidden",
+                  },
+                ]}
+              >
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.miniAvatarImage} />
+                ) : (
+                  <Text style={[styles.miniAvatarText, { color: colors.textSecondary }]}>
+                    {nameInitial}
+                  </Text>
+                )}
+              </View>
+              <Text
+                numberOfLines={1}
+                style={[styles.headerProfileName, { color: colors.headerText }]}
+              >
+                {displayName}
+              </Text>
+            </View>
+          ) : (
+            <Text
+              style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
+            >
+              Configurações
+            </Text>
+          )}
+
+          <View style={{ width: 24 }} />
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Profile Card (Vertical Layout) */}
+      {isUpdating && (
         <View
           style={[
-            styles.profileCardVertical,
-            {
-              backgroundColor: colors.menuBackground,
-              borderColor: colors.border,
-            },
+            styles.overlayLoading,
+            { backgroundColor: colors.modalOverlay },
           ]}
         >
+          <ActivityIndicator size="large" color={colors.tint} />
+        </View>
+      )}
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        onScroll={(event) => {
+          const y = event.nativeEvent.contentOffset.y;
+          if (y > 100) {
+            if (!showHeaderProfile) setShowHeaderProfile(true);
+          } else {
+            if (showHeaderProfile) setShowHeaderProfile(false);
+          }
+        }}
+        scrollEventThrottle={16}
+      >
+        {/* Profile Header Block */}
+        <View style={styles.profileHeader}>
           <TouchableOpacity
-            style={styles.avatarButton}
-            onPress={() => setAvatarModalVisible(true)}
             activeOpacity={0.8}
+            onPress={() => setAvatarModalVisible(true)}
+            style={styles.avatarContainer}
             disabled={isUpdating}
           >
-            <View style={[styles.largeAvatarContainer, { backgroundColor: colors.tint }]}>
-              {isUpdating ? (
-                <ActivityIndicator size="large" color="#FFF" />
-              ) : user?.avatar_url ? (
-                <Image
-                  source={{
-                    uri: user.avatar_url.startsWith("http")
-                      ? user.avatar_url
-                      : `${API_URL}${user.avatar_url}`,
-                  }}
-                  style={styles.largeAvatarImage}
-                />
+            <View
+              style={[
+                styles.avatar,
+                {
+                  backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7",
+                  overflow: "hidden",
+                },
+              ]}
+            >
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
               ) : (
-                <Text style={styles.largeAvatarText}>{initials}</Text>
+                <Text style={[styles.avatarText, { color: colors.textSecondary }]}>
+                  {nameInitial}
+                </Text>
               )}
-              
-              <View style={[styles.editBadge, { backgroundColor: colors.tint }]}>
-                <Camera size={12} color="#FFF" />
-              </View>
+            </View>
+            <View style={[styles.editBadge, { backgroundColor: colors.tint, borderColor: colors.background }]}>
+              <Camera size={12} color="#FFF" />
             </View>
           </TouchableOpacity>
 
-          <View style={styles.profileInfoVertical}>
-            <TouchableOpacity onPress={openNameModal} style={styles.nameTapArea} activeOpacity={0.7} disabled={isUpdating}>
-              <Text style={[styles.nameTextVertical, { color: colors.text }]}>
-                {user?.name || user?.username || "Usuário"}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity onPress={openUsernameModal} style={styles.usernameTapArea} activeOpacity={0.7} disabled={isUpdating}>
-              <Text style={[styles.usernameTextVertical, { color: colors.textSecondary }]}>
+          <TouchableOpacity onPress={openNameModal} activeOpacity={0.7} disabled={isUpdating}>
+            <Text style={[styles.displayName, { color: colors.text }]}>
+              {displayName}
+            </Text>
+          </TouchableOpacity>
+
+          {!!user?.username && (
+            <TouchableOpacity onPress={openUsernameModal} activeOpacity={0.7} disabled={isUpdating}>
+              <Text style={[styles.usernameText, { color: colors.textSecondary }]}>
                 @{user?.username}
               </Text>
             </TouchableOpacity>
-
-            <Text style={[styles.emailTextVertical, { color: colors.textSecondary }]}>
-              {user?.email || "usuario@exemplo.com"}
-            </Text>
-            
-            <TouchableOpacity
-              style={styles.aboutTapArea}
-              onPress={openAboutModal}
-              activeOpacity={0.7}
-              disabled={isUpdating}
-            >
-              <Text
-                style={[
-                  styles.aboutText,
-                  {
-                    color: user?.about ? colors.textSecondary : colors.textSecondary,
-                    fontStyle: user?.about ? "normal" : "italic",
-                  },
-                ]}
-                numberOfLines={2}
-              >
-                {user?.about || "Toque para adicionar um recado"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          )}
         </View>
 
-        {/* Section Title */}
-        <Text style={[styles.sectionTitle, { color: colors.tint }]}>
-          GERAL
-        </Text>
+        <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
 
-        {/* Settings Group */}
-        <View
-          style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: colors.menuBackground,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          {/* Privacy Option */}
+        {/* Informações Section (Telegram style: value-first, label-second, copy/edit on press) */}
+        <View style={styles.infoSection}>
+          {/* Recado Item */}
           <TouchableOpacity
-            style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            activeOpacity={0.6}
+            onPress={openAboutModal}
+            style={styles.infoItem}
+            disabled={isUpdating}
+          >
+            <Text style={[styles.infoValueText, { color: colors.text }]}>
+              {user?.about || "Toque para adicionar um recado"}
+            </Text>
+            <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+              Recado
+            </Text>
+          </TouchableOpacity>
+
+          <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
+
+          {/* Nome Item */}
+          <TouchableOpacity
+            activeOpacity={0.6}
+            onPress={openNameModal}
+            style={styles.infoItem}
+            disabled={isUpdating}
+          >
+            <Text style={[styles.infoValueText, { color: colors.text }]}>
+              {user?.name || user?.username || "Sem nome"}
+            </Text>
+            <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+              Nome
+            </Text>
+          </TouchableOpacity>
+
+          <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
+
+          {/* Username Item */}
+          <TouchableOpacity
+            activeOpacity={0.6}
+            onPress={openUsernameModal}
+            style={styles.infoItem}
+            disabled={isUpdating}
+          >
+            <Text style={[styles.infoValueText, { color: colors.text }]}>
+              @{user?.username || "Sem username"}
+            </Text>
+            <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+              Nome de usuário
+            </Text>
+          </TouchableOpacity>
+
+          <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
+
+          {/* Email Item */}
+          <TouchableOpacity
+            activeOpacity={0.6}
+            onPress={() => {
+              if (user?.email) {
+                Clipboard.setString(user.email);
+              }
+            }}
+            style={styles.infoItem}
+          >
+            <Text style={[styles.infoValueText, { color: colors.text }]}>
+              {user?.email || "E-mail indisponível"}
+            </Text>
+            <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+              E-mail
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+
+        {/* Options Section */}
+        <View style={styles.optionsSection}>
+          {/* Privacidade */}
+          <TouchableOpacity
+            style={styles.optionRowClickable}
             onPress={() => setPrivacyModalVisible(true)}
           >
-            <View style={[styles.iconWrapper, { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
-              <Lock color="#10B981" size={20} />
+            <View style={styles.optionLeft}>
+              <Lock size={20} color={colors.textSecondary} />
+              <View style={styles.optionTextContainer}>
+                <Text style={[styles.optionTitle, { color: colors.text }]}>
+                  Privacidade
+                </Text>
+                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                  Segurança, bloqueios, confirmações
+                </Text>
+              </View>
             </View>
-            <View style={styles.rowTextContainer}>
-              <Text style={[styles.rowTitle, { color: colors.text }]}>
-                Privacidade
-              </Text>
-              <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
-                Segurança, bloqueios, confirmações
-              </Text>
-            </View>
-            <ChevronRight color={colors.textSecondary} size={20} />
+            <ChevronRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          {/* Language Option */}
+          {/* Idioma do app */}
           <TouchableOpacity
-            style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            style={styles.optionRowClickable}
             onPress={() => setLangModalVisible(true)}
           >
-            <View style={[styles.iconWrapper, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
-              <Globe color="#F59E0B" size={20} />
+            <View style={styles.optionLeft}>
+              <Globe size={20} color={colors.textSecondary} />
+              <View style={styles.optionTextContainer}>
+                <Text style={[styles.optionTitle, { color: colors.text }]}>
+                  Idioma do app
+                </Text>
+                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                  Português (Brasil)
+                </Text>
+              </View>
             </View>
-            <View style={styles.rowTextContainer}>
-              <Text style={[styles.rowTitle, { color: colors.text }]}>
-                Idioma do app
-              </Text>
-              <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
-                Português (Brasil)
-              </Text>
-            </View>
-            <ChevronRight color={colors.textSecondary} size={20} />
+            <ChevronRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          {/* Theme Option */}
+          {/* Tema */}
           <TouchableOpacity
-            style={styles.settingRow}
+            style={styles.optionRowClickable}
             onPress={() => setThemeModalVisible(true)}
           >
-            <View style={[styles.iconWrapper, { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
-              <Palette color="#3B82F6" size={20} />
+            <View style={styles.optionLeft}>
+              <Palette size={20} color={colors.textSecondary} />
+              <View style={styles.optionTextContainer}>
+                <Text style={[styles.optionTitle, { color: colors.text }]}>
+                  Tema
+                </Text>
+                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                  {getThemeLabel(themePreference)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.rowTextContainer}>
-              <Text style={[styles.rowTitle, { color: colors.text }]}>
-                Tema
-              </Text>
-              <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
-                {getThemeLabel(themePreference)}
-              </Text>
-            </View>
-            <ChevronRight color={colors.textSecondary} size={20} />
+            <ChevronRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Section Title */}
-        <Text style={[styles.sectionTitle, { color: colors.danger }]}>
-          CONTA
-        </Text>
+        <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
 
-        {/* Account Group */}
-        <View
-          style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: colors.menuBackground,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          {/* Sign Out Option */}
-          <TouchableOpacity style={styles.settingRow} onPress={handleSignOut}>
-            <View style={[styles.iconWrapper, { backgroundColor: "rgba(239, 68, 68, 0.1)" }]}>
-              <LogOut color={colors.danger} size={20} />
+        {/* Danger Zone Options */}
+        <View style={styles.optionsSection}>
+          <TouchableOpacity
+            style={styles.optionRowClickable}
+            onPress={handleSignOut}
+          >
+            <View style={styles.optionLeft}>
+              <LogOut size={20} color={colors.danger} />
+              <View style={styles.optionTextContainer}>
+                <Text style={[styles.optionTitle, { color: colors.danger, fontWeight: "500" }]}>
+                  Sair da conta
+                </Text>
+                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                  Desconectar deste dispositivo
+                </Text>
+              </View>
             </View>
-            <View style={styles.rowTextContainer}>
-              <Text style={[styles.rowTitle, { color: colors.danger, fontWeight: "600" }]}>
-                Sair
-              </Text>
-              <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
-                Desconectar deste dispositivo
-              </Text>
-            </View>
-            <ChevronRight color={colors.danger} size={20} />
           </TouchableOpacity>
         </View>
 
@@ -1124,84 +1215,90 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  overlayLoading: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  customHeader: {
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 56,
-    paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    marginTop: 8,
   },
-  backButton: {
+  backBtn: {
     padding: 4,
+    marginRight: 16,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    flex: 1,
   },
-  headerRightPlaceholder: {
-    width: 32,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  profileCard: {
+  headerProfileContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    flex: 1,
+    gap: 10,
+  },
+  miniAvatar: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 24,
-  },
-  profileCardVertical: {
-    alignItems: "center",
-    padding: 24,
-    borderRadius: 24,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
-    marginBottom: 24,
-  },
-  avatarButton: {
-    marginBottom: 16,
-  },
-  largeAvatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
+  },
+  miniAvatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  miniAvatarText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  headerProfileName: {
+    fontSize: 16,
+    fontWeight: "600",
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  profileHeader: {
+    alignItems: "center",
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  avatarContainer: {
+    width: 110,
+    height: 110,
+    marginBottom: 16,
     position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
   },
-  largeAvatarImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  avatar: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  largeAvatarText: {
-    color: "#fff",
-    fontSize: 32,
-    fontWeight: "bold",
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarText: {
+    fontSize: 44,
+    fontWeight: "300",
   },
   editBadge: {
     position: "absolute",
@@ -1211,140 +1308,75 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: "#FFF",
     justifyContent: "center",
     alignItems: "center",
   },
-  profileInfoVertical: {
-    alignItems: "center",
-  },
-  nameTextVertical: {
+  displayName: {
     fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  usernameTextVertical: {
-    fontSize: 16,
     fontWeight: "600",
-    marginBottom: 4,
-  },
-  nameTapArea: {
-    paddingVertical: 2,
-  },
-  usernameTapArea: {
-    paddingVertical: 2,
-    marginBottom: 4,
-  },
-  emailTextVertical: {
-    fontSize: 14,
-  },
-  aboutTapArea: {
-    marginTop: 10,
-    paddingHorizontal: 16,
-    maxWidth: "100%",
-  },
-  aboutText: {
-    fontSize: 14,
     textAlign: "center",
-    lineHeight: 20,
-  },
-  aboutInput: {
-    minHeight: 88,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    textAlignVertical: "top",
-  },
-  aboutCounter: {
-    alignSelf: "flex-end",
-    fontSize: 12,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  avatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-    position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  avatarText: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "bold",
-  },
-  onlineBadge: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#10B981",
-    borderWidth: 2,
-    borderColor: "#FFF",
-  },
-  profileInfo: {
-    flex: 1,
   },
   usernameText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
+    fontSize: 15,
+    marginTop: 4,
+    textAlign: "center",
   },
-  emailText: {
-    fontSize: 14,
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth,
+    width: "100%",
+    marginVertical: 12,
   },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "bold",
-    letterSpacing: 1,
-    marginLeft: 4,
-    marginBottom: 8,
+  infoSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 4,
   },
-  settingsGroup: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 24,
+  infoItem: {
+    paddingVertical: 10,
   },
-  settingRow: {
+  infoValueText: {
+    fontSize: 16,
+    fontWeight: "400",
+  },
+  infoLabelText: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  innerDivider: {
+    height: StyleSheet.hairlineWidth,
+    width: "100%",
+  },
+  optionsSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 4,
+  },
+  optionRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    justifyContent: "space-between",
+    paddingVertical: 14,
   },
-  iconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: "center",
+  optionRowClickable: {
+    flexDirection: "row",
     alignItems: "center",
-    marginRight: 16,
+    justifyContent: "space-between",
+    paddingVertical: 14,
   },
-  rowTextContainer: {
+  optionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 16,
+  },
+  optionTextContainer: {
     flex: 1,
   },
-  rowTitle: {
+  optionTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 2,
+    fontWeight: "400",
   },
-  rowSubtitle: {
+  optionSub: {
     fontSize: 13,
+    marginTop: 2,
   },
   infoFooter: {
     alignItems: "center",
@@ -1463,9 +1495,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   themeDialog: {
-    width: "85%",
-    borderRadius: 24,
-    padding: 24,
+    width: "80%",
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
@@ -1474,7 +1506,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   dialogTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     marginBottom: 16,
   },
@@ -1504,5 +1536,20 @@ const styles = StyleSheet.create({
   dialogCloseText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  aboutInput: {
+    minHeight: 88,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    textAlignVertical: "top",
+  },
+  aboutCounter: {
+    alignSelf: "flex-end",
+    fontSize: 12,
+    marginTop: 6,
+    marginBottom: 4,
   },
 });

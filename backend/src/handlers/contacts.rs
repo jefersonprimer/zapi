@@ -18,6 +18,7 @@ pub struct ContactResponse {
     pub is_blocked: bool,
     pub avatar_url: Option<String>,
     pub about: Option<String>,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -31,7 +32,7 @@ pub async fn list_contacts(
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let contacts = sqlx::query_as::<_, ContactResponse>(
         r#"
-        SELECT c.contact_id, u.username, u.email, c.is_blocked, u.avatar_url, u.about
+        SELECT c.contact_id, u.username, u.email, c.is_blocked, u.avatar_url, u.about, u.name
         FROM contacts c
         JOIN users u ON c.contact_id = u.id
         WHERE c.user_id = $1

@@ -336,7 +336,7 @@ export default function ShareContactScreen() {
           onPress={handleSend}
           activeOpacity={0.8}
         >
-          <ArrowRight size={24} color="#fff" />
+          <ArrowRight size={24} color={isDark ? "#121212" : "#FFFFFF"} />
         </TouchableOpacity>
       )}
     </View>
@@ -456,10 +456,10 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 6,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.27,
-    shadowRadius: 4.65,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
   },
 });

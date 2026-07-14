@@ -11,7 +11,11 @@ import {
   Image,
   TextInput,
   ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
+
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -89,6 +93,13 @@ import MainMenuModal from "@/components/MainMenuModal";
 import CreateListModal from "@/components/CreateListModal";
 import EditListModal from "@/components/EditListModal";
 import { resolveLastMessagePreview } from "@/utils/forwardMessage";
+
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const isChatMuted = (chat: ChatListItem) => {
   if (chat.notification_muted_forever) return true;
@@ -168,9 +179,23 @@ const renderReorderListLeading = (
 export default function ChatListScreen() {
   const router = useRouter();
    const { token } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
 
-  const [chats, setChats] = useState<ChatListItem[]>([]);
+  const [chats, setChatsOriginal] = useState<ChatListItem[]>([]);
+  const setChats = useCallback((newChats: ChatListItem[]) => {
+    LayoutAnimation.configureNext({
+      duration: 200,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+    });
+    setChatsOriginal(newChats);
+  }, []);
+
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
   const [themeModalVisible, setThemeModalVisible] = useState(false);
@@ -182,6 +207,71 @@ export default function ChatListScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [userLists, setUserLists] = useState<LocalChatList[]>([]);
   const [activeFilterId, setActiveFilterId] = useState<string>("all");
+
+  const selectFilter = (filterId: string) => {
+    LayoutAnimation.configureNext({
+      duration: 180,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+    });
+    setActiveFilterId(filterId);
+  };
+
+  const [isFabVisible, setIsFabVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  const handleScroll = useCallback((event: any) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const direction = currentOffset > lastScrollY.current ? "down" : "up";
+
+    if (currentOffset > 60) {
+      if (direction === "down" && isFabVisible) {
+        LayoutAnimation.configureNext({
+          duration: 180,
+          create: {
+            type: LayoutAnimation.Types.easeInEaseOut,
+            property: LayoutAnimation.Properties.opacity,
+          },
+          update: {
+            type: LayoutAnimation.Types.easeInEaseOut,
+          },
+        });
+        setIsFabVisible(false);
+      } else if (direction === "up" && !isFabVisible) {
+        LayoutAnimation.configureNext({
+          duration: 180,
+          create: {
+            type: LayoutAnimation.Types.easeInEaseOut,
+            property: LayoutAnimation.Properties.opacity,
+          },
+          update: {
+            type: LayoutAnimation.Types.easeInEaseOut,
+          },
+        });
+        setIsFabVisible(true);
+      }
+    } else if (currentOffset <= 60 && !isFabVisible) {
+      LayoutAnimation.configureNext({
+        duration: 180,
+        create: {
+          type: LayoutAnimation.Types.easeInEaseOut,
+          property: LayoutAnimation.Properties.opacity,
+        },
+        update: {
+          type: LayoutAnimation.Types.easeInEaseOut,
+        },
+      });
+      setIsFabVisible(true);
+    }
+
+    lastScrollY.current = currentOffset;
+  }, [isFabVisible]);
+
   const [createListModalVisible, setCreateListModalVisible] = useState(false);
   const [listSelectorVisible, setListSelectorVisible] = useState(false);
   const [chatSelectorVisible, setChatSelectorVisible] = useState(false);
@@ -623,7 +713,7 @@ export default function ChatListScreen() {
     } finally {
       setLoading(false);
     }
-  }, [token, loadLists]);
+  }, [token, loadLists, setChats]);
 
   const handleToggleFavoriteSelectedChats = async () => {
     if (selectedChatIds.length === 0) return;
@@ -1161,7 +1251,7 @@ export default function ChatListScreen() {
             >
               <View
                 style={{
-                  backgroundColor: colors.border + "33",
+                  backgroundColor: isDark ? "#1C1C1E" : "#F1F5F9",
                   borderRadius: 24,
                   flexDirection: "row",
                   alignItems: "center",
@@ -1176,7 +1266,7 @@ export default function ChatListScreen() {
                   style={{ marginRight: 8 }}
                 />
                 <TextInput
-                  placeholder="Buscar..."
+                  placeholder="Buscar conversas..."
                   placeholderTextColor={colors.textSecondary}
                   style={{
                     flex: 1,
@@ -1203,14 +1293,21 @@ export default function ChatListScreen() {
                       style={[
                         styles.filterChip,
                         {
-                          backgroundColor: colors.border + "33",
+                          backgroundColor: isDark ? "#1C1C1E" : "#F1F5F9",
                           flexDirection: "row",
                           alignItems: "center",
                           gap: 6,
                         },
-                        isActive && { backgroundColor: colors.tint },
+                        isActive && {
+                          backgroundColor: colors.tint,
+                          elevation: 2,
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 2,
+                        },
                       ]}
-                      onPress={() => setActiveFilterId(item.id)}
+                      onPress={() => selectFilter(item.id)}
                       onLongPress={() => {
                         if (isCustom) {
                           const list = userLists.find((l) => l.id === item.id);
@@ -1268,15 +1365,17 @@ export default function ChatListScreen() {
                   style={[
                     styles.filterChip,
                     {
-                      backgroundColor: colors.border + "11",
-                      borderWidth: 1,
-                      borderColor: colors.tint,
-                      borderStyle: "dashed",
+                      backgroundColor: isDark ? "#1C1C1E" : "#F1F5F9",
                     },
                   ]}
                   onPress={() => setCreateListModalVisible(true)}
                 >
-                  <Text style={{ color: colors.tint, fontWeight: "bold" }}>
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      { color: colors.textSecondary, fontWeight: "bold" },
+                    ]}
+                  >
                     ＋
                   </Text>
                 </TouchableOpacity>
@@ -1312,6 +1411,8 @@ export default function ChatListScreen() {
               data={filteredChats}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ paddingBottom: 100 }}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
               ListFooterComponent={
                 <View>
                   {archivedChatsCount > 0 && (
@@ -1655,12 +1756,14 @@ export default function ChatListScreen() {
         </>
       )}
 
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.fab }]}
-        onPress={() => router.push("/contacts")}
-      >
-        <MessageSquarePlus color="#fff" size={24} />
-      </TouchableOpacity>
+      {isFabVisible && (
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: colors.fab }]}
+          onPress={() => router.push("/contacts")}
+        >
+          <MessageSquarePlus color={isDark ? "#121212" : "#FFFFFF"} size={24} />
+        </TouchableOpacity>
+      )}
 
       {/* Create List Modal */}
       <CreateListModal
@@ -2437,11 +2540,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 6,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
   },
   modalOverlay: {
     flex: 1,

@@ -10,6 +10,9 @@ import {
   Image,
   Modal,
   FlatList,
+  Switch,
+  Platform,
+  Clipboard,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -19,15 +22,16 @@ import {
   Shield,
   ShieldAlert,
   ArrowLeft,
-  User,
-  Mail,
   MoreVertical,
   Bell,
   BellOff,
-  MessageSquareText,
   Star,
   ListPlus,
   Check,
+  Pin,
+  Search,
+  ChevronRight,
+  Image as ImageIcon,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -55,6 +59,7 @@ import {
   getLocalChatLists,
   saveLocalChatLists,
   saveChats,
+  setChatPinnedLocal,
   type LocalChatList,
 } from "@/services/database";
 import { voiceCallManager } from "@/services/voiceCallManager";
@@ -87,8 +92,12 @@ export default function ContactDetailScreen() {
     notification_muted_forever?: boolean;
   } | null>(null);
 
-  const [resolvedChatId, setResolvedChatId] = useState<string | null>(chatId || null);
+  const [resolvedChatId, setResolvedChatId] = useState<string | null>(
+    chatId || null,
+  );
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const [showHeaderProfile, setShowHeaderProfile] = useState(false);
   const [allLists, setAllLists] = useState<LocalChatList[]>([]);
   const [selectedListIds, setSelectedListIds] = useState<string[]>([]);
   const [listSelectorVisible, setListSelectorVisible] = useState(false);
@@ -109,6 +118,7 @@ export default function ContactDetailScreen() {
         if (foundChat) {
           setResolvedChatId(foundChat.id);
           setIsFavorite(!!foundChat.is_favorite);
+          setIsPinned(!!foundChat.is_pinned);
           setChatSettings({
             notification_muted_until: foundChat.notification_muted_until,
             notification_muted_forever: foundChat.notification_muted_forever,
@@ -126,12 +136,12 @@ export default function ContactDetailScreen() {
     if (!token || !participantId) {
       throw new Error("Sessão inválida ou contato não especificado.");
     }
-    
+
     // Create/get chat on server
     const response = await createChat(token, participantId);
     const newChatId = response.id;
     setResolvedChatId(newChatId);
-    
+
     // Upsert into local database so we have it locally
     try {
       const chatsResponse = await getChats(token, newChatId);
@@ -141,7 +151,7 @@ export default function ContactDetailScreen() {
     } catch (err) {
       console.error("Error fetching/saving new chat locally:", err);
     }
-    
+
     return newChatId;
   };
 
@@ -151,26 +161,63 @@ export default function ContactDetailScreen() {
     try {
       const targetChatId = await getOrCreateChatId();
       const nextFavorite = !isFavorite;
-      
+
       // Update local db
       await setChatFavoriteLocal(targetChatId, nextFavorite);
-      
+
       // Update server db
       if (token) {
         await favoriteChat(token, targetChatId, nextFavorite);
       }
-      
+
       setIsFavorite(nextFavorite);
-      Alert.alert(
-        "Sucesso", 
-        nextFavorite ? "Adicionado aos favoritos com sucesso." : "Removido dos favoritos com sucesso."
-      );
     } catch (err: any) {
       console.error("Error toggling favorite:", err);
-      Alert.alert("Erro", err.message || "Não foi possível atualizar os favoritos.");
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível atualizar os favoritos.",
+      );
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleTogglePin = async () => {
+    setActionLoading(true);
+    try {
+      const targetChatId = await getOrCreateChatId();
+      const nextPin = !isPinned;
+
+      // Update local db
+      await setChatPinnedLocal(targetChatId, nextPin);
+      setIsPinned(nextPin);
+    } catch (err: any) {
+      console.error("Error toggling pin status:", err);
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível fixar/desafixar a conversa.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleMuteSwitch = () => {
+    if (isMuted) {
+      handleMuteChats("unmute");
+    } else {
+      setMuteModalVisible(true);
+    }
+  };
+
+  const handleCopyEmail = () => {
+    if (!displayEmail || displayEmail === "Email indisponível") return;
+    Clipboard.setString(displayEmail);
+  };
+
+  const handleCopyRecado = () => {
+    const recado = contact?.about || "Sem recado";
+    Clipboard.setString(recado);
   };
 
   const syncLists = async () => {
@@ -275,13 +322,20 @@ export default function ContactDetailScreen() {
       Alert.alert("Sucesso", "Listas atualizadas com sucesso.");
     } catch (err: any) {
       console.error("Error saving lists:", err);
-      Alert.alert("Erro", err.message || "Não foi possível atualizar as listas.");
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível atualizar as listas.",
+      );
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleCreateList = async (name: string, color: string, icon: string) => {
+  const handleCreateList = async (
+    name: string,
+    color: string,
+    icon: string,
+  ) => {
     if (!token) return;
     setActionLoading(true);
     try {
@@ -320,7 +374,8 @@ export default function ContactDetailScreen() {
   const getMuteStatusLabel = () => {
     if (!chatSettings) return "Todos";
 
-    const { notification_muted_until, notification_muted_forever } = chatSettings;
+    const { notification_muted_until, notification_muted_forever } =
+      chatSettings;
 
     if (notification_muted_forever) {
       return "Silenciado para sempre";
@@ -341,21 +396,26 @@ export default function ContactDetailScreen() {
         }
         if (diffHours <= 24) {
           if (untilDate.getDate() === now.getDate()) {
-            return `Silenciado até hoje às ${untilDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            return `Silenciado até hoje às ${untilDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
           } else {
-            return `Silenciado até amanhã às ${untilDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            return `Silenciado até amanhã às ${untilDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
           }
         }
 
-        const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
-        return `Silenciado até ${untilDate.toLocaleDateString('pt-BR', options)}`;
+        const options: Intl.DateTimeFormatOptions = {
+          day: "numeric",
+          month: "long",
+        };
+        return `Silenciado até ${untilDate.toLocaleDateString("pt-BR", options)}`;
       }
     }
 
     return "Todos";
   };
 
-  const handleMuteChats = async (durationHours: number | "always" | "unmute") => {
+  const handleMuteChats = async (
+    durationHours: number | "always" | "unmute",
+  ) => {
     let targetChatId = chatId;
     if (!targetChatId) {
       try {
@@ -370,7 +430,10 @@ export default function ContactDetailScreen() {
     }
 
     if (!targetChatId) {
-      Alert.alert("Erro", "Não foi possível encontrar a conversa correspondente.");
+      Alert.alert(
+        "Erro",
+        "Não foi possível encontrar a conversa correspondente.",
+      );
       return;
     }
 
@@ -383,7 +446,9 @@ export default function ContactDetailScreen() {
       mutedForever = false;
       mutedUntil = null;
     } else {
-      mutedUntil = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
+      mutedUntil = new Date(
+        Date.now() + durationHours * 60 * 60 * 1000,
+      ).toISOString();
     }
 
     try {
@@ -398,7 +463,10 @@ export default function ContactDetailScreen() {
       setMuteModalVisible(false);
     } catch (err) {
       console.error("Error updating mute settings:", err);
-      Alert.alert("Erro", "Não foi possível alterar as configurações de notificação.");
+      Alert.alert(
+        "Erro",
+        "Não foi possível alterar as configurações de notificação.",
+      );
     }
   };
 
@@ -496,11 +564,9 @@ export default function ContactDetailScreen() {
     );
   };
 
-  const nameInitial = (participantUsername ||
-    contact?.username ||
-    "?")[0]?.toUpperCase();
   const displayName =
-    participantUsername || contact?.username || "Carregando...";
+    contact?.name || participantUsername || contact?.username || "Carregando...";
+  const nameInitial = (displayName || "?")[0]?.toUpperCase();
   const displayEmail = contact?.email || "Email indisponível";
 
   const currentAvatarUrl = contact?.avatar_url || avatarUrl;
@@ -516,7 +582,7 @@ export default function ContactDetailScreen() {
       <View
         style={[
           styles.customHeader,
-          { paddingTop: insets.top, backgroundColor: colors.headerBackground },
+          { paddingTop: insets.top, backgroundColor: colors.headerBackground, borderBottomColor: colors.border },
         ]}
       >
         <View style={styles.headerContent}>
@@ -526,11 +592,41 @@ export default function ContactDetailScreen() {
           >
             <ArrowLeft size={24} color={colors.headerText} />
           </TouchableOpacity>
-          <Text
-            style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
-          >
-            Detalhes do Contato
-          </Text>
+
+          {showHeaderProfile ? (
+            <View style={styles.headerProfileContainer}>
+              <View
+                style={[
+                  styles.miniAvatar,
+                  {
+                    backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7",
+                    overflow: "hidden",
+                  },
+                ]}
+              >
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.miniAvatarImage} />
+                ) : (
+                  <Text style={[styles.miniAvatarText, { color: colors.textSecondary }]}>
+                    {nameInitial}
+                  </Text>
+                )}
+              </View>
+              <Text
+                numberOfLines={1}
+                style={[styles.headerProfileName, { color: colors.headerText }]}
+              >
+                {displayName}
+              </Text>
+            </View>
+          ) : (
+            <Text
+              style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
+            >
+              Detalhes do Contato
+            </Text>
+          )}
+
           <TouchableOpacity
             onPress={() => setMenuVisible(true)}
             style={styles.headerMenuBtn}
@@ -556,9 +652,20 @@ export default function ContactDetailScreen() {
           <ActivityIndicator size="large" color={colors.tint} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Avatar Section */}
-          <View style={styles.avatarSection}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          onScroll={(event) => {
+            const y = event.nativeEvent.contentOffset.y;
+            if (y > 100) {
+              if (!showHeaderProfile) setShowHeaderProfile(true);
+            } else {
+              if (showHeaderProfile) setShowHeaderProfile(false);
+            }
+          }}
+          scrollEventThrottle={16}
+        >
+          {/* Profile Header Block */}
+          <View style={styles.profileHeader}>
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => avatarUri && setIsAvatarFullScreen(true)}
@@ -566,7 +673,7 @@ export default function ContactDetailScreen() {
               style={[
                 styles.avatar,
                 {
-                  backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA",
+                  backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7",
                   overflow: "hidden",
                 },
               ]}
@@ -574,22 +681,22 @@ export default function ContactDetailScreen() {
               {avatarUri ? (
                 <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
               ) : (
-                <Text style={[styles.avatarText, { color: colors.text }]}>
+                <Text style={[styles.avatarText, { color: colors.textSecondary }]}>
                   {nameInitial}
                 </Text>
               )}
             </TouchableOpacity>
+
             <Text style={[styles.displayName, { color: colors.text }]}>
               {displayName}
             </Text>
-            {!!contact?.about && (
-              <Text
-                style={[styles.aboutText, { color: colors.textSecondary }]}
-                numberOfLines={3}
-              >
-                {contact.about}
+
+            {!!(contact?.username || participantUsername) && (
+              <Text style={[styles.usernameText, { color: colors.textSecondary }]}>
+                @{contact?.username || participantUsername}
               </Text>
             )}
+
             {isBlocked && (
               <View
                 style={[
@@ -602,281 +709,235 @@ export default function ContactDetailScreen() {
             )}
           </View>
 
+          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+
           {/* Quick Call Action Row */}
           <View style={styles.actionRow}>
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.surface }]}
+              style={[styles.actionButton, { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" }]}
               onPress={handleVoiceCall}
             >
-              <Phone size={24} color={colors.tint} />
-              <Text style={[styles.actionButtonText, { color: colors.tint }]}>
+              <Phone size={20} color={colors.text} />
+              <Text style={[styles.actionButtonText, { color: colors.text }]}>
                 Ligar
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.surface }]}
+              style={[styles.actionButton, { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" }]}
               onPress={handleVideoCall}
             >
-              <Video size={24} color={colors.tint} />
-              <Text style={[styles.actionButtonText, { color: colors.tint }]}>
+              <Video size={20} color={colors.text} />
+              <Text style={[styles.actionButtonText, { color: colors.text }]}>
                 Vídeo
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Details Section */}
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>
-              Informações
-            </Text>
+          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
 
-            <View style={styles.infoRow}>
-              <User
-                size={20}
-                color={colors.textSecondary}
-                style={styles.infoIcon}
-              />
-              <View>
-                <Text
-                  style={[styles.infoLabel, { color: colors.textSecondary }]}
-                >
-                  Nome
-                </Text>
-                <Text style={[styles.infoValue, { color: colors.text }]}>
-                  {displayName}
-                </Text>
-              </View>
-            </View>
-
-            <View
-              style={[
-                styles.infoRow,
-                styles.borderTop,
-                { borderTopColor: colors.border },
-              ]}
+          {/* Informações Section (Telegram style: value-first, label-second, copy on press) */}
+          <View style={styles.infoSection}>
+            {/* Recado Item */}
+            <TouchableOpacity
+              activeOpacity={0.6}
+              onPress={handleCopyRecado}
+              style={styles.infoItem}
             >
-              <Mail
-                size={20}
-                color={colors.textSecondary}
-                style={styles.infoIcon}
-              />
-              <View>
-                <Text
-                  style={[styles.infoLabel, { color: colors.textSecondary }]}
-                >
-                  E-mail
-                </Text>
-                <Text style={[styles.infoValue, { color: colors.text }]}>
-                  {displayEmail}
-                </Text>
-              </View>
-            </View>
+              <Text style={[styles.infoValueText, { color: colors.text }]}>
+                {contact?.about || "Sem recado"}
+              </Text>
+              <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+                Recado
+              </Text>
+            </TouchableOpacity>
 
-            <View
-              style={[
-                styles.infoRow,
-                styles.borderTop,
-                { borderTopColor: colors.border },
-              ]}
-            >
-              <MessageSquareText
-                size={20}
-                color={colors.textSecondary}
-                style={styles.infoIcon}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[styles.infoLabel, { color: colors.textSecondary }]}
+            {/* Email Item */}
+            {!!displayEmail && (
+              <>
+                <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
+                <TouchableOpacity
+                  activeOpacity={0.6}
+                  onPress={handleCopyEmail}
+                  style={styles.infoItem}
                 >
-                  Recado
-                </Text>
-                <Text
-                  style={[
-                    styles.infoValue,
-                    {
-                      color: contact?.about
-                        ? colors.text
-                        : colors.textSecondary,
-                      fontStyle: contact?.about ? "normal" : "italic",
-                    },
-                  ]}
-                >
-                  {contact?.about || "Sem recado"}
-                </Text>
-              </View>
-            </View>
+                  <Text style={[styles.infoValueText, { color: colors.text }]}>
+                    {displayEmail}
+                  </Text>
+                  <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+                    E-mail
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
-          {/* Chat Settings */}
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.cardTitle, { color: colors.tint }]}>
-              Configurações
-            </Text>
+          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
 
-            <TouchableOpacity
-              style={styles.optionRow}
-              onPress={() => setMuteModalVisible(true)}
-            >
-              {isMuted ? (
-                <BellOff size={20} color={colors.textSecondary} style={styles.infoIcon} />
-              ) : (
-                <Bell size={20} color={colors.tint} style={styles.infoIcon} />
-              )}
-              <View style={styles.optionTextContainer}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Notificações
-                </Text>
-                <Text
-                  style={[styles.optionSub, { color: colors.textSecondary }]}
-                >
-                  {getMuteStatusLabel()}
-                </Text>
+          {/* Options Section */}
+          <View style={styles.optionsSection}>
+            {/* Notificações */}
+            <View style={styles.optionRow}>
+              <View style={styles.optionLeft}>
+                {isMuted ? (
+                  <BellOff size={20} color={colors.textSecondary} />
+                ) : (
+                  <Bell size={20} color={colors.textSecondary} />
+                )}
+                <View style={styles.optionTextContainer}>
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>
+                    Notificações
+                  </Text>
+                  <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                    {getMuteStatusLabel()}
+                  </Text>
+                </View>
               </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.optionRow,
-                styles.borderTop,
-                { borderTopColor: colors.border },
-              ]}
-              onPress={handleToggleFavorite}
-            >
-              <Star
-                size={20}
-                color={isFavorite ? "#FFD700" : colors.textSecondary}
-                fill={isFavorite ? "#FFD700" : "transparent"}
-                style={styles.infoIcon}
+              <Switch
+                value={!isMuted}
+                onValueChange={handleToggleMuteSwitch}
+                trackColor={{ false: "#767577", true: colors.tint }}
+                thumbColor={Platform.OS === "android" ? (isMuted ? "#f4f3f4" : colors.tint) : undefined}
               />
-              <View style={styles.optionTextContainer}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  {isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                </Text>
-                <Text
-                  style={[styles.optionSub, { color: colors.textSecondary }]}
-                >
-                  {isFavorite
-                    ? "Esta conversa está marcada como favorita."
-                    : "Marque esta conversa como favorita para acesso rápido."}
-                </Text>
-              </View>
-            </TouchableOpacity>
+            </View>
 
+            {/* Favorito */}
+            <View style={styles.optionRow}>
+              <View style={styles.optionLeft}>
+                <Star
+                  size={20}
+                  color={isFavorite ? "#FFD700" : colors.textSecondary}
+                  fill={isFavorite ? "#FFD700" : "transparent"}
+                />
+                <View style={styles.optionTextContainer}>
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>
+                    Favorito
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={isFavorite}
+                onValueChange={handleToggleFavorite}
+                trackColor={{ false: "#767577", true: colors.tint }}
+                thumbColor={Platform.OS === "android" ? (isFavorite ? colors.tint : "#f4f3f4") : undefined}
+              />
+            </View>
+
+            {/* Fixar conversa */}
+            <View style={styles.optionRow}>
+              <View style={styles.optionLeft}>
+                <Pin size={20} color={colors.textSecondary} />
+                <View style={styles.optionTextContainer}>
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>
+                    Fixar conversa
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={isPinned}
+                onValueChange={handleTogglePin}
+                trackColor={{ false: "#767577", true: colors.tint }}
+                thumbColor={Platform.OS === "android" ? (isPinned ? colors.tint : "#f4f3f4") : undefined}
+              />
+            </View>
+
+            {/* Adicionar à lista */}
             <TouchableOpacity
-              style={[
-                styles.optionRow,
-                styles.borderTop,
-                { borderTopColor: colors.border },
-              ]}
+              style={styles.optionRowClickable}
               onPress={handleOpenListSelector}
             >
-              <ListPlus size={20} color={colors.tint} style={styles.infoIcon} />
-              <View style={styles.optionTextContainer}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Adicionar à lista
-                </Text>
-                <Text
-                  style={[styles.optionSub, { color: colors.textSecondary }]}
-                >
-                  {getSelectedListsLabel()}
-                </Text>
+              <View style={styles.optionLeft}>
+                <ListPlus size={20} color={colors.textSecondary} />
+                <View style={styles.optionTextContainer}>
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>
+                    Adicionar à lista
+                  </Text>
+                  {selectedListIds.length > 0 && (
+                    <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                      {getSelectedListsLabel()}
+                    </Text>
+                  )}
+                </View>
               </View>
+              <ChevronRight size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            {/* Mídias compartilhadas */}
+            <TouchableOpacity
+              style={styles.optionRowClickable}
+              onPress={() => Alert.alert("Mídias Compartilhadas", "Essa funcionalidade estará disponível em breve!")}
+            >
+              <View style={styles.optionLeft}>
+                <ImageIcon size={20} color={colors.textSecondary} />
+                <View style={styles.optionTextContainer}>
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>
+                    Mídias compartilhadas
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            {/* Buscar nesta conversa */}
+            <TouchableOpacity
+              style={styles.optionRowClickable}
+              onPress={() => Alert.alert("Buscar na conversa", "Essa funcionalidade estará disponível em breve!")}
+            >
+              <View style={styles.optionLeft}>
+                <Search size={20} color={colors.textSecondary} />
+                <View style={styles.optionTextContainer}>
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>
+                    Buscar nesta conversa
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          {/* Danger Zone Options */}
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.cardTitle, { color: colors.danger }]}>
-              Opções
-            </Text>
+          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
 
+          {/* Danger Zone Options */}
+          <View style={styles.optionsSection}>
             <TouchableOpacity
-              style={styles.optionRow}
+              style={styles.optionRowClickable}
               onPress={handleClearChat}
             >
-              <Trash2 size={20} color={colors.danger} style={styles.infoIcon} />
-              <View style={styles.optionTextContainer}>
-                <Text style={[styles.optionTitle, { color: colors.danger }]}>
-                  Limpar conversa
-                </Text>
-                <Text
-                  style={[styles.optionSub, { color: colors.textSecondary }]}
-                >
-                  Apaga todas as mensagens e histórico deste chat.
-                </Text>
+              <View style={styles.optionLeft}>
+                <Trash2 size={20} color={colors.danger} />
+                <View style={styles.optionTextContainer}>
+                  <Text style={[styles.optionTitle, { color: colors.danger }]}>
+                    Limpar conversa
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.optionRow,
-                styles.borderTop,
-                { borderTopColor: colors.border },
-              ]}
+              style={styles.optionRowClickable}
               onPress={handleToggleBlock}
             >
-              {isBlocked ? (
-                <>
-                  <Shield
-                    size={20}
-                    color={colors.tint}
-                    style={styles.infoIcon}
-                  />
-                  <View style={styles.optionTextContainer}>
-                    <Text style={[styles.optionTitle, { color: colors.tint }]}>
-                      Desbloquear contato
-                    </Text>
-                    <Text
-                      style={[
-                        styles.optionSub,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Permite que este usuário envie mensagens para você
-                      novamente.
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <ShieldAlert
-                    size={20}
-                    color={colors.danger}
-                    style={styles.infoIcon}
-                  />
-                  <View style={styles.optionTextContainer}>
-                    <Text
-                      style={[styles.optionTitle, { color: colors.danger }]}
-                    >
-                      Bloquear contato
-                    </Text>
-                    <Text
-                      style={[
-                        styles.optionSub,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Impede que este usuário envie mensagens para você.
-                    </Text>
-                  </View>
-                </>
-              )}
+              <View style={styles.optionLeft}>
+                {isBlocked ? (
+                  <>
+                    <Shield size={20} color={colors.tint} />
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[styles.optionTitle, { color: colors.tint }]}>
+                        Desbloquear contato
+                      </Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert size={20} color={colors.danger} />
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[styles.optionTitle, { color: colors.danger }]}>
+                        Bloquear contato
+                      </Text>
+                    </View>
+                  </>
+                )}
+              </View>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -989,7 +1050,12 @@ export default function ContactDetailScreen() {
                 onPress={() => handleMuteChats("unmute")}
               >
                 <View style={styles.dialogOptionLabel}>
-                  <Text style={[styles.dialogOptionText, { color: colors.tint, fontWeight: "bold" }]}>
+                  <Text
+                    style={[
+                      styles.dialogOptionText,
+                      { color: colors.tint, fontWeight: "bold" },
+                    ]}
+                  >
                     Ativar notificações (Desilenciar)
                   </Text>
                 </View>
@@ -1106,7 +1172,12 @@ export default function ContactDetailScreen() {
               },
             ]}
           >
-            <Text style={[styles.dialogTitle, { color: colors.text, marginBottom: 12 }]}>
+            <Text
+              style={[
+                styles.dialogTitle,
+                { color: colors.text, marginBottom: 12 },
+              ]}
+            >
               Marcar Listas
             </Text>
 
@@ -1209,9 +1280,7 @@ export default function ContactDetailScreen() {
                 marginTop: 8,
               }}
             >
-              <TouchableOpacity
-                onPress={() => setListSelectorVisible(false)}
-              >
+              <TouchableOpacity onPress={() => setListSelectorVisible(false)}>
                 <Text
                   style={{
                     color: colors.textSecondary,
@@ -1222,9 +1291,7 @@ export default function ContactDetailScreen() {
                   Cancelar
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSaveLists}
-              >
+              <TouchableOpacity onPress={handleSaveLists}>
                 <Text
                   style={{
                     color: colors.tint,
@@ -1271,11 +1338,7 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingBottom: 12,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerContent: {
     flexDirection: "row",
@@ -1290,50 +1353,70 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    flex: 1,
+  },
+  headerProfileContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 10,
+  },
+  miniAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  miniAvatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  miniAvatarText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  headerProfileName: {
+    fontSize: 16,
+    fontWeight: "600",
+    flex: 1,
   },
   scrollContent: {
-    padding: 20,
     paddingBottom: 40,
   },
-  avatarSection: {
+  profileHeader: {
     alignItems: "center",
-    marginVertical: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
   },
   avatarImage: {
     width: "100%",
     height: "100%",
   },
   avatarText: {
-    fontSize: 40,
-    fontWeight: "bold",
+    fontSize: 44,
+    fontWeight: "300",
   },
   displayName: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "600",
     textAlign: "center",
   },
-  aboutText: {
-    fontSize: 14,
+  usernameText: {
+    fontSize: 15,
+    marginTop: 4,
     textAlign: "center",
-    marginTop: 8,
-    paddingHorizontal: 24,
-    lineHeight: 20,
   },
   blockedBadge: {
-    marginTop: 8,
+    marginTop: 10,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1343,83 +1426,82 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginVertical: 20,
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth,
+    width: "100%",
+    marginVertical: 12,
   },
-  actionButton: {
-    width: "42%",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+  infoSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 4,
   },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: 6,
-  },
-  card: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    textTransform: "uppercase",
-    marginBottom: 16,
-    letterSpacing: 0.5,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  infoItem: {
     paddingVertical: 10,
   },
-  infoIcon: {
-    marginRight: 16,
-  },
-  infoLabel: {
-    fontSize: 12,
-  },
-  infoValue: {
+  infoValueText: {
     fontSize: 16,
-    fontWeight: "500",
-    marginTop: 2,
+    fontWeight: "400",
   },
-  borderTop: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    marginTop: 10,
-    paddingTop: 20,
+  infoLabelText: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  innerDivider: {
+    height: StyleSheet.hairlineWidth,
+    width: "100%",
+  },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginVertical: 12,
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  actionButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  optionsSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 4,
   },
   optionRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+  },
+  optionRowClickable: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+  },
+  optionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 16,
   },
   optionTextContainer: {
     flex: 1,
   },
   optionTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "400",
   },
   optionSub: {
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 16,
+    fontSize: 13,
+    marginTop: 2,
   },
   headerMenuBtn: {
     padding: 4,

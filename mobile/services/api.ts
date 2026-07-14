@@ -274,6 +274,7 @@ export interface Contact {
   is_blocked: boolean;
   avatar_url?: string | null;
   about?: string | null;
+  name?: string | null;
 }
 
 export async function getContacts(token: string): Promise<Contact[]> {

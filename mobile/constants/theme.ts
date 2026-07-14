@@ -5,48 +5,72 @@ const tintColorDark = "#0A84FF";
 
 export const Colors = {
   light: {
-    text: "#1E293B", // slate 800
-    textSecondary: "#64748B", // slate 500
-    background: "#F8FAFC", // slate 50
-    surface: "#FFFFFF",
+    text: "#111827",
+    textSecondary: "#6B7280",
+
+    background: "#FAFAFA",      // fundo principal
+    surface: "#FFFFFF",         // cards
     cardBackground: "#FFFFFF",
-    border: "#E2E8F0", // slate 200
+
+    border: "#ECECEC",
+
     tint: tintColorLight,
-    icon: "#64748B", // slate 500
-    tabIconDefault: "#94A3B8", // slate 400
+    icon: "#6B7280",
+
+    tabIconDefault: "#9CA3AF",
     tabIconSelected: tintColorLight,
-    headerBackground: "#007AFF", // Brand blue header
-    headerText: "#FFFFFF",
+
+    headerBackground: "#FFFFFF",
+    headerText: "#111827",
+
     tabBarBackground: "#FFFFFF",
-    badge: "#10B981", // Emerald 500
+
+    badge: "#10B981",
     badgeText: "#FFFFFF",
-    fab: "#007AFF",
+
+    fab: tintColorLight,
+
     menuBackground: "#FFFFFF",
-    modalOverlay: "rgba(0,0,0,0.3)",
-    shadow: "#0F172A",
-    danger: "#EF4444", // red 500
+
+    modalOverlay: "rgba(0,0,0,0.30)",
+
+    shadow: "#000000",
+
+    danger: "#EF4444",
   },
   dark: {
-    text: "#F8FAFC", // slate 50
-    textSecondary: "#94A3B8", // slate 400
-    background: "#0F172A", // slate 900
-    surface: "#1E293B", // slate 800
-    cardBackground: "#1E293B",
-    border: "#334155", // slate 700
+    text: "#F9FAFB",
+    textSecondary: "#9CA3AF",
+
+    background: "#121212",      // fundo principal
+    surface: "#1A1A1A",         // AppBar
+    cardBackground: "#1E1E1E",
+
+    border: "#222222",
+
     tint: tintColorDark,
-    icon: "#94A3B8", // slate 400
-    tabIconDefault: "#64748B", // slate 500
+    icon: "#9CA3AF",
+
+    tabIconDefault: "#6B7280",
     tabIconSelected: tintColorDark,
-    headerBackground: "#1E293B", // slate 800 header in dark mode
-    headerText: "#F8FAFC",
-    tabBarBackground: "#0F172A",
-    badge: "#10B981", // Emerald 500
+
+    headerBackground: "#1A1A1A",
+    headerText: "#FFFFFF",
+
+    tabBarBackground: "#1A1A1A",
+
+    badge: "#10B981",
     badgeText: "#FFFFFF",
-    fab: "#0A84FF",
-    menuBackground: "#1E293B",
-    modalOverlay: "rgba(0,0,0,0.6)",
+
+    fab: tintColorDark,
+
+    menuBackground: "#242424",
+
+    modalOverlay: "rgba(0,0,0,0.60)",
+
     shadow: "#000000",
-    danger: "#EF4444",
+
+    danger: "#F87171",
   },
 };
 
@@ -66,7 +90,8 @@ export const Fonts = Platform.select({
   web: {
     sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
+    rounded:
+      "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });

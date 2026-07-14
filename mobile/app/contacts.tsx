@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
@@ -17,7 +18,7 @@ import {
   ArrowLeft,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
-import { getContacts, removeContact, createChat, type Contact } from "@/services/api";
+import { getContacts, removeContact, createChat, type Contact, API_URL } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -159,9 +160,20 @@ export default function ContactsScreen() {
                 onPress={() => handleStartChat(item)}
               >
                 <View style={[styles.avatar, { backgroundColor: isDark ? "#2C2C2E" : "#e5e5ea" }]}>
-                  <Text style={[styles.avatarText, { color: colors.text }]}>
-                    {item.username[0]?.toUpperCase() ?? "?"}
-                  </Text>
+                  {item.avatar_url ? (
+                    <Image
+                      source={{
+                        uri: item.avatar_url.startsWith("http")
+                          ? item.avatar_url
+                          : `${API_URL}${item.avatar_url.startsWith("/") ? "" : "/"}${item.avatar_url}`,
+                      }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <Text style={[styles.avatarText, { color: colors.text }]}>
+                      {item.username[0]?.toUpperCase() ?? "?"}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.textContainer}>
                   <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
@@ -298,6 +310,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   avatarText: {
     fontSize: 16,
