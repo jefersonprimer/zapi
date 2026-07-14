@@ -24,6 +24,7 @@ export interface AuthResponse {
   email: string;
   avatar_url?: string | null;
   about?: string | null;
+  name?: string | null;
 }
 
 export interface ChatListItem {
@@ -31,6 +32,7 @@ export interface ChatListItem {
   participant_id: string | null;
   participant_username: string | null;
   participant_avatar_url: string | null;
+  participant_name: string | null;
   is_group: boolean;
   name: string | null;
   last_message: string | null;
@@ -162,6 +164,7 @@ export interface UserSearchResult {
   email: string;
   avatar_url?: string | null;
   about?: string | null;
+  name?: string | null;
 }
 
 export async function searchUsers(
@@ -362,17 +365,23 @@ export async function updateProfile(
   token: string,
   avatarUrl?: string | null,
   keepChatsArchived?: boolean,
-  about?: string | null
+  about?: string | null,
+  name?: string | null,
+  username?: string | null
 ): Promise<{
   status: string;
   avatar_url: string | null;
   keep_chats_archived?: boolean;
   about?: string | null;
+  name?: string | null;
+  username?: string | null;
 }> {
   const body: any = {};
   if (avatarUrl !== undefined) body.avatar_url = avatarUrl;
   if (keepChatsArchived !== undefined) body.keep_chats_archived = keepChatsArchived;
   if (about !== undefined) body.about = about;
+  if (name !== undefined) body.name = name;
+  if (username !== undefined) body.username = username;
   return authFetch(`${API_URL}/users/profile`, token, {
     method: "POST",
     body: JSON.stringify(body),
@@ -383,6 +392,7 @@ export interface GroupParticipant {
   id: string;
   username: string;
   avatar_url?: string | null;
+  name?: string | null;
 }
 
 export interface GroupDetails {

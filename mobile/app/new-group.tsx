@@ -144,11 +144,16 @@ export default function NewGroupScreen() {
                 </View>
                 <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
                   <Text style={styles.avatarText}>
-                    {item.username[0].toUpperCase()}
+                    {(item.name || item.username)[0].toUpperCase()}
                   </Text>
                 </View>
                 <View>
-                  <Text style={[styles.username, { color: colors.text }]}>{item.username}</Text>
+                  <Text style={[styles.username, { color: colors.text }]}>
+                    {item.name || item.username}
+                  </Text>
+                  <Text style={[styles.usernameHandle, { color: colors.textSecondary }]}>
+                    @{item.username}
+                  </Text>
                   <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
                 </View>
               </TouchableOpacity>
@@ -251,6 +256,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   username: { fontSize: 16, fontWeight: "600" },
+  usernameHandle: { fontSize: 13, marginTop: 1 },
   email: { fontSize: 14, marginTop: 2 },
   createBtn: {
     borderRadius: 8,

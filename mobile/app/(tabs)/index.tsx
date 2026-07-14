@@ -207,7 +207,7 @@ export default function ChatListScreen() {
     // 1. Filter by Search Query
     if (searchQuery.trim().length > 0) {
       const query = searchQuery.toLowerCase();
-      const chatName = (c.name ?? c.participant_username ?? "").toLowerCase();
+      const chatName = (c.name ?? c.participant_name ?? c.participant_username ?? "").toLowerCase();
       if (!chatName.includes(query)) return false;
     }
 
@@ -252,7 +252,7 @@ export default function ChatListScreen() {
           chatId: item.id,
           participantId: item.participant_id || "",
           participantUsername:
-            item.name ?? item.participant_username ?? "Unknown",
+            item.name ?? item.participant_name ?? item.participant_username ?? "Unknown",
           participantAvatarUrl: item.participant_avatar_url || "",
         },
       });
@@ -416,7 +416,7 @@ export default function ChatListScreen() {
       params: {
         participantId: chatItem.participant_id || "",
         participantUsername:
-          chatItem.participant_username || chatItem.name || "Unknown",
+          chatItem.participant_name || chatItem.participant_username || chatItem.name || "Unknown",
         chatId: chatItem.id,
         avatarUrl: chatItem.participant_avatar_url || undefined,
       },
@@ -1401,13 +1401,13 @@ export default function ChatListScreen() {
                       <Text style={styles.avatarText}>
                         {item.is_group
                           ? (item.name ?? "G")[0].toUpperCase()
-                          : (item.participant_username ?? "?")[0].toUpperCase()}
+                          : (item.participant_name ?? item.participant_username ?? "?")[0].toUpperCase()}
                       </Text>
                     )}
                   </View>
                   <View style={styles.chatInfo}>
                     <Text style={[styles.chatName, { color: colors.text }]}>
-                      {item.name ?? item.participant_username ?? "Unknown"}
+                      {item.name ?? item.participant_name ?? item.participant_username ?? "Unknown"}
                     </Text>
                     {(() => {
                       if (!item.last_message) {
@@ -1767,13 +1767,12 @@ export default function ChatListScreen() {
                           <Text style={[styles.avatarText, { fontSize: 14 }]}>
                             {item.is_group
                               ? (item.name ?? "G")[0].toUpperCase()
-                              : (item.participant_username ??
-                                  "?")[0].toUpperCase()}
+                              : (item.participant_name ?? item.participant_username ?? "?")[0].toUpperCase()}
                           </Text>
                         )}
                       </View>
                       <Text style={{ color: colors.text, fontSize: 16 }}>
-                        {item.name ?? item.participant_username ?? "Unknown"}
+                        {item.name ?? item.participant_name ?? item.participant_username ?? "Unknown"}
                       </Text>
                     </View>
                     <View

@@ -20,6 +20,7 @@ export async function initializeDatabase() {
       participant_id TEXT,
       participant_username TEXT,
       participant_avatar_url TEXT,
+      participant_name TEXT,
       is_group INTEGER DEFAULT 0,
       name TEXT,
       last_message TEXT,
@@ -32,6 +33,15 @@ export async function initializeDatabase() {
       is_archived INTEGER DEFAULT 0,
       is_favorite INTEGER DEFAULT 0
     );
+  `);
+
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN participant_name TEXT;");
+  } catch (e) {
+    // Ignore error if column already exists
+  }
+
+  await db.execAsync(`
 
     CREATE TABLE IF NOT EXISTS chat_lists (
       id TEXT PRIMARY KEY,
@@ -166,15 +176,16 @@ export async function saveChats(chats: ChatListItem[]) {
   for (const chat of chats) {
     await db.runAsync(
       `INSERT INTO chats (
-        id, participant_id, participant_username, participant_avatar_url, is_group, name, 
+        id, participant_id, participant_username, participant_avatar_url, participant_name, is_group, name, 
         last_message, last_message_at, created_at, unread_count, 
         is_blocked_by_me, is_blocked_by_them, notification_muted_until, notification_muted_forever,
         is_archived, is_favorite
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         participant_id=excluded.participant_id,
         participant_username=excluded.participant_username,
         participant_avatar_url=excluded.participant_avatar_url,
+        participant_name=excluded.participant_name,
         is_group=excluded.is_group,
         name=excluded.name,
         last_message=excluded.last_message,
@@ -192,6 +203,7 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.participant_id || null,
         chat.participant_username || null,
         chat.participant_avatar_url || null,
+        chat.participant_name || null,
         chat.is_group ? 1 : 0,
         chat.name || null,
         resolveLastMessagePreview(chat.last_message) || null,
@@ -283,6 +295,7 @@ export async function getChatsFromLocal(): Promise<ChatListItem[]> {
     participant_id: r.participant_id,
     participant_username: r.participant_username,
     participant_avatar_url: r.participant_avatar_url,
+    participant_name: r.participant_name,
     is_group: r.is_group === 1,
     name: r.name,
     last_message: r.last_message,

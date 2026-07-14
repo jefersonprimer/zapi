@@ -97,7 +97,7 @@ export default function ArchivedScreen() {
           chatId: item.id,
           participantId: item.participant_id || "",
           participantUsername:
-            item.name ?? item.participant_username ?? "Unknown",
+            item.name ?? item.participant_name ?? item.participant_username ?? "Unknown",
           participantAvatarUrl: item.participant_avatar_url || "",
         },
       });
@@ -269,14 +269,14 @@ export default function ArchivedScreen() {
                   <Text style={styles.avatarText}>
                     {item.is_group
                       ? (item.name ?? "G")[0].toUpperCase()
-                      : (item.participant_username ?? "?")[0].toUpperCase()}
+                      : (item.participant_name ?? item.participant_username ?? "?")[0].toUpperCase()}
                   </Text>
                 )}
               </View>
               <View style={styles.chatInfo}>
                 <View style={styles.chatHeaderRow}>
                   <Text style={[styles.chatName, { color: colors.text }]}>
-                    {item.name ?? item.participant_username ?? "Unknown"}
+                    {item.name ?? item.participant_name ?? item.participant_username ?? "Unknown"}
                   </Text>
                   <Text style={[styles.chatTime, { color: colors.textSecondary }]}>
                     {formatTime(item.last_message_at)}

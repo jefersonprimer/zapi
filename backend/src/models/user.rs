@@ -13,5 +13,7 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     pub avatar_url: Option<String>,
     pub about: Option<String>,
+    pub name: Option<String>,
+    pub username_updated_at: Option<DateTime<Utc>>,
 }
 

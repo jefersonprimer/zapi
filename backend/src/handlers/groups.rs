@@ -192,6 +192,7 @@ pub struct GroupParticipant {
     pub id: Uuid,
     pub username: String,
     pub avatar_url: Option<String>,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -250,7 +251,7 @@ pub async fn get_group_details(
     })?;
 
     let participants = sqlx::query_as::<_, GroupParticipant>(
-        "SELECT u.id, u.username, u.avatar_url 
+        "SELECT u.id, u.username, u.avatar_url, u.name 
          FROM chat_participants cp
          JOIN users u ON u.id = cp.user_id
          WHERE cp.chat_id = $1",

@@ -267,7 +267,10 @@ export function GroupDetailsModal({
                             borderTopColor: colors.border,
                             justifyContent: "space-between",
                           }}>
-                            <Text style={{ color: colors.text, fontWeight: "500" }}>{item.username}</Text>
+                            <View style={{ flex: 1, marginRight: 8 }}>
+                              <Text style={{ color: colors.text, fontWeight: "500" }}>{item.name || item.username}</Text>
+                              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>@{item.username}</Text>
+                            </View>
                             {isAlreadyMember ? (
                               <Text style={{ fontSize: 12, color: colors.textSecondary }}>Já é membro</Text>
                             ) : (
@@ -321,13 +324,18 @@ export function GroupDetailsModal({
                           marginRight: 12,
                         }}>
                           <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                            {member.username[0].toUpperCase()}
+                            {(member.name || member.username)[0].toUpperCase()}
                           </Text>
                         </View>
                         <View>
                           <Text style={{ color: colors.text, fontWeight: "600" }}>
-                            {member.username} {isMe && "(Você)"}
+                            {member.name || member.username} {isMe && "(Você)"}
                           </Text>
+                          {member.name && (
+                            <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                              @{member.username}
+                            </Text>
+                          )}
                           {isCreator && (
                             <Text style={{ fontSize: 11, color: colors.tint, fontWeight: "500" }}>
                               Dono do grupo

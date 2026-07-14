@@ -31,6 +31,7 @@ import {
   Camera,
   Image as ImageIcon,
   MessageSquareText,
+  User,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { API_URL, uploadImage, updateProfile } from "@/services/api";
@@ -49,6 +50,10 @@ export default function SettingsScreen() {
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [aboutDraft, setAboutDraft] = useState("");
+  const [nameModalVisible, setNameModalVisible] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [usernameModalVisible, setUsernameModalVisible] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState("");
 
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -194,6 +199,77 @@ export default function SettingsScreen() {
     }
   };
 
+  const openNameModal = () => {
+    setNameDraft(user?.name || user?.username || "");
+    setNameModalVisible(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!token) return;
+    const trimmed = nameDraft.trim();
+    if (trimmed.length > 100) {
+      Alert.alert("Erro", "O nome pode ter no máximo 100 caracteres.");
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      await updateProfile(token, undefined, undefined, undefined, trimmed || null);
+      await updateUser({ name: trimmed || null });
+      setNameModalVisible(false);
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Falha ao atualizar nome");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const openUsernameModal = () => {
+    setUsernameDraft(user?.username || "");
+    setUsernameModalVisible(true);
+  };
+
+  const handleSaveUsername = async () => {
+    if (!token) return;
+    const trimmed = usernameDraft.trim().toLowerCase();
+    
+    // Client-side validations
+    const len = trimmed.length;
+    if (len < 3 || len > 30) {
+      Alert.alert("Erro", "O username deve ter entre 3 e 30 caracteres.");
+      return;
+    }
+
+    // Check characters: lowercase a-z, 0-9, _
+    for (let i = 0; i < trimmed.length; i++) {
+      const c = trimmed[i];
+      const code = trimmed.charCodeAt(i);
+      const isLetter = (code >= 97 && code <= 122); // a-z
+      const isDigit = (code >= 48 && code <= 57);   // 0-9
+      const isUnderscore = (c === '_');
+      if (!isLetter && !isDigit && !isUnderscore) {
+        Alert.alert("Erro", "O username só pode conter letras minúsculas, números e underlines (_).");
+        return;
+      }
+    }
+
+    const reserved = ["admin", "support", "zapi", "api", "root", "system", "security", "official"];
+    if (reserved.includes(trimmed)) {
+      Alert.alert("Erro", `O username '${trimmed}' é reservado.`);
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      await updateProfile(token, undefined, undefined, undefined, undefined, trimmed);
+      await updateUser({ username: trimmed });
+      setUsernameModalVisible(false);
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Falha ao atualizar username");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   // Format theme text
   const getThemeLabel = (pref: string) => {
     switch (pref) {
@@ -291,12 +367,22 @@ export default function SettingsScreen() {
           </TouchableOpacity>
 
           <View style={styles.profileInfoVertical}>
-            <Text style={[styles.usernameTextVertical, { color: colors.text }]}>
-              {user?.username || "Usuário"}
-            </Text>
+            <TouchableOpacity onPress={openNameModal} style={styles.nameTapArea} activeOpacity={0.7} disabled={isUpdating}>
+              <Text style={[styles.nameTextVertical, { color: colors.text }]}>
+                {user?.name || user?.username || "Usuário"}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={openUsernameModal} style={styles.usernameTapArea} activeOpacity={0.7} disabled={isUpdating}>
+              <Text style={[styles.usernameTextVertical, { color: colors.textSecondary }]}>
+                @{user?.username}
+              </Text>
+            </TouchableOpacity>
+
             <Text style={[styles.emailTextVertical, { color: colors.textSecondary }]}>
               {user?.email || "usuario@exemplo.com"}
             </Text>
+            
             <TouchableOpacity
               style={styles.aboutTapArea}
               onPress={openAboutModal}
@@ -580,6 +666,153 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={[styles.sheetCloseButton, { backgroundColor: colors.background, marginTop: 8 }]}
               onPress={() => setAboutModalVisible(false)}
+              disabled={isUpdating}
+            >
+              <Text style={[styles.sheetCloseButtonText, { color: colors.text }]}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Name / Nome Modal */}
+      <Modal
+        visible={nameModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setNameModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
+          activeOpacity={1}
+          onPress={() => setNameModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              styles.bottomSheet,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={[styles.sheetIndicator, { backgroundColor: colors.border }]} />
+            <View style={styles.sheetHeaderWithIcon}>
+              <User size={24} color={colors.tint} />
+              <Text style={[styles.sheetTitle, { color: colors.text, marginLeft: 8 }]}>
+                Nome
+              </Text>
+            </View>
+
+            <TextInput
+              style={[
+                styles.aboutInput,
+                {
+                  color: colors.text,
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+              value={nameDraft}
+              onChangeText={setNameDraft}
+              placeholder="Digite seu nome..."
+              placeholderTextColor={colors.textSecondary}
+              maxLength={100}
+              autoFocus
+            />
+
+            <TouchableOpacity
+              style={[styles.sheetCloseButton, { backgroundColor: colors.tint, marginTop: 8 }]}
+              onPress={handleSaveName}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.sheetCloseButtonText}>Salvar</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sheetCloseButton, { backgroundColor: colors.background, marginTop: 8 }]}
+              onPress={() => setNameModalVisible(false)}
+              disabled={isUpdating}
+            >
+              <Text style={[styles.sheetCloseButtonText, { color: colors.text }]}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Username Modal */}
+      <Modal
+        visible={usernameModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setUsernameModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
+          activeOpacity={1}
+          onPress={() => setUsernameModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              styles.bottomSheet,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={[styles.sheetIndicator, { backgroundColor: colors.border }]} />
+            <View style={styles.sheetHeaderWithIcon}>
+              <User size={24} color={colors.tint} />
+              <Text style={[styles.sheetTitle, { color: colors.text, marginLeft: 8 }]}>
+                Username
+              </Text>
+            </View>
+
+            <TextInput
+              style={[
+                styles.aboutInput,
+                {
+                  color: colors.text,
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+              value={usernameDraft}
+              onChangeText={setUsernameDraft}
+              placeholder="Digite seu username..."
+              placeholderTextColor={colors.textSecondary}
+              autoCapitalize="none"
+              maxLength={30}
+              autoFocus
+            />
+
+            <TouchableOpacity
+              style={[styles.sheetCloseButton, { backgroundColor: colors.tint, marginTop: 8 }]}
+              onPress={handleSaveUsername}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.sheetCloseButtonText}>Salvar</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sheetCloseButton, { backgroundColor: colors.background, marginTop: 8 }]}
+              onPress={() => setUsernameModalVisible(false)}
               disabled={isUpdating}
             >
               <Text style={[styles.sheetCloseButtonText, { color: colors.text }]}>
@@ -985,9 +1218,21 @@ const styles = StyleSheet.create({
   profileInfoVertical: {
     alignItems: "center",
   },
-  usernameTextVertical: {
-    fontSize: 20,
+  nameTextVertical: {
+    fontSize: 22,
     fontWeight: "bold",
+    marginBottom: 4,
+  },
+  usernameTextVertical: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  nameTapArea: {
+    paddingVertical: 2,
+  },
+  usernameTapArea: {
+    paddingVertical: 2,
     marginBottom: 4,
   },
   emailTextVertical: {

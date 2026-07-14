@@ -101,3 +101,23 @@ where
         })
     }
 }
+
+pub fn validate_username(username: &str) -> Result<(), String> {
+    let len = username.chars().count();
+    if len < 3 || len > 30 {
+        return Err("Username must be between 3 and 30 characters".to_string());
+    }
+
+    for c in username.chars() {
+        if !c.is_ascii_lowercase() && !c.is_ascii_digit() && c != '_' {
+            return Err("Username must only contain lowercase letters, numbers, and underscores".to_string());
+        }
+    }
+
+    let reserved = ["admin", "support", "zapi", "api", "root", "system", "security", "official"];
+    if reserved.contains(&username) {
+        return Err(format!("Username '{}' is reserved", username));
+    }
+
+    Ok(())
+}
