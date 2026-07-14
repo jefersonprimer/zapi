@@ -23,6 +23,8 @@ export async function initializeDatabase() {
       participant_name TEXT,
       is_group INTEGER DEFAULT 0,
       name TEXT,
+      avatar_url TEXT,
+      description TEXT,
       last_message TEXT,
       last_message_at TEXT,
       created_at TEXT,
@@ -37,6 +39,16 @@ export async function initializeDatabase() {
 
   try {
     await db.execAsync("ALTER TABLE chats ADD COLUMN participant_name TEXT;");
+  } catch (e) {
+    // Ignore error if column already exists
+  }
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN avatar_url TEXT;");
+  } catch (e) {
+    // Ignore error if column already exists
+  }
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN description TEXT;");
   } catch (e) {
     // Ignore error if column already exists
   }
@@ -177,10 +189,11 @@ export async function saveChats(chats: ChatListItem[]) {
     await db.runAsync(
       `INSERT INTO chats (
         id, participant_id, participant_username, participant_avatar_url, participant_name, is_group, name, 
+        avatar_url, description,
         last_message, last_message_at, created_at, unread_count, 
         is_blocked_by_me, is_blocked_by_them, notification_muted_until, notification_muted_forever,
         is_archived, is_favorite
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         participant_id=excluded.participant_id,
         participant_username=excluded.participant_username,
@@ -188,6 +201,8 @@ export async function saveChats(chats: ChatListItem[]) {
         participant_name=excluded.participant_name,
         is_group=excluded.is_group,
         name=excluded.name,
+        avatar_url=excluded.avatar_url,
+        description=excluded.description,
         last_message=excluded.last_message,
         last_message_at=excluded.last_message_at,
         created_at=excluded.created_at,
@@ -206,6 +221,8 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.participant_name || null,
         chat.is_group ? 1 : 0,
         chat.name || null,
+        chat.avatar_url || null,
+        chat.description || null,
         resolveLastMessagePreview(chat.last_message) || null,
         chat.last_message_at || null,
         chat.created_at,
@@ -298,6 +315,8 @@ export async function getChatsFromLocal(): Promise<ChatListItem[]> {
     participant_name: r.participant_name,
     is_group: r.is_group === 1,
     name: r.name,
+    avatar_url: r.avatar_url,
+    description: r.description,
     last_message: r.last_message,
     last_message_at: r.last_message_at,
     created_at: r.created_at,
@@ -816,6 +835,19 @@ export async function saveListPositionLocal(listId: string, position: number): P
   await db.runAsync(
     "INSERT INTO chat_list_order (list_id, position) VALUES (?, ?) ON CONFLICT(list_id) DO UPDATE SET position = excluded.position",
     [listId, position]
+  );
+}
+
+export async function updateLocalGroupDetails(
+  chatId: string,
+  name: string | null,
+  avatarUrl: string | null,
+  description: string | null
+): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE chats SET name = ?, avatar_url = ?, description = ? WHERE id = ?",
+    [name, avatarUrl, description, chatId]
   );
 }
 

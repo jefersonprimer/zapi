@@ -343,7 +343,7 @@ export default function ChatListScreen() {
           participantId: item.participant_id || "",
           participantUsername:
             item.name ?? item.participant_name ?? item.participant_username ?? "Unknown",
-          participantAvatarUrl: item.participant_avatar_url || "",
+          participantAvatarUrl: (item.is_group ? item.avatar_url : item.participant_avatar_url) || "",
         },
       });
     }
@@ -1489,7 +1489,16 @@ export default function ChatListScreen() {
                       },
                     ]}
                   >
-                    {!item.is_group && item.participant_avatar_url ? (
+                    {item.is_group && item.avatar_url ? (
+                      <Image
+                        source={{
+                          uri: item.avatar_url.startsWith("http")
+                            ? item.avatar_url
+                            : `${API_URL}${item.avatar_url}`,
+                        }}
+                        style={{ width: "100%", height: "100%" }}
+                      />
+                    ) : !item.is_group && item.participant_avatar_url ? (
                       <Image
                         source={{
                           uri: item.participant_avatar_url.startsWith("http")
@@ -1851,7 +1860,20 @@ export default function ChatListScreen() {
                           },
                         ]}
                       >
-                        {!item.is_group && item.participant_avatar_url ? (
+                        {item.is_group && item.avatar_url ? (
+                          <Image
+                            source={{
+                              uri: item.avatar_url.startsWith("http")
+                                ? item.avatar_url
+                                : `${API_URL}${item.avatar_url}`,
+                            }}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              borderRadius: 18,
+                            }}
+                          />
+                        ) : !item.is_group && item.participant_avatar_url ? (
                           <Image
                             source={{
                               uri: item.participant_avatar_url.startsWith(

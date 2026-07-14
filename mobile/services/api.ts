@@ -35,6 +35,8 @@ export interface ChatListItem {
   participant_name: string | null;
   is_group: boolean;
   name: string | null;
+  avatar_url?: string | null;
+  description?: string | null;
   last_message: string | null;
   last_message_at: string | null;
   created_at: string;
@@ -401,6 +403,8 @@ export interface GroupDetails {
   name: string | null;
   created_by: string | null;
   is_group: boolean;
+  avatar_url: string | null;
+  description: string | null;
   participants: GroupParticipant[];
 }
 
@@ -409,6 +413,17 @@ export async function getGroupDetails(
   chatId: string
 ): Promise<GroupDetails> {
   return authFetch(`${API_URL}/groups/${chatId}`, token);
+}
+
+export async function updateGroupDetails(
+  token: string,
+  chatId: string,
+  updates: { name?: string; avatar_url?: string | null; description?: string | null }
+): Promise<{ status: string; name: string | null; avatar_url: string | null; description: string | null }> {
+  return authFetch(`${API_URL}/groups/${chatId}`, token, {
+    method: "POST",
+    body: JSON.stringify(updates),
+  });
 }
 
 export async function addParticipant(

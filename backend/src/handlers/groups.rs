@@ -201,6 +201,8 @@ pub struct GroupDetailsResponse {
     pub name: Option<String>,
     pub created_by: Option<Uuid>,
     pub is_group: bool,
+    pub avatar_url: Option<String>,
+    pub description: Option<String>,
     pub participants: Vec<GroupParticipant>,
 }
 
@@ -230,8 +232,8 @@ pub async fn get_group_details(
         ));
     }
 
-    let chat: Option<(Option<String>, Option<Uuid>, bool)> = sqlx::query_as(
-        "SELECT name, created_by, is_group FROM chats WHERE id = $1",
+    let chat: Option<(Option<String>, Option<Uuid>, bool, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT name, created_by, is_group, avatar_url, description FROM chats WHERE id = $1",
     )
     .bind(chat_id)
     .fetch_optional(&pool)
@@ -243,7 +245,7 @@ pub async fn get_group_details(
         )
     })?;
 
-    let (name, created_by, is_group) = chat.ok_or_else(|| {
+    let (name, created_by, is_group, avatar_url, description) = chat.ok_or_else(|| {
         (
             StatusCode::NOT_FOUND,
             Json(json!({ "error": "chat not found" })),
@@ -271,7 +273,138 @@ pub async fn get_group_details(
         name,
         created_by,
         is_group,
+        avatar_url,
+        description,
         participants,
     }))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateGroupRequest {
+    pub name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub description: Option<String>,
+}
+
+pub async fn update_group(
+    State(pool): State<PgPool>,
+    auth: AuthUser,
+    Path(chat_id): Path<Uuid>,
+    Json(body): Json<UpdateGroupRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let chat: Option<(bool, Option<Uuid>)> = sqlx::query_as(
+        "SELECT is_group, created_by FROM chats WHERE id = $1",
+    )
+    .bind(chat_id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": format!("database error: {}", e) })),
+        )
+    })?;
+
+    match chat {
+        Some((true, Some(created_by))) if created_by == auth.0 => {
+            if let Some(name) = body.name {
+                if name.trim().is_empty() {
+                    return Err((
+                        StatusCode::BAD_REQUEST,
+                        Json(json!({ "error": "group name cannot be empty" })),
+                    ));
+                }
+                sqlx::query("UPDATE chats SET name = $1 WHERE id = $2")
+                    .bind(name)
+                    .bind(chat_id)
+                    .execute(&pool)
+                    .await
+                    .map_err(|e| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({ "error": format!("failed to update name: {}", e) })),
+                        )
+                    })?;
+            }
+
+            if let Some(avatar_url) = body.avatar_url {
+                let val = if avatar_url.trim().is_empty() {
+                    None
+                } else {
+                    Some(avatar_url)
+                };
+                sqlx::query("UPDATE chats SET avatar_url = $1 WHERE id = $2")
+                    .bind(val)
+                    .bind(chat_id)
+                    .execute(&pool)
+                    .await
+                    .map_err(|e| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({ "error": format!("failed to update avatar: {}", e) })),
+                        )
+                    })?;
+            }
+
+            if let Some(description) = body.description {
+                let val = if description.trim().is_empty() {
+                    None
+                } else {
+                    Some(description)
+                };
+                sqlx::query("UPDATE chats SET description = $1 WHERE id = $2")
+                    .bind(val)
+                    .bind(chat_id)
+                    .execute(&pool)
+                    .await
+                    .map_err(|e| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({ "error": format!("failed to update description: {}", e) })),
+                        )
+                    })?;
+            }
+
+            // Fetch updated chat to return
+            let updated: Option<(Option<String>, Option<String>, Option<String>)> = sqlx::query_as(
+                "SELECT name, avatar_url, description FROM chats WHERE id = $1",
+            )
+            .bind(chat_id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": format!("database error: {}", e) })),
+                )
+            })?;
+
+            if let Some((name, avatar_url, description)) = updated {
+                Ok(Json(json!({
+                    "status": "ok",
+                    "name": name,
+                    "avatar_url": avatar_url,
+                    "description": description
+                })))
+            } else {
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": "failed to retrieve updated group details" })),
+                ))
+            }
+        }
+        Some((true, _)) => Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "only the group creator can update group details" })),
+        )),
+        Some((false, _)) => Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "not a group chat" })),
+        )),
+        None => Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "chat not found" })),
+        )),
+    }
 }
 

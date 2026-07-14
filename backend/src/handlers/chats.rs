@@ -99,6 +99,8 @@ pub async fn list_chats(
             (SELECT u2.name FROM chat_participants cp2 JOIN users u2 ON u2.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1) AS participant_name,
             c.is_group,
             c.name,
+            c.avatar_url,
+            c.description,
             CASE
                 WHEN cal.created_at IS NOT NULL AND (m.created_at IS NULL OR cal.created_at > m.created_at) THEN
                     CASE

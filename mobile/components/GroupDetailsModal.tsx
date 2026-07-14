@@ -9,10 +9,12 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  Image,
 } from "react-native";
-import { ArrowLeft, LogOut } from "lucide-react-native";
+import { ArrowLeft, LogOut, Camera } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
@@ -22,7 +24,11 @@ import {
   searchUsers,
   type UserSearchResult,
   type GroupDetails,
+  API_URL,
+  updateGroupDetails,
+  uploadImage,
 } from "@/services/api";
+import { updateLocalGroupDetails } from "@/services/database";
 
 interface GroupDetailsModalProps {
   visible: boolean;
@@ -48,18 +54,127 @@ export function GroupDetailsModal({
   const [searchingMembers, setSearchingMembers] = useState(false);
   const [searchedUsers, setSearchedUsers] = useState<UserSearchResult[]>([]);
 
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
+
   const fetchGroupInfo = useCallback(async () => {
     if (!token || !chatId) return;
     setLoadingGroupDetails(true);
     try {
       const details = await getGroupDetails(token, chatId);
       setGroupDetails(details);
+      setEditName(details.name || "");
+      setEditDescription(details.description || "");
     } catch (err) {
       console.error("Failed to fetch group details:", err);
     } finally {
       setLoadingGroupDetails(false);
     }
   }, [token, chatId]);
+
+  const handleSelectAvatar = () => {
+    Alert.alert(
+      "Foto do Grupo",
+      "Escolha uma opção para alterar a foto do grupo:",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Tirar Foto", onPress: handleCamera },
+        { text: "Escolher da Galeria", onPress: handleGallery },
+        { text: "Remover Foto", style: "destructive", onPress: handleRemoveAvatar },
+      ]
+    );
+  };
+
+  const handleCamera = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissão necessária", "Precisamos de permissão para usar a câmera.");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await uploadAndUpdateGroupAvatar(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Erro", "Ocorreu um erro ao abrir a câmera.");
+    }
+  };
+
+  const handleGallery = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissão necessária", "Precisamos de permissão para acessar a galeria.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await uploadAndUpdateGroupAvatar(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Erro", "Ocorreu um erro ao abrir a galeria.");
+    }
+  };
+
+  const uploadAndUpdateGroupAvatar = async (uri: string) => {
+    if (!token || !chatId) return;
+    setIsUpdatingAvatar(true);
+    try {
+      const uploadRes = await uploadImage(token, uri);
+      const updated = await updateGroupDetails(token, chatId, { avatar_url: uploadRes.url });
+      await updateLocalGroupDetails(chatId, updated.name, updated.avatar_url, updated.description);
+      fetchGroupInfo();
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Falha ao atualizar foto do grupo.");
+    } finally {
+      setIsUpdatingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!token || !chatId) return;
+    setIsUpdatingAvatar(true);
+    try {
+      const updated = await updateGroupDetails(token, chatId, { avatar_url: "" });
+      await updateLocalGroupDetails(chatId, updated.name, updated.avatar_url, updated.description);
+      fetchGroupInfo();
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Falha ao remover foto do grupo.");
+    } finally {
+      setIsUpdatingAvatar(false);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!token || !chatId) return;
+    setIsSaving(true);
+    try {
+      const updated = await updateGroupDetails(token, chatId, {
+        name: editName.trim(),
+        description: editDescription.trim(),
+      });
+      await updateLocalGroupDetails(chatId, updated.name, updated.avatar_url, updated.description);
+      Alert.alert("Sucesso", "Informações do grupo atualizadas!");
+      fetchGroupInfo();
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Não foi possível atualizar as informações.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (visible) {
@@ -172,29 +287,139 @@ export function GroupDetailsModal({
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           {/* Group Logo / Name */}
           <View style={{ alignItems: "center", marginBottom: 24 }}>
-            <View style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              backgroundColor: "#34C759", // Group green
-              justifyContent: "center",
-              alignItems: "center",
-              marginBottom: 12,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 2,
-            }}>
-              <Text style={{ color: "#fff", fontSize: 32, fontWeight: "bold" }}>
-                {participantUsername[0]?.toUpperCase()}
-              </Text>
-            </View>
-            <Text style={{ fontSize: 22, fontWeight: "bold", color: colors.text, textAlign: "center" }}>
-              {participantUsername}
-            </Text>
+            <TouchableOpacity
+              onPress={groupDetails?.created_by === user?.user_id ? handleSelectAvatar : undefined}
+              disabled={groupDetails?.created_by !== user?.user_id || isUpdatingAvatar}
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: "#34C759", // Group green
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 12,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 2,
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              {isUpdatingAvatar ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : groupDetails?.avatar_url ? (
+                <Image
+                  source={{
+                    uri: groupDetails.avatar_url.startsWith("http")
+                      ? groupDetails.avatar_url
+                      : `${API_URL}${groupDetails.avatar_url}`,
+                  }}
+                  style={{ width: "100%", height: "100%" }}
+                />
+              ) : (
+                <Text style={{ color: "#fff", fontSize: 32, fontWeight: "bold" }}>
+                  {(groupDetails?.name ?? participantUsername)[0]?.toUpperCase()}
+                </Text>
+              )}
+              {groupDetails?.created_by === user?.user_id && !isUpdatingAvatar && (
+                <View style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  paddingVertical: 2,
+                  alignItems: "center",
+                }}>
+                  <Camera size={12} color="#fff" />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {groupDetails?.created_by === user?.user_id ? (
+              <View style={{ width: "100%", gap: 12, marginTop: 8 }}>
+                <View>
+                  <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4 }}>Nome do Grupo</Text>
+                  <TextInput
+                    style={{
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: 8,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      color: colors.text,
+                      backgroundColor: colors.background,
+                      fontSize: 16,
+                    }}
+                    placeholder="Nome do grupo..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={editName}
+                    onChangeText={setEditName}
+                  />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4 }}>Descrição</Text>
+                  <TextInput
+                    style={{
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: 8,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      color: colors.text,
+                      backgroundColor: colors.background,
+                      fontSize: 16,
+                      minHeight: 60,
+                      textAlignVertical: "top",
+                    }}
+                    placeholder="Adicionar descrição do grupo..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={editDescription}
+                    onChangeText={setEditDescription}
+                    multiline
+                  />
+                </View>
+                {(editName.trim() !== (groupDetails?.name ?? "") || editDescription.trim() !== (groupDetails?.description ?? "")) && (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: colors.tint,
+                      padding: 12,
+                      borderRadius: 8,
+                      alignItems: "center",
+                      marginTop: 8,
+                    }}
+                    onPress={handleSaveChanges}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={{ color: "#fff", fontWeight: "bold" }}>Salvar Alterações</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <View style={{ width: "100%", alignItems: "center" }}>
+                <Text style={{ fontSize: 22, fontWeight: "bold", color: colors.text, textAlign: "center" }}>
+                  {groupDetails?.name ?? participantUsername}
+                </Text>
+                {groupDetails?.description ? (
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 8, textAlign: "center", fontStyle: "italic", paddingHorizontal: 16 }}>
+                    {groupDetails.description}
+                  </Text>
+                ) : (
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 8, textAlign: "center", fontStyle: "italic", paddingHorizontal: 16 }}>
+                    Sem descrição.
+                  </Text>
+                )}
+              </View>
+            )}
+
             {groupDetails && (
-              <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 4 }}>
+              <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 12 }}>
                 {groupDetails.participants.length} membros
               </Text>
             )}

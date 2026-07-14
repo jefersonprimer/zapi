@@ -45,7 +45,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/users/profile", post(handlers::users::update_profile))
         .route("/push/register", post(handlers::push::register_push_token))
         .route("/groups", post(handlers::groups::create_group))
-        .route("/groups/:id", get(handlers::groups::get_group_details))
+        .route("/groups/:id", get(handlers::groups::get_group_details).post(handlers::groups::update_group))
         .route("/groups/:id/add", post(handlers::groups::add_participant))
         .route("/groups/:id/remove/:user_id", delete(handlers::groups::remove_participant))
         .route("/upload", post(handlers::upload::upload_image).layer(DefaultBodyLimit::disable()))

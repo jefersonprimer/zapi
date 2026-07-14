@@ -11,6 +11,8 @@ pub struct Chat {
     pub name: Option<String>,
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
+    pub avatar_url: Option<String>,
+    pub description: Option<String>,
 }
 
 #[derive(Debug, FromRow, Serialize)]
@@ -22,6 +24,8 @@ pub struct ChatListItem {
     pub participant_name: Option<String>,
     pub is_group: bool,
     pub name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub description: Option<String>,
     pub last_message: Option<String>,
     pub last_message_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,

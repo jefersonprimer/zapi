@@ -120,6 +120,7 @@ export default function ChatScreen() {
   const chatId = params.chatId;
   const participantId = params.participantId || "";
   const participantUsername = params.participantUsername || "Unknown";
+  const [displayTitle, setDisplayTitle] = useState(participantUsername);
   const [participantAvatarUrl, setParticipantAvatarUrl] = useState(
     params.participantAvatarUrl || "",
   );
@@ -129,6 +130,12 @@ export default function ChatScreen() {
       setParticipantAvatarUrl(params.participantAvatarUrl);
     }
   }, [params.participantAvatarUrl]);
+
+  useEffect(() => {
+    if (params.participantUsername) {
+      setDisplayTitle(params.participantUsername);
+    }
+  }, [params.participantUsername]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -215,8 +222,19 @@ export default function ChatScreen() {
         setIsBlockedByMe(!!currentChat.is_blocked_by_me);
         setIsBlockedByThem(!!currentChat.is_blocked_by_them);
         setClearedAt(currentChat.cleared_at || null);
-        if (currentChat.participant_avatar_url) {
-          setParticipantAvatarUrl(currentChat.participant_avatar_url);
+        if (currentChat.is_group) {
+          if (currentChat.name) {
+            setDisplayTitle(currentChat.name);
+          }
+          if (currentChat.avatar_url) {
+            setParticipantAvatarUrl(currentChat.avatar_url);
+          } else {
+            setParticipantAvatarUrl("");
+          }
+        } else {
+          if (currentChat.participant_avatar_url) {
+            setParticipantAvatarUrl(currentChat.participant_avatar_url);
+          }
         }
       }
     } catch (err) {
@@ -1247,7 +1265,7 @@ export default function ChatScreen() {
                   <Text
                     style={{ color: "#FFF", fontSize: 14, fontWeight: "bold" }}
                   >
-                    {participantUsername[0]?.toUpperCase()}
+                    {displayTitle[0]?.toUpperCase()}
                   </Text>
                 )}
               </View>
@@ -1255,7 +1273,7 @@ export default function ChatScreen() {
                 style={[styles.headerTitleText, { color: colors.text }]}
                 numberOfLines={1}
               >
-                {participantUsername}
+                {displayTitle}
               </Text>
             </TouchableOpacity>
           )}
@@ -1585,9 +1603,12 @@ export default function ChatScreen() {
       {/* Group Details Modal */}
       <GroupDetailsModal
         visible={groupModalVisible}
-        onClose={() => setGroupModalVisible(false)}
+        onClose={() => {
+          setGroupModalVisible(false);
+          loadChatDetails();
+        }}
         chatId={chatId}
-        participantUsername={participantUsername}
+        participantUsername={displayTitle}
       />
 
       {/* Delete Confirmation Modal */}
