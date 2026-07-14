@@ -4,8 +4,10 @@ export interface CallHistoryItem {
   id: string;
   caller_id: string;
   caller_username: string;
+  caller_avatar_url?: string | null;
   callee_id: string;
   callee_username: string;
+  callee_avatar_url?: string | null;
   status: "completed" | "missed" | "rejected" | "failed" | "busy";
   duration: number; // in seconds
   created_at: string;

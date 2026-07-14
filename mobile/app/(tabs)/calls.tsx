@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, PhoneOff, Trash2, ArrowLeft } from "lucide-react-native";
@@ -14,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getCallHistory, deleteCallHistoryItem, type CallHistoryItem } from "@/services/callApi";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { useAppTheme } from "@/context/ThemeContext";
+import { API_URL } from "@/services/api";
 
 export default function CallsScreen() {
   const { token, user } = useAuth();
@@ -90,14 +92,29 @@ export default function CallsScreen() {
     toggleSelection(item.id);
   };
 
-  const handleCallBack = (userId: string, username: string) => {
-    voiceCallManager.startCall(userId, username);
+  const handleCallBack = (
+    userId: string,
+    username: string,
+    avatarUrl?: string | null,
+  ) => {
+    voiceCallManager.startCall(userId, username, false, avatarUrl);
+  };
+
+  const resolveAvatarUri = (avatarUrl?: string | null): string | null => {
+    if (!avatarUrl) return null;
+    return avatarUrl.startsWith("http")
+      ? avatarUrl
+      : `${API_URL}${avatarUrl.startsWith("/") ? "" : "/"}${avatarUrl}`;
   };
 
   const renderItem = ({ item }: { item: CallHistoryItem }) => {
     const isOutgoing = item.caller_id === user?.user_id;
     const peerName = isOutgoing ? item.callee_username : item.caller_username;
     const peerId = isOutgoing ? item.callee_id : item.caller_id;
+    const peerAvatarUrl = isOutgoing
+      ? item.callee_avatar_url
+      : item.caller_avatar_url;
+    const peerAvatarUri = resolveAvatarUri(peerAvatarUrl);
 
     if (!peerName) return null;
 
@@ -152,8 +169,19 @@ export default function CallsScreen() {
         ]}
       >
         <View style={styles.leftContainer}>
-          <View style={[styles.avatar, { backgroundColor: isOutgoing ? colors.tint : "#34C759" }]}>
-            <Text style={styles.avatarText}>{peerName[0]?.toUpperCase() ?? "?"}</Text>
+          <View
+            style={[
+              styles.avatar,
+              { backgroundColor: isOutgoing ? colors.tint : "#34C759" },
+            ]}
+          >
+            {peerAvatarUri ? (
+              <Image source={{ uri: peerAvatarUri }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>
+                {peerName[0]?.toUpperCase() ?? "?"}
+              </Text>
+            )}
           </View>
           <View style={styles.info}>
             <Text style={[styles.peerName, { color: colors.text }]}>{peerName}</Text>
@@ -179,7 +207,7 @@ export default function CallsScreen() {
         ) : (
           <TouchableOpacity
             style={[styles.callButton, { backgroundColor: colors.surface }]}
-            onPress={() => handleCallBack(peerId, peerName)}
+            onPress={() => handleCallBack(peerId, peerName, peerAvatarUrl)}
           >
             <Phone size={18} color={colors.tint} />
           </TouchableOpacity>
@@ -207,7 +235,7 @@ export default function CallsScreen() {
             {selectedCallIds.length} selecionadas
           </Text>
           <TouchableOpacity onPress={handleDeleteSelectedPrompt} style={styles.headerButton}>
-            <Trash2 size={24} color="#FF3B30" />
+            <Trash2 size={24} color={colors.headerText} />
           </TouchableOpacity>
         </View>
       ) : (
@@ -265,6 +293,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   avatarText: {
     color: "#fff",

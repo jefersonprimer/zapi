@@ -222,9 +222,11 @@ pub async fn get_history(
         SELECT 
             c.id, 
             c.caller_id, 
-            u1.username as caller_username, 
+            u1.username as caller_username,
+            u1.avatar_url as caller_avatar_url,
             c.callee_id, 
-            u2.username as callee_username, 
+            u2.username as callee_username,
+            u2.avatar_url as callee_avatar_url,
             c.status, 
             c.duration, 
             c.created_at
