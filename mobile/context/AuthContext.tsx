@@ -17,6 +17,8 @@ interface User {
   avatar_url?: string | null;
   about?: string | null;
   name?: string | null;
+  privacy_messages?: string;
+  privacy_calls?: string;
 }
 
 interface AuthContextType {

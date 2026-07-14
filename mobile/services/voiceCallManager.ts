@@ -115,7 +115,7 @@ class VoiceCallManager {
         break;
 
       case "call:failed":
-        if (store.callId === msg.call_id) {
+        if (store.callId === msg.call_id || store.callState === "calling") {
           store.setCallState("failed");
           store.setError(msg.reason);
           this.cleanupCall();

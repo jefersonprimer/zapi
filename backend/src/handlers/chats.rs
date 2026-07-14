@@ -25,6 +25,46 @@ pub async fn create_chat(
         ));
     }
 
+    // Check recipient's privacy settings for messages
+    let recipient_privacy: Option<(String, bool)> = sqlx::query_as(
+        r#"
+        SELECT privacy_messages,
+               EXISTS(SELECT 1 FROM contacts WHERE user_id = $1 AND contact_id = $2) AS is_contact
+        FROM users
+        WHERE id = $1
+        "#
+    )
+    .bind(body.participant_id)
+    .bind(auth.0)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": format!("database error: {}", e) })),
+        )
+    })?;
+
+    if let Some((privacy, is_contact)) = recipient_privacy {
+        if privacy == "nobody" {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "privacy_messages_nobody",
+                    "message": "Este usuário não recebe mensagens de ninguém."
+                })),
+            ));
+        } else if privacy == "contacts" && !is_contact {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "privacy_messages_contacts",
+                    "message": "Este usuário recebe mensagens apenas de contatos."
+                })),
+            ));
+        }
+    }
+
     let existing: Option<(Uuid,)> = sqlx::query_as(
         "SELECT c.id FROM chats c
          JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
@@ -158,6 +198,30 @@ pub async fn list_chats(
                     false
                 )
             ) AS is_blocked_by_them,
+            (
+                CASE
+                    WHEN c.is_group THEN NULL
+                    ELSE (
+                        SELECT
+                            CASE
+                                WHEN u.privacy_messages = 'nobody' THEN 'nobody'
+                                WHEN u.privacy_messages = 'contacts'
+                                     AND NOT EXISTS (
+                                         SELECT 1 FROM contacts con
+                                         WHERE con.user_id = u.id AND con.contact_id = $1
+                                     )
+                                THEN 'contacts'
+                                ELSE NULL
+                            END
+                        FROM users u
+                        WHERE u.id = (
+                            SELECT cp2.user_id FROM chat_participants cp2
+                            WHERE cp2.chat_id = c.id AND cp2.user_id != $1
+                            LIMIT 1
+                        )
+                    )
+                END
+            ) AS messages_restricted_reason,
             cp1.cleared_at,
             cp1.notification_muted_until,
             cp1.notification_muted_forever,

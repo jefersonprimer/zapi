@@ -43,6 +43,7 @@ export interface ChatListItem {
   unread_count: number;
   is_blocked_by_me?: boolean;
   is_blocked_by_them?: boolean;
+  messages_restricted_reason?: "contacts" | "nobody" | null;
   cleared_at?: string | null;
   is_pinned?: boolean;
   notification_muted_until?: string | null;
@@ -75,7 +76,7 @@ export interface Message {
   content: string | null;
   image_url: string | null;
   local_file_path?: string | null; // Local cached file URI
-  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed"; // Delivery status
+  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked"; // Delivery status
   created_at: string;
   deleted_for_everyone?: boolean;
   deleted_at?: string | null;
@@ -100,7 +101,16 @@ export async function authFetch(url: string, token: string, options: RequestInit
     throw new Error("Invalid JSON response from server");
   }
 
-  if (!res.ok) throw new Error(data.error ?? "Request failed");
+  if (!res.ok) {
+    const code = typeof data.error === "string" ? data.error : undefined;
+    const message =
+      (typeof data.message === "string" && data.message) ||
+      code ||
+      "Request failed";
+    const err = new Error(message) as Error & { code?: string };
+    if (code) err.code = code;
+    throw err;
+  }
   return data;
 }
 
@@ -370,7 +380,9 @@ export async function updateProfile(
   keepChatsArchived?: boolean,
   about?: string | null,
   name?: string | null,
-  username?: string | null
+  username?: string | null,
+  privacyMessages?: string,
+  privacyCalls?: string
 ): Promise<{
   status: string;
   avatar_url: string | null;
@@ -378,6 +390,8 @@ export async function updateProfile(
   about?: string | null;
   name?: string | null;
   username?: string | null;
+  privacy_messages?: string;
+  privacy_calls?: string;
 }> {
   const body: any = {};
   if (avatarUrl !== undefined) body.avatar_url = avatarUrl;
@@ -385,6 +399,8 @@ export async function updateProfile(
   if (about !== undefined) body.about = about;
   if (name !== undefined) body.name = name;
   if (username !== undefined) body.username = username;
+  if (privacyMessages !== undefined) body.privacy_messages = privacyMessages;
+  if (privacyCalls !== undefined) body.privacy_calls = privacyCalls;
   return authFetch(`${API_URL}/users/profile`, token, {
     method: "POST",
     body: JSON.stringify(body),

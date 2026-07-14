@@ -25,6 +25,8 @@ pub struct UpdateProfileRequest {
     pub about: Option<String>,
     pub name: Option<String>,
     pub username: Option<String>,
+    pub privacy_messages: Option<String>,
+    pub privacy_calls: Option<String>,
 }
 
 pub async fn search_users(
@@ -95,6 +97,8 @@ pub async fn update_profile(
         && body.about.is_none()
         && body.name.is_none()
         && body.username.is_none()
+        && body.privacy_messages.is_none()
+        && body.privacy_calls.is_none()
     {
         // original behavior of setting avatar to NULL if only avatar is None
         sqlx::query("UPDATE users SET avatar_url = NULL WHERE id = $1")
@@ -233,8 +237,48 @@ pub async fn update_profile(
         }
     }
 
+    if let Some(ref priv_msg) = body.privacy_messages {
+        if priv_msg != "all" && priv_msg != "contacts" && priv_msg != "nobody" {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Invalid privacy_messages option" })),
+            ));
+        }
+        sqlx::query("UPDATE users SET privacy_messages = $1 WHERE id = $2")
+            .bind(priv_msg)
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": format!("database error: {}", e) })),
+                )
+            })?;
+    }
+
+    if let Some(ref priv_calls) = body.privacy_calls {
+        if priv_calls != "all" && priv_calls != "contacts" && priv_calls != "nobody" {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Invalid privacy_calls option" })),
+            ));
+        }
+        sqlx::query("UPDATE users SET privacy_calls = $1 WHERE id = $2")
+            .bind(priv_calls)
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": format!("database error: {}", e) })),
+                )
+            })?;
+    }
+
     let updated_user = sqlx::query!(
-        "SELECT username, email, avatar_url, about, name FROM users WHERE id = $1",
+        "SELECT username, email, avatar_url, about, name, privacy_messages, privacy_calls FROM users WHERE id = $1",
         auth.0
     )
     .fetch_one(&pool)
@@ -253,5 +297,7 @@ pub async fn update_profile(
         "avatar_url": updated_user.avatar_url,
         "about": updated_user.about,
         "name": updated_user.name,
+        "privacy_messages": updated_user.privacy_messages,
+        "privacy_calls": updated_user.privacy_calls,
     })))
 }

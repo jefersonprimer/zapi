@@ -32,6 +32,7 @@ pub struct ChatListItem {
     pub unread_count: i64,
     pub is_blocked_by_me: Option<bool>,
     pub is_blocked_by_them: Option<bool>,
+    pub messages_restricted_reason: Option<String>,
     pub cleared_at: Option<DateTime<Utc>>,
     pub notification_muted_until: Option<DateTime<Utc>>,
     pub notification_muted_forever: Option<bool>,

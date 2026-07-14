@@ -34,6 +34,52 @@ pub async fn start_call(
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let callee_id = payload.target_user_id;
 
+    // Check if caller is blocked by callee or if callee has call privacy settings
+    let callee_privacy: Option<(String, bool, bool)> = sqlx::query_as(
+        r#"
+        SELECT u.privacy_calls,
+               EXISTS(SELECT 1 FROM contacts con WHERE con.user_id = $1 AND con.contact_id = $2) AS is_contact,
+               EXISTS(SELECT 1 FROM contacts con WHERE con.user_id = $1 AND con.contact_id = $2 AND con.is_blocked = true) AS is_blocked
+        FROM users u
+        WHERE u.id = $1
+        "#
+    )
+    .bind(callee_id)
+    .bind(caller_id)
+    .fetch_optional(&state.pool)
+    .await
+    .unwrap_or(None);
+
+    if let Some((privacy, is_contact, is_blocked)) = callee_privacy {
+        if is_blocked {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "call_blocked",
+                    "message": "Não é possível realizar a chamada. Você foi bloqueado por este usuário."
+                })),
+            ));
+        }
+
+        if privacy == "nobody" {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "privacy_calls_nobody",
+                    "message": "Este usuário não recebe ligações."
+                })),
+            ));
+        } else if privacy == "contacts" && !is_contact {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "privacy_calls_contacts",
+                    "message": "Este usuário recebe ligações apenas de contatos."
+                })),
+            ));
+        }
+    }
+
     // Start in memory
     let call_id = state.call_manager.start_call(caller_id, callee_id).map_err(|e| {
         (

@@ -59,7 +59,13 @@ export default function NewChatScreen() {
         },
       });
     } catch (err: any) {
-      Alert.alert("Erro", err.message);
+      const isPrivacy =
+        err?.code === "privacy_messages_nobody" ||
+        err?.code === "privacy_messages_contacts";
+      Alert.alert(
+        isPrivacy ? "Privacidade" : "Erro",
+        err.message || "Não foi possível iniciar a conversa."
+      );
     } finally {
       setLoading(false);
     }

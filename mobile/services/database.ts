@@ -162,6 +162,12 @@ export async function initializeDatabase() {
   } catch (err) {
     // Ignore error if column already exists
   }
+
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN messages_restricted_reason TEXT DEFAULT NULL;");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
 }
 
 // Bulk save chats fetched from server
@@ -191,9 +197,10 @@ export async function saveChats(chats: ChatListItem[]) {
         id, participant_id, participant_username, participant_avatar_url, participant_name, is_group, name, 
         avatar_url, description,
         last_message, last_message_at, created_at, unread_count, 
-        is_blocked_by_me, is_blocked_by_them, notification_muted_until, notification_muted_forever,
+        is_blocked_by_me, is_blocked_by_them, messages_restricted_reason,
+        notification_muted_until, notification_muted_forever,
         is_archived, is_favorite
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         participant_id=excluded.participant_id,
         participant_username=excluded.participant_username,
@@ -209,6 +216,7 @@ export async function saveChats(chats: ChatListItem[]) {
         unread_count=excluded.unread_count,
         is_blocked_by_me=excluded.is_blocked_by_me,
         is_blocked_by_them=excluded.is_blocked_by_them,
+        messages_restricted_reason=excluded.messages_restricted_reason,
         notification_muted_until=excluded.notification_muted_until,
         notification_muted_forever=excluded.notification_muted_forever,
         is_archived=excluded.is_archived,
@@ -229,6 +237,7 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.unread_count || 0,
         chat.is_blocked_by_me ? 1 : 0,
         chat.is_blocked_by_them ? 1 : 0,
+        chat.messages_restricted_reason || null,
         chat.notification_muted_until || null,
         chat.notification_muted_forever ? 1 : 0,
         chat.is_archived ? 1 : 0,
@@ -323,6 +332,7 @@ export async function getChatsFromLocal(): Promise<ChatListItem[]> {
     unread_count: r.unread_count,
     is_blocked_by_me: r.is_blocked_by_me === 1,
     is_blocked_by_them: r.is_blocked_by_them === 1,
+    messages_restricted_reason: r.messages_restricted_reason || null,
     is_pinned: r.is_pinned === 1,
     notification_muted_until: r.notification_muted_until,
     notification_muted_forever: r.notification_muted_forever === 1,
@@ -422,7 +432,7 @@ export async function insertMessageLocal(msg: {
   image_url: string | null;
   local_file_path?: string | null;
   created_at: string;
-  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed";
+  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked";
   attachments?: Attachment[];
 }) {
   const db = await getDatabase();
@@ -505,7 +515,7 @@ export async function insertMessageLocal(msg: {
 
 export async function updateMessageStatusLocal(
   id: string,
-  status: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed",
+  status: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked",
   updates?: {
     serverId?: string;
     image_url?: string | null;

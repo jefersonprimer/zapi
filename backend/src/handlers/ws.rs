@@ -152,6 +152,49 @@ async fn handle_signaling_message(
 ) -> Result<(), String> {
     match msg {
         WsMessage::CallStart { call_id: _, target_user_id, caller_username: _, is_video } => {
+            // Check if caller is blocked by callee or if callee has call privacy settings
+            let callee_privacy: Option<(String, bool, bool)> = sqlx::query_as(
+                r#"
+                SELECT u.privacy_calls,
+                       EXISTS(SELECT 1 FROM contacts con WHERE con.user_id = $1 AND con.contact_id = $2) AS is_contact,
+                       EXISTS(SELECT 1 FROM contacts con WHERE con.user_id = $1 AND con.contact_id = $2 AND con.is_blocked = true) AS is_blocked
+                FROM users u
+                WHERE u.id = $1
+                "#
+            )
+            .bind(target_user_id)
+            .bind(user_id)
+            .fetch_optional(&state.pool)
+            .await
+            .unwrap_or(None);
+
+            if let Some((privacy, is_contact, is_blocked)) = callee_privacy {
+                if is_blocked {
+                    let fail = WsMessage::CallFailed {
+                        call_id: Uuid::nil(),
+                        reason: "Você foi bloqueado por este usuário.".to_string(),
+                    };
+                    let _ = tx.send(serde_json::to_string(&fail).unwrap());
+                    return Ok(());
+                }
+
+                if privacy == "nobody" {
+                    let fail = WsMessage::CallFailed {
+                        call_id: Uuid::nil(),
+                        reason: "Este usuário não recebe ligações.".to_string(),
+                    };
+                    let _ = tx.send(serde_json::to_string(&fail).unwrap());
+                    return Ok(());
+                } else if privacy == "contacts" && !is_contact {
+                    let fail = WsMessage::CallFailed {
+                        call_id: Uuid::nil(),
+                        reason: "Este usuário recebe ligações apenas de contatos.".to_string(),
+                    };
+                    let _ = tx.send(serde_json::to_string(&fail).unwrap());
+                    return Ok(());
+                }
+            }
+
             // Fetch caller's username
             let caller_username = sqlx::query_scalar::<_, String>(
                 "SELECT username FROM users WHERE id = $1"

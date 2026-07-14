@@ -32,6 +32,8 @@ pub struct AuthResponse {
     pub avatar_url: Option<String>,
     pub about: Option<String>,
     pub name: Option<String>,
+    pub privacy_messages: String,
+    pub privacy_calls: String,
 }
 
 pub async fn register(
@@ -68,7 +70,7 @@ pub async fn register(
         .to_string();
 
     let user = sqlx::query_as::<_, crate::models::user::User>(
-        "INSERT INTO users (username, email, password_hash, name) VALUES ($1, $2, $3, $1) RETURNING id, username, email, password_hash, created_at, avatar_url, about, name, username_updated_at",
+        "INSERT INTO users (username, email, password_hash, name) VALUES ($1, $2, $3, $1) RETURNING id, username, email, password_hash, created_at, avatar_url, about, name, username_updated_at, privacy_messages, privacy_calls",
     )
     .bind(&body.username)
     .bind(&body.email)
@@ -102,6 +104,8 @@ pub async fn register(
         avatar_url: user.avatar_url,
         about: user.about,
         name: user.name,
+        privacy_messages: user.privacy_messages,
+        privacy_calls: user.privacy_calls,
     }))
 }
 
@@ -110,7 +114,7 @@ pub async fn login(
     Json(body): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, Json<Value>)> {
     let user = sqlx::query_as::<_, crate::models::user::User>(
-        "SELECT id, username, email, password_hash, created_at, avatar_url, about, name, username_updated_at FROM users WHERE email = $1",
+        "SELECT id, username, email, password_hash, created_at, avatar_url, about, name, username_updated_at, privacy_messages, privacy_calls FROM users WHERE email = $1",
     )
     .bind(&body.email)
     .fetch_optional(&pool)
@@ -159,5 +163,7 @@ pub async fn login(
         avatar_url: user.avatar_url,
         about: user.about,
         name: user.name,
+        privacy_messages: user.privacy_messages,
+        privacy_calls: user.privacy_calls,
     }))
 }

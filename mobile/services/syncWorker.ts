@@ -254,21 +254,35 @@ class SyncWorker {
         this.retryDelays.delete(msg.id + "_time");
 
         this.notifyMessagesChanged(chatId);
-      } catch (err) {
+      } catch (err: any) {
         console.error(`SyncWorker: Failed to send message ${msg.id}:`, err);
 
-        // Calculate next retry delay (exponential backoff)
-        const lastDelay = this.retryDelays.get(msg.id) || 500; // start with 1s after doubling
-        const nextDelay = Math.min(lastDelay * 2, 60000);
+        const errCode = err?.code || err?.message || "";
+        const isPermanentError =
+          errCode === "privacy_messages_nobody" ||
+          errCode === "privacy_messages_contacts" ||
+          errCode === "chat_blocked";
 
-        this.retryDelays.set(msg.id, nextDelay);
-        this.retryDelays.set(msg.id + "_time", Date.now() + nextDelay);
+        if (isPermanentError) {
+          // Mark with permanent error status so we stop retrying
+          await db.runAsync(
+            "UPDATE messages SET status = ? WHERE id = ?",
+            [errCode, msg.id]
+          );
+        } else {
+          // Calculate next retry delay (exponential backoff)
+          const lastDelay = this.retryDelays.get(msg.id) || 500; // start with 1s after doubling
+          const nextDelay = Math.min(lastDelay * 2, 60000);
 
-        // Reset status to 'failed'
-        await db.runAsync(
-          "UPDATE messages SET status = 'failed' WHERE id = ?",
-          [msg.id]
-        );
+          this.retryDelays.set(msg.id, nextDelay);
+          this.retryDelays.set(msg.id + "_time", Date.now() + nextDelay);
+
+          // Reset status to 'failed'
+          await db.runAsync(
+            "UPDATE messages SET status = 'failed' WHERE id = ?",
+            [msg.id]
+          );
+        }
         this.notifyMessagesChanged(chatId);
       }
     }

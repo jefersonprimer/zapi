@@ -91,6 +91,44 @@ pub async fn send_message(
         ));
     }
 
+    // Check recipient's privacy settings for messages in direct/1-to-1 chats
+    let recipient_privacy: Option<(String, bool)> = sqlx::query_as(
+        r#"
+        SELECT u.privacy_messages,
+               EXISTS(SELECT 1 FROM contacts con WHERE con.user_id = cp.user_id AND con.contact_id = $2) AS is_contact
+        FROM chat_participants cp
+        JOIN chats c ON c.id = cp.chat_id
+        JOIN users u ON u.id = cp.user_id
+        WHERE cp.chat_id = $1 AND cp.user_id != $2 AND c.is_group = false
+        LIMIT 1
+        "#
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_optional(&pool)
+    .await
+    .unwrap_or(None);
+
+    if let Some((privacy, is_contact)) = recipient_privacy {
+        if privacy == "nobody" {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "privacy_messages_nobody",
+                    "message": "Este usuário não recebe mensagens de ninguém."
+                })),
+            ));
+        } else if privacy == "contacts" && !is_contact {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "privacy_messages_contacts",
+                    "message": "Este usuário recebe mensagens apenas de contatos."
+                })),
+            ));
+        }
+    }
+
     let message_id = Uuid::now_v7();
     let mut msg = sqlx::query_as::<_, Message>(
         "INSERT INTO messages (id, chat_id, sender_id, content, image_url)

@@ -198,6 +198,9 @@ export default function ChatScreen() {
 
   const [isBlockedByMe, setIsBlockedByMe] = useState(false);
   const [isBlockedByThem, setIsBlockedByThem] = useState(false);
+  const [messagesRestrictedReason, setMessagesRestrictedReason] = useState<
+    "contacts" | "nobody" | null
+  >(null);
   const [clearedAt, setClearedAt] = useState<string | null>(null);
   const [isGroup, setIsGroup] = useState(false);
 
@@ -220,6 +223,12 @@ export default function ChatScreen() {
         setIsGroup(!!currentChat.is_group);
         setIsBlockedByMe(!!currentChat.is_blocked_by_me);
         setIsBlockedByThem(!!currentChat.is_blocked_by_them);
+        setMessagesRestrictedReason(
+          currentChat.messages_restricted_reason === "contacts" ||
+            currentChat.messages_restricted_reason === "nobody"
+            ? currentChat.messages_restricted_reason
+            : null,
+        );
         setClearedAt(currentChat.cleared_at || null);
         if (currentChat.is_group) {
           if (currentChat.name) {
@@ -1523,6 +1532,19 @@ export default function ChatScreen() {
                 <Text style={styles.unblockButtonText}>Desbloquear</Text>
               </TouchableOpacity>
             )}
+          </View>
+        ) : messagesRestrictedReason ? (
+          <View
+            style={[
+              styles.blockedContainer,
+              { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" },
+            ]}
+          >
+            <Text style={[styles.blockedText, { color: colors.textSecondary }]}>
+              {messagesRestrictedReason === "nobody"
+                ? "Este usuário não recebe mensagens de ninguém."
+                : "Este usuário recebe mensagens apenas de contatos."}
+            </Text>
           </View>
         ) : isRecording ? (
           <VoiceNoteRecorderBar

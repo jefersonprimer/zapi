@@ -182,6 +182,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <Text
           style={[
             styles.messageTime,
+            { marginTop: 4 },
             isMine
               ? styles.myMessageTime
               : [styles.theirMessageTime, { color: colors.textSecondary }],
@@ -203,7 +204,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         item.status === "sending") && (
         <Clock size={13} color="rgba(255,255,255,0.7)" />
       )}
-      {item.status === "failed" && (
+      {(item.status === "failed" ||
+        item.status === "privacy_messages_nobody" ||
+        item.status === "privacy_messages_contacts" ||
+        item.status === "chat_blocked") && (
         <AlertCircle size={13} color="#FF3B30" />
       )}
       {item.status === "sent" && (
@@ -234,14 +238,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         isImageUrl(forwardMediaUrl || ""));
 
     return (
-      <View
-        style={[
-          styles.messageBubble,
-          isMine
-            ? [styles.myMessage, { backgroundColor: colors.tint }]
-            : [styles.theirMessage, { backgroundColor: colors.surface }],
-        ]}
-      >
+      <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "75%", marginBottom: 8 }}>
+        <View
+          style={[
+            styles.messageBubble,
+            isMine
+              ? [styles.myMessage, { backgroundColor: colors.tint }]
+              : [styles.theirMessage, { backgroundColor: colors.surface }],
+            { marginBottom: 0 }
+          ]}
+        >
         {isGroup && !isMine && item.sender_username ? (
           <Text style={[styles.senderUsername, { color: colors.tint }]}>
             {item.sender_username}
@@ -329,6 +335,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {isMine ? renderStatusIcons() : null}
         </View>
       </View>
+    </View>
     );
   }
 
@@ -343,16 +350,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     const nameInitial = contactShareData.username[0]?.toUpperCase() || "?";
     
     return (
-      <View
-        style={[
-          styles.messageBubble,
-          isMine
-            ? [styles.myMessage, { backgroundColor: colors.tint }]
-            : [styles.theirMessage, { backgroundColor: colors.surface }],
-          styles.contactShareCard,
-          { borderColor: colors.border }
-        ]}
-      >
+      <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "75%", marginBottom: 8 }}>
+        <View
+          style={[
+            styles.messageBubble,
+            isMine
+              ? [styles.myMessage, { backgroundColor: colors.tint }]
+              : [styles.theirMessage, { backgroundColor: colors.surface }],
+            styles.contactShareCard,
+            { borderColor: colors.border, marginBottom: 0 }
+          ]}
+        >
         {isGroup && !isMine && item.sender_username ? (
           <Text style={[styles.senderUsername, { color: colors.tint, marginBottom: 8 }]}>
             {item.sender_username}
@@ -417,7 +425,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 item.status === "sending") && (
                 <Clock size={13} color="rgba(255,255,255,0.7)" />
               )}
-              {item.status === "failed" && (
+              {(item.status === "failed" ||
+                item.status === "privacy_messages_nobody" ||
+                item.status === "privacy_messages_contacts" ||
+                item.status === "chat_blocked") && (
                 <AlertCircle size={13} color="#FF3B30" />
               )}
               {item.status === "sent" && (
@@ -434,18 +445,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
         </View>
       </View>
+    </View>
     );
   }
 
   return (
-    <View
-      style={[
-        styles.messageBubble,
-        isMine
-          ? [styles.myMessage, { backgroundColor: colors.tint }]
-          : [styles.theirMessage, { backgroundColor: colors.surface }],
-      ]}
-    >
+    <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "75%", marginBottom: 8 }}>
+      <View
+        style={[
+          styles.messageBubble,
+          isMine
+            ? [styles.myMessage, { backgroundColor: colors.tint }]
+            : [styles.theirMessage, { backgroundColor: colors.surface }],
+          { marginBottom: 0 }
+        ]}
+      >
       {isGroup && !isMine && item.sender_username ? (
         <Text style={[styles.senderUsername, { color: colors.tint }]}>
           {item.sender_username}
@@ -562,7 +576,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               item.status === "sending") && (
               <Clock size={13} color="rgba(255,255,255,0.7)" />
             )}
-            {item.status === "failed" && (
+            {(item.status === "failed" ||
+              item.status === "privacy_messages_nobody" ||
+              item.status === "privacy_messages_contacts" ||
+              item.status === "chat_blocked") && (
               <AlertCircle size={13} color="#FF3B30" />
             )}
             {item.status === "sent" && (
@@ -637,6 +654,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </TouchableWithoutFeedback>
         </Modal>
       )}
+      </View>
     </View>
   );
 };
@@ -648,10 +666,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   messageBubble: {
-    maxWidth: "75%",
+    maxWidth: "100%",
     padding: 12,
     borderRadius: 16,
-    marginBottom: 8,
   },
   myMessage: {
     alignSelf: "flex-end",
@@ -669,7 +686,7 @@ const styles = StyleSheet.create({
   },
   messageText: { fontSize: 16 },
   myMessageText: { fontSize: 16, color: "#fff" },
-  messageTime: { fontSize: 11, marginTop: 4 },
+  messageTime: { fontSize: 11, lineHeight: 14, includeFontPadding: false },
   myMessageTime: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
   theirMessageTime: {},
   videoContainer: {
@@ -777,6 +794,8 @@ const styles = StyleSheet.create({
   },
   statusIconContainer: {
     marginLeft: 4,
+    justifyContent: "center",
+    alignItems: "center",
   },
   contactShareCard: {
     borderWidth: 1,

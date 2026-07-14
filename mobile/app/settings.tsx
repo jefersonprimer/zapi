@@ -65,6 +65,17 @@ export default function SettingsScreen() {
   const [onlineStatus, setOnlineStatus] = useState(true);
   const [keepChatsArchived, setKeepChatsArchived] = useState(false);
 
+  // Privacy settings states
+  const [privacyMessages, setPrivacyMessages] = useState<string>("all");
+  const [privacyCalls, setPrivacyCalls] = useState<string>("contacts");
+
+  useEffect(() => {
+    if (user) {
+      setPrivacyMessages(user.privacy_messages || "all");
+      setPrivacyCalls(user.privacy_calls || "contacts");
+    }
+  }, [user]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -223,6 +234,32 @@ export default function SettingsScreen() {
       setUsernameModalVisible(false);
     } catch (err: any) {
       Alert.alert("Erro", err.message || "Falha ao atualizar username");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSavePrivacy = async () => {
+    if (!token) return;
+    setIsUpdating(true);
+    try {
+      await updateProfile(
+        token,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        privacyMessages,
+        privacyCalls
+      );
+      await updateUser({
+        privacy_messages: privacyMessages,
+        privacy_calls: privacyCalls,
+      });
+      setPrivacyModalVisible(false);
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Falha ao salvar configurações de privacidade");
     } finally {
       setIsUpdating(false);
     }
@@ -878,68 +915,126 @@ export default function SettingsScreen() {
             <View style={[styles.sheetIndicator, { backgroundColor: colors.border }]} />
             <View style={styles.sheetHeaderWithIcon}>
               <Shield size={24} color="#10B981" />
-              <Text style={[styles.sheetTitle, { color: colors.text, marginLeft: 8 }]}>
+              <Text style={[styles.sheetTitle, { color: colors.text, marginLeft: 8, marginBottom: 0 }]}>
                 Privacidade
               </Text>
             </View>
 
-            {/* Toggle Read Receipts */}
-            <View style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
-              <View style={styles.toggleTextContainer}>
-                <Text style={[styles.toggleTitle, { color: colors.text }]}>
-                  Confirmações de leitura
-                </Text>
-                <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
-                  Se desativar, você não poderá ver nem enviar confirmações de leitura.
-                </Text>
+            <ScrollView style={{ maxHeight: 350 }} showsVerticalScrollIndicator={false}>
+              {/* Seção Mensagens */}
+              <Text style={[{ color: colors.text, marginTop: 12, marginBottom: 8, fontWeight: "600", fontSize: 14 }]}>
+                Quem pode me enviar mensagens?
+              </Text>
+              <View style={[{ backgroundColor: colors.background, borderRadius: 12, padding: 4, marginBottom: 16 }]}>
+                {[
+                  { value: "all", label: "Todos" },
+                  { value: "contacts", label: "Somente contatos" },
+                  { value: "nobody", label: "Ninguém" },
+                ].map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[
+                      styles.privacyOptionRow,
+                      { borderBottomColor: colors.border }
+                    ]}
+                    onPress={() => setPrivacyMessages(opt.value)}
+                  >
+                    <Text style={[styles.privacyOptionText, { color: colors.text }]}>
+                      {opt.label}
+                    </Text>
+                    {privacyMessages === opt.value && (
+                      <Check size={18} color={colors.tint} />
+                    )}
+                  </TouchableOpacity>
+                ))}
               </View>
-              <Switch
-                value={readReceipts}
-                onValueChange={setReadReceipts}
-                trackColor={{ false: colors.border, true: colors.tint }}
-                thumbColor={Platform.OS === "android" ? (readReceipts ? colors.tint : "#f4f3f4") : undefined}
-              />
-            </View>
 
-             {/* Toggle Online status */}
-            <View style={[styles.toggleRow, { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
-              <View style={styles.toggleTextContainer}>
-                <Text style={[styles.toggleTitle, { color: colors.text }]}>
-                  Visto por último e online
-                </Text>
-                <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
-                  Mostrar quando você está online ou ativo para outros contatos.
-                </Text>
+              {/* Seção Ligações */}
+              <Text style={[{ color: colors.text, marginTop: 12, marginBottom: 8, fontWeight: "600", fontSize: 14 }]}>
+                Quem pode me ligar?
+              </Text>
+              <View style={[{ backgroundColor: colors.background, borderRadius: 12, padding: 4, marginBottom: 16 }]}>
+                {[
+                  { value: "all", label: "Todos" },
+                  { value: "contacts", label: "Somente contatos" },
+                  { value: "nobody", label: "Ninguém" },
+                ].map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[
+                      styles.privacyOptionRow,
+                      { borderBottomColor: colors.border }
+                    ]}
+                    onPress={() => setPrivacyCalls(opt.value)}
+                  >
+                    <Text style={[styles.privacyOptionText, { color: colors.text }]}>
+                      {opt.label}
+                    </Text>
+                    {privacyCalls === opt.value && (
+                      <Check size={18} color={colors.tint} />
+                    )}
+                  </TouchableOpacity>
+                ))}
               </View>
-              <Switch
-                value={onlineStatus}
-                onValueChange={setOnlineStatus}
-                trackColor={{ false: colors.border, true: colors.tint }}
-                thumbColor={Platform.OS === "android" ? (onlineStatus ? colors.tint : "#f4f3f4") : undefined}
-              />
-            </View>
 
-            {/* Toggle Keep chats archived */}
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleTextContainer}>
-                <Text style={[styles.toggleTitle, { color: colors.text }]}>
-                  Manter conversas arquivadas
-                </Text>
-                <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
-                  As conversas arquivadas continuarão arquivadas quando você receber novas mensagens.
-                </Text>
+              {/* Toggle Read Receipts */}
+              <View style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
+                <View style={styles.toggleTextContainer}>
+                  <Text style={[styles.toggleTitle, { color: colors.text }]}>
+                    Confirmações de leitura
+                  </Text>
+                  <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
+                    Se desativar, você não poderá ver nem enviar confirmações de leitura.
+                  </Text>
+                </View>
+                <Switch
+                  value={readReceipts}
+                  onValueChange={setReadReceipts}
+                  trackColor={{ false: colors.border, true: colors.tint }}
+                  thumbColor={Platform.OS === "android" ? (readReceipts ? colors.tint : "#f4f3f4") : undefined}
+                />
               </View>
-              <Switch
-                value={keepChatsArchived}
-                onValueChange={handleKeepChatsArchivedChange}
-                trackColor={{ false: colors.border, true: colors.tint }}
-                thumbColor={Platform.OS === "android" ? (keepChatsArchived ? colors.tint : "#f4f3f4") : undefined}
-              />
-            </View>
+
+              {/* Toggle Online status */}
+              <View style={[styles.toggleRow, { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+                <View style={styles.toggleTextContainer}>
+                  <Text style={[styles.toggleTitle, { color: colors.text }]}>
+                    Visto por último e online
+                  </Text>
+                  <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
+                    Mostrar quando você está online ou ativo para outros contatos.
+                  </Text>
+                </View>
+                <Switch
+                  value={onlineStatus}
+                  onValueChange={setOnlineStatus}
+                  trackColor={{ false: colors.border, true: colors.tint }}
+                  thumbColor={Platform.OS === "android" ? (onlineStatus ? colors.tint : "#f4f3f4") : undefined}
+                />
+              </View>
+
+              {/* Toggle Keep chats archived */}
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleTextContainer}>
+                  <Text style={[styles.toggleTitle, { color: colors.text }]}>
+                    Manter conversas arquivadas
+                  </Text>
+                  <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
+                    As conversas arquivadas continuarão arquivadas quando você receber novas mensagens.
+                  </Text>
+                </View>
+                <Switch
+                  value={keepChatsArchived}
+                  onValueChange={handleKeepChatsArchivedChange}
+                  trackColor={{ false: colors.border, true: colors.tint }}
+                  thumbColor={Platform.OS === "android" ? (keepChatsArchived ? colors.tint : "#f4f3f4") : undefined}
+                />
+              </View>
+            </ScrollView>
 
             <TouchableOpacity
               style={[styles.sheetCloseButton, { backgroundColor: colors.tint, marginTop: 24 }]}
-              onPress={() => setPrivacyModalVisible(false)}
+              onPress={handleSavePrivacy}
             >
               <Text style={styles.sheetCloseButtonText}>Salvar e Fechar</Text>
             </TouchableOpacity>
@@ -1436,5 +1531,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 6,
     marginBottom: 4,
+  },
+  privacyOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  privacyOptionText: {
+    fontSize: 15,
   },
 });

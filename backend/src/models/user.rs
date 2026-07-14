@@ -15,5 +15,7 @@ pub struct User {
     pub about: Option<String>,
     pub name: Option<String>,
     pub username_updated_at: Option<DateTime<Utc>>,
+    pub privacy_messages: String,
+    pub privacy_calls: String,
 }
 
