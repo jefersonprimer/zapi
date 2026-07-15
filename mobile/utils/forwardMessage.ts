@@ -7,6 +7,8 @@ export interface ForwardedMessageData {
   image_url: string | null;
   local_file_path?: string | null;
   attachment_type?: "image" | "video" | "audio" | "document" | null;
+  file_name?: string | null;
+  file_size?: number | null;
 }
 
 export interface ForwardMessageContent {
@@ -34,6 +36,19 @@ export function extractForwardData(msg: Message): ForwardedMessageData {
     }
   }
 
+  let fileName: string | null = null;
+  const mediaUrl = msg.local_file_path || msg.image_url;
+  if (mediaUrl) {
+    const rawFileName = mediaUrl.split("/").pop() || "";
+    const match = rawFileName.match(/^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/);
+    if (match) {
+      fileName = match[1];
+    } else {
+      const oldMatch = rawFileName.match(/^[^_]+_([0-9a-fA-F\-]{36}\..+)$/);
+      fileName = oldMatch ? oldMatch[1] : rawFileName;
+    }
+  }
+
   return {
     sender_id: msg.sender_id,
     sender_username: msg.sender_username,
@@ -41,6 +56,8 @@ export function extractForwardData(msg: Message): ForwardedMessageData {
     image_url: msg.image_url,
     local_file_path: msg.local_file_path,
     attachment_type: attachment?.type ?? null,
+    file_name: fileName,
+    file_size: attachment?.size ?? null,
   };
 }
 

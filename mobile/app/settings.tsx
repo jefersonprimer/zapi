@@ -990,8 +990,15 @@ export default function SettingsScreen() {
                 <Switch
                   value={readReceipts}
                   onValueChange={setReadReceipts}
-                  trackColor={{ false: colors.border, true: colors.tint }}
-                  thumbColor={Platform.OS === "android" ? (readReceipts ? colors.tint : "#f4f3f4") : undefined}
+                  trackColor={{
+                    false: isDark ? "#2C2C2E" : "#E5E5EA",
+                    true: isDark ? "#48484A" : "#C7C7CC",
+                  }}
+                  thumbColor={
+                    Platform.OS === "android"
+                      ? (readReceipts ? (isDark ? "#D1D1D6" : "#FFFFFF") : "#F4F3F4")
+                      : undefined
+                  }
                 />
               </View>
 
@@ -1008,8 +1015,15 @@ export default function SettingsScreen() {
                 <Switch
                   value={onlineStatus}
                   onValueChange={setOnlineStatus}
-                  trackColor={{ false: colors.border, true: colors.tint }}
-                  thumbColor={Platform.OS === "android" ? (onlineStatus ? colors.tint : "#f4f3f4") : undefined}
+                  trackColor={{
+                    false: isDark ? "#2C2C2E" : "#E5E5EA",
+                    true: isDark ? "#48484A" : "#C7C7CC",
+                  }}
+                  thumbColor={
+                    Platform.OS === "android"
+                      ? (onlineStatus ? (isDark ? "#D1D1D6" : "#FFFFFF") : "#F4F3F4")
+                      : undefined
+                  }
                 />
               </View>
 
@@ -1026,8 +1040,15 @@ export default function SettingsScreen() {
                 <Switch
                   value={keepChatsArchived}
                   onValueChange={handleKeepChatsArchivedChange}
-                  trackColor={{ false: colors.border, true: colors.tint }}
-                  thumbColor={Platform.OS === "android" ? (keepChatsArchived ? colors.tint : "#f4f3f4") : undefined}
+                  trackColor={{
+                    false: isDark ? "#2C2C2E" : "#E5E5EA",
+                    true: isDark ? "#48484A" : "#C7C7CC",
+                  }}
+                  thumbColor={
+                    Platform.OS === "android"
+                      ? (keepChatsArchived ? (isDark ? "#D1D1D6" : "#FFFFFF") : "#F4F3F4")
+                      : undefined
+                  }
                 />
               </View>
             </ScrollView>

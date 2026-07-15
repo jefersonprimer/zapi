@@ -205,15 +205,23 @@ pub async fn send_message(
                 "document"
             };
 
+            let file_path = url.trim_start_matches('/');
+            let size = if let Ok(metadata) = std::fs::metadata(file_path) {
+                Some(metadata.len() as i32)
+            } else {
+                None
+            };
+
             let att = sqlx::query_as::<_, crate::models::message::Attachment>(
-                "INSERT INTO attachments (message_id, type, remote_url, sha256)
-                 VALUES ($1, $2, $3, $4)
+                "INSERT INTO attachments (message_id, type, remote_url, sha256, size)
+                 VALUES ($1, $2, $3, $4, $5)
                  RETURNING id, message_id, type, remote_url, mime_type, width, height, duration, size, sha256, thumbnail_path"
             )
             .bind(msg.id)
             .bind(att_type)
             .bind(url)
             .bind(body.sha256.clone())
+            .bind(size)
             .fetch_one(&pool)
             .await
             .ok();

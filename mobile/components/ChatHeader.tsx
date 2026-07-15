@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { Phone as PhoneIcon, MoreVertical as MoreVerticalIcon, Video, ArrowLeft, Trash2, Forward, CornerUpLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -172,41 +172,27 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         ) : (
           <>
             <TouchableOpacity
-              onPress={() => {
-                if (participantId) {
-                  voiceCallManager.startCall(
-                    participantId,
-                    participantUsername || "User",
-                    true,
-                    participantAvatarUrl || null,
-                  );
-                } else {
-                  Alert.alert(
-                    "Erro",
-                    "Não foi possível iniciar a chamada: ID do participante ausente.",
-                  );
-                }
-              }}
+              onPress={() =>
+                voiceCallManager.startCall(
+                  participantId,
+                  participantUsername,
+                  true,
+                  participantAvatarUrl,
+                )
+              }
               style={styles.headerActionBtn}
             >
               <Video size={22} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => {
-                if (participantId) {
-                  voiceCallManager.startCall(
-                    participantId,
-                    participantUsername || "User",
-                    false,
-                    participantAvatarUrl || null,
-                  );
-                } else {
-                  Alert.alert(
-                    "Erro",
-                    "Não foi possível iniciar a chamada: ID do participante ausente.",
-                  );
-                }
-              }}
+              onPress={() =>
+                voiceCallManager.startCall(
+                  participantId,
+                  participantUsername,
+                  false,
+                  participantAvatarUrl,
+                )
+              }
               style={styles.headerActionBtn}
             >
               <PhoneIcon size={22} color={colors.text} />

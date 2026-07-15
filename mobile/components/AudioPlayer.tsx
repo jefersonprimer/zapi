@@ -40,7 +40,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
   const handleTimelinePress = (event: any) => {
     if (audioDuration <= 0 || !player) return;
     const { locationX } = event.nativeEvent;
-    const timelineWidth = 120;
+    const timelineWidth = 150;
     let clickX = locationX;
     if (clickX < 0) clickX = 0;
     if (clickX > timelineWidth) clickX = timelineWidth;
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 14,
     marginVertical: 4,
-    minWidth: 230,
+    minWidth: 260,
   },
   containerMine: {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
@@ -197,12 +197,12 @@ const styles = StyleSheet.create({
   timelineTouch: {
     height: 14,
     justifyContent: "center",
-    width: 120,
+    width: 150,
   },
   timelineBackground: {
     height: 4,
     borderRadius: 2,
-    width: 120,
+    width: 150,
     position: "relative",
   },
   timelineBgMine: {

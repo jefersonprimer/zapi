@@ -168,11 +168,20 @@ class VoiceCallManager {
 
   // Initiate calling Bob
   async startCall(
-    targetUserId: string,
-    targetUsername: string,
+    targetUserId: string | undefined | null,
+    targetUsername?: string | null,
     isVideo: boolean = false,
     avatarUrl?: string | null,
   ) {
+    if (!targetUserId) {
+      Alert.alert(
+        "Erro",
+        "Não foi possível iniciar a chamada: ID do participante ausente."
+      );
+      return;
+    }
+
+    const resolvedName = targetUsername || "Contato";
     const store = useCallStore.getState();
 
     if (Platform.OS !== "web") {
@@ -201,7 +210,7 @@ class VoiceCallManager {
       }
     }
 
-    store.initiateCall("", targetUserId, targetUsername, isVideo, avatarUrl);
+    store.initiateCall("", targetUserId, resolvedName, isVideo, avatarUrl);
     this.send({ type: "call:start", target_user_id: targetUserId, is_video: isVideo });
   }
 

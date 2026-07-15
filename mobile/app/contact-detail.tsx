@@ -18,8 +18,6 @@ import {
   Phone,
   Video,
   Trash2,
-  Shield,
-  ShieldAlert,
   ArrowLeft,
   MoreVertical,
   Bell,
@@ -30,6 +28,8 @@ import {
   Search,
   ChevronRight,
   Image as ImageIcon,
+  Ban,
+  ShieldCheck,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -41,11 +41,13 @@ import {
   createChat,
   getChats,
 } from "@/services/api";
-import { toggleBlockContact, toggleFavoriteChat, toggleMuteChat, clearChatHistory } from "@/services/chatActions";
 import {
-  getChatsFromLocal,
-  saveChats,
-} from "@/services/database";
+  toggleBlockContact,
+  toggleFavoriteChat,
+  toggleMuteChat,
+  clearChatHistory,
+} from "@/services/chatActions";
+import { getChatsFromLocal, saveChats } from "@/services/database";
 import { useChatLists } from "@/hooks/useChatLists";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import CreateListModal from "@/components/CreateListModal";
@@ -169,8 +171,6 @@ export default function ContactDetailScreen() {
       setActionLoading(false);
     }
   };
-
-
 
   const handleToggleMuteSwitch = () => {
     if (isMuted) {
@@ -322,22 +322,20 @@ export default function ContactDetailScreen() {
   }, [fetchContactDetails]);
 
   const handleVoiceCall = () => {
-    if (!participantId) return;
     voiceCallManager.startCall(
       participantId,
-      participantUsername || contact?.username || "Contato",
+      participantUsername || contact?.username,
       false,
-      contact?.avatar_url || avatarUrl || null,
+      contact?.avatar_url || avatarUrl,
     );
   };
 
   const handleVideoCall = () => {
-    if (!participantId) return;
     voiceCallManager.startCall(
       participantId,
-      participantUsername || contact?.username || "Contato",
+      participantUsername || contact?.username,
       true,
-      contact?.avatar_url || avatarUrl || null,
+      contact?.avatar_url || avatarUrl,
     );
   };
 
@@ -361,7 +359,9 @@ export default function ContactDetailScreen() {
             if (!targetChatId) {
               try {
                 const chats = await getChatsFromLocal();
-                const found = chats.find((c) => c.participant_id === participantId);
+                const found = chats.find(
+                  (c) => c.participant_id === participantId,
+                );
                 if (found) {
                   targetChatId = found.id;
                   setResolvedChatId(found.id);
@@ -372,11 +372,16 @@ export default function ContactDetailScreen() {
             }
 
             const nextBlockState = !isBlocked;
-            await toggleBlockContact(token, participantId, targetChatId, nextBlockState);
+            await toggleBlockContact(
+              token,
+              participantId,
+              targetChatId,
+              nextBlockState,
+            );
             setIsBlocked(nextBlockState);
             Alert.alert(
               "Sucesso",
-              `Contato ${nextBlockState ? "bloqueado" : "desbloqueado"} com sucesso.`
+              `Contato ${nextBlockState ? "bloqueado" : "desbloqueado"} com sucesso.`,
             );
           } catch (err: any) {
             Alert.alert(
@@ -704,12 +709,17 @@ export default function ContactDetailScreen() {
               <Switch
                 value={!isMuted}
                 onValueChange={handleToggleMuteSwitch}
-                trackColor={{ false: "#767577", true: colors.tint }}
+                trackColor={{
+                  false: isDark ? "#2C2C2E" : "#E5E5EA",
+                  true: isDark ? "#48484A" : "#C7C7CC",
+                }}
                 thumbColor={
                   Platform.OS === "android"
-                    ? isMuted
-                      ? "#f4f3f4"
-                      : colors.tint
+                    ? !isMuted
+                      ? isDark
+                        ? "#D1D1D6"
+                        : "#FFFFFF"
+                      : "#F4F3F4"
                     : undefined
                 }
               />
@@ -719,37 +729,36 @@ export default function ContactDetailScreen() {
             <View style={styles.optionRow}>
               <View style={styles.optionLeft}>
                 {isFavorite ? (
-                  <Heart
-                    size={20}
-                    color={colors.textSecondary}
-                  />
+                  <HeartOff size={20} color={colors.textSecondary} />
                 ) : (
-                  <HeartOff
-                    size={20}
-                    color={colors.textSecondary}
-                  />
+                  <Heart size={20} color={colors.textSecondary} />
                 )}
                 <View style={styles.optionTextContainer}>
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    {isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                    {isFavorite
+                      ? "Remover dos favoritos"
+                      : "Adicionar aos favoritos"}
                   </Text>
                 </View>
               </View>
               <Switch
                 value={isFavorite}
                 onValueChange={handleToggleFavorite}
-                trackColor={{ false: "#767577", true: colors.tint }}
+                trackColor={{
+                  false: isDark ? "#2C2C2E" : "#E5E5EA",
+                  true: isDark ? "#48484A" : "#C7C7CC",
+                }}
                 thumbColor={
                   Platform.OS === "android"
                     ? isFavorite
-                      ? colors.tint
-                      : "#f4f3f4"
+                      ? isDark
+                        ? "#D1D1D6"
+                        : "#FFFFFF"
+                      : "#F4F3F4"
                     : undefined
                 }
               />
             </View>
-
-
 
             {/* Adicionar à lista */}
             <TouchableOpacity
@@ -847,7 +856,7 @@ export default function ContactDetailScreen() {
               <View style={styles.optionLeft}>
                 {isBlocked ? (
                   <>
-                    <Shield size={20} color={colors.tint} />
+                    <ShieldCheck size={20} color={colors.tint} />
                     <View style={styles.optionTextContainer}>
                       <Text
                         style={[styles.optionTitle, { color: colors.tint }]}
@@ -858,7 +867,7 @@ export default function ContactDetailScreen() {
                   </>
                 ) : (
                   <>
-                    <ShieldAlert size={20} color={colors.danger} />
+                    <Ban size={20} color={colors.danger} />
                     <View style={styles.optionTextContainer}>
                       <Text
                         style={[styles.optionTitle, { color: colors.danger }]}
