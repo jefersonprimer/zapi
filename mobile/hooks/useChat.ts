@@ -8,7 +8,7 @@ import {
   setAudioModeAsync,
   requestRecordingPermissionsAsync,
 } from "expo-audio";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import {
   type Message,
@@ -24,6 +24,7 @@ import {
   getDatabase,
   getMessagesFromLocal,
   saveMessages,
+  saveChats,
   insertMessageLocal,
   markChatReadLocal,
   markSentMessagesReadLocal,
@@ -169,12 +170,49 @@ export function useChat() {
     if (!token) return;
     try {
       const db = await getDatabase();
-      const chatRow = await db.getFirstAsync<{ is_group: number }>(
-        "SELECT is_group FROM chats WHERE id = ?",
+      const chatRow = await db.getFirstAsync<{
+        is_group: number;
+        is_blocked_by_me: number;
+        is_blocked_by_them: number;
+        messages_restricted_reason: string | null;
+        name: string | null;
+        avatar_url: string | null;
+        participant_avatar_url: string | null;
+        participant_name: string | null;
+        participant_username: string | null;
+      }>(
+        `SELECT is_group, is_blocked_by_me, is_blocked_by_them, messages_restricted_reason, 
+                name, avatar_url, participant_avatar_url, participant_name, participant_username 
+         FROM chats WHERE id = ?`,
         [chatId],
       );
+
       if (chatRow) {
         setIsGroup(chatRow.is_group === 1);
+        setIsBlockedByMe(chatRow.is_blocked_by_me === 1);
+        setIsBlockedByThem(chatRow.is_blocked_by_them === 1);
+        setMessagesRestrictedReason(
+          chatRow.messages_restricted_reason === "contacts" ||
+            chatRow.messages_restricted_reason === "nobody"
+            ? chatRow.messages_restricted_reason
+            : null,
+        );
+        if (chatRow.is_group === 1) {
+          if (chatRow.name) {
+            setDisplayTitle(chatRow.name);
+          }
+          if (chatRow.avatar_url) {
+            setParticipantAvatarUrl(chatRow.avatar_url);
+          } else {
+            setParticipantAvatarUrl("");
+          }
+        } else {
+          const pName = chatRow.participant_name || chatRow.participant_username || "Unknown";
+          setDisplayTitle(pName);
+          if (chatRow.participant_avatar_url) {
+            setParticipantAvatarUrl(chatRow.participant_avatar_url);
+          }
+        }
       }
 
       const chatListData = await getChats(token, chatId);
@@ -204,6 +242,9 @@ export function useChat() {
             setParticipantAvatarUrl(currentChat.participant_avatar_url);
           }
         }
+
+        // Keep local SQLite database in sync
+        await saveChats(chatListData.chats);
       }
     } catch (err) {
       console.error("Failed to load chat details for blocking status:", err);
@@ -556,9 +597,12 @@ export function useChat() {
     setIsLoading(true);
   }, [chatId]);
 
-  useEffect(() => {
-    loadMessages();
-  }, [loadMessages]);
+  useFocusEffect(
+    useCallback(() => {
+      loadMessages();
+      loadChatDetails();
+    }, [loadMessages, loadChatDetails])
+  );
 
   useEffect(() => {
     if (callState === "idle") {

@@ -24,7 +24,8 @@ import {
   MoreVertical,
   Bell,
   BellOff,
-  Star,
+  Heart,
+  HeartOff,
   ListPlus,
   Search,
   ChevronRight,
@@ -39,17 +40,13 @@ import {
   API_URL,
   createChat,
   getChats,
-  getChatLists,
-  createChatList,
 } from "@/services/api";
-import { toggleBlockContact, toggleFavoriteChat, toggleMuteChat, clearChatHistory, updateChatListSelections } from "@/services/chatActions";
+import { toggleBlockContact, toggleFavoriteChat, toggleMuteChat, clearChatHistory } from "@/services/chatActions";
 import {
   getChatsFromLocal,
-  getLocalChatLists,
-  saveLocalChatLists,
   saveChats,
-  type LocalChatList,
 } from "@/services/database";
+import { useChatLists } from "@/hooks/useChatLists";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import CreateListModal from "@/components/CreateListModal";
 import MuteModal from "@/components/MuteModal";
@@ -87,10 +84,17 @@ export default function ContactDetailScreen() {
   );
   const [isFavorite, setIsFavorite] = useState(false);
   const [showHeaderProfile, setShowHeaderProfile] = useState(false);
-  const [allLists, setAllLists] = useState<LocalChatList[]>([]);
-  const [selectedListIds, setSelectedListIds] = useState<string[]>([]);
-  const [listSelectorVisible, setListSelectorVisible] = useState(false);
-  const [createListModalVisible, setCreateListModalVisible] = useState(false);
+  const {
+    listSelectorVisible,
+    setListSelectorVisible,
+    createListModalVisible,
+    setCreateListModalVisible,
+    allLists,
+    selectedListIds,
+    handleOpenListSelector,
+    handleSaveLists: handleSaveListsHook,
+    handleCreateList,
+  } = useChatLists(resolvedChatId);
 
   // Load local chat settings when chatId or participantId changes
   useEffect(() => {
@@ -110,6 +114,7 @@ export default function ContactDetailScreen() {
             notification_muted_until: foundChat.notification_muted_until,
             notification_muted_forever: foundChat.notification_muted_forever,
           });
+          setIsBlocked(!!foundChat.is_blocked_by_me);
         }
       } catch (err) {
         console.error("Error loading chat settings from SQLite:", err);
@@ -185,110 +190,12 @@ export default function ContactDetailScreen() {
     Clipboard.setString(recado);
   };
 
-  const syncLists = async () => {
-    if (!token) return;
-    try {
-      const response = await getChatLists(token);
-      if (response && response.lists) {
-        const mappedLists: LocalChatList[] = response.lists.map((l) => ({
-          id: l.id,
-          user_id: l.user_id,
-          name: l.name,
-          color: l.color,
-          icon: l.icon,
-          position: l.position,
-          created_at: l.created_at,
-          updated_at: l.updated_at,
-          chat_ids: l.chat_ids,
-        }));
-        await saveLocalChatLists(mappedLists);
-        setAllLists(mappedLists);
-        if (resolvedChatId) {
-          const selected = mappedLists
-            .filter((l) => l.chat_ids.includes(resolvedChatId))
-            .map((l) => l.id);
-          setSelectedListIds(selected);
-        }
-      }
-    } catch (err) {
-      console.warn("Offline or sync error syncing lists:", err);
-    }
-  };
-
-  const loadListsAndSelection = useCallback(async () => {
-    try {
-      const lists = await getLocalChatLists();
-      setAllLists(lists);
-      if (resolvedChatId) {
-        const selected = lists
-          .filter((l) => l.chat_ids.includes(resolvedChatId))
-          .map((l) => l.id);
-        setSelectedListIds(selected);
-      } else {
-        setSelectedListIds([]);
-      }
-    } catch (err) {
-      console.error("Error loading chat lists in detail:", err);
-    }
-  }, [resolvedChatId]);
-
-  useEffect(() => {
-    loadListsAndSelection();
-  }, [loadListsAndSelection]);
-
-  const handleOpenListSelector = async () => {
-    setActionLoading(true);
-    try {
-      await syncLists();
-      setListSelectorVisible(true);
-    } catch (err) {
-      console.error("Error fetching lists:", err);
-      setListSelectorVisible(true);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleSaveLists = async (selectedIds: string[]) => {
-    if (!token) return;
-    setActionLoading(true);
     try {
       const targetChatId = await getOrCreateChatId();
-      await updateChatListSelections(token, targetChatId, selectedIds);
-      setSelectedListIds(selectedIds);
-      setListSelectorVisible(false);
-      Alert.alert("Sucesso", "Listas atualizadas com sucesso.");
-    } catch (err: any) {
-      console.error("Error saving lists:", err);
-      Alert.alert(
-        "Erro",
-        err.message || "Não foi possível atualizar as listas.",
-      );
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleCreateList = async (
-    name: string,
-    color: string,
-    icon: string,
-  ) => {
-    if (!token) return;
-    setActionLoading(true);
-    try {
-      const response = await createChatList(token, name, color, icon);
-      if (response && response.list) {
-        await syncLists();
-        setSelectedListIds((prev) => [...prev, response.list.id]);
-        setCreateListModalVisible(false);
-        setListSelectorVisible(true);
-      }
-    } catch (err: any) {
-      console.error("Error creating list:", err);
-      Alert.alert("Erro", "Não foi possível criar a lista.");
-    } finally {
-      setActionLoading(false);
+      await handleSaveListsHook(selectedIds, targetChatId);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -811,14 +718,20 @@ export default function ContactDetailScreen() {
             {/* Favorito */}
             <View style={styles.optionRow}>
               <View style={styles.optionLeft}>
-                <Star
-                  size={20}
-                  color={isFavorite ? "#FFD700" : colors.textSecondary}
-                  fill={isFavorite ? "#FFD700" : "transparent"}
-                />
+                {isFavorite ? (
+                  <Heart
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                ) : (
+                  <HeartOff
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                )}
                 <View style={styles.optionTextContainer}>
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    Favorito
+                    {isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                   </Text>
                 </View>
               </View>

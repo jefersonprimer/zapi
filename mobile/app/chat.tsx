@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   Platform,
   Modal,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { ChatHeader } from "@/components/ChatHeader";
@@ -32,9 +31,7 @@ import { ForwardPreviewBar } from "@/components/ForwardPreviewBar";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useChat } from "@/hooks/useChat";
-import { getChatLists, createChatList } from "@/services/api";
-import { getLocalChatLists, saveLocalChatLists, type LocalChatList } from "@/services/database";
-import { updateChatListSelections } from "@/services/chatActions";
+import { useChatLists } from "@/hooks/useChatLists";
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
@@ -116,111 +113,19 @@ export default function ChatScreen() {
     deleteModalTitle,
     handleUnblock,
     user,
-    token,
   } = useChat();
 
-  // Lists feature states
-  const [listSelectorVisible, setListSelectorVisible] = useState(false);
-  const [createListModalVisible, setCreateListModalVisible] = useState(false);
-  const [allLists, setAllLists] = useState<LocalChatList[]>([]);
-  const [selectedListIds, setSelectedListIds] = useState<string[]>([]);
-
-  const syncLists = async () => {
-    if (!token) return;
-    try {
-      const response = await getChatLists(token);
-      if (response && response.lists) {
-        const mappedLists: LocalChatList[] = response.lists.map((l) => ({
-          id: l.id,
-          user_id: l.user_id,
-          name: l.name,
-          color: l.color,
-          icon: l.icon,
-          position: l.position,
-          created_at: l.created_at,
-          updated_at: l.updated_at,
-          chat_ids: l.chat_ids,
-        }));
-        await saveLocalChatLists(mappedLists);
-        setAllLists(mappedLists);
-        if (chatId) {
-          const selected = mappedLists
-            .filter((l) => l.chat_ids.includes(chatId))
-            .map((l) => l.id);
-          setSelectedListIds(selected);
-        }
-      }
-    } catch (err) {
-      console.warn("Offline or sync error syncing lists:", err);
-    }
-  };
-
-  const loadListsAndSelection = useCallback(async () => {
-    try {
-      const lists = await getLocalChatLists();
-      setAllLists(lists);
-      if (chatId) {
-        const selected = lists
-          .filter((l) => l.chat_ids.includes(chatId))
-          .map((l) => l.id);
-        setSelectedListIds(selected);
-      } else {
-        setSelectedListIds([]);
-      }
-    } catch (err) {
-      console.error("Error loading chat lists:", err);
-    }
-  }, [chatId]);
-
-  useEffect(() => {
-    loadListsAndSelection();
-  }, [loadListsAndSelection]);
-
-  const handleOpenListSelector = async () => {
-    try {
-      await syncLists();
-      setListSelectorVisible(true);
-    } catch (err) {
-      console.error("Error fetching lists:", err);
-      setListSelectorVisible(true);
-    }
-  };
-
-  const handleSaveLists = async (selectedIds: string[]) => {
-    if (!token || !chatId) return;
-    try {
-      await updateChatListSelections(token, chatId, selectedIds);
-      setSelectedListIds(selectedIds);
-      setListSelectorVisible(false);
-      Alert.alert("Sucesso", "Listas atualizadas com sucesso.");
-    } catch (err: any) {
-      console.error("Error saving lists:", err);
-      Alert.alert(
-        "Erro",
-        err.message || "Não foi possível atualizar as listas.",
-      );
-    }
-  };
-
-  const handleCreateList = async (
-    name: string,
-    color: string,
-    icon: string,
-  ) => {
-    if (!token) return;
-    try {
-      const response = await createChatList(token, name, color, icon);
-      if (response && response.list) {
-        await syncLists();
-        setSelectedListIds((prev) => [...prev, response.list.id]);
-        setCreateListModalVisible(false);
-        setListSelectorVisible(true);
-      }
-    } catch (err: any) {
-      console.error("Error creating list:", err);
-      Alert.alert("Erro", "Não foi possível criar a lista.");
-    }
-  };
+  const {
+    listSelectorVisible,
+    setListSelectorVisible,
+    createListModalVisible,
+    setCreateListModalVisible,
+    allLists,
+    selectedListIds,
+    handleOpenListSelector,
+    handleSaveLists,
+    handleCreateList,
+  } = useChatLists(chatId);
 
   return (
     <KeyboardAvoidingView
