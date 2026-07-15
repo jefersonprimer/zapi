@@ -28,7 +28,12 @@ import {
   updateChatLists,
   updateChatList as updateChatListApi,
 } from "@/services/api";
-import { toggleBlockContact, toggleFavoriteChat, toggleMuteChat, clearChatHistory } from "@/services/chatActions";
+import {
+  toggleBlockContact,
+  toggleFavoriteChat,
+  toggleMuteChat,
+  clearChatHistory,
+} from "@/services/chatActions";
 import {
   getChatsFromLocal,
   saveChats,
@@ -532,7 +537,12 @@ export default function ChatListScreen() {
           try {
             for (const chat of nonGroupChats) {
               if (chat.participant_id) {
-                await toggleBlockContact(token, chat.participant_id, chat.id, newBlockState);
+                await toggleBlockContact(
+                  token,
+                  chat.participant_id,
+                  chat.id,
+                  newBlockState,
+                );
               }
             }
             setSelectedChatIds([]);
@@ -1046,19 +1056,6 @@ export default function ChatListScreen() {
 
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={handleClearSelectedChats}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Limpar conversa
-              </Text>
-            </TouchableOpacity>
-
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
-
-            <TouchableOpacity
-              style={styles.menuItem}
               onPress={handleToggleFavoriteSelectedChats}
             >
               <Text style={[styles.menuItemText, { color: colors.text }]}>
@@ -1090,6 +1087,19 @@ export default function ChatListScreen() {
                 Adicionar à lista
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleClearSelectedChats}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                Limpar conversa
+              </Text>
+            </TouchableOpacity>
+
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
 
             {(() => {
               const selectedChats = chats.filter((c) =>
@@ -1347,7 +1357,10 @@ export default function ChatListScreen() {
                         <Archive color={colors.textSecondary} size={20} />
                       </View>
                       <Text
-                        style={[styles.archivedText, { color: colors.textSecondary }]}
+                        style={[
+                          styles.archivedText,
+                          { color: colors.textSecondary },
+                        ]}
                       >
                         Conversas arquivadas
                       </Text>

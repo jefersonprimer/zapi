@@ -52,6 +52,26 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
             },
           ]}
         >
+          {onViewContact && (
+            <TouchableOpacity
+              style={[
+                styles.menuItem,
+                {
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.border,
+                },
+              ]}
+              onPress={() => {
+                onViewContact();
+                onClose();
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                {isGroup ? "Dados do grupo" : "Ver contato"}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {onMutePress && (
             <TouchableOpacity
               style={styles.menuItem}
@@ -80,20 +100,6 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
             </TouchableOpacity>
           )}
 
-          {!isGroup && onBlockPress && (
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                onBlockPress();
-                onClose();
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.danger }]}>
-                {isBlocked ? "Desbloquear" : "Bloquear"}
-              </Text>
-            </TouchableOpacity>
-          )}
-
           {onClearChatPress && (
             <TouchableOpacity
               style={[
@@ -114,25 +120,20 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
             </TouchableOpacity>
           )}
 
-          {onViewContact && (
+          {!isGroup && onBlockPress && (
             <TouchableOpacity
-              style={[
-                styles.menuItem,
-                {
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: colors.border,
-                },
-              ]}
+              style={styles.menuItem}
               onPress={() => {
-                onViewContact();
+                onBlockPress();
                 onClose();
               }}
             >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                {isGroup ? "Dados do grupo" : "Ver contato"}
+              <Text style={[styles.menuItemText, { color: colors.danger }]}>
+                {isBlocked ? "Desbloquear" : "Bloquear"}
               </Text>
             </TouchableOpacity>
           )}
+
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
