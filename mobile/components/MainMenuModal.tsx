@@ -6,13 +6,11 @@ import { useAppTheme } from "@/context/ThemeContext";
 interface MainMenuModalProps {
   visible: boolean;
   onClose: () => void;
-  onThemePress: () => void;
 }
 
 export default function MainMenuModal({
   visible,
   onClose,
-  onThemePress,
 }: MainMenuModalProps) {
   const router = useRouter();
   const { signOut } = useAuth();
@@ -48,18 +46,6 @@ export default function MainMenuModal({
           >
             <Text style={[styles.menuItemText, { color: colors.text }]}>
               Criar grupo
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              onClose();
-              onThemePress();
-            }}
-          >
-            <Text style={[styles.menuItemText, { color: colors.text }]}>
-              Alterar Tema
             </Text>
           </TouchableOpacity>
 

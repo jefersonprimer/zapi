@@ -13,6 +13,7 @@ interface ChatMenuModalProps {
   onMutePress?: () => void;
   onBlockPress?: () => void;
   onClearChatPress?: () => void;
+  onAddToListPress?: () => void;
 }
 
 export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
@@ -26,6 +27,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
   onMutePress,
   onBlockPress,
   onClearChatPress,
+  onAddToListPress,
 }) => {
   const { colors } = useAppTheme();
 
@@ -60,6 +62,20 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
             >
               <Text style={[styles.menuItemText, { color: colors.text }]}>
                 Silenciar notificações
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {onAddToListPress && (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                onAddToListPress();
+                onClose();
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                Adicionar à lista
               </Text>
             </TouchableOpacity>
           )}

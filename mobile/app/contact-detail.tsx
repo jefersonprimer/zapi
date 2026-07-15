@@ -9,7 +9,6 @@ import {
   ScrollView,
   Image,
   Modal,
-  FlatList,
   Switch,
   Platform,
   Clipboard,
@@ -27,8 +26,6 @@ import {
   BellOff,
   Star,
   ListPlus,
-  Check,
-  Pin,
   Search,
   ChevronRight,
   Image as ImageIcon,
@@ -38,32 +35,25 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getContacts,
-  blockContact,
-  unblockContact,
-  clearChatMessages,
   type Contact,
   API_URL,
-  muteChat,
-  favoriteChat,
   createChat,
   getChats,
   getChatLists,
-  updateChatLists,
   createChatList,
 } from "@/services/api";
+import { toggleBlockContact, toggleFavoriteChat, toggleMuteChat, clearChatHistory, updateChatListSelections } from "@/services/chatActions";
 import {
   getChatsFromLocal,
-  setChatMuteLocal,
-  getDatabase,
-  setChatFavoriteLocal,
   getLocalChatLists,
   saveLocalChatLists,
   saveChats,
-  setChatPinnedLocal,
   type LocalChatList,
 } from "@/services/database";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import CreateListModal from "@/components/CreateListModal";
+import MuteModal from "@/components/MuteModal";
+import ListSelectorModal from "@/components/ListSelectorModal";
 
 export default function ContactDetailScreen() {
   const router = useRouter();
@@ -96,13 +86,11 @@ export default function ContactDetailScreen() {
     chatId || null,
   );
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
   const [showHeaderProfile, setShowHeaderProfile] = useState(false);
   const [allLists, setAllLists] = useState<LocalChatList[]>([]);
   const [selectedListIds, setSelectedListIds] = useState<string[]>([]);
   const [listSelectorVisible, setListSelectorVisible] = useState(false);
   const [createListModalVisible, setCreateListModalVisible] = useState(false);
-  const [tempSelectedListIds, setTempSelectedListIds] = useState<string[]>([]);
 
   // Load local chat settings when chatId or participantId changes
   useEffect(() => {
@@ -118,7 +106,6 @@ export default function ContactDetailScreen() {
         if (foundChat) {
           setResolvedChatId(foundChat.id);
           setIsFavorite(!!foundChat.is_favorite);
-          setIsPinned(!!foundChat.is_pinned);
           setChatSettings({
             notification_muted_until: foundChat.notification_muted_until,
             notification_muted_forever: foundChat.notification_muted_forever,
@@ -162,12 +149,8 @@ export default function ContactDetailScreen() {
       const targetChatId = await getOrCreateChatId();
       const nextFavorite = !isFavorite;
 
-      // Update local db
-      await setChatFavoriteLocal(targetChatId, nextFavorite);
-
-      // Update server db
       if (token) {
-        await favoriteChat(token, targetChatId, nextFavorite);
+        await toggleFavoriteChat(token, targetChatId, nextFavorite);
       }
 
       setIsFavorite(nextFavorite);
@@ -182,25 +165,7 @@ export default function ContactDetailScreen() {
     }
   };
 
-  const handleTogglePin = async () => {
-    setActionLoading(true);
-    try {
-      const targetChatId = await getOrCreateChatId();
-      const nextPin = !isPinned;
 
-      // Update local db
-      await setChatPinnedLocal(targetChatId, nextPin);
-      setIsPinned(nextPin);
-    } catch (err: any) {
-      console.error("Error toggling pin status:", err);
-      Alert.alert(
-        "Erro",
-        err.message || "Não foi possível fixar/desafixar a conversa.",
-      );
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   const handleToggleMuteSwitch = () => {
     if (isMuted) {
@@ -275,49 +240,22 @@ export default function ContactDetailScreen() {
     setActionLoading(true);
     try {
       await syncLists();
-      setTempSelectedListIds([...selectedListIds]);
       setListSelectorVisible(true);
     } catch (err) {
       console.error("Error fetching lists:", err);
-      setTempSelectedListIds([...selectedListIds]);
       setListSelectorVisible(true);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleUpdateChatLists = async (
-    chatId: string,
-    selectedListIds: string[],
-  ) => {
-    try {
-      const db = await getDatabase();
-      await db.runAsync(
-        "DELETE FROM chat_list_items WHERE chat_id = ? AND list_id IN (SELECT id FROM chat_lists)",
-        [chatId],
-      );
-      for (const lid of selectedListIds) {
-        await db.runAsync(
-          "INSERT INTO chat_list_items (list_id, chat_id, created_at) VALUES (?, ?, ?)",
-          [lid, chatId, new Date().toISOString()],
-        );
-      }
-
-      if (token) {
-        await updateChatLists(token, chatId, selectedListIds);
-      }
-    } catch (err) {
-      console.error("Error updating chat lists:", err);
-      throw err;
-    }
-  };
-
-  const handleSaveLists = async () => {
+  const handleSaveLists = async (selectedIds: string[]) => {
+    if (!token) return;
     setActionLoading(true);
     try {
       const targetChatId = await getOrCreateChatId();
-      await handleUpdateChatLists(targetChatId, tempSelectedListIds);
-      setSelectedListIds(tempSelectedListIds);
+      await updateChatListSelections(token, targetChatId, selectedIds);
+      setSelectedListIds(selectedIds);
       setListSelectorVisible(false);
       Alert.alert("Sucesso", "Listas atualizadas com sucesso.");
     } catch (err: any) {
@@ -342,7 +280,7 @@ export default function ContactDetailScreen() {
       const response = await createChatList(token, name, color, icon);
       if (response && response.list) {
         await syncLists();
-        setTempSelectedListIds((prev) => [...prev, response.list.id]);
+        setSelectedListIds((prev) => [...prev, response.list.id]);
         setCreateListModalVisible(false);
         setListSelectorVisible(true);
       }
@@ -437,29 +375,14 @@ export default function ContactDetailScreen() {
       return;
     }
 
-    let mutedUntil: string | null = null;
-    let mutedForever = false;
-
-    if (durationHours === "always") {
-      mutedForever = true;
-    } else if (durationHours === "unmute") {
-      mutedForever = false;
-      mutedUntil = null;
-    } else {
-      mutedUntil = new Date(
-        Date.now() + durationHours * 60 * 60 * 1000,
-      ).toISOString();
-    }
-
     try {
       if (token) {
-        await muteChat(token, targetChatId, mutedUntil, mutedForever);
+        const result = await toggleMuteChat(token, targetChatId, durationHours);
+        setChatSettings({
+          notification_muted_until: result.mutedUntil,
+          notification_muted_forever: result.mutedForever,
+        });
       }
-      await setChatMuteLocal(targetChatId, mutedUntil, mutedForever);
-      setChatSettings({
-        notification_muted_until: mutedUntil,
-        notification_muted_forever: mutedForever,
-      });
       setMuteModalVisible(false);
     } catch (err) {
       console.error("Error updating mute settings:", err);
@@ -513,25 +436,52 @@ export default function ContactDetailScreen() {
 
   const handleToggleBlock = async () => {
     if (!token || !participantId) return;
-    setActionLoading(true);
-    try {
-      if (isBlocked) {
-        await unblockContact(token, participantId);
-        setIsBlocked(false);
-        Alert.alert("Sucesso", "Contato desbloqueado com sucesso.");
-      } else {
-        await blockContact(token, participantId);
-        setIsBlocked(true);
-        Alert.alert("Sucesso", "Contato bloqueado com sucesso.");
-      }
-    } catch (err: any) {
-      Alert.alert(
-        "Erro",
-        err.message || "Não foi possível alterar o status de bloqueio.",
-      );
-    } finally {
-      setActionLoading(false);
-    }
+
+    const title = isBlocked ? "Desbloquear contato" : "Bloquear contato";
+    const message = isBlocked
+      ? "Deseja realmente desbloquear este contato?"
+      : "Deseja realmente bloquear este contato?";
+
+    Alert.alert(title, message, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: isBlocked ? "Desbloquear" : "Bloquear",
+        style: "destructive",
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            let targetChatId = resolvedChatId;
+            if (!targetChatId) {
+              try {
+                const chats = await getChatsFromLocal();
+                const found = chats.find((c) => c.participant_id === participantId);
+                if (found) {
+                  targetChatId = found.id;
+                  setResolvedChatId(found.id);
+                }
+              } catch (err) {
+                console.error("Error finding chat id for block:", err);
+              }
+            }
+
+            const nextBlockState = !isBlocked;
+            await toggleBlockContact(token, participantId, targetChatId, nextBlockState);
+            setIsBlocked(nextBlockState);
+            Alert.alert(
+              "Sucesso",
+              `Contato ${nextBlockState ? "bloqueado" : "desbloqueado"} com sucesso.`
+            );
+          } catch (err: any) {
+            Alert.alert(
+              "Erro",
+              err.message || "Não foi possível alterar o status de bloqueio.",
+            );
+          } finally {
+            setActionLoading(false);
+          }
+        },
+      },
+    ]);
   };
 
   const handleClearChat = () => {
@@ -551,7 +501,7 @@ export default function ContactDetailScreen() {
           onPress: async () => {
             setActionLoading(true);
             try {
-              await clearChatMessages(token, chatId);
+              await clearChatHistory(token, chatId);
               Alert.alert("Sucesso", "Histórico de conversa apagado.");
             } catch (err: any) {
               Alert.alert(
@@ -886,29 +836,7 @@ export default function ContactDetailScreen() {
               />
             </View>
 
-            {/* Fixar conversa */}
-            <View style={styles.optionRow}>
-              <View style={styles.optionLeft}>
-                <Pin size={20} color={colors.textSecondary} />
-                <View style={styles.optionTextContainer}>
-                  <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    Fixar conversa
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={isPinned}
-                onValueChange={handleTogglePin}
-                trackColor={{ false: "#767577", true: colors.tint }}
-                thumbColor={
-                  Platform.OS === "android"
-                    ? isPinned
-                      ? colors.tint
-                      : "#f4f3f4"
-                    : undefined
-                }
-              />
-            </View>
+
 
             {/* Adicionar à lista */}
             <TouchableOpacity
@@ -1107,296 +1035,24 @@ export default function ContactDetailScreen() {
       )}
 
       {/* Mute Chat Dialog Modal */}
-      <Modal
+      <MuteModal
         visible={muteModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setMuteModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={[
-            styles.dialogOverlay,
-            { backgroundColor: colors.modalOverlay },
-          ]}
-          activeOpacity={1}
-          onPress={() => setMuteModalVisible(false)}
-        >
-          <View
-            style={[
-              styles.themeDialog,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Text style={[styles.dialogTitle, { color: colors.text }]}>
-              Silenciar notificações
-            </Text>
-
-            {isMuted && (
-              <TouchableOpacity
-                style={styles.dialogOption}
-                onPress={() => handleMuteChats("unmute")}
-              >
-                <View style={styles.dialogOptionLabel}>
-                  <Text
-                    style={[
-                      styles.dialogOptionText,
-                      { color: colors.tint, fontWeight: "bold" },
-                    ]}
-                  >
-                    Ativar notificações (Desilenciar)
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(1)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  1 hora
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(8)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  8 horas
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(24)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  24 horas
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(7 * 24)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  1 semana
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats(30 * 24)}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  1 mês
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => handleMuteChats("always")}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  Sempre
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <View
-              style={[
-                styles.menuDivider,
-                { backgroundColor: colors.border, marginVertical: 8 },
-              ]}
-            />
-
-            <TouchableOpacity
-              style={styles.dialogCloseButton}
-              onPress={() => setMuteModalVisible(false)}
-            >
-              <Text style={[styles.dialogCloseText, { color: colors.tint }]}>
-                Cancelar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setMuteModalVisible(false)}
+        onMute={handleMuteChats}
+      />
 
       {/* List Selector Modal */}
-      <Modal
+      <ListSelectorModal
         visible={listSelectorVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setListSelectorVisible(false)}
-      >
-        <TouchableOpacity
-          style={[
-            styles.dialogOverlay,
-            { backgroundColor: colors.modalOverlay },
-          ]}
-          activeOpacity={1}
-          onPress={() => setListSelectorVisible(false)}
-        >
-          <View
-            style={[
-              styles.themeDialog,
-              {
-                backgroundColor: colors.menuBackground || colors.surface,
-                borderColor: colors.border,
-                maxHeight: "70%",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.dialogTitle,
-                { color: colors.text, marginBottom: 12 },
-              ]}
-            >
-              Marcar Listas
-            </Text>
-
-            {allLists.length === 0 ? (
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  marginVertical: 12,
-                  textAlign: "center",
-                }}
-              >
-                Nenhuma lista personalizada criada.
-              </Text>
-            ) : (
-              <FlatList
-                data={allLists}
-                keyExtractor={(item) => item.id}
-                style={{ marginBottom: 12 }}
-                renderItem={({ item }) => {
-                  const isChecked = tempSelectedListIds.includes(item.id);
-                  return (
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        paddingVertical: 12,
-                        borderBottomWidth: StyleSheet.hairlineWidth,
-                        borderBottomColor: colors.border,
-                      }}
-                      onPress={() => {
-                        setTempSelectedListIds((prev) =>
-                          prev.includes(item.id)
-                            ? prev.filter((id) => id !== item.id)
-                            : [...prev, item.id],
-                        );
-                      }}
-                    >
-                      <Text style={{ color: colors.text, fontSize: 16 }}>
-                        {item.icon ? `${item.icon} ` : ""}
-                        {item.name}
-                      </Text>
-                      <View
-                        style={[
-                          {
-                            width: 22,
-                            height: 22,
-                            borderRadius: 4,
-                            borderWidth: 2,
-                            borderColor: colors.textSecondary,
-                            justifyContent: "center",
-                            alignItems: "center",
-                          },
-                          isChecked && {
-                            backgroundColor: colors.tint,
-                            borderColor: colors.tint,
-                          },
-                        ]}
-                      >
-                        {isChecked && <Check size={14} color="#fff" />}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            )}
-
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingVertical: 12,
-                marginTop: 8,
-              }}
-              onPress={() => {
-                setListSelectorVisible(false);
-                setCreateListModalVisible(true);
-              }}
-            >
-              <Text
-                style={{ color: colors.tint, fontSize: 16, fontWeight: "bold" }}
-              >
-                ＋ Nova lista
-              </Text>
-            </TouchableOpacity>
-
-            <View
-              style={[
-                styles.menuDivider,
-                { backgroundColor: colors.border, marginVertical: 8 },
-              ]}
-            />
-
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "flex-end",
-                gap: 12,
-                marginTop: 8,
-              }}
-            >
-              <TouchableOpacity onPress={() => setListSelectorVisible(false)}>
-                <Text
-                  style={{
-                    color: colors.textSecondary,
-                    fontSize: 16,
-                    padding: 8,
-                  }}
-                >
-                  Cancelar
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleSaveLists}>
-                <Text
-                  style={{
-                    color: colors.tint,
-                    fontSize: 16,
-                    fontWeight: "bold",
-                    padding: 8,
-                  }}
-                >
-                  Salvar
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setListSelectorVisible(false)}
+        userLists={allLists}
+        initialSelectedListIds={selectedListIds}
+        onSave={handleSaveLists}
+        onCreateNewList={() => {
+          setListSelectorVisible(false);
+          setCreateListModalVisible(true);
+        }}
+      />
 
       {/* Create List Modal */}
       <CreateListModal

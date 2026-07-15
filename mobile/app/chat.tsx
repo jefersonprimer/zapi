@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,570 +7,41 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-  Clipboard,
   Modal,
-  Keyboard,
-  Image,
   ActivityIndicator,
+  Alert,
 } from "react-native";
-import * as DocumentPicker from "expo-document-picker";
-import * as ImagePicker from "expo-image-picker";
-import {
-  useAudioRecorder,
-  RecordingPresets,
-  setAudioModeAsync,
-  requestRecordingPermissionsAsync,
-} from "expo-audio";
-import {
-  Phone as PhoneIcon,
-  MoreVertical as MoreVerticalIcon,
-  Video,
-  ArrowLeft,
-  Trash2,
-  Forward,
-  CornerUpLeft,
-} from "lucide-react-native";
-import {
-  useLocalSearchParams,
-  useRouter,
-  useNavigation,
-  useFocusEffect,
-} from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
+import { ChatHeader } from "@/components/ChatHeader";
+import { ChatBlockedBar } from "@/components/ChatBlockedBar";
+import { ChatDeleteModal } from "@/components/ChatDeleteModal";
+import { ChatItemRow } from "@/components/ChatItemRow";
 import { ChatEmojiPicker } from "@/components/ChatEmojiPicker";
 import { ChatInput } from "@/components/ChatInput";
 import { AttachDocumentButton } from "@/components/AttachDocumentButton";
-import {
-  AttachCameraButton,
-  type Attachment,
-} from "@/components/AttachCameraButton";
+import { AttachCameraButton } from "@/components/AttachCameraButton";
 import { AttachMediaSheet } from "@/components/AttachMediaSheet";
 import { SendOrMicButton } from "@/components/SendOrMicButton";
 import { ChatMenuModal } from "@/components/ChatMenuModal";
 import MuteModal from "@/components/MuteModal";
-import { MessageBubble } from "@/components/MessageBubble";
-import { CallBubble } from "@/components/CallBubble";
+import CreateListModal from "@/components/CreateListModal";
+import ListSelectorModal from "@/components/ListSelectorModal";
 import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
 import { ForwardPreviewBar } from "@/components/ForwardPreviewBar";
-import { SwipeableMessageRow } from "@/components/SwipeableMessageRow";
-import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import {
-  type Message,
-  getContacts,
-  addContact,
-  removeContact,
-  markChatRead,
-  deleteMessageForEveryone,
-  getChats,
-  unblockContact,
-  blockContact,
-  clearChatMessages,
-  muteChat,
-  API_URL,
-} from "@/services/api";
-import {
-  getDatabase,
-  getMessagesFromLocal,
-  saveMessages,
-  insertMessageLocal,
-  markChatReadLocal,
-  markSentMessagesReadLocal,
-  markSentMessagesDeliveredLocal,
-  clearChatMessagesLocal,
-  deleteMessageLocal,
-  deleteMessageForMeLocal,
-  setChatMuteLocal,
-  setChatBlockedLocal,
-} from "@/services/database";
-import { syncWorker } from "@/services/syncWorker";
-import { cacheMediaFile } from "@/services/mediaCache";
-import { wsClient } from "@/services/ws";
-import { voiceCallManager } from "@/services/voiceCallManager";
-import { generateUUIDv7 } from "@/services/uuidv7";
-import {
-  getCallHistory,
-  deleteCallHistoryItem,
-  type CallHistoryItem,
-} from "@/services/callApi";
-import { useCallStore } from "@/store/useCallStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { isSameDay, getDateLabel } from "@/utils/date";
-import { validateAttachmentSize } from "@/utils/file";
-import {
-  extractForwardData,
-  buildForwardContent,
-  type ForwardedMessageData,
-} from "@/utils/forwardMessage";
-
-type ChatItem =
-  | { type: "message"; data: Message }
-  | { type: "call"; data: CallHistoryItem };
+import { useChat } from "@/hooks/useChat";
+import { getChatLists, createChatList } from "@/services/api";
+import { getLocalChatLists, saveLocalChatLists, type LocalChatList } from "@/services/database";
+import { updateChatListSelections } from "@/services/chatActions";
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const params = useLocalSearchParams<{
-    chatId: string;
-    participantId?: string;
-    participantUsername?: string;
-    participantAvatarUrl?: string;
-  }>();
-  const router = useRouter();
   const navigation = useNavigation();
-
-  const chatId = params.chatId;
-  const participantId = params.participantId || "";
-  const participantUsername = params.participantUsername || "Unknown";
-  const [displayTitle, setDisplayTitle] = useState(participantUsername);
-  const [participantAvatarUrl, setParticipantAvatarUrl] = useState(
-    params.participantAvatarUrl || "",
-  );
-
-  useEffect(() => {
-    if (params.participantAvatarUrl) {
-      setParticipantAvatarUrl(params.participantAvatarUrl);
-    }
-  }, [params.participantAvatarUrl]);
-
-  useEffect(() => {
-    if (params.participantUsername) {
-      setDisplayTitle(params.participantUsername);
-    }
-  }, [params.participantUsername]);
-
-  useEffect(() => {
-    if (Platform.OS === "web") return;
-
-    const showEvent =
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent =
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-    const showSubscription = Keyboard.addListener(showEvent, () => {
-      setIsKeyboardVisible(true);
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setIsKeyboardVisible(false);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  const { token, user } = useAuth();
-  const { colors, isDark } = useAppTheme();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [calls, setCalls] = useState<CallHistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [content, setContent] = useState("");
-  const sending = false;
+  const router = useRouter();
+  const { colors } = useAppTheme();
   const flatListRef = useRef<FlatList>(null);
-
-  const callState = useCallStore((state) => state.callState);
-
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [muteModalVisible, setMuteModalVisible] = useState(false);
-  const [isContact, setIsContact] = useState(false);
-
-  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
-  const [selectedCallIds, setSelectedCallIds] = useState<string[]>([]);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
-  const [forwardingMessage, setForwardingMessage] =
-    useState<ForwardedMessageData | null>(null);
-
-  const selectedCount = selectedMessageIds.length + selectedCallIds.length;
-  const isSelectionMode = selectedCount > 0;
-  const hasOnlyMessagesSelected =
-    selectedMessageIds.length > 0 && selectedCallIds.length === 0;
-  const hasOnlyCallsSelected =
-    selectedCallIds.length > 0 && selectedMessageIds.length === 0;
-
-  const selectedMessages = useMemo(
-    () => messages.filter((msg) => selectedMessageIds.includes(msg.id)),
-    [messages, selectedMessageIds],
-  );
-
-  const clearSelection = useCallback(() => {
-    setSelectedMessageIds([]);
-    setSelectedCallIds([]);
-  }, []);
-
-  const toggleMessageSelection = useCallback((msg: Message) => {
-    if (msg.deleted_for_everyone) return;
-    setSelectedMessageIds((prev) =>
-      prev.includes(msg.id)
-        ? prev.filter((id) => id !== msg.id)
-        : [...prev, msg.id],
-    );
-  }, []);
-
-  const toggleCallSelection = useCallback((callId: string) => {
-    setSelectedCallIds((prev) =>
-      prev.includes(callId)
-        ? prev.filter((id) => id !== callId)
-        : [...prev, callId],
-    );
-  }, []);
-
-  const [isBlockedByMe, setIsBlockedByMe] = useState(false);
-  const [isBlockedByThem, setIsBlockedByThem] = useState(false);
-  const [messagesRestrictedReason, setMessagesRestrictedReason] = useState<
-    "contacts" | "nobody" | null
-  >(null);
-  const [clearedAt, setClearedAt] = useState<string | null>(null);
-  const [isGroup, setIsGroup] = useState(false);
-
-  const loadChatDetails = useCallback(async () => {
-    if (!token) return;
-    try {
-      const db = await getDatabase();
-      const chatRow = await db.getFirstAsync<{ is_group: number }>(
-        "SELECT is_group FROM chats WHERE id = ?",
-        [chatId],
-      );
-      if (chatRow) {
-        setIsGroup(chatRow.is_group === 1);
-      }
-
-      const chatListData = await getChats(token, chatId);
-      const currentChat = chatListData.chats.find((c) => c.id === chatId);
-      if (currentChat) {
-        setIsGroup(!!currentChat.is_group);
-        setIsBlockedByMe(!!currentChat.is_blocked_by_me);
-        setIsBlockedByThem(!!currentChat.is_blocked_by_them);
-        setMessagesRestrictedReason(
-          currentChat.messages_restricted_reason === "contacts" ||
-            currentChat.messages_restricted_reason === "nobody"
-            ? currentChat.messages_restricted_reason
-            : null,
-        );
-        setClearedAt(currentChat.cleared_at || null);
-        if (currentChat.is_group) {
-          if (currentChat.name) {
-            setDisplayTitle(currentChat.name);
-          }
-          if (currentChat.avatar_url) {
-            setParticipantAvatarUrl(currentChat.avatar_url);
-          } else {
-            setParticipantAvatarUrl("");
-          }
-        } else {
-          if (currentChat.participant_avatar_url) {
-            setParticipantAvatarUrl(currentChat.participant_avatar_url);
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load chat details for blocking status:", err);
-    }
-  }, [token, chatId]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadChatDetails();
-    }, [loadChatDetails]),
-  );
-
-  const chatItems = useMemo(() => {
-    const items: ChatItem[] = [];
-
-    messages.forEach((msg) => {
-      if (!msg.deleted_at) {
-        items.push({ type: "message", data: msg });
-      }
-    });
-
-    calls.forEach((call) => {
-      const isOutgoing =
-        call.caller_id === user?.user_id && call.callee_id === participantId;
-      const isIncoming =
-        call.caller_id === participantId && call.callee_id === user?.user_id;
-      if (isOutgoing || isIncoming) {
-        const callTime = new Date(call.created_at).getTime();
-        const clearTime = clearedAt ? new Date(clearedAt).getTime() : 0;
-        if (callTime > clearTime) {
-          items.push({ type: "call", data: call });
-        }
-      }
-    });
-
-    items.sort((a, b) => {
-      const timeA = new Date(
-        a.type === "message" ? a.data.created_at : a.data.created_at,
-      ).getTime();
-      const timeB = new Date(
-        b.type === "message" ? b.data.created_at : b.data.created_at,
-      ).getTime();
-      return timeA - timeB;
-    });
-
-    return items;
-  }, [messages, calls, user?.user_id, participantId, clearedAt]);
-
-  async function handleDeleteForMe() {
-    if (selectedCount === 0) return;
-    try {
-      if (selectedMessageIds.length > 0) {
-        for (const id of selectedMessageIds) {
-          await deleteMessageForMeLocal(id);
-        }
-        setMessages((prev) =>
-          prev.map((msg) =>
-            selectedMessageIds.includes(msg.id)
-              ? { ...msg, deleted_at: new Date().toISOString() }
-              : msg,
-          ),
-        );
-      }
-      if (selectedCallIds.length > 0 && token) {
-        await Promise.all(
-          selectedCallIds.map((id) => deleteCallHistoryItem(token, id)),
-        );
-        setCalls((prev) =>
-          prev.filter((call) => !selectedCallIds.includes(call.id)),
-        );
-      }
-    } catch (err) {
-      console.error("Error deleting selected items:", err);
-      Alert.alert("Erro", "Não foi possível apagar os itens selecionados.");
-    }
-    clearSelection();
-    setDeleteModalVisible(false);
-  }
-
-  async function handleDeleteForEveryone() {
-    if (selectedMessageIds.length === 0 || selectedCallIds.length > 0 || !token)
-      return;
-    try {
-      for (const id of selectedMessageIds) {
-        await deleteMessageForEveryone(token, chatId, id);
-      }
-      setMessages((prev) =>
-        prev.map((msg) =>
-          selectedMessageIds.includes(msg.id)
-            ? {
-                ...msg,
-                deleted_for_everyone: true,
-                content: null,
-                image_url: null,
-              }
-            : msg,
-        ),
-      );
-    } catch (err: any) {
-      Alert.alert(
-        "Erro",
-        err.message || "Não foi possível apagar as mensagens para todos.",
-      );
-    }
-    clearSelection();
-    setDeleteModalVisible(false);
-  }
-
-  const handleCopy = () => {
-    const messageToCopy =
-      selectedMessages.length === 1 ? selectedMessages[0] : null;
-    if (messageToCopy?.content) {
-      try {
-        if (Platform.OS === "web") {
-          if (navigator.clipboard) {
-            navigator.clipboard.writeText(messageToCopy.content);
-          } else {
-            throw new Error("Web clipboard not available");
-          }
-        } else {
-          Clipboard.setString(messageToCopy.content);
-        }
-        Alert.alert(
-          "Sucesso",
-          "Mensagem copiada para a área de transferência.",
-        );
-      } catch (err) {
-        console.error("Clipboard copy failed:", err);
-        Alert.alert("Erro", "Não foi possível copiar a mensagem.");
-      }
-    } else {
-      Alert.alert(
-        "Erro",
-        "Apenas mensagens de texto ou emoji podem ser copiadas.",
-      );
-    }
-    setOptionsModalVisible(false);
-    clearSelection();
-  };
-
-  const handleReencaminhar = useCallback(
-    (msg?: Message) => {
-      const target =
-        msg ?? (selectedMessages.length === 1 ? selectedMessages[0] : null);
-      if (!target) {
-        Alert.alert("Erro", "Selecione apenas uma mensagem para reencaminhar.");
-        return;
-      }
-      if (target.deleted_for_everyone) return;
-      setForwardingMessage(extractForwardData(target));
-      clearSelection();
-    },
-    [selectedMessages, clearSelection],
-  );
-
-  const handleEncaminhar = () => {
-    if (selectedMessages.length === 0) return;
-
-    const messagesToForward = selectedMessages.map((msg) =>
-      extractForwardData(msg),
-    );
-
-    clearSelection();
-    router.push({
-      pathname: "/share-contact",
-      params: {
-        mode: "forward",
-        forwardMessages: JSON.stringify(messagesToForward),
-      },
-    });
-  };
-
-  // Check if participant is a contact
-  useEffect(() => {
-    if (!token || !participantId) return;
-    (async () => {
-      try {
-        const contactsList = await getContacts(token);
-        const contact = contactsList.find(
-          (c) => c.contact_id === participantId,
-        );
-        if (contact) {
-          setIsContact(true);
-          if (contact.avatar_url) {
-            setParticipantAvatarUrl(contact.avatar_url);
-          }
-        }
-      } catch (err) {
-        console.error("Error checking contact status:", err);
-      }
-    })();
-  }, [token, participantId]);
-
-  async function handleToggleContact() {
-    if (!token || !participantId) return;
-    setMenuVisible(false);
-    try {
-      if (isContact) {
-        await removeContact(token, participantId);
-        setIsContact(false);
-        Alert.alert("Sucesso", "Contato removido com sucesso.");
-      } else {
-        await addContact(token, participantId);
-        setIsContact(true);
-        Alert.alert("Sucesso", "Contato adicionado com sucesso.");
-      }
-    } catch (err: any) {
-      Alert.alert(
-        "Erro",
-        err.message || "Não foi possível gerenciar o contato.",
-      );
-    }
-  }
-
-  const handleMutePress = () => {
-    setMuteModalVisible(true);
-  };
-
-  const handleMuteChats = async (durationHours: number | "always") => {
-    if (!token) return;
-
-    let mutedUntil: string | null = null;
-    let mutedForever = false;
-
-    if (durationHours === "always") {
-      mutedForever = true;
-    } else {
-      mutedUntil = new Date(
-        Date.now() + durationHours * 60 * 60 * 1000,
-      ).toISOString();
-    }
-
-    try {
-      await muteChat(token, chatId, mutedUntil, mutedForever);
-      await setChatMuteLocal(chatId, mutedUntil, mutedForever);
-      setMuteModalVisible(false);
-    } catch (err) {
-      console.error("Error muting chat:", err);
-      Alert.alert("Erro", "Não foi possível silenciar as notificações.");
-    }
-  };
-
-  const handleBlockPress = () => {
-    if (!token || !participantId || isGroup) {
-      Alert.alert("Erro", "Não é possível bloquear um grupo.");
-      return;
-    }
-
-    const title = isBlockedByMe ? "Desbloquear contato" : "Bloquear contato";
-    const message = isBlockedByMe
-      ? "Deseja realmente desbloquear este contato?"
-      : "Deseja realmente bloquear este contato?";
-
-    Alert.alert(title, message, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: isBlockedByMe ? "Desbloquear" : "Bloquear",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            if (isBlockedByMe) {
-              await unblockContact(token, participantId);
-              setIsBlockedByMe(false);
-            } else {
-              await blockContact(token, participantId);
-              setIsBlockedByMe(true);
-            }
-            await setChatBlockedLocal(chatId, !isBlockedByMe);
-          } catch (err: any) {
-            Alert.alert(
-              "Erro",
-              err.message || "Não foi possível alterar o status de bloqueio.",
-            );
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleClearChatPress = () => {
-    if (!token) return;
-
-    Alert.alert(
-      "Limpar conversa",
-      "Deseja realmente apagar todo o histórico de mensagens desta conversa? Esta ação não pode ser desfeita.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Limpar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await clearChatMessages(token, chatId);
-              await clearChatMessagesLocal(chatId);
-              setMessages([]);
-              setClearedAt(new Date().toISOString());
-            } catch (err: any) {
-              Alert.alert(
-                "Erro",
-                err.message || "Não foi possível limpar a conversa.",
-              );
-            }
-          },
-        },
-      ],
-    );
-  };
 
   // Disable native header to render custom styled header bar
   useEffect(() => {
@@ -579,834 +50,177 @@ export default function ChatScreen() {
     });
   }, [navigation]);
 
-  const [selectedAttachment, setSelectedAttachment] =
-    useState<Attachment | null>(null);
-  const [attachSheetVisible, setAttachSheetVisible] = useState(false);
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const [hasRecordingSession, setHasRecordingSession] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const recordingTimerRef = useRef<any>(null);
-  const mediaRecorderRef = useRef<any>(null);
-  const audioChunksRef = useRef<any[]>([]);
-  const [isRecordingPaused, setIsRecordingPaused] = useState(false);
-  const [recordedUri, setRecordedUri] = useState<string | null>(null);
+  const {
+    chatId,
+    participantId,
+    participantUsername,
+    participantAvatarUrl,
+    displayTitle,
+    isKeyboardVisible,
+    isLoading,
+    content,
+    setContent,
+    sending,
+    menuVisible,
+    setMenuVisible,
+    muteModalVisible,
+    setMuteModalVisible,
+    isContact,
+    selectedMessageIds,
+    selectedCallIds,
+    deleteModalVisible,
+    setDeleteModalVisible,
+    optionsModalVisible,
+    setOptionsModalVisible,
+    forwardingMessage,
+    setForwardingMessage,
+    selectedCount,
+    isSelectionMode,
+    hasOnlyMessagesSelected,
+    clearSelection,
+    toggleMessageSelection,
+    toggleCallSelection,
+    isBlockedByMe,
+    isBlockedByThem,
+    messagesRestrictedReason,
+    isGroup,
+    chatItems,
+    selectedAttachment,
+    setSelectedAttachment,
+    attachSheetVisible,
+    setAttachSheetVisible,
+    isRecording,
+    recordingDuration,
+    isRecordingPaused,
+    recordedUri,
+    handleDeleteForMe,
+    handleDeleteForEveryone,
+    handleCopy,
+    handleReencaminhar,
+    handleEncaminhar,
+    handleToggleContact,
+    handleMuteChats,
+    handleBlockPress,
+    handleClearChatPress,
+    handlePickFromGallery,
+    handlePickFile,
+    handlePickDocument,
+    startRecording,
+    handlePauseResumeRecording,
+    handleSend,
+    sendRecordingImmediately,
+    sendPreviewedAudio,
+    discardRecording,
+    stopRecordingAndPreview,
+    isDeleteForEveryoneAvailable,
+    deleteModalTitle,
+    handleUnblock,
+    user,
+    token,
+  } = useChat();
 
-  useEffect(() => {
-    return () => {
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-      }
-    };
-  }, []);
+  // Lists feature states
+  const [listSelectorVisible, setListSelectorVisible] = useState(false);
+  const [createListModalVisible, setCreateListModalVisible] = useState(false);
+  const [allLists, setAllLists] = useState<LocalChatList[]>([]);
+  const [selectedListIds, setSelectedListIds] = useState<string[]>([]);
 
-  // Helper to trigger media downloads for all media messages
-  const cacheMediaForMessages = useCallback(async (msgs: Message[]) => {
-    for (const msg of msgs) {
-      if (msg.image_url && !msg.local_file_path && !msg.deleted_for_everyone) {
-        // Cache in background
-        cacheMediaFile(msg.image_url, msg.id)
-          .then((localPath) => {
-            if (localPath.startsWith("file://")) {
-              // Update local state when caching completes
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === msg.id ? { ...m, local_file_path: localPath } : m,
-                ),
-              );
-            }
-          })
-          .catch((err) => {
-            console.warn("Background media caching failed:", err);
-          });
-      }
-    }
-  }, []);
-
-  const loadMessages = useCallback(async () => {
+  const syncLists = async () => {
     if (!token) return;
     try {
-      // 1. Carrega dados do SQLite local imediatamente
-      const localMsgs = await getMessagesFromLocal(chatId);
-      setMessages(localMsgs);
-
-      // Inicia cache das mídias locais em background
-      cacheMediaForMessages(localMsgs);
-
-      // Carrega histórico de ligações paralelamente
-      getCallHistory(token)
-        .then((callData) => {
-          setCalls(callData);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch call history:", err);
-        });
-
-      // Marca o chat como lido na API e localmente
-      markChatRead(token, chatId).catch(() => {});
-      await markChatReadLocal(chatId);
-
-      // 2. Dispara a sincronização incremental (delta) em background no SyncWorker
-      syncWorker.triggerSync(chatId);
-    } catch (err: any) {
-      console.warn("Error loading local messages:", err);
-    } finally {
-      setIsLoading(false);
+      const response = await getChatLists(token);
+      if (response && response.lists) {
+        const mappedLists: LocalChatList[] = response.lists.map((l) => ({
+          id: l.id,
+          user_id: l.user_id,
+          name: l.name,
+          color: l.color,
+          icon: l.icon,
+          position: l.position,
+          created_at: l.created_at,
+          updated_at: l.updated_at,
+          chat_ids: l.chat_ids,
+        }));
+        await saveLocalChatLists(mappedLists);
+        setAllLists(mappedLists);
+        if (chatId) {
+          const selected = mappedLists
+            .filter((l) => l.chat_ids.includes(chatId))
+            .map((l) => l.id);
+          setSelectedListIds(selected);
+        }
+      }
+    } catch (err) {
+      console.warn("Offline or sync error syncing lists:", err);
     }
-  }, [chatId, token, cacheMediaForMessages]);
+  };
 
-  useEffect(() => {
-    setIsLoading(true);
+  const loadListsAndSelection = useCallback(async () => {
+    try {
+      const lists = await getLocalChatLists();
+      setAllLists(lists);
+      if (chatId) {
+        const selected = lists
+          .filter((l) => l.chat_ids.includes(chatId))
+          .map((l) => l.id);
+        setSelectedListIds(selected);
+      } else {
+        setSelectedListIds([]);
+      }
+    } catch (err) {
+      console.error("Error loading chat lists:", err);
+    }
   }, [chatId]);
 
   useEffect(() => {
-    loadMessages();
-  }, [loadMessages]);
+    loadListsAndSelection();
+  }, [loadListsAndSelection]);
 
-  useEffect(() => {
-    if (callState === "idle") {
-      loadMessages();
+  const handleOpenListSelector = async () => {
+    try {
+      await syncLists();
+      setListSelectorVisible(true);
+    } catch (err) {
+      console.error("Error fetching lists:", err);
+      setListSelectorVisible(true);
     }
-  }, [callState, loadMessages]);
+  };
 
-  useEffect(() => {
-    if (!chatId) return;
-    // Subscreve às mudanças do SQLite disparadas pelo SyncWorker
-    const unsubscribeSync = syncWorker.onMessagesChanged(chatId, async () => {
-      try {
-        const localMsgs = await getMessagesFromLocal(chatId);
-        setMessages(localMsgs);
-        cacheMediaForMessages(localMsgs);
-      } catch (err) {
-        console.error(
-          "Failed to reload messages from SQLite on sync update:",
-          err,
-        );
-      }
-    });
-
-    return unsubscribeSync;
-  }, [chatId, cacheMediaForMessages]);
-
-  useEffect(() => {
-    if (!token) return;
-
-    wsClient.subscribe(chatId);
-
-    const unsub = wsClient.on("new_message", (data) => {
-      if (data.message.chat_id === chatId) {
-        if (data.message.sender_id !== user?.user_id) {
-          wsClient.send({ type: "delivered_ack", chat_id: chatId });
-        }
-
-        // Save new message locally
-        if (data.message.sender_id === user?.user_id) {
-          // If it's our own message coming back, remove the temporary pending message
-          getDatabase()
-            .then(async (db) => {
-              let attachmentType:
-                | "image"
-                | "video"
-                | "audio"
-                | "document"
-                | null = null;
-              if (
-                data.message.attachments &&
-                data.message.attachments.length > 0
-              ) {
-                attachmentType = data.message.attachments[0].type;
-              } else if (data.message.image_url) {
-                const urlLower = data.message.image_url.toLowerCase();
-                if (
-                  urlLower.endsWith(".jpg") ||
-                  urlLower.endsWith(".jpeg") ||
-                  urlLower.endsWith(".png") ||
-                  urlLower.endsWith(".gif") ||
-                  urlLower.endsWith(".webp")
-                ) {
-                  attachmentType = "image";
-                } else if (
-                  urlLower.endsWith(".mp4") ||
-                  urlLower.endsWith(".mov") ||
-                  urlLower.endsWith(".webm") ||
-                  urlLower.endsWith(".mkv") ||
-                  urlLower.endsWith(".avi")
-                ) {
-                  attachmentType = "video";
-                } else if (
-                  urlLower.endsWith(".mp3") ||
-                  urlLower.endsWith(".wav") ||
-                  urlLower.endsWith(".m4a") ||
-                  urlLower.endsWith(".caf") ||
-                  urlLower.endsWith(".ogg") ||
-                  urlLower.endsWith(".opus")
-                ) {
-                  attachmentType = "audio";
-                } else {
-                  attachmentType = "document";
-                }
-              }
-
-              let pending: { id: string } | null = null;
-              if (attachmentType) {
-                pending = await db.getFirstAsync<{ id: string }>(
-                  `SELECT m.id FROM messages m 
-                 JOIN attachments a ON m.id = a.message_id 
-                 WHERE m.chat_id = ? AND m.sender_id = ? AND a.type = ? AND (m.status = 'pending' OR m.status = 'uploading' OR m.status = 'sending')`,
-                  [chatId, user?.user_id || "", attachmentType],
-                );
-              } else {
-                pending = await db.getFirstAsync<{ id: string }>(
-                  "SELECT id FROM messages WHERE chat_id = ? AND sender_id = ? AND content = ? AND (status = 'pending' OR status = 'uploading' OR status = 'sending')",
-                  [chatId, user?.user_id || "", data.message.content || ""],
-                );
-              }
-
-              if (pending) {
-                await db.runAsync("DELETE FROM messages WHERE id = ?", [
-                  pending.id,
-                ]);
-              }
-              await saveMessages([data.message]);
-              syncWorker.notifyMessagesChanged(chatId);
-            })
-            .catch(console.error);
-        } else {
-          saveMessages([data.message])
-            .then(() => {
-              syncWorker.notifyMessagesChanged(chatId);
-            })
-            .catch(console.error);
-        }
-
-        if (data.message.sender_id !== user?.user_id) {
-          markChatRead(token, chatId).catch((err) =>
-            console.error("Error marking chat read:", err),
-          );
-          markChatReadLocal(chatId).catch(console.error);
-        }
-      }
-    });
-
-    const unsubDelete = wsClient.on("message_deleted", (data) => {
-      if (data.chat_id === chatId) {
-        deleteMessageLocal(data.message_id)
-          .then(() => {
-            syncWorker.notifyMessagesChanged(chatId);
-          })
-          .catch(console.error);
-      }
-    });
-
-    const unsubClear = wsClient.on("messages_cleared", (data) => {
-      if (data.chat_id === chatId) {
-        clearChatMessagesLocal(chatId)
-          .then(() => {
-            setCalls([]);
-            setClearedAt(new Date().toISOString());
-            syncWorker.notifyMessagesChanged(chatId);
-          })
-          .catch(console.error);
-      }
-    });
-
-    const unsubRead = wsClient.on("messages_read", (data) => {
-      if (data.chat_id === chatId && data.reader_id !== user?.user_id) {
-        markSentMessagesReadLocal(chatId, user?.user_id || "", data.read_at)
-          .then(() => {
-            syncWorker.notifyMessagesChanged(chatId);
-          })
-          .catch(console.error);
-      }
-    });
-
-    const unsubDelivered = wsClient.on("messages_delivered", (data) => {
-      if (data.chat_id === chatId && data.receiver_id !== user?.user_id) {
-        markSentMessagesDeliveredLocal(chatId, user?.user_id || "")
-          .then(() => {
-            syncWorker.notifyMessagesChanged(chatId);
-          })
-          .catch(console.error);
-      }
-    });
-
-    return () => {
-      unsub();
-      unsubDelete();
-      unsubClear();
-      unsubRead();
-      unsubDelivered();
-      wsClient.unsubscribe(chatId);
-    };
-  }, [chatId, token, user]);
-
-  async function handleSend(customAttachment?: any) {
-    // Prevent event objects passed by onPress from being treated as attachments
-    const validAttachment =
-      customAttachment &&
-      typeof customAttachment === "object" &&
-      typeof customAttachment.uri === "string"
-        ? (customAttachment as Attachment)
-        : null;
-
-    const attachmentInfo = validAttachment || selectedAttachment;
-    const hasContent = content.trim().length > 0;
-    const hasAttachment = attachmentInfo !== null;
-    const hasForward = forwardingMessage !== null;
-
-    if (
-      (!hasContent && !hasAttachment && !hasForward && !sending) ||
-      !token ||
-      sending
-    )
-      return;
-
-    if (attachmentInfo && attachmentInfo.size !== undefined) {
-      const validation = validateAttachmentSize(
-        attachmentInfo.size,
-        attachmentInfo.type,
-        attachmentInfo.name,
-        attachmentInfo.mimeType || "",
+  const handleSaveLists = async (selectedIds: string[]) => {
+    if (!token || !chatId) return;
+    try {
+      await updateChatListSelections(token, chatId, selectedIds);
+      setSelectedListIds(selectedIds);
+      setListSelectorVisible(false);
+      Alert.alert("Sucesso", "Listas atualizadas com sucesso.");
+    } catch (err: any) {
+      console.error("Error saving lists:", err);
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível atualizar as listas.",
       );
-
-      if (!validation.valid) {
-        Alert.alert(
-          "Arquivo muito grande",
-          `O tamanho do arquivo excede o limite permitido para ${validation.label}.`,
-        );
-        return;
-      }
     }
+  };
 
-    // Save attachment and content info, then clear UI inputs immediately
-    const messageContentText = content;
-    const forwardData = forwardingMessage;
-    setContent("");
-    setSelectedAttachment(null);
-    setForwardingMessage(null);
-
-    let finalContent = messageContentText || null;
-    if (forwardData) {
-      finalContent = buildForwardContent(forwardData, messageContentText);
-    }
-
-    // 1. Generate time-ordered UUIDv7 ID and create local message representation
-    const localId = generateUUIDv7();
-    
-    let attType = attachmentInfo?.type;
-    if (attachmentInfo && !attType) {
-      const mime = attachmentInfo.mimeType || "";
-      if (mime.startsWith("image/")) attType = "image";
-      else if (mime.startsWith("video/")) attType = "video";
-      else if (mime.startsWith("audio/")) attType = "audio";
-      else attType = "document";
-    }
-
-    const newLocalMsg: Message = {
-      id: localId,
-      chat_id: chatId,
-      sender_id: user?.user_id || "",
-      sender_username: user?.username || "",
-      content: finalContent,
-      image_url: null,
-      local_file_path: attachmentInfo?.uri || null,
-      created_at: new Date().toISOString(),
-      status: attachmentInfo ? "uploading" : "pending",
-      deleted_for_everyone: false,
-      attachments: attachmentInfo
-        ? [
-            {
-              id: localId + "_att",
-              message_id: localId,
-              type: attType || "document",
-              remote_url: "",
-              local_path: attachmentInfo.uri,
-              mime_type: attachmentInfo.mimeType || null,
-              width: null,
-              height: null,
-              duration: attachmentInfo.duration || null,
-              size: attachmentInfo.size || null,
-              sha256: null,
-              thumbnail_path: null,
-              download_status: "downloaded",
-            } as any,
-          ]
-        : undefined,
-    };
-
-    try {
-      // 2. Insert into SQLite local database
-      await insertMessageLocal(newLocalMsg);
-
-      // Notify SQLite changes to UI listeners to render the new message immediately
-      syncWorker.notifyMessagesChanged(chatId);
-
-      // Trigger background upload and send in SyncWorker
-      syncWorker.triggerSync(chatId);
-    } catch (dbErr) {
-      console.error("Failed to save message to local SQLite:", dbErr);
-    }
-  }
-
-  async function handlePickFromGallery() {
-    try {
-      const permission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (permission.status !== "granted") {
-        Alert.alert(
-          "Permissão Negada",
-          "O acesso à galeria de fotos é necessário para selecionar imagens/vídeos.",
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images", "videos"],
-        quality: 0.8,
-      });
-
-      if (result.canceled || !result.assets || result.assets.length === 0)
-        return;
-      const asset = result.assets[0];
-
-      const isVideo = asset.type === "video" || (asset as any).mediaType === "video" || asset.mimeType?.startsWith("video/");
-      const defaultName = isVideo
-        ? `video_${Date.now()}.mp4`
-        : `photo_${Date.now()}.jpg`;
-      const defaultMime = isVideo ? "video/mp4" : "image/jpeg";
-
-      setSelectedAttachment({
-        uri: asset.uri,
-        name: asset.fileName || defaultName,
-        type: isVideo ? "video" : "image",
-        mimeType: asset.mimeType || defaultMime,
-        size: asset.fileSize,
-      });
-    } catch (err: any) {
-      Alert.alert("Erro ao selecionar da galeria", err.message);
-    }
-  }
-
-  async function handlePickFile() {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        copyToCacheDirectory: true,
-      });
-
-      if (result.canceled || !result.assets || result.assets.length === 0)
-        return;
-      const asset = result.assets[0];
-
-      let type: "image" | "video" | "audio" | "document" = "document";
-      const mime = asset.mimeType || "";
-      if (mime.startsWith("image/")) {
-        type = "image";
-      } else if (mime.startsWith("video/")) {
-        type = "video";
-      } else if (mime.startsWith("audio/")) {
-        type = "audio";
-      }
-
-      setSelectedAttachment({
-        uri: asset.uri,
-        name: asset.name,
-        type,
-        mimeType: asset.mimeType,
-        size: asset.size,
-      });
-    } catch (err: any) {
-      Alert.alert("Erro ao selecionar documento", err.message);
-    }
-  }
-
-  async function handlePickDocument() {
+  const handleCreateList = async (
+    name: string,
+    color: string,
+    icon: string,
+  ) => {
     if (!token) return;
-
-    if (Platform.OS === "web") {
-      handlePickFile();
-      return;
-    }
-
-    setAttachSheetVisible(true);
-  }
-
-  async function startRecording() {
-    setIsRecordingPaused(false);
-    setRecordedUri(null);
-    if (Platform.OS === "web") {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-        audioChunksRef.current = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
-          }
-        };
-
-        mediaRecorder.start();
-        setIsRecording(true);
-        setRecordingDuration(0);
-
-        recordingTimerRef.current = setInterval(() => {
-          setRecordingDuration((prev) => prev + 1);
-        }, 1000);
-      } catch (err: any) {
-        Alert.alert(
-          "Erro ao acessar o microfone",
-          err.message || "Permissão negada ou não suportada no navegador.",
-        );
-      }
-      return;
-    }
-
     try {
-      const permission = await requestRecordingPermissionsAsync();
-      if (permission.status !== "granted") {
-        Alert.alert(
-          "Permissão Negada",
-          "O acesso ao microfone é necessário para gravar áudios.",
-        );
-        return;
-      }
-
-      await setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-      });
-
-      await recorder.prepareToRecordAsync();
-      recorder.record();
-
-      setHasRecordingSession(true);
-      setIsRecording(true);
-      setRecordingDuration(0);
-
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
-      }, 1000);
-    } catch (err: any) {
-      Alert.alert("Erro ao iniciar gravação", err.message);
-    }
-  }
-
-  async function handlePauseResumeRecording() {
-    if (Platform.OS === "web") {
-      const recorder = mediaRecorderRef.current;
-      if (!recorder) return;
-
-      if (isRecordingPaused) {
-        try {
-          recorder.resume();
-          setIsRecordingPaused(false);
-          if (recordingTimerRef.current)
-            clearInterval(recordingTimerRef.current);
-          recordingTimerRef.current = setInterval(() => {
-            setRecordingDuration((prev) => prev + 1);
-          }, 1000);
-        } catch (err: any) {
-          console.error("Failed to resume web recording:", err);
-        }
-      } else {
-        try {
-          recorder.pause();
-          setIsRecordingPaused(true);
-          if (recordingTimerRef.current) {
-            clearInterval(recordingTimerRef.current);
-            recordingTimerRef.current = null;
-          }
-        } catch (err: any) {
-          console.error("Failed to pause web recording:", err);
-        }
-      }
-      return;
-    }
-
-    if (!hasRecordingSession) return;
-
-    if (isRecordingPaused) {
-      try {
-        recorder.record();
-        setIsRecordingPaused(false);
-        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = setInterval(() => {
-          setRecordingDuration((prev) => prev + 1);
-        }, 1000);
-      } catch (err: any) {
-        console.error("Failed to resume native recording:", err);
-      }
-    } else {
-      try {
-        recorder.pause();
-        setIsRecordingPaused(true);
-        if (recordingTimerRef.current) {
-          clearInterval(recordingTimerRef.current);
-          recordingTimerRef.current = null;
-        }
-      } catch (err: any) {
-        console.error("Failed to pause native recording:", err);
-      }
-    }
-  }
-
-  async function stopRecording(shouldKeep: boolean) {
-    setIsRecordingPaused(false);
-    if (Platform.OS === "web") {
-      setIsRecording(false);
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
-
-      const recorder = mediaRecorderRef.current;
-      if (!recorder) return;
-
-      recorder.onstop = () => {
-        if (recorder.stream) {
-          recorder.stream.getTracks().forEach((track: any) => track.stop());
-        }
-
-        if (shouldKeep) {
-          const audioBlob = new Blob(audioChunksRef.current, {
-            type: "audio/webm",
-          });
-          const uri = URL.createObjectURL(audioBlob);
-          setSelectedAttachment({
-            uri,
-            name: `audio_${Date.now()}.opus`,
-            type: "audio",
-            mimeType: "audio/webm",
-            size: audioBlob.size,
-            duration: recordingDuration,
-          });
-        }
-        mediaRecorderRef.current = null;
-        audioChunksRef.current = [];
-      };
-
-      recorder.stop();
-      return;
-    }
-
-    if (!hasRecordingSession) return;
-
-    setIsRecording(false);
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-
-    try {
-      await recorder.stop();
-      await setAudioModeAsync({ allowsRecording: false });
-
-      if (shouldKeep) {
-        const uri = recorder.uri;
-        if (uri) {
-          setSelectedAttachment({
-            uri,
-            name: `audio_${Date.now()}.m4a`,
-            type: "audio",
-            mimeType: "audio/m4a",
-            duration: recordingDuration,
-          });
-        }
+      const response = await createChatList(token, name, color, icon);
+      if (response && response.list) {
+        await syncLists();
+        setSelectedListIds((prev) => [...prev, response.list.id]);
+        setCreateListModalVisible(false);
+        setListSelectorVisible(true);
       }
     } catch (err: any) {
-      Alert.alert("Erro ao parar gravação", err.message);
-    } finally {
-      setHasRecordingSession(false);
+      console.error("Error creating list:", err);
+      Alert.alert("Erro", "Não foi possível criar a lista.");
     }
-  }
-
-  async function stopRecordingAndPreview() {
-    setIsRecordingPaused(false);
-    if (Platform.OS === "web") {
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
-
-      const recorder = mediaRecorderRef.current;
-      if (!recorder) return;
-
-      recorder.onstop = () => {
-        if (recorder.stream) {
-          recorder.stream.getTracks().forEach((track: any) => track.stop());
-        }
-
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
-        const uri = URL.createObjectURL(audioBlob);
-        setRecordedUri(uri);
-        
-        mediaRecorderRef.current = null;
-        audioChunksRef.current = [];
-      };
-
-      recorder.stop();
-      return;
-    }
-
-    if (!hasRecordingSession) return;
-
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-
-    try {
-      await recorder.stop();
-      await setAudioModeAsync({ allowsRecording: false });
-
-      const uri = recorder.uri;
-      if (uri) {
-        setRecordedUri(uri);
-      }
-    } catch (err: any) {
-      Alert.alert("Erro ao parar gravação", err.message);
-    } finally {
-      setHasRecordingSession(false);
-    }
-  }
-
-  async function sendRecordingImmediately() {
-    setIsRecordingPaused(false);
-    if (Platform.OS === "web") {
-      setIsRecording(false);
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
-
-      const recorder = mediaRecorderRef.current;
-      if (!recorder) return;
-
-      recorder.onstop = async () => {
-        if (recorder.stream) {
-          recorder.stream.getTracks().forEach((track: any) => track.stop());
-        }
-
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
-        const uri = URL.createObjectURL(audioBlob);
-        
-        const fileExtension = "opus";
-        const mimeType = "audio/webm";
-        const att: Attachment = {
-          uri,
-          name: `audio_${Date.now()}.${fileExtension}`,
-          type: "audio",
-          mimeType,
-          duration: recordingDuration,
-          size: audioBlob.size,
-        };
-        await handleSend(att);
-
-        mediaRecorderRef.current = null;
-        audioChunksRef.current = [];
-        setRecordedUri(null);
-      };
-
-      recorder.stop();
-      return;
-    }
-
-    if (!hasRecordingSession) return;
-
-    setIsRecording(false);
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-
-    try {
-      await recorder.stop();
-      await setAudioModeAsync({ allowsRecording: false });
-
-      const uri = recorder.uri;
-      if (uri) {
-        const att: Attachment = {
-          uri,
-          name: `audio_${Date.now()}.m4a`,
-          type: "audio",
-          mimeType: "audio/m4a",
-          duration: recordingDuration,
-        };
-        await handleSend(att);
-      }
-    } catch (err: any) {
-      Alert.alert("Erro ao parar gravação", err.message);
-    } finally {
-      setHasRecordingSession(false);
-      setRecordedUri(null);
-    }
-  }
-
-  async function sendPreviewedAudio() {
-    if (!recordedUri) return;
-    const fileExtension = Platform.OS === "web" ? "opus" : "m4a";
-    const mimeType = Platform.OS === "web" ? "audio/webm" : "audio/m4a";
-    const att: Attachment = {
-      uri: recordedUri,
-      name: `audio_${Date.now()}.${fileExtension}`,
-      type: "audio",
-      mimeType,
-      duration: recordingDuration,
-    };
-    await handleSend(att);
-    setIsRecording(false);
-    setRecordedUri(null);
-  }
-
-  function discardRecording() {
-    if (recordedUri) {
-      setRecordedUri(null);
-      setIsRecording(false);
-      setRecordingDuration(0);
-    } else {
-      stopRecording(false);
-    }
-  }
-
-  const isDeleteForEveryoneAvailable = useMemo(() => {
-    if (selectedMessages.length === 0 || selectedCallIds.length > 0)
-      return false;
-    const now = Date.now();
-    return selectedMessages.every((msg) => {
-      if (msg.sender_id !== user?.user_id) return false;
-      const sentTime = new Date(msg.created_at).getTime();
-      const ageInHours = (now - sentTime) / (1000 * 60 * 60);
-      return ageInHours < 24;
-    });
-  }, [selectedMessages, selectedCallIds.length, user?.user_id]);
-
-  const deleteModalTitle = useMemo(() => {
-    if (hasOnlyCallsSelected) {
-      return selectedCallIds.length === 1
-        ? "Deseja apagar a ligação?"
-        : `Deseja apagar ${selectedCallIds.length} ligações?`;
-    }
-    if (hasOnlyMessagesSelected) {
-      return selectedMessageIds.length === 1
-        ? "Deseja apagar a mensagem?"
-        : `Deseja apagar ${selectedMessageIds.length} mensagens?`;
-    }
-    return `Deseja apagar ${selectedCount} itens?`;
-  }, [
-    hasOnlyCallsSelected,
-    hasOnlyMessagesSelected,
-    selectedCallIds.length,
-    selectedMessageIds.length,
-    selectedCount,
-  ]);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -1421,189 +235,25 @@ export default function ChatScreen() {
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 0}
     >
       {/* Custom Header */}
-      <View
-        style={[
-          styles.customHeader,
-          {
-            paddingTop: insets.top,
-            height: insets.top + 60,
-            backgroundColor: colors.surface,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <View style={styles.headerLeftContainer}>
-          <TouchableOpacity
-            onPress={() => (isSelectionMode ? clearSelection() : router.back())}
-            style={styles.headerBackBtn}
-          >
-            <ArrowLeft size={24} color={colors.text} />
-          </TouchableOpacity>
-          {isSelectionMode ? (
-            <Text
-              style={[
-                styles.headerTitleText,
-                { color: colors.text, marginLeft: 4 },
-              ]}
-            >
-              {selectedCount}
-            </Text>
-          ) : null}
-          {!isSelectionMode && (
-            <TouchableOpacity
-              onPress={() => {
-                if (isGroup) {
-                  router.push({
-                    pathname: "/group-detail",
-                    params: {
-                      chatId,
-                      participantUsername: displayTitle,
-                    },
-                  });
-                } else if (participantId) {
-                  router.push({
-                    pathname: "/contact-detail",
-                    params: {
-                      participantId,
-                      participantUsername,
-                      chatId,
-                      avatarUrl: participantAvatarUrl || undefined,
-                    },
-                  });
-                }
-              }}
-              style={{
-                flex: 1,
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 8,
-              }}
-            >
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: isGroup ? "#34C759" : colors.tint,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  marginRight: 10,
-                  overflow: "hidden",
-                }}
-              >
-                {participantAvatarUrl ? (
-                  <Image
-                    source={{
-                      uri: participantAvatarUrl.startsWith("http")
-                        ? participantAvatarUrl
-                        : `${API_URL}${participantAvatarUrl}`,
-                    }}
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                ) : (
-                  <Text
-                    style={{ color: "#FFF", fontSize: 14, fontWeight: "bold" }}
-                  >
-                    {displayTitle[0]?.toUpperCase()}
-                  </Text>
-                )}
-              </View>
-              <Text
-                style={[styles.headerTitleText, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                {displayTitle}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={styles.headerRightContainer}>
-          {isSelectionMode ? (
-            <>
-              {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
-                <TouchableOpacity
-                  onPress={() => handleReencaminhar()}
-                  style={styles.headerActionBtn}
-                >
-                  <CornerUpLeft size={22} color={colors.text} />
-                </TouchableOpacity>
-              )}
-              {hasOnlyMessagesSelected && (
-                <TouchableOpacity
-                  onPress={handleEncaminhar}
-                  style={styles.headerActionBtn}
-                >
-                  <Forward size={22} color={colors.text} />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                onPress={() => setDeleteModalVisible(true)}
-                style={styles.headerActionBtn}
-              >
-                <Trash2 size={22} color={colors.text} />
-              </TouchableOpacity>
-              {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
-                <TouchableOpacity
-                  onPress={() => setOptionsModalVisible(true)}
-                  style={styles.headerActionBtn}
-                >
-                  <MoreVerticalIcon size={22} color={colors.text} />
-                </TouchableOpacity>
-              )}
-            </>
-          ) : (
-            <>
-              <TouchableOpacity
-                onPress={() => {
-                  if (participantId) {
-                    voiceCallManager.startCall(
-                      participantId,
-                      participantUsername || "User",
-                      true,
-                      participantAvatarUrl || null,
-                    );
-                  } else {
-                    Alert.alert(
-                      "Erro",
-                      "Não foi possível iniciar a chamada: ID do participante ausente.",
-                    );
-                  }
-                }}
-                style={styles.headerActionBtn}
-              >
-                <Video size={22} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  if (participantId) {
-                    voiceCallManager.startCall(
-                      participantId,
-                      participantUsername || "User",
-                      false,
-                      participantAvatarUrl || null,
-                    );
-                  } else {
-                    Alert.alert(
-                      "Erro",
-                      "Não foi possível iniciar a chamada: ID do participante ausente.",
-                    );
-                  }
-                }}
-                style={styles.headerActionBtn}
-              >
-                <PhoneIcon size={22} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setMenuVisible(true)}
-                style={styles.headerActionBtn}
-              >
-                <MoreVerticalIcon size={22} color={colors.text} />
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </View>
+      <ChatHeader
+        insets={insets}
+        chatId={chatId}
+        participantId={participantId}
+        participantUsername={participantUsername}
+        participantAvatarUrl={participantAvatarUrl}
+        displayTitle={displayTitle}
+        isGroup={isGroup}
+        isSelectionMode={isSelectionMode}
+        selectedCount={selectedCount}
+        hasOnlyMessagesSelected={hasOnlyMessagesSelected}
+        selectedMessageIds={selectedMessageIds}
+        clearSelection={clearSelection}
+        onReencaminhar={handleReencaminhar}
+        onEncaminhar={handleEncaminhar}
+        onDeletePress={() => setDeleteModalVisible(true)}
+        onOptionsPress={() => setOptionsModalVisible(true)}
+        onMenuPress={() => setMenuVisible(true)}
+      />
 
       <FlatList
         ref={flatListRef}
@@ -1616,99 +266,24 @@ export default function ChatScreen() {
         }
         style={styles.messageList}
         contentContainerStyle={{ padding: 16 }}
-        renderItem={({ item, index }) => {
-          const itemDate =
-            item.type === "message"
-              ? item.data.created_at
-              : item.data.created_at;
-          const prevItem = index > 0 ? chatItems[index - 1] : null;
-          const prevDate = prevItem
-            ? prevItem.type === "message"
-              ? prevItem.data.created_at
-              : prevItem.data.created_at
-            : "";
-          const showDateHeader = index === 0 || !isSameDay(prevDate, itemDate);
-
-          if (item.type === "message") {
-            const msg = item.data;
-            const isSelected = selectedMessageIds.includes(msg.id);
-
-            return (
-              <View>
-                {showDateHeader && (
-                  <View style={styles.dateHeaderContainer}>
-                    <View
-                      style={[
-                        styles.dateHeaderBackground,
-                        { backgroundColor: isDark ? "#1E293B" : "#eaeaea" },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.dateHeaderText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {getDateLabel(msg.created_at)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                <SwipeableMessageRow
-                  enabled={!isSelectionMode && !msg.deleted_for_everyone}
-                  onSwipeRight={() => handleReencaminhar(msg)}
-                  isSelected={isSelected}
-                  selectedBackgroundColor={
-                    isDark
-                      ? "rgba(10, 132, 255, 0.25)"
-                      : "rgba(0, 122, 255, 0.15)"
-                  }
-                >
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (isSelectionMode) toggleMessageSelection(msg);
-                    }}
-                    onLongPress={() => toggleMessageSelection(msg)}
-                    delayLongPress={500}
-                    style={styles.messageRow}
-                    activeOpacity={0.8}
-                  >
-                    <MessageBubble
-                      item={msg}
-                      currentUserId={user?.user_id}
-                      isGroup={isGroup}
-                    />
-                  </TouchableOpacity>
-                </SwipeableMessageRow>
-              </View>
-            );
-          } else {
-            const call = item.data;
-            const isSelected = selectedCallIds.includes(call.id);
-
-            return (
-              <CallBubble
-                call={call}
-                currentUserId={user?.user_id}
-                participantId={participantId}
-                participantUsername={participantUsername}
-                participantAvatarUrl={participantAvatarUrl}
-                showDateHeader={showDateHeader}
-                selectionMode={isSelectionMode}
-                isSelected={isSelected}
-                selectedBackgroundColor={
-                  isDark
-                    ? "rgba(10, 132, 255, 0.25)"
-                    : "rgba(0, 122, 255, 0.15)"
-                }
-                onPress={() => {
-                  if (isSelectionMode) toggleCallSelection(call.id);
-                }}
-                onLongPress={() => toggleCallSelection(call.id)}
-              />
-            );
-          }
-        }}
+        renderItem={({ item, index }) => (
+          <ChatItemRow
+            item={item}
+            index={index}
+            chatItems={chatItems}
+            selectedMessageIds={selectedMessageIds}
+            selectedCallIds={selectedCallIds}
+            isSelectionMode={isSelectionMode}
+            currentUserId={user?.user_id}
+            isGroup={isGroup}
+            participantId={participantId}
+            participantUsername={participantUsername}
+            participantAvatarUrl={participantAvatarUrl}
+            onSwipeRight={handleReencaminhar}
+            onToggleMessageSelection={toggleMessageSelection}
+            onToggleCallSelection={toggleCallSelection}
+          />
+        )}
         ListEmptyComponent={
           isLoading ? (
             <View style={styles.loadingContainer}>
@@ -1745,52 +320,13 @@ export default function ChatScreen() {
           },
         ]}
       >
-        {isBlockedByMe || isBlockedByThem ? (
-          <View
-            style={[
-              styles.blockedContainer,
-              { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" },
-            ]}
-          >
-            <Text style={[styles.blockedText, { color: colors.textSecondary }]}>
-              {isBlockedByMe
-                ? "Você bloqueou este contato. Desbloqueie para enviar mensagens."
-                : "Você está bloqueado. Não é possível enviar mensagens."}
-            </Text>
-            {isBlockedByMe && (
-              <TouchableOpacity
-                onPress={async () => {
-                  if (!token || !participantId) return;
-                  try {
-                    await unblockContact(token, participantId);
-                    setIsBlockedByMe(false);
-                    Alert.alert("Sucesso", "Contato desbloqueado.");
-                  } catch (err: any) {
-                    Alert.alert(
-                      "Erro",
-                      err.message || "Não foi possível desbloquear o contato.",
-                    );
-                  }
-                }}
-                style={[styles.unblockButton, { backgroundColor: colors.tint }]}
-              >
-                <Text style={styles.unblockButtonText}>Desbloquear</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : messagesRestrictedReason ? (
-          <View
-            style={[
-              styles.blockedContainer,
-              { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" },
-            ]}
-          >
-            <Text style={[styles.blockedText, { color: colors.textSecondary }]}>
-              {messagesRestrictedReason === "nobody"
-                ? "Este usuário não recebe mensagens de ninguém."
-                : "Este usuário recebe mensagens apenas de contatos."}
-            </Text>
-          </View>
+        {isBlockedByMe || isBlockedByThem || messagesRestrictedReason ? (
+          <ChatBlockedBar
+            isBlockedByMe={isBlockedByMe}
+            isBlockedByThem={isBlockedByThem}
+            messagesRestrictedReason={messagesRestrictedReason}
+            onUnblock={handleUnblock}
+          />
         ) : isRecording ? (
           <VoiceNoteRecorderBar
             recordingDuration={recordingDuration}
@@ -1841,9 +377,10 @@ export default function ChatScreen() {
         isGroup={isGroup}
         isBlocked={isBlockedByMe}
         onToggleContact={handleToggleContact}
-        onMutePress={handleMutePress}
+        onMutePress={() => setMuteModalVisible(true)}
         onBlockPress={handleBlockPress}
         onClearChatPress={handleClearChatPress}
+        onAddToListPress={handleOpenListSelector}
         onViewContact={
           isGroup
             ? () => {
@@ -1877,6 +414,27 @@ export default function ChatScreen() {
         onMute={handleMuteChats}
       />
 
+      <ListSelectorModal
+        visible={listSelectorVisible}
+        onClose={() => setListSelectorVisible(false)}
+        userLists={allLists}
+        initialSelectedListIds={selectedListIds}
+        onSave={handleSaveLists}
+        onCreateNewList={() => {
+          setListSelectorVisible(false);
+          setCreateListModalVisible(true);
+        }}
+      />
+
+      <CreateListModal
+        visible={createListModalVisible}
+        onClose={() => {
+          setCreateListModalVisible(false);
+          setListSelectorVisible(true);
+        }}
+        onCreate={handleCreateList}
+      />
+
       <AttachMediaSheet
         visible={attachSheetVisible}
         onClose={() => setAttachSheetVisible(false)}
@@ -1886,118 +444,14 @@ export default function ChatScreen() {
       />
 
       {/* Delete Confirmation Modal */}
-      <Modal
-        transparent={true}
+      <ChatDeleteModal
         visible={deleteModalVisible}
-        animationType="fade"
-        onRequestClose={() => setDeleteModalVisible(false)}
-      >
-        <View
-          style={[
-            styles.modalOverlayCentered,
-            { backgroundColor: colors.modalOverlay },
-          ]}
-        >
-          <View
-            style={[
-              styles.alertContainer,
-              { backgroundColor: colors.menuBackground },
-            ]}
-          >
-            <Text style={[styles.alertTitle, { color: colors.text }]}>
-              {deleteModalTitle}
-            </Text>
-            <View
-              style={
-                isDeleteForEveryoneAvailable
-                  ? styles.alertButtonsVertical
-                  : styles.alertButtons
-              }
-            >
-              {isDeleteForEveryoneAvailable ? (
-                <>
-                  <TouchableOpacity
-                    style={[
-                      styles.alertButtonVertical,
-                      styles.deleteEveryoneButton,
-                      { backgroundColor: colors.danger },
-                    ]}
-                    onPress={handleDeleteForEveryone}
-                  >
-                    <Text style={styles.deleteButtonText}>
-                      Apagar para todos
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.alertButtonVertical,
-                      styles.deleteMeButton,
-                      { backgroundColor: isDark ? "#2C2C2E" : "#f5f5f5" },
-                    ]}
-                    onPress={handleDeleteForMe}
-                  >
-                    <Text
-                      style={[
-                        styles.deleteMeButtonText,
-                        { color: colors.tint },
-                      ]}
-                    >
-                      Apagar para mim
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.alertButtonVertical,
-                      styles.cancelButtonVertical,
-                      { backgroundColor: isDark ? "#2C2C2E" : "#e0e0e0" },
-                    ]}
-                    onPress={() => setDeleteModalVisible(false)}
-                  >
-                    <Text
-                      style={[
-                        styles.cancelButtonText,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Cancelar
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={[
-                      styles.alertButton,
-                      styles.cancelButton,
-                      { backgroundColor: isDark ? "#2C2C2E" : "#f5f5f5" },
-                    ]}
-                    onPress={() => setDeleteModalVisible(false)}
-                  >
-                    <Text
-                      style={[
-                        styles.cancelButtonText,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Cancelar
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.alertButton,
-                      styles.deleteButton,
-                      { backgroundColor: colors.danger },
-                    ]}
-                    onPress={handleDeleteForMe}
-                  >
-                    <Text style={styles.deleteButtonText}>Apagar para mim</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setDeleteModalVisible(false)}
+        deleteModalTitle={deleteModalTitle}
+        isDeleteForEveryoneAvailable={isDeleteForEveryoneAvailable}
+        onDeleteForEveryone={handleDeleteForEveryone}
+        onDeleteForMe={handleDeleteForMe}
+      />
 
       {/* Options/Ellipsis Dropdown Modal */}
       <Modal
@@ -2048,112 +502,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 12,
   },
-  blockedContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 12,
-    borderRadius: 12,
-    marginHorizontal: 12,
-    marginVertical: 4,
-  },
-  blockedText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 18,
-    marginRight: 10,
-  },
-  unblockButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  unblockButtonText: {
-    color: "#ffffff",
-    fontWeight: "bold",
-    fontSize: 13,
-  },
-  modalOverlayCentered: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  alertContainer: {
-    width: "80%",
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 24,
-    alignItems: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  alertTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#272727",
-    marginBottom: 24,
-    textAlign: "center",
-  },
-  alertButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  alertButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  cancelButton: {
-    backgroundColor: "#f5f5f5",
-    marginRight: 8,
-  },
-  deleteButton: {
-    backgroundColor: "#ff3b30",
-    marginLeft: 8,
-  },
-  cancelButtonText: {
-    color: "#666",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  deleteButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  alertButtonsVertical: {
-    flexDirection: "column",
-    width: "100%",
-    gap: 10,
-  },
-  alertButtonVertical: {
-    width: "100%",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  deleteEveryoneButton: {
-    backgroundColor: "#ff3b30",
-  },
-  deleteMeButton: {
-    backgroundColor: "#f5f5f5",
-  },
-  deleteMeButtonText: {
-    color: "#ff9500",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  cancelButtonVertical: {
-    backgroundColor: "#e0e0e0",
-  },
-
   dropdownOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.05)",
@@ -2185,15 +533,6 @@ const styles = StyleSheet.create({
     color: "#272727",
     fontWeight: "500",
   },
-  messageRow: {
-    width: "100%",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  selectedMessageRow: {
-    backgroundColor: "rgba(76, 175, 80, 0.15)",
-    borderRadius: 8,
-  },
 
   inputContainerMessage: {
     flex: 1,
@@ -2216,53 +555,5 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     alignItems: "center",
     justifyContent: "center",
-  },
-  dateHeaderContainer: {
-    alignItems: "center",
-    marginVertical: 12,
-  },
-  dateHeaderBackground: {
-    backgroundColor: "#eaeaea",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  dateHeaderText: {
-    fontSize: 11,
-    color: "#666",
-    fontWeight: "600",
-  },
-
-  customHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#ffffff",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#eee",
-    paddingHorizontal: 16,
-  },
-  headerLeftContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  headerBackBtn: {
-    padding: 8,
-    marginRight: 4,
-  },
-  headerTitleText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#272727",
-    flex: 1,
-  },
-  headerRightContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerActionBtn: {
-    padding: 8,
-    marginLeft: 12,
   },
 });

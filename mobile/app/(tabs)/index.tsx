@@ -21,28 +21,20 @@ import {
   getChats,
   type ChatListItem,
   deleteChat,
-  muteChat,
   archiveChat,
-  clearChatMessages,
-  blockContact,
-  unblockContact,
-  favoriteChat,
   getChatLists,
   createChatList,
   deleteChatList,
   updateChatLists,
   updateChatList as updateChatListApi,
 } from "@/services/api";
+import { toggleBlockContact, toggleFavoriteChat, toggleMuteChat, clearChatHistory } from "@/services/chatActions";
 import {
   getChatsFromLocal,
   saveChats,
   deleteChatLocal,
   setChatPinnedLocal,
-  setChatMuteLocal,
   setChatArchivedLocal,
-  clearChatMessagesLocal,
-  setChatBlockedLocal,
-  setChatFavoriteLocal,
   getLocalChatLists,
   saveLocalChatLists,
   type LocalChatList,
@@ -76,7 +68,6 @@ import {
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
-import ThemeModal from "@/components/ThemeModal";
 import MuteModal from "@/components/MuteModal";
 import MainMenuModal from "@/components/MainMenuModal";
 import CreateListModal from "@/components/CreateListModal";
@@ -156,7 +147,6 @@ export default function ChatListScreen() {
 
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [muteModalVisible, setMuteModalVisible] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
   const [moreMenuVisible, setMoreMenuVisible] = useState(false);
@@ -381,9 +371,8 @@ export default function ChatListScreen() {
       try {
         for (const chatId of selectedChatIds) {
           if (token) {
-            await muteChat(token, chatId, null, false);
+            await toggleMuteChat(token, chatId, "unmute");
           }
-          await setChatMuteLocal(chatId, null, false);
         }
         setSelectedChatIds([]);
         const updatedChats = await getChatsFromLocal();
@@ -408,23 +397,11 @@ export default function ChatListScreen() {
 
     if (chatIdsToMute.length === 0) return;
 
-    let mutedUntil: string | null = null;
-    let mutedForever = false;
-
-    if (durationHours === "always") {
-      mutedForever = true;
-    } else {
-      mutedUntil = new Date(
-        Date.now() + durationHours * 60 * 60 * 1000,
-      ).toISOString();
-    }
-
     try {
       for (const chatId of chatIdsToMute) {
         if (token) {
-          await muteChat(token, chatId, mutedUntil, mutedForever);
+          await toggleMuteChat(token, chatId, durationHours);
         }
-        await setChatMuteLocal(chatId, mutedUntil, mutedForever);
       }
       setMuteModalVisible(false);
       setMuteSelectorList(null);
@@ -507,8 +484,7 @@ export default function ChatListScreen() {
           if (!token) return;
           try {
             for (const chatId of selectedChatIds) {
-              await clearChatMessages(token, chatId);
-              await clearChatMessagesLocal(chatId);
+              await clearChatHistory(token, chatId);
             }
             setSelectedChatIds([]);
             setMoreMenuVisible(false);
@@ -556,12 +532,7 @@ export default function ChatListScreen() {
           try {
             for (const chat of nonGroupChats) {
               if (chat.participant_id) {
-                if (newBlockState) {
-                  await blockContact(token, chat.participant_id);
-                } else {
-                  await unblockContact(token, chat.participant_id);
-                }
-                await setChatBlockedLocal(chat.id, newBlockState);
+                await toggleBlockContact(token, chat.participant_id, chat.id, newBlockState);
               }
             }
             setSelectedChatIds([]);
@@ -697,9 +668,8 @@ export default function ChatListScreen() {
 
     try {
       for (const chatId of selectedChatIds) {
-        await setChatFavoriteLocal(chatId, nextFavorite);
         if (token) {
-          await favoriteChat(token, chatId, nextFavorite);
+          await toggleFavoriteChat(token, chatId, nextFavorite);
         }
       }
       setSelectedChatIds([]);
@@ -1161,13 +1131,6 @@ export default function ChatListScreen() {
       <MainMenuModal
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
-        onThemePress={() => setThemeModalVisible(true)}
-      />
-
-      {/* Theme Choice Dialog Modal */}
-      <ThemeModal
-        visible={themeModalVisible}
-        onClose={() => setThemeModalVisible(false)}
       />
 
       {/* Mute Chat Dialog Modal */}
