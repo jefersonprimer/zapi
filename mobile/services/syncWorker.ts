@@ -1,4 +1,5 @@
-import { File } from "expo-file-system";
+import { File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { getMessages, sendMessage, type Message, uploadFile, checkFileHash } from "./api";
 import {
   getMessagesFromLocal,
@@ -145,28 +146,142 @@ class SyncWorker {
         );
         this.notifyMessagesChanged(chatId);
 
-        let remoteImageUrl: string | null = msg.image_url;
+        // Treat empty remote URLs as missing (null)
+        let remoteImageUrl: string | null = (msg.image_url && msg.image_url.trim() !== "") ? msg.image_url : null;
         let fileHashStr: string | null = null;
 
+        // Fetch attachment details to resolve local path if needed
+        const attachment = await db.getFirstAsync<any>(
+          "SELECT * FROM attachments WHERE message_id = ?",
+          [msg.id]
+        );
+
+        // Resolve local file path from message or attachment
+        let localFilePath: string | null = msg.local_file_path;
+        if (!localFilePath && attachment?.local_path) {
+          localFilePath = attachment.local_path;
+        }
+
+        console.log(`[SyncWorker] Processing pending message ${msg.id}: status="${msg.status}", content="${msg.content || ""}", localFilePath="${localFilePath || "null"}"`);
+
+        // Check if the file actually exists if we have a local path
+        let fileExists = false;
+        if (localFilePath) {
+          if (
+            localFilePath.startsWith("content://") ||
+            localFilePath.startsWith("ph://") ||
+            localFilePath.startsWith("assets-library://") ||
+            localFilePath.startsWith("assets-carousels://")
+          ) {
+            fileExists = true; // Native URIs are handled by native OS APIs and assumed to exist
+            console.log(`[SyncWorker] File assumed to exist (native scheme): ${localFilePath}`);
+          } else {
+            try {
+              const info = await FileSystem.getInfoAsync(localFilePath);
+              fileExists = info.exists;
+              console.log(`[SyncWorker] getInfoAsync for ${localFilePath}: exists=${info.exists}, isDirectory=${info.isDirectory}`);
+            } catch (infoErr: any) {
+              console.error(`[SyncWorker] getInfoAsync error for ${localFilePath}:`, infoErr?.message || infoErr);
+              fileExists = false;
+            }
+          }
+        }
+
+        // Prevent infinite retries of invalid/corrupt pending messages that have no content and no valid local media
+        if (!remoteImageUrl && !fileExists && (!msg.content || msg.content.trim() === "")) {
+          console.warn(`[SyncWorker] Marking invalid pending message ${msg.id} as failed (missing local file: "${localFilePath || "null"}" and no text content)`);
+          await db.runAsync(
+            "UPDATE messages SET status = 'failed' WHERE id = ?",
+            [msg.id]
+          );
+          // Prevent immediate retry loop by setting a very long delay (e.g. 30 days)
+          this.retryDelays.set(msg.id + "_time", Date.now() + 30 * 24 * 60 * 60 * 1000);
+          this.notifyMessagesChanged(chatId);
+          continue;
+        }
+
+        // Copy media into a durable cache before sync if it is a temporary picker/local path
+        if (
+          localFilePath &&
+          (localFilePath.startsWith("file://") ||
+            localFilePath.startsWith("content://") ||
+            localFilePath.startsWith("ph://") ||
+            localFilePath.startsWith("assets-library://") ||
+            localFilePath.startsWith("assets-carousels://"))
+        ) {
+          const durablePrefix = Paths.join(Paths.document, "media");
+          const isDurable = localFilePath.startsWith(durablePrefix);
+          if (!isDurable) {
+            try {
+              // Determine file extension
+              let ext = "bin";
+              if (attachment?.mime_type) {
+                ext = attachment.mime_type.split("/")[1] || "bin";
+                if (ext === "jpeg") ext = "jpg";
+              } else {
+                const uriParts = localFilePath.split("/");
+                const filename = uriParts[uriParts.length - 1] || "file";
+                ext = filename.split(".").pop()?.toLowerCase() || "bin";
+              }
+              
+              let subfolder = "documents";
+              if (attachment?.type === "image" || ["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
+                subfolder = "images";
+              } else if (attachment?.type === "video" || ["mp4", "mov", "webm", "mkv", "avi"].includes(ext)) {
+                subfolder = "videos";
+              } else if (attachment?.type === "audio" || ["mp3", "wav", "caf", "ogg", "3gp", "aac", "m4a", "opus"].includes(ext)) {
+                subfolder = "audio";
+              }
+
+              const destFilename = `${msg.id}.${ext}`;
+              const destDir = Paths.join(Paths.document, "media", subfolder);
+              const destPath = Paths.join(destDir, destFilename);
+
+              const destFile = new File(destPath);
+              const parentDir = destFile.parentDirectory;
+              if (!parentDir.exists) {
+                parentDir.create({ intermediates: true, idempotent: true });
+              }
+
+              // Since content:// URIs are not visible to new File().exists, we copy the file first
+              console.log(`[SyncWorker] Copying temporary local media to durable cache using copyAsync: ${localFilePath} -> ${destPath}`);
+              await FileSystem.copyAsync({ from: localFilePath, to: destPath });
+
+              localFilePath = destPath;
+
+              // Update database: messages and attachments tables
+              await db.runAsync(
+                "UPDATE messages SET local_file_path = ? WHERE id = ?",
+                [destPath, msg.id]
+              );
+              if (attachment) {
+                await db.runAsync(
+                  "UPDATE attachments SET local_path = ? WHERE id = ?",
+                  [destPath, attachment.id]
+                );
+              }
+            } catch (copyErr) {
+              console.error("SyncWorker: Failed to copy file to durable cache:", copyErr);
+            }
+          }
+        }
+
         // If there's a local file path but no remote image url, upload it first
-        if (msg.local_file_path && !remoteImageUrl) {
+        if (localFilePath && !remoteImageUrl) {
+          console.log(`[SyncWorker] Uploading local file for message ${msg.id}: ${localFilePath}`);
           await db.runAsync(
             "UPDATE messages SET status = 'uploading' WHERE id = ?",
             [msg.id]
           );
           this.notifyMessagesChanged(chatId);
 
-          // Fetch attachment details to get mime_type and type
-          const attachment = await db.getFirstAsync<any>(
-            "SELECT * FROM attachments WHERE message_id = ?",
-            [msg.id]
-          );
-
           try {
-            const file = new File(msg.local_file_path);
-            // Limit MD5 calculation to files under 20MB to prevent OutOfMemoryError on large files
-            if (file.exists && file.size < 20 * 1024 * 1024 && file.md5) {
-              fileHashStr = file.md5;
+            if (localFilePath.startsWith("file://")) {
+              const file = new File(localFilePath);
+              // Limit MD5 calculation to files under 20MB to prevent OutOfMemoryError on large files
+              if (file.exists && file.size < 20 * 1024 * 1024 && file.md5) {
+                fileHashStr = file.md5;
+              }
             }
           } catch (hashErr) {
             console.error("SyncWorker: Failed to compute MD5 hash for local file:", hashErr);
@@ -179,6 +294,7 @@ class SyncWorker {
               if (checkRes.exists && checkRes.url) {
                 remoteImageUrl = checkRes.url;
                 existsOnServer = true;
+                console.log(`[SyncWorker] File hash matched on server. Reusing URL: ${remoteImageUrl}`);
               }
             } catch (checkErr) {
               console.warn("SyncWorker: Check file hash failed, falling back to upload:", checkErr);
@@ -191,7 +307,7 @@ class SyncWorker {
 
             if (attachment) {
               uploadType = attachment.mime_type || undefined;
-              const uriParts = msg.local_file_path.split("/");
+              const uriParts = localFilePath.split("/");
               let filename = uriParts[uriParts.length - 1];
               if (attachment.mime_type && !filename.includes(".")) {
                 const ext = attachment.mime_type.split("/")[1] || "bin";
@@ -200,7 +316,7 @@ class SyncWorker {
               uploadName = filename;
             } else {
               // Guess from uri filename
-              const uriParts = msg.local_file_path.split("/");
+              const uriParts = localFilePath.split("/");
               const filename = uriParts[uriParts.length - 1];
               uploadName = filename;
               
@@ -221,11 +337,14 @@ class SyncWorker {
               }
             }
 
-            const result = await uploadFile(this.token, msg.local_file_path, uploadName, uploadType);
+            console.log(`[SyncWorker] Invoking uploadFile: name=${uploadName}, type=${uploadType}`);
+            const result = await uploadFile(this.token, localFilePath, uploadName, uploadType);
             remoteImageUrl = result.url;
+            console.log(`[SyncWorker] File uploaded successfully. Remote URL: ${remoteImageUrl}`);
           }
         }
 
+        console.log(`[SyncWorker] Sending message to server: content="${msg.content || ""}", remoteImageUrl="${remoteImageUrl || ""}"`);
         const res = await sendMessage(
           this.token,
           chatId,
@@ -246,7 +365,7 @@ class SyncWorker {
         await saveMessages([{
           ...serverMsg,
           // Retain local image path for caching / instant loading
-          local_file_path: msg.local_file_path
+          local_file_path: localFilePath
         }]);
 
         // Clear retry delay on success

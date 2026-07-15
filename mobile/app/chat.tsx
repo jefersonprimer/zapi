@@ -225,7 +225,6 @@ export default function ChatScreen() {
   const [clearedAt, setClearedAt] = useState<string | null>(null);
   const [isGroup, setIsGroup] = useState(false);
 
-
   const loadChatDetails = useCallback(async () => {
     if (!token) return;
     try {
@@ -591,6 +590,7 @@ export default function ChatScreen() {
   const mediaRecorderRef = useRef<any>(null);
   const audioChunksRef = useRef<any[]>([]);
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
+  const [recordedUri, setRecordedUri] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -840,9 +840,18 @@ export default function ChatScreen() {
     };
   }, [chatId, token, user]);
 
-  async function handleSend() {
+  async function handleSend(customAttachment?: any) {
+    // Prevent event objects passed by onPress from being treated as attachments
+    const validAttachment =
+      customAttachment &&
+      typeof customAttachment === "object" &&
+      typeof customAttachment.uri === "string"
+        ? (customAttachment as Attachment)
+        : null;
+
+    const attachmentInfo = validAttachment || selectedAttachment;
     const hasContent = content.trim().length > 0;
-    const hasAttachment = selectedAttachment !== null;
+    const hasAttachment = attachmentInfo !== null;
     const hasForward = forwardingMessage !== null;
 
     if (
@@ -852,12 +861,12 @@ export default function ChatScreen() {
     )
       return;
 
-    if (selectedAttachment && selectedAttachment.size !== undefined) {
+    if (attachmentInfo && attachmentInfo.size !== undefined) {
       const validation = validateAttachmentSize(
-        selectedAttachment.size,
-        selectedAttachment.type,
-        selectedAttachment.name,
-        selectedAttachment.mimeType || "",
+        attachmentInfo.size,
+        attachmentInfo.type,
+        attachmentInfo.name,
+        attachmentInfo.mimeType || "",
       );
 
       if (!validation.valid) {
@@ -870,7 +879,6 @@ export default function ChatScreen() {
     }
 
     // Save attachment and content info, then clear UI inputs immediately
-    const attachmentInfo = selectedAttachment;
     const messageContentText = content;
     const forwardData = forwardingMessage;
     setContent("");
@@ -884,6 +892,16 @@ export default function ChatScreen() {
 
     // 1. Generate time-ordered UUIDv7 ID and create local message representation
     const localId = generateUUIDv7();
+    
+    let attType = attachmentInfo?.type;
+    if (attachmentInfo && !attType) {
+      const mime = attachmentInfo.mimeType || "";
+      if (mime.startsWith("image/")) attType = "image";
+      else if (mime.startsWith("video/")) attType = "video";
+      else if (mime.startsWith("audio/")) attType = "audio";
+      else attType = "document";
+    }
+
     const newLocalMsg: Message = {
       id: localId,
       chat_id: chatId,
@@ -900,7 +918,7 @@ export default function ChatScreen() {
             {
               id: localId + "_att",
               message_id: localId,
-              type: attachmentInfo.type,
+              type: attType || "document",
               remote_url: "",
               local_path: attachmentInfo.uri,
               mime_type: attachmentInfo.mimeType || null,
@@ -951,7 +969,7 @@ export default function ChatScreen() {
         return;
       const asset = result.assets[0];
 
-      const isVideo = asset.type === "video";
+      const isVideo = asset.type === "video" || (asset as any).mediaType === "video" || asset.mimeType?.startsWith("video/");
       const defaultName = isVideo
         ? `video_${Date.now()}.mp4`
         : `photo_${Date.now()}.jpg`;
@@ -1015,6 +1033,7 @@ export default function ChatScreen() {
 
   async function startRecording() {
     setIsRecordingPaused(false);
+    setRecordedUri(null);
     if (Platform.OS === "web") {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -1202,6 +1221,158 @@ export default function ChatScreen() {
       Alert.alert("Erro ao parar gravação", err.message);
     } finally {
       setHasRecordingSession(false);
+    }
+  }
+
+  async function stopRecordingAndPreview() {
+    setIsRecordingPaused(false);
+    if (Platform.OS === "web") {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+
+      const recorder = mediaRecorderRef.current;
+      if (!recorder) return;
+
+      recorder.onstop = () => {
+        if (recorder.stream) {
+          recorder.stream.getTracks().forEach((track: any) => track.stop());
+        }
+
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: "audio/webm",
+        });
+        const uri = URL.createObjectURL(audioBlob);
+        setRecordedUri(uri);
+        
+        mediaRecorderRef.current = null;
+        audioChunksRef.current = [];
+      };
+
+      recorder.stop();
+      return;
+    }
+
+    if (!hasRecordingSession) return;
+
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    try {
+      await recorder.stop();
+      await setAudioModeAsync({ allowsRecording: false });
+
+      const uri = recorder.uri;
+      if (uri) {
+        setRecordedUri(uri);
+      }
+    } catch (err: any) {
+      Alert.alert("Erro ao parar gravação", err.message);
+    } finally {
+      setHasRecordingSession(false);
+    }
+  }
+
+  async function sendRecordingImmediately() {
+    setIsRecordingPaused(false);
+    if (Platform.OS === "web") {
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+
+      const recorder = mediaRecorderRef.current;
+      if (!recorder) return;
+
+      recorder.onstop = async () => {
+        if (recorder.stream) {
+          recorder.stream.getTracks().forEach((track: any) => track.stop());
+        }
+
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: "audio/webm",
+        });
+        const uri = URL.createObjectURL(audioBlob);
+        
+        const fileExtension = "opus";
+        const mimeType = "audio/webm";
+        const att: Attachment = {
+          uri,
+          name: `audio_${Date.now()}.${fileExtension}`,
+          type: "audio",
+          mimeType,
+          duration: recordingDuration,
+          size: audioBlob.size,
+        };
+        await handleSend(att);
+
+        mediaRecorderRef.current = null;
+        audioChunksRef.current = [];
+        setRecordedUri(null);
+      };
+
+      recorder.stop();
+      return;
+    }
+
+    if (!hasRecordingSession) return;
+
+    setIsRecording(false);
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    try {
+      await recorder.stop();
+      await setAudioModeAsync({ allowsRecording: false });
+
+      const uri = recorder.uri;
+      if (uri) {
+        const att: Attachment = {
+          uri,
+          name: `audio_${Date.now()}.m4a`,
+          type: "audio",
+          mimeType: "audio/m4a",
+          duration: recordingDuration,
+        };
+        await handleSend(att);
+      }
+    } catch (err: any) {
+      Alert.alert("Erro ao parar gravação", err.message);
+    } finally {
+      setHasRecordingSession(false);
+      setRecordedUri(null);
+    }
+  }
+
+  async function sendPreviewedAudio() {
+    if (!recordedUri) return;
+    const fileExtension = Platform.OS === "web" ? "opus" : "m4a";
+    const mimeType = Platform.OS === "web" ? "audio/webm" : "audio/m4a";
+    const att: Attachment = {
+      uri: recordedUri,
+      name: `audio_${Date.now()}.${fileExtension}`,
+      type: "audio",
+      mimeType,
+      duration: recordingDuration,
+    };
+    await handleSend(att);
+    setIsRecording(false);
+    setRecordedUri(null);
+  }
+
+  function discardRecording() {
+    if (recordedUri) {
+      setRecordedUri(null);
+      setIsRecording(false);
+      setRecordingDuration(0);
+    } else {
+      stopRecording(false);
     }
   }
 
@@ -1623,9 +1794,12 @@ export default function ChatScreen() {
         ) : isRecording ? (
           <VoiceNoteRecorderBar
             recordingDuration={recordingDuration}
-            onStopRecording={stopRecording}
+            onStopRecording={discardRecording}
             isPaused={isRecordingPaused}
             onPauseResumeRecording={handlePauseResumeRecording}
+            recordedUri={recordedUri}
+            onStopAndPreview={stopRecordingAndPreview}
+            onSendAudio={recordedUri ? sendPreviewedAudio : sendRecordingImmediately}
           />
         ) : (
           <>
@@ -1653,7 +1827,7 @@ export default function ChatScreen() {
                 forwardingMessage !== null
               }
               sending={sending}
-              onSend={handleSend}
+              onSend={() => handleSend()}
               onStartRecording={startRecording}
             />
           </>
@@ -1682,18 +1856,18 @@ export default function ChatScreen() {
                 });
               }
             : participantId
-            ? () => {
-                router.push({
-                  pathname: "/contact-detail",
-                  params: {
-                    participantId,
-                    participantUsername,
-                    chatId,
-                    avatarUrl: participantAvatarUrl || undefined,
-                  },
-                });
-              }
-            : undefined
+              ? () => {
+                  router.push({
+                    pathname: "/contact-detail",
+                    params: {
+                      participantId,
+                      participantUsername,
+                      chatId,
+                      avatarUrl: participantAvatarUrl || undefined,
+                    },
+                  });
+                }
+              : undefined
         }
       />
 
@@ -1710,8 +1884,6 @@ export default function ChatScreen() {
         onPickDocument={handlePickFile}
         onSelectMedia={setSelectedAttachment}
       />
-
-
 
       {/* Delete Confirmation Modal */}
       <Modal

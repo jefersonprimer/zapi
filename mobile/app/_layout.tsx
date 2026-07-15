@@ -12,13 +12,12 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider as AppThemeProvider, useAppTheme } from "@/context/ThemeContext";
 import { wsClient } from "@/services/ws";
 import { voiceCallManager } from "@/services/voiceCallManager";
-import { registerForPushNotifications } from "@/services/notifications";
+import { registerForPushNotifications, notifications as Notifications } from "@/services/notifications";
 import { authFetch, API_URL } from "@/services/api";
 import { initializeDatabase } from "@/services/database";
 import { syncWorker } from "@/services/syncWorker";
 import CallOverlay from "@/components/CallOverlay";
 import { useCallStore } from "@/store/useCallStore";
-import * as Notifications from "expo-notifications";
 
 function InitialLayout() {
   const { token, user, isLoading } = useAuth();
@@ -60,7 +59,7 @@ function InitialLayout() {
         }
 
         try {
-          if (Platform.OS !== "web") {
+          if (Platform.OS !== "web" && Notifications) {
             await Notifications.scheduleNotificationAsync({
               content: {
                 title: message.sender_username || "Nova mensagem",
@@ -151,19 +150,23 @@ function InitialLayout() {
       };
 
       // Check if launched by notification (cold start)
-      Notifications.getLastNotificationResponseAsync().then((response: any) => {
-        if (response) {
-          handleNotificationData(response.notification.request.content.data);
-        }
-      });
+      if (Notifications) {
+        Notifications.getLastNotificationResponseAsync().then((response: any) => {
+          if (response) {
+            handleNotificationData(response.notification.request.content.data);
+          }
+        });
+      }
 
       // Listen for notification taps while app is running (foreground/background)
-      const subscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
-        handleNotificationData(response.notification.request.content.data);
-      });
+      const subscription = Notifications
+        ? Notifications.addNotificationResponseReceivedListener((response: any) => {
+            handleNotificationData(response.notification.request.content.data);
+          })
+        : null;
 
       return () => {
-        subscription.remove();
+        subscription?.remove();
       };
     }
   }, [token, user, router]);

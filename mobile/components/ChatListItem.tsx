@@ -1,0 +1,399 @@
+import React from "react";
+import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { Camera, Mic, Video, FileText, Ban, PhoneOutgoing, PhoneIncoming, PhoneMissed, User, BellOff, Pin } from "lucide-react-native";
+import { ChatListItem as ChatListItemType, API_URL } from "@/services/api";
+import { useAppTheme } from "@/context/ThemeContext";
+import { resolveLastMessagePreview } from "@/utils/forwardMessage";
+
+interface ChatListItemProps {
+  item: ChatListItemType;
+  isSelected: boolean;
+  onPress: (item: ChatListItemType) => void;
+  onLongPress: (chatId: string) => void;
+}
+
+const isChatMuted = (chat: ChatListItemType) => {
+  if (chat.notification_muted_forever) return true;
+  if (chat.notification_muted_until) {
+    return new Date(chat.notification_muted_until) > new Date();
+  }
+  return false;
+};
+
+function formatTime(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+export default function ChatListItem({
+  item,
+  isSelected,
+  onPress,
+  onLongPress,
+}: ChatListItemProps) {
+  const { colors } = useAppTheme();
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.chatItem,
+        { borderBottomColor: colors.border },
+        isSelected && {
+          backgroundColor: colors.tint + "22",
+        },
+      ]}
+      onPress={() => onPress(item)}
+      onLongPress={() => onLongPress(item.id)}
+    >
+      <View
+        style={[
+          styles.avatar,
+          { backgroundColor: colors.tint },
+          item.is_group && styles.groupAvatar,
+          {
+            justifyContent: "center",
+            alignItems: "center",
+            overflow: "hidden",
+          },
+        ]}
+      >
+        {item.is_group && item.avatar_url ? (
+          <Image
+            source={{
+              uri: item.avatar_url.startsWith("http")
+                ? item.avatar_url
+                : `${API_URL}${item.avatar_url}`,
+            }}
+            style={{ width: "100%", height: "100%" }}
+          />
+        ) : !item.is_group && item.participant_avatar_url ? (
+          <Image
+            source={{
+              uri: item.participant_avatar_url.startsWith("http")
+                ? item.participant_avatar_url
+                : `${API_URL}${item.participant_avatar_url}`,
+            }}
+            style={{ width: "100%", height: "100%" }}
+          />
+        ) : (
+          <Text style={styles.avatarText}>
+            {item.is_group
+              ? (item.name ?? "G")[0].toUpperCase()
+              : (item.participant_name ?? item.participant_username ?? "?")[0].toUpperCase()}
+          </Text>
+        )}
+      </View>
+      <View style={styles.chatInfo}>
+        <Text style={[styles.chatName, { color: colors.text }]}>
+          {item.name ?? item.participant_name ?? item.participant_username ?? "Unknown"}
+        </Text>
+        {(() => {
+          if (item.is_blocked_by_me) {
+            return (
+              <Text
+                style={[
+                  styles.lastMessage,
+                  { color: colors.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
+                Você bloqueou esse contato
+              </Text>
+            );
+          }
+
+          if (!item.last_message) {
+            return (
+              <Text
+                style={[
+                  styles.lastMessage,
+                  { color: colors.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
+                Nenhuma mensagem ainda
+              </Text>
+            );
+          }
+
+          let iconElement = null;
+          const lastMessage = resolveLastMessagePreview(item.last_message);
+          let displayMessage = lastMessage;
+
+          if (
+            lastMessage.startsWith("Audio") ||
+            lastMessage.startsWith("🎵 Áudio")
+          ) {
+            let durationStr = "";
+            const parts = lastMessage.split("|duration:");
+            if (parts.length > 1) {
+              const secs = parseInt(parts[1], 10);
+              if (!isNaN(secs)) {
+                const m = Math.floor(secs / 60);
+                const s = secs % 60;
+                durationStr = ` (${m}:${s < 10 ? "0" : ""}${s})`;
+              }
+            }
+            displayMessage = `Mensagem de voz ${durationStr}`;
+            iconElement = (
+              <Mic
+                size={15}
+                color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (
+            lastMessage === "Photo" ||
+            lastMessage === "📷 Foto"
+          ) {
+            displayMessage = "Foto";
+            iconElement = (
+              <Camera
+                size={15}
+                color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (
+            lastMessage === "Video" ||
+            lastMessage === "🎥 Vídeo"
+          ) {
+            displayMessage = "Vídeo";
+            iconElement = (
+              <Video
+                size={15}
+                color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (
+            lastMessage === "File" ||
+            lastMessage.startsWith("File|") ||
+            lastMessage === "📁 Arquivo" ||
+            lastMessage.startsWith("📁 Arquivo|") ||
+            lastMessage.startsWith("Arquivo|")
+          ) {
+            let fileName = "Arquivo";
+            let rawFileName = "";
+            if (lastMessage.startsWith("File|")) {
+              rawFileName = lastMessage.substring(5);
+            } else if (lastMessage.startsWith("📁 Arquivo|")) {
+              rawFileName = lastMessage.substring(11);
+            } else if (lastMessage.startsWith("Arquivo|")) {
+              rawFileName = lastMessage.substring(8);
+            }
+
+            if (rawFileName) {
+              const match = rawFileName.match(
+                /^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/,
+              );
+              if (match) {
+                fileName = match[1];
+              } else {
+                const oldMatch = rawFileName.match(
+                  /^[^_]+_([0-9a-fA-F\-]{36}\..+)$/,
+                );
+                fileName = oldMatch ? oldMatch[1] : rawFileName;
+              }
+            }
+
+            displayMessage = fileName;
+            iconElement = (
+              <FileText
+                size={15}
+                color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (lastMessage === "Message deleted") {
+            displayMessage = "Mensagem apagada";
+            iconElement = (
+              <Ban
+                size={15}
+                color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (lastMessage === "Chamada efetuada") {
+            displayMessage = "Chamada efetuada";
+            iconElement = (
+              <PhoneOutgoing
+                size={15}
+                color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (lastMessage === "Chamada recebida") {
+            displayMessage = "Chamada recebida";
+            iconElement = (
+              <PhoneIncoming
+                size={15}
+                color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (lastMessage === "Chamada perdida") {
+            displayMessage = "Chamada perdida";
+            iconElement = (
+              <PhoneMissed
+                size={15}
+                color={colors.danger}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (
+            lastMessage.startsWith('{"type":"contact_share"')
+          ) {
+            try {
+              const parsed = JSON.parse(lastMessage);
+              displayMessage = parsed.username;
+            } catch {
+              displayMessage = "Contato";
+            }
+            iconElement = (
+              <User
+                size={15}
+                color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+            );
+          }
+
+          if (iconElement) {
+            return (
+              <View style={styles.lastMessageAudioContainer}>
+                {iconElement}
+                <Text
+                  style={[
+                    styles.lastMessage,
+                    { color: colors.textSecondary, flex: 1 },
+                    item.unread_count > 0 && styles.lastMessageUnread,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {displayMessage}
+                </Text>
+              </View>
+            );
+          }
+
+          return (
+            <Text
+              style={[
+                styles.lastMessage,
+                { color: colors.textSecondary },
+                item.unread_count > 0 && styles.lastMessageUnread,
+              ]}
+              numberOfLines={1}
+            >
+              {displayMessage}
+            </Text>
+          );
+        })()}
+      </View>
+      <View style={styles.rightContainer}>
+        <Text
+          style={[
+            styles.time,
+            { color: colors.textSecondary },
+            item.unread_count > 0 && [
+              styles.timeUnread,
+              { color: colors.tint },
+            ],
+          ]}
+        >
+          {formatTime(item.last_message_at)}
+        </Text>
+        <View style={styles.rightIconsRow}>
+          {isChatMuted(item) && (
+            <BellOff color={colors.textSecondary} size={14} />
+          )}
+          {item.is_pinned && (
+            <Pin
+              color={colors.textSecondary}
+              size={14}
+              style={[
+                styles.pinIcon,
+                { transform: [{ rotate: "45deg" }] },
+              ]}
+            />
+          )}
+          {item.unread_count > 0 && (
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: colors.badge },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.badgeText,
+                  { color: colors.badgeText },
+                ]}
+              >
+                {item.unread_count}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  chatItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  groupAvatar: { backgroundColor: "#34C759" },
+  avatarText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  chatInfo: { flex: 1 },
+  chatName: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
+  lastMessage: { fontSize: 14 },
+  lastMessageAudioContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  lastMessageUnread: { fontWeight: "700" },
+  rightContainer: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  time: { fontSize: 12 },
+  timeUnread: { fontWeight: "700" },
+  rightIconsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 6,
+  },
+  pinIcon: {
+    marginRight: 2,
+  },
+  badge: {
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+});

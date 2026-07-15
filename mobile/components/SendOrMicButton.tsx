@@ -36,7 +36,7 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
 
   return (
     <TouchableOpacity 
-      style={[styles.micButton, { backgroundColor: colors.badge }]} 
+      style={[styles.micButton, { backgroundColor: colors.tint }]} 
       onPress={onStartRecording}
     >
       <MicIcon size={20} color="#f2f2f2" />

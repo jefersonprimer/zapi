@@ -6,7 +6,7 @@ const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreCl
 
 
 const getNotificationsModule = () => {
-  if (Platform.OS === "web") {
+  if (Platform.OS === "web" || isExpoGo) {
     return null;
   }
   try {
@@ -18,6 +18,7 @@ const getNotificationsModule = () => {
 };
 
 const Notifications = getNotificationsModule();
+export const notifications = Notifications;
 
 if (Notifications) {
   Notifications.setNotificationHandler({

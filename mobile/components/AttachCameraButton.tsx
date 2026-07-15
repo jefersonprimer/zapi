@@ -73,12 +73,12 @@ export const AttachCameraButton: React.FC<AttachCameraButtonProps> = ({
         return;
       const asset = result.assets[0];
 
-      const isVideo = asset.type === "video";
+      const isVideo = asset.type === "video" || (asset as any).mediaType === "video" || asset.mimeType?.startsWith("video/");
       onTakePhoto({
         uri: asset.uri,
         name: isVideo ? `video_${Date.now()}.mp4` : `photo_${Date.now()}.jpg`,
         type: isVideo ? "video" : "image",
-        mimeType: isVideo ? "video/mp4" : "image/jpeg",
+        mimeType: asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg"),
         size: asset.fileSize,
       });
     } catch (err: any) {

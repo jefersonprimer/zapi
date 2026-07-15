@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  Image,
   TextInput,
   ScrollView,
   LayoutAnimation,
@@ -24,7 +23,6 @@ import {
   deleteChat,
   muteChat,
   archiveChat,
-  API_URL,
   clearChatMessages,
   blockContact,
   unblockContact,
@@ -56,25 +54,17 @@ import {
   Camera,
   MoreVertical,
   MessageSquarePlus,
-  Check,
   Lock,
-  Mic,
-  Video,
-  FileText,
   Trash2,
   ArrowLeft,
-  PhoneIncoming,
-  PhoneOutgoing,
-  PhoneMissed,
-  Ban,
-  User,
   Pin,
   PinOff,
   Bell,
   BellOff,
   Archive,
+  PanelTopOpen,
+  PanelTopClose,
   Search,
-  GripVertical,
   Heart,
   Star,
   Briefcase,
@@ -82,8 +72,6 @@ import {
   Gamepad2,
   BookOpen,
   Folder,
-  Pencil,
-  Users,
   ChevronRight,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
@@ -93,7 +81,11 @@ import MuteModal from "@/components/MuteModal";
 import MainMenuModal from "@/components/MainMenuModal";
 import CreateListModal from "@/components/CreateListModal";
 import EditListModal from "@/components/EditListModal";
-import { resolveLastMessagePreview } from "@/utils/forwardMessage";
+import ChatListItemComponent from "@/components/ChatListItem";
+import ChatSelectorModal from "@/components/ChatSelectorModal";
+import ListSelectorModal from "@/components/ListSelectorModal";
+import ListMenuModal from "@/components/ListMenuModal";
+import ReorderListsModal from "@/components/ReorderListsModal";
 
 if (
   Platform.OS === "android" &&
@@ -142,44 +134,9 @@ const renderListIcon = (
   }
 };
 
-const renderReorderListLeading = (
-  item: {
-    id: string;
-    icon: string | null;
-    color: string | null;
-    isSystem: boolean;
-  },
-  tintColor: string,
-  secondaryColor: string,
-) => {
-  const size = 20;
-  let icon = null;
-
-  if (item.isSystem) {
-    switch (item.id) {
-      case "all":
-        icon = <Folder size={size} color={secondaryColor} />;
-        break;
-      case "unread":
-        icon = <Bell size={size} color={secondaryColor} />;
-        break;
-      case "favorites":
-        icon = <Star size={size} color={secondaryColor} />;
-        break;
-      case "groups":
-        icon = <Users size={size} color={secondaryColor} />;
-        break;
-    }
-  } else {
-    icon = renderListIcon(item.icon, item.color, tintColor, size);
-  }
-
-  return <View style={styles.reorderListIconSlot}>{icon}</View>;
-};
-
 export default function ChatListScreen() {
   const router = useRouter();
-   const { token } = useAuth();
+  const { token } = useAuth();
   const { colors, isDark } = useAppTheme();
 
   const [chats, setChatsOriginal] = useState<ChatListItem[]>([]);
@@ -226,24 +183,38 @@ export default function ChatListScreen() {
   const [isFabVisible, setIsFabVisible] = useState(true);
   const lastScrollY = useRef(0);
 
-  const handleScroll = useCallback((event: any) => {
-    const currentOffset = event.nativeEvent.contentOffset.y;
-    const direction = currentOffset > lastScrollY.current ? "down" : "up";
+  const handleScroll = useCallback(
+    (event: any) => {
+      const currentOffset = event.nativeEvent.contentOffset.y;
+      const direction = currentOffset > lastScrollY.current ? "down" : "up";
 
-    if (currentOffset > 60) {
-      if (direction === "down" && isFabVisible) {
-        LayoutAnimation.configureNext({
-          duration: 180,
-          create: {
-            type: LayoutAnimation.Types.easeInEaseOut,
-            property: LayoutAnimation.Properties.opacity,
-          },
-          update: {
-            type: LayoutAnimation.Types.easeInEaseOut,
-          },
-        });
-        setIsFabVisible(false);
-      } else if (direction === "up" && !isFabVisible) {
+      if (currentOffset > 60) {
+        if (direction === "down" && isFabVisible) {
+          LayoutAnimation.configureNext({
+            duration: 180,
+            create: {
+              type: LayoutAnimation.Types.easeInEaseOut,
+              property: LayoutAnimation.Properties.opacity,
+            },
+            update: {
+              type: LayoutAnimation.Types.easeInEaseOut,
+            },
+          });
+          setIsFabVisible(false);
+        } else if (direction === "up" && !isFabVisible) {
+          LayoutAnimation.configureNext({
+            duration: 180,
+            create: {
+              type: LayoutAnimation.Types.easeInEaseOut,
+              property: LayoutAnimation.Properties.opacity,
+            },
+            update: {
+              type: LayoutAnimation.Types.easeInEaseOut,
+            },
+          });
+          setIsFabVisible(true);
+        }
+      } else if (currentOffset <= 60 && !isFabVisible) {
         LayoutAnimation.configureNext({
           duration: 180,
           create: {
@@ -256,22 +227,11 @@ export default function ChatListScreen() {
         });
         setIsFabVisible(true);
       }
-    } else if (currentOffset <= 60 && !isFabVisible) {
-      LayoutAnimation.configureNext({
-        duration: 180,
-        create: {
-          type: LayoutAnimation.Types.easeInEaseOut,
-          property: LayoutAnimation.Properties.opacity,
-        },
-        update: {
-          type: LayoutAnimation.Types.easeInEaseOut,
-        },
-      });
-      setIsFabVisible(true);
-    }
 
-    lastScrollY.current = currentOffset;
-  }, [isFabVisible]);
+      lastScrollY.current = currentOffset;
+    },
+    [isFabVisible],
+  );
 
   const [createListModalVisible, setCreateListModalVisible] = useState(false);
   const [listSelectorVisible, setListSelectorVisible] = useState(false);
@@ -288,8 +248,6 @@ export default function ChatListScreen() {
 
   // Drag-and-drop sortable lists states
   const [reorderModalVisible, setReorderModalVisible] = useState(false);
-  const [reorderLists, setReorderLists] = useState<any[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
   const [orderedFilters, setOrderedFilters] = useState<any[]>([]);
 
   const activeChats = chats.filter((c) => !c.is_archived);
@@ -298,7 +256,12 @@ export default function ChatListScreen() {
     // 1. Filter by Search Query
     if (searchQuery.trim().length > 0) {
       const query = searchQuery.toLowerCase();
-      const chatName = (c.name ?? c.participant_name ?? c.participant_username ?? "").toLowerCase();
+      const chatName = (
+        c.name ??
+        c.participant_name ??
+        c.participant_username ??
+        ""
+      ).toLowerCase();
       if (!chatName.includes(query)) return false;
     }
 
@@ -343,8 +306,13 @@ export default function ChatListScreen() {
           chatId: item.id,
           participantId: item.participant_id || "",
           participantUsername:
-            item.name ?? item.participant_name ?? item.participant_username ?? "Unknown",
-          participantAvatarUrl: (item.is_group ? item.avatar_url : item.participant_avatar_url) || "",
+            item.name ??
+            item.participant_name ??
+            item.participant_username ??
+            "Unknown",
+          participantAvatarUrl:
+            (item.is_group ? item.avatar_url : item.participant_avatar_url) ||
+            "",
         },
       });
     }
@@ -507,7 +475,10 @@ export default function ChatListScreen() {
       params: {
         participantId: chatItem.participant_id || "",
         participantUsername:
-          chatItem.participant_name || chatItem.participant_username || chatItem.name || "Unknown",
+          chatItem.participant_name ||
+          chatItem.participant_username ||
+          chatItem.name ||
+          "Unknown",
         chatId: chatItem.id,
         avatarUrl: chatItem.participant_avatar_url || undefined,
       },
@@ -742,15 +713,14 @@ export default function ChatListScreen() {
     }
   };
 
-  const handleCreateList = async (name: string, color: string, icon: string) => {
+  const handleCreateList = async (
+    name: string,
+    color: string,
+    icon: string,
+  ) => {
     try {
       if (token) {
-        const response = await createChatList(
-          token,
-          name,
-          color,
-          icon,
-        );
+        const response = await createChatList(token, name, color, icon);
         if (response && response.list) {
           setCreateListModalVisible(false);
           await loadLists();
@@ -819,14 +789,28 @@ export default function ChatListScreen() {
     }
   };
 
-  const handleSaveListChats = async () => {
+  const handleSaveChatLists = async (selectedListIds: string[]) => {
+    if (selectedChatIds.length > 0) {
+      try {
+        for (const cid of selectedChatIds) {
+          await handleUpdateChatLists(cid, selectedListIds);
+        }
+        setSelectedChatIds([]);
+      } catch (err) {
+        console.error("Error bulk updating lists:", err);
+      }
+    }
+    setListSelectorVisible(false);
+  };
+
+  const handleSaveListChats = async (selectedChatIds: string[]) => {
     if (!selectorListId) return;
     try {
       const db = await getDatabase();
       await db.runAsync("DELETE FROM chat_list_items WHERE list_id = ?", [
         selectorListId,
       ]);
-      for (const cid of selectorChatIds) {
+      for (const cid of selectedChatIds) {
         await db.runAsync(
           "INSERT INTO chat_list_items (list_id, chat_id, created_at) VALUES (?, ?, ?)",
           [selectorListId, cid, new Date().toISOString()],
@@ -838,7 +822,7 @@ export default function ChatListScreen() {
           const customListsForChat = userLists
             .map((l) => {
               if (l.id === selectorListId) {
-                return selectorChatIds.includes(cid) ? l.id : null;
+                return selectedChatIds.includes(cid) ? l.id : null;
               }
               return l.chat_ids.includes(cid) ? l.id : null;
             })
@@ -865,13 +849,7 @@ export default function ChatListScreen() {
       const db = await getDatabase();
       await db.runAsync(
         "UPDATE chat_lists SET name = ?, color = ?, icon = ?, updated_at = ? WHERE id = ?",
-        [
-          name,
-          color,
-          icon,
-          new Date().toISOString(),
-          listToEdit.id,
-        ],
+        [name, color, icon, new Date().toISOString(), listToEdit.id],
       );
 
       if (token) {
@@ -891,54 +869,10 @@ export default function ChatListScreen() {
     }
   };
 
-  // Touch-drag sorting handlers for the custom list bottom sheet
-  const activeDragIndex = useRef<number | null>(null);
-  const startTouchY = useRef<number>(0);
-  const currentTouchY = useRef<number>(0);
-
-  const openReorderModal = () => {
-    setReorderLists([...orderedFilters]);
-    setReorderModalVisible(true);
-  };
-
-  const handleTouchStart = (index: number, pageY: number) => {
-    activeDragIndex.current = index;
-    startTouchY.current = pageY;
-    currentTouchY.current = pageY;
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (pageY: number) => {
-    if (activeDragIndex.current === null) return;
-    currentTouchY.current = pageY;
-
-    const diffY = currentTouchY.current - startTouchY.current;
-    const itemHeight = 60; // height of each list row
-    const indexShift = Math.round(diffY / itemHeight);
-
-    if (indexShift !== 0) {
-      const fromIndex = activeDragIndex.current;
-      const toIndex = fromIndex + indexShift;
-
-      if (toIndex >= 0 && toIndex < reorderLists.length) {
-        const updated = [...reorderLists];
-        const [movedItem] = updated.splice(fromIndex, 1);
-        updated.splice(toIndex, 0, movedItem);
-
-        setReorderLists(updated);
-        activeDragIndex.current = toIndex;
-        startTouchY.current = currentTouchY.current;
-      }
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    activeDragIndex.current = null;
-    setIsDragging(false);
-
+  // Touch-drag sorting callback
+  const handleReorderEnd = async (updated: any[]) => {
     try {
       const db = await getDatabase();
-      const updated = [...reorderLists];
 
       for (let i = 0; i < updated.length; i++) {
         await saveListPositionLocal(updated[i].id, i);
@@ -974,12 +908,6 @@ export default function ChatListScreen() {
     });
     return unsub;
   }, [token, loadChats]);
-
-  function formatTime(iso: string | null) {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -1037,7 +965,19 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={handleArchiveSelectedChats}
             >
-              <Archive color={colors.headerText} size={22} />
+              {(() => {
+                const selectedChats = chats.filter((c) =>
+                  selectedChatIds.includes(c.id),
+                );
+                const shouldArchive = !selectedChats.every(
+                  (c) => c.is_archived,
+                );
+                return shouldArchive ? (
+                  <PanelTopOpen color={colors.headerText} size={22} />
+                ) : (
+                  <PanelTopClose color={colors.headerText} size={22} />
+                );
+              })()}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
@@ -1057,7 +997,14 @@ export default function ChatListScreen() {
         <View
           style={[styles.header, { backgroundColor: colors.headerBackground }]}
         >
-          <Text style={[styles.title, { color: colors.headerText }]}>Zapi</Text>
+          <Text
+            style={[
+              styles.title,
+              { color: isDark ? colors.headerText : colors.tint },
+            ]}
+          >
+            Zapi
+          </Text>
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.headerIcon}
@@ -1415,7 +1362,9 @@ export default function ChatListScreen() {
               onScroll={handleScroll}
               scrollEventThrottle={16}
               ListHeaderComponent={
-                archivedChatsCount > 0 && searchQuery.trim().length === 0 && activeFilterId === "all" ? (
+                archivedChatsCount > 0 &&
+                searchQuery.trim().length === 0 &&
+                activeFilterId === "all" ? (
                   <TouchableOpacity
                     style={[
                       styles.archivedRow,
@@ -1429,13 +1378,13 @@ export default function ChatListScreen() {
                       <View
                         style={[
                           styles.archivedIconContainer,
-                          { backgroundColor: colors.tint + "12" },
+                          { backgroundColor: isDark ? "#222222" : "#F1F5F9" },
                         ]}
                       >
-                        <Archive color={colors.tint} size={20} />
+                        <Archive color={colors.textSecondary} size={20} />
                       </View>
                       <Text
-                        style={[styles.archivedText, { color: colors.text }]}
+                        style={[styles.archivedText, { color: colors.textSecondary }]}
                       >
                         Conversas arquivadas
                       </Text>
@@ -1444,19 +1393,23 @@ export default function ChatListScreen() {
                       <View
                         style={[
                           styles.archivedBadge,
-                          { backgroundColor: colors.tint + "20" },
+                          { backgroundColor: isDark ? "#2C2C2E" : "#E5E7EB" },
                         ]}
                       >
                         <Text
                           style={[
                             styles.archivedCountText,
-                            { color: colors.tint, fontWeight: "600" },
+                            { color: colors.textSecondary, fontWeight: "600" },
                           ]}
                         >
                           {archivedChatsCount}
                         </Text>
                       </View>
-                      <ChevronRight color={colors.textSecondary} size={16} style={{ opacity: 0.7 }} />
+                      <ChevronRight
+                        color={colors.textSecondary}
+                        size={16}
+                        style={{ opacity: 0.5 }}
+                      />
                     </View>
                   </TouchableOpacity>
                 ) : null
@@ -1477,299 +1430,12 @@ export default function ChatListScreen() {
                 </View>
               }
               renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.chatItem,
-                    { borderBottomColor: colors.border },
-                    selectedChatIds.includes(item.id) && {
-                      backgroundColor: colors.tint + "22",
-                    },
-                  ]}
-                  onPress={() => handlePress(item)}
-                  onLongPress={() => handleLongPress(item.id)}
-                >
-                  <View
-                    style={[
-                      styles.avatar,
-                      { backgroundColor: colors.tint },
-                      item.is_group && styles.groupAvatar,
-                      {
-                        justifyContent: "center",
-                        alignItems: "center",
-                        overflow: "hidden",
-                      },
-                    ]}
-                  >
-                    {item.is_group && item.avatar_url ? (
-                      <Image
-                        source={{
-                          uri: item.avatar_url.startsWith("http")
-                            ? item.avatar_url
-                            : `${API_URL}${item.avatar_url}`,
-                        }}
-                        style={{ width: "100%", height: "100%" }}
-                      />
-                    ) : !item.is_group && item.participant_avatar_url ? (
-                      <Image
-                        source={{
-                          uri: item.participant_avatar_url.startsWith("http")
-                            ? item.participant_avatar_url
-                            : `${API_URL}${item.participant_avatar_url}`,
-                        }}
-                        style={{ width: "100%", height: "100%" }}
-                      />
-                    ) : (
-                      <Text style={styles.avatarText}>
-                        {item.is_group
-                          ? (item.name ?? "G")[0].toUpperCase()
-                          : (item.participant_name ?? item.participant_username ?? "?")[0].toUpperCase()}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={styles.chatInfo}>
-                    <Text style={[styles.chatName, { color: colors.text }]}>
-                      {item.name ?? item.participant_name ?? item.participant_username ?? "Unknown"}
-                    </Text>
-                    {(() => {
-                      if (!item.last_message) {
-                        return (
-                          <Text
-                            style={[
-                              styles.lastMessage,
-                              { color: colors.textSecondary },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            Nenhuma mensagem ainda
-                          </Text>
-                        );
-                      }
-
-                      let iconElement = null;
-                      const lastMessage = resolveLastMessagePreview(
-                        item.last_message,
-                      );
-                      let displayMessage = lastMessage;
-
-                      if (
-                        lastMessage.startsWith("Audio") ||
-                        lastMessage.startsWith("🎵 Áudio")
-                      ) {
-                        let durationStr = "";
-                        const parts = lastMessage.split("|duration:");
-                        if (parts.length > 1) {
-                          const secs = parseInt(parts[1], 10);
-                          if (!isNaN(secs)) {
-                            const m = Math.floor(secs / 60);
-                            const s = secs % 60;
-                            durationStr = ` (${m}:${s < 10 ? "0" : ""}${s})`;
-                          }
-                        }
-                        displayMessage = `Mensagem de voz ${durationStr}`;
-                        iconElement = (
-                          <Mic
-                            size={15}
-                            color={colors.textSecondary}
-                            style={{ marginRight: 4 }}
-                          />
-                        );
-                      } else if (
-                        lastMessage === "Photo" ||
-                        lastMessage === "📷 Foto"
-                      ) {
-                        displayMessage = "Foto";
-                        iconElement = (
-                          <Camera
-                            size={15}
-                            color={colors.textSecondary}
-                            style={{ marginRight: 4 }}
-                          />
-                        );
-                      } else if (
-                        lastMessage === "Video" ||
-                        lastMessage === "🎥 Vídeo"
-                      ) {
-                        displayMessage = "Vídeo";
-                        iconElement = (
-                          <Video
-                            size={15}
-                            color={colors.textSecondary}
-                            style={{ marginRight: 4 }}
-                          />
-                        );
-                      } else if (
-                        lastMessage === "File" ||
-                        lastMessage.startsWith("File|") ||
-                        lastMessage === "📁 Arquivo" ||
-                        lastMessage.startsWith("📁 Arquivo|") ||
-                        lastMessage.startsWith("Arquivo|")
-                      ) {
-                        let fileName = "Arquivo";
-                        let rawFileName = "";
-                        if (lastMessage.startsWith("File|")) {
-                          rawFileName = lastMessage.substring(5);
-                        } else if (lastMessage.startsWith("📁 Arquivo|")) {
-                          rawFileName = lastMessage.substring(11);
-                        } else if (lastMessage.startsWith("Arquivo|")) {
-                          rawFileName = lastMessage.substring(8);
-                        }
-
-                        if (rawFileName) {
-                          const match = rawFileName.match(
-                            /^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/,
-                          );
-                          if (match) {
-                            fileName = match[1];
-                          } else {
-                            const oldMatch = rawFileName.match(
-                              /^[^_]+_([0-9a-fA-F\-]{36}\..+)$/,
-                            );
-                            fileName = oldMatch ? oldMatch[1] : rawFileName;
-                          }
-                        }
-
-                        displayMessage = fileName;
-                        iconElement = (
-                          <FileText
-                            size={15}
-                            color={colors.textSecondary}
-                            style={{ marginRight: 4 }}
-                          />
-                        );
-                      } else if (lastMessage === "Message deleted") {
-                        displayMessage = "Mensagem apagada";
-                        iconElement = (
-                          <Ban
-                            size={15}
-                            color={colors.textSecondary}
-                            style={{ marginRight: 4 }}
-                          />
-                        );
-                      } else if (lastMessage === "Chamada efetuada") {
-                        displayMessage = "Chamada efetuada";
-                        iconElement = (
-                          <PhoneOutgoing
-                            size={15}
-                            color={colors.textSecondary}
-                            style={{ marginRight: 4 }}
-                          />
-                        );
-                      } else if (lastMessage === "Chamada recebida") {
-                        displayMessage = "Chamada recebida";
-                        iconElement = (
-                          <PhoneIncoming
-                            size={15}
-                            color={colors.textSecondary}
-                            style={{ marginRight: 4 }}
-                          />
-                        );
-                      } else if (lastMessage === "Chamada perdida") {
-                        displayMessage = "Chamada perdida";
-                        iconElement = (
-                          <PhoneMissed
-                            size={15}
-                            color={colors.danger}
-                            style={{ marginRight: 4 }}
-                          />
-                        );
-                      } else if (
-                        lastMessage.startsWith('{"type":"contact_share"')
-                      ) {
-                        try {
-                          const parsed = JSON.parse(lastMessage);
-                          displayMessage = parsed.username;
-                        } catch {
-                          displayMessage = "Contato";
-                        }
-                        iconElement = (
-                          <User
-                            size={15}
-                            color={colors.textSecondary}
-                            style={{ marginRight: 4 }}
-                          />
-                        );
-                      }
-
-                      if (iconElement) {
-                        return (
-                          <View style={styles.lastMessageAudioContainer}>
-                            {iconElement}
-                            <Text
-                              style={[
-                                styles.lastMessage,
-                                { color: colors.textSecondary, flex: 1 },
-                                item.unread_count > 0 &&
-                                  styles.lastMessageUnread,
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {displayMessage}
-                            </Text>
-                          </View>
-                        );
-                      }
-
-                      return (
-                        <Text
-                          style={[
-                            styles.lastMessage,
-                            { color: colors.textSecondary },
-                            item.unread_count > 0 && styles.lastMessageUnread,
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {displayMessage}
-                        </Text>
-                      );
-                    })()}
-                  </View>
-                  <View style={styles.rightContainer}>
-                    <Text
-                      style={[
-                        styles.time,
-                        { color: colors.textSecondary },
-                        item.unread_count > 0 && [
-                          styles.timeUnread,
-                          { color: colors.tint },
-                        ],
-                      ]}
-                    >
-                      {formatTime(item.last_message_at)}
-                    </Text>
-                    <View style={styles.rightIconsRow}>
-                      {isChatMuted(item) && (
-                        <BellOff color={colors.textSecondary} size={14} />
-                      )}
-                      {item.is_pinned && (
-                        <Pin
-                          color={colors.textSecondary}
-                          size={14}
-                          style={[
-                            styles.pinIcon,
-                            { transform: [{ rotate: "45deg" }] },
-                          ]}
-                        />
-                      )}
-                      {item.unread_count > 0 && (
-                        <View
-                          style={[
-                            styles.badge,
-                            { backgroundColor: colors.badge },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.badgeText,
-                              { color: colors.badgeText },
-                            ]}
-                          >
-                            {item.unread_count}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                <ChatListItemComponent
+                  item={item}
+                  isSelected={selectedChatIds.includes(item.id)}
+                  onPress={handlePress}
+                  onLongPress={handleLongPress}
+                />
               )}
             />
           )}
@@ -1793,535 +1459,61 @@ export default function ChatListScreen() {
       />
 
       {/* Choose Chats Selector Modal */}
-      <Modal
+      <ChatSelectorModal
         visible={chatSelectorVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => {
+        onClose={() => {
           setChatSelectorVisible(false);
           setSelectorListId(null);
           setSelectorChatIds([]);
         }}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: colors.modalOverlay,
-            justifyContent: "flex-end",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: colors.menuBackground,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              height: "70%",
-              padding: 20,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <Text
-              style={[
-                styles.dialogTitle,
-                { color: colors.text, marginBottom: 12 },
-              ]}
-            >
-              Escolher conversas para a lista
-            </Text>
-
-            <FlatList
-              data={activeChats}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => {
-                const isSelected = selectorChatIds.includes(item.id);
-                return (
-                  <TouchableOpacity
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      paddingVertical: 12,
-                      borderBottomWidth: StyleSheet.hairlineWidth,
-                      borderBottomColor: colors.border,
-                    }}
-                    onPress={() => {
-                      setSelectorChatIds((prev) =>
-                        prev.includes(item.id)
-                          ? prev.filter((id) => id !== item.id)
-                          : [...prev, item.id],
-                      );
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 12,
-                      }}
-                    >
-                      <View
-                        style={[
-                          styles.avatar,
-                          {
-                            backgroundColor: colors.tint,
-                            width: 36,
-                            height: 36,
-                            borderRadius: 18,
-                          },
-                        ]}
-                      >
-                        {item.is_group && item.avatar_url ? (
-                          <Image
-                            source={{
-                              uri: item.avatar_url.startsWith("http")
-                                ? item.avatar_url
-                                : `${API_URL}${item.avatar_url}`,
-                            }}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              borderRadius: 18,
-                            }}
-                          />
-                        ) : !item.is_group && item.participant_avatar_url ? (
-                          <Image
-                            source={{
-                              uri: item.participant_avatar_url.startsWith(
-                                "http",
-                              )
-                                ? item.participant_avatar_url
-                                : `${API_URL}${item.participant_avatar_url}`,
-                            }}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              borderRadius: 18,
-                            }}
-                          />
-                        ) : (
-                          <Text style={[styles.avatarText, { fontSize: 14 }]}>
-                            {item.is_group
-                              ? (item.name ?? "G")[0].toUpperCase()
-                              : (item.participant_name ?? item.participant_username ?? "?")[0].toUpperCase()}
-                          </Text>
-                        )}
-                      </View>
-                      <Text style={{ color: colors.text, fontSize: 16 }}>
-                        {item.name ?? item.participant_name ?? item.participant_username ?? "Unknown"}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        {
-                          width: 22,
-                          height: 22,
-                          borderRadius: 11,
-                          borderWidth: 2,
-                          borderColor: colors.textSecondary,
-                          justifyContent: "center",
-                          alignItems: "center",
-                        },
-                        isSelected && {
-                          backgroundColor: colors.tint,
-                          borderColor: colors.tint,
-                        },
-                      ]}
-                    >
-                      {isSelected && <Check size={14} color="#fff" />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              }}
-            />
-
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "flex-end",
-                gap: 12,
-                marginTop: 16,
-              }}
-            >
-              <TouchableOpacity
-                onPress={() => {
-                  setChatSelectorVisible(false);
-                  setSelectorListId(null);
-                  setSelectorChatIds([]);
-                }}
-              >
-                <Text
-                  style={{
-                    color: colors.textSecondary,
-                    fontSize: 16,
-                    padding: 8,
-                  }}
-                >
-                  Cancelar
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleSaveListChats}>
-                <Text
-                  style={{
-                    color: colors.tint,
-                    fontSize: 16,
-                    fontWeight: "bold",
-                    padding: 8,
-                  }}
-                >
-                  Salvar
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        activeChats={activeChats}
+        initialSelectedChatIds={selectorChatIds}
+        onSave={handleSaveListChats}
+      />
 
       {/* Add/Remove Chat lists Membership Modal */}
-      <Modal
+      <ListSelectorModal
         visible={listSelectorVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => {
+        onClose={() => setListSelectorVisible(false)}
+        userLists={userLists}
+        initialSelectedListIds={selectorChatIds}
+        onSave={handleSaveChatLists}
+        onCreateNewList={() => {
           setListSelectorVisible(false);
+          setCreateListModalVisible(true);
         }}
-      >
-        <TouchableOpacity
-          style={[
-            styles.dialogOverlay,
-            { backgroundColor: colors.modalOverlay },
-          ]}
-          activeOpacity={1}
-          onPress={() => {
-            setListSelectorVisible(false);
-          }}
-        >
-          <View
-            style={[
-              styles.themeDialog,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.dialogTitle,
-                { color: colors.text, marginBottom: 12 },
-              ]}
-            >
-              Marcar Listas
-            </Text>
-
-            {userLists.length === 0 ? (
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  marginVertical: 12,
-                  textAlign: "center",
-                }}
-              >
-                Nenhuma lista personalizada criada.
-              </Text>
-            ) : (
-              <FlatList
-                data={userLists}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => {
-                  const isChecked = selectorChatIds.includes(item.id);
-                  return (
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        paddingVertical: 12,
-                      }}
-                      onPress={() => {
-                        setSelectorChatIds((prev) =>
-                          prev.includes(item.id)
-                            ? prev.filter((id) => id !== item.id)
-                            : [...prev, item.id],
-                        );
-                      }}
-                    >
-                      <Text style={{ color: colors.text, fontSize: 16 }}>
-                        {item.icon ? `${item.icon} ` : ""}
-                        {item.name}
-                      </Text>
-                      <View
-                        style={[
-                          {
-                            width: 22,
-                            height: 22,
-                            borderRadius: 4,
-                            borderWidth: 2,
-                            borderColor: colors.textSecondary,
-                            justifyContent: "center",
-                            alignItems: "center",
-                          },
-                          isChecked && {
-                            backgroundColor: colors.tint,
-                            borderColor: colors.tint,
-                          },
-                        ]}
-                      >
-                        {isChecked && <Check size={14} color="#fff" />}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            )}
-
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingVertical: 12,
-                marginTop: 8,
-              }}
-              onPress={() => {
-                setListSelectorVisible(false);
-                setCreateListModalVisible(true);
-              }}
-            >
-              <Text
-                style={{ color: colors.tint, fontSize: 16, fontWeight: "bold" }}
-              >
-                ＋ Nova lista
-              </Text>
-            </TouchableOpacity>
-
-            <View
-              style={[
-                styles.menuDivider,
-                { backgroundColor: colors.border, marginVertical: 8 },
-              ]}
-            />
-
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "flex-end",
-                gap: 12,
-              }}
-            >
-              <TouchableOpacity
-                onPress={() => {
-                  setListSelectorVisible(false);
-                }}
-              >
-                <Text
-                  style={{
-                    color: colors.textSecondary,
-                    fontSize: 16,
-                    padding: 8,
-                  }}
-                >
-                  Cancelar
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={async () => {
-                  if (selectedChatIds.length > 0) {
-                    try {
-                      for (const cid of selectedChatIds) {
-                        await handleUpdateChatLists(cid, selectorChatIds);
-                      }
-                      setSelectedChatIds([]);
-                    } catch (err) {
-                      console.error("Error bulk updating lists:", err);
-                    }
-                  }
-                  setListSelectorVisible(false);
-                }}
-              >
-                <Text
-                  style={{
-                    color: colors.tint,
-                    fontSize: 16,
-                    fontWeight: "bold",
-                    padding: 8,
-                  }}
-                >
-                  Salvar
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      />
 
       {/* Custom List Options Menu Modal */}
-      <Modal
+      <ListMenuModal
         visible={!!activeMenuList}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setActiveMenuList(null)}
-      >
-        <TouchableOpacity
-          style={[
-            styles.dialogOverlay,
-            { backgroundColor: colors.modalOverlay },
-          ]}
-          activeOpacity={1}
-          onPress={() => setActiveMenuList(null)}
-        >
-          <View
-            style={[
-              styles.themeDialog,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
-            onStartShouldSetResponder={() => true}
-          >
-            <View style={[styles.dialogOptionLabel, { marginBottom: 4 }]}>
-              {activeMenuList?.icon &&
-                renderListIcon(
-                  activeMenuList.icon,
-                  activeMenuList.color,
-                  colors.tint,
-                  22,
-                )}
-              <Text
-                style={[
-                  styles.dialogTitle,
-                  { color: colors.text, marginBottom: 0, flex: 1 },
-                ]}
-                numberOfLines={1}
-              >
-                {activeMenuList?.name ?? "Lista"}
-              </Text>
-            </View>
-            <Text
-              style={{
-                color: colors.textSecondary,
-                fontSize: 13,
-                marginBottom: 12,
-              }}
-            >
-              Opções da lista
-            </Text>
-
-            <View
-              style={[
-                styles.menuDivider,
-                { backgroundColor: colors.border, marginBottom: 4 },
-              ]}
-            />
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => {
-                if (activeMenuList) {
-                  setMuteSelectorList(activeMenuList);
-                  setMuteModalVisible(true);
-                  setActiveMenuList(null);
-                }
-              }}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <Bell size={20} color={colors.textSecondary} />
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  Silenciar conversas
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {!activeMenuList?.isSystem && (
-              <TouchableOpacity
-                style={styles.dialogOption}
-                onPress={() => {
-                  if (activeMenuList) {
-                    setListToEdit(activeMenuList);
-                    setEditListModalVisible(true);
-                    setActiveMenuList(null);
-                  }
-                }}
-              >
-                <View style={styles.dialogOptionLabel}>
-                  <Pencil size={20} color={colors.textSecondary} />
-                  <Text
-                    style={[styles.dialogOptionText, { color: colors.text }]}
-                  >
-                    Editar lista
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => {
-                setActiveMenuList(null);
-                openReorderModal();
-              }}
-            >
-              <View style={styles.dialogOptionLabel}>
-                <GripVertical size={20} color={colors.textSecondary} />
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  Reorganizar listas
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {!activeMenuList?.isSystem && (
-              <>
-                <View
-                  style={[
-                    styles.menuDivider,
-                    { backgroundColor: colors.border, marginVertical: 4 },
-                  ]}
-                />
-                <TouchableOpacity
-                  style={styles.dialogOption}
-                  onPress={() => {
-                    if (activeMenuList) {
-                      handleDeleteList(activeMenuList.id);
-                      setActiveMenuList(null);
-                    }
-                  }}
-                >
-                  <View style={styles.dialogOptionLabel}>
-                    <Trash2 size={20} color={colors.danger} />
-                    <Text
-                      style={[
-                        styles.dialogOptionText,
-                        { color: colors.danger },
-                      ]}
-                    >
-                      Apagar lista
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </>
-            )}
-
-            <View
-              style={[
-                styles.menuDivider,
-                { backgroundColor: colors.border, marginVertical: 8 },
-              ]}
-            />
-
-            <TouchableOpacity
-              style={styles.dialogCloseButton}
-              onPress={() => setActiveMenuList(null)}
-            >
-              <Text
-                style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}
-              >
-                Fechar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setActiveMenuList(null)}
+        list={activeMenuList}
+        onMuteChats={() => {
+          if (activeMenuList) {
+            setMuteSelectorList(activeMenuList);
+            setMuteModalVisible(true);
+            setActiveMenuList(null);
+          }
+        }}
+        onEditList={() => {
+          if (activeMenuList) {
+            setListToEdit(activeMenuList);
+            setEditListModalVisible(true);
+            setActiveMenuList(null);
+          }
+        }}
+        onReorderLists={() => {
+          setActiveMenuList(null);
+          setReorderModalVisible(true);
+        }}
+        onDeleteList={() => {
+          if (activeMenuList) {
+            handleDeleteList(activeMenuList.id);
+            setActiveMenuList(null);
+          }
+        }}
+      />
 
       {/* Edit List Modal */}
       <EditListModal
@@ -2337,127 +1529,12 @@ export default function ChatListScreen() {
       />
 
       {/* Bottom Sheet Reorganizar Listas Modal */}
-      <Modal
+      <ReorderListsModal
         visible={reorderModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setReorderModalVisible(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: colors.modalOverlay,
-            justifyContent: "flex-end",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: colors.menuBackground,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              height: "60%",
-              padding: 20,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
-            >
-              <Text
-                style={[
-                  styles.dialogTitle,
-                  { color: colors.text, marginBottom: 0 },
-                ]}
-              >
-                Reorganizar Listas
-              </Text>
-              <TouchableOpacity onPress={() => setReorderModalVisible(false)}>
-                <Text
-                  style={{
-                    color: colors.tint,
-                    fontWeight: "bold",
-                    fontSize: 16,
-                  }}
-                >
-                  Concluir
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text
-              style={{
-                color: colors.textSecondary,
-                marginBottom: 12,
-                fontSize: 13,
-              }}
-            >
-              Arrastar o ícone no lado direito para cima ou para baixo para
-              reordenar.
-            </Text>
-
-            <ScrollView scrollEnabled={!isDragging}>
-              {reorderLists.map((item, index) => {
-                const isItemDragging =
-                  isDragging && activeDragIndex.current === index;
-                return (
-                  <View
-                    key={item.id}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      paddingHorizontal: 8,
-                      borderBottomWidth: StyleSheet.hairlineWidth,
-                      borderBottomColor: colors.border,
-                      height: 60,
-                      backgroundColor: isItemDragging
-                        ? colors.border + "66"
-                        : "transparent",
-                    }}
-                  >
-                    <View style={styles.reorderListLeading}>
-                      {renderReorderListLeading(
-                        item,
-                        colors.tint,
-                        colors.textSecondary,
-                      )}
-                      <Text
-                        style={[
-                          styles.reorderListName,
-                          { color: colors.text },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {item.name}
-                      </Text>
-                    </View>
-
-                    <View
-                      style={{ padding: 12 }}
-                      onStartShouldSetResponder={() => true}
-                      onResponderGrant={(e) =>
-                        handleTouchStart(index, e.nativeEvent.pageY)
-                      }
-                      onResponderMove={(e) =>
-                        handleTouchMove(e.nativeEvent.pageY)
-                      }
-                      onResponderRelease={handleTouchEnd}
-                    >
-                      <GripVertical size={20} color={colors.textSecondary} />
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setReorderModalVisible(false)}
+        orderedFilters={orderedFilters}
+        onReorderEnd={handleReorderEnd}
+      />
     </View>
   );
 }

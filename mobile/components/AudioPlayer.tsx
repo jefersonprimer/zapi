@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
-import { createAudioPlayer, AudioPlayer as ExpoAudioPlayer, AudioStatus } from "expo-audio";
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { Play as PlayIcon, Pause as PauseIcon } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -11,176 +11,50 @@ interface AudioPlayerProps {
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
   const { colors, isDark } = useAppTheme();
-  const [player, setPlayer] = useState<ExpoAudioPlayer | null>(null);
-  const [webAudio, setWebAudio] = useState<any>(null);
-  const subscriptionRef = useRef<any>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1.0);
 
+  // Initialize the audio player and status hook
+  const player = useAudioPlayer(uri || null, { updateInterval: 100 });
+  const status = useAudioPlayerStatus(player);
 
-  // Web Audio Lifecycle
+  // Apply speed changes to player
   useEffect(() => {
-    if (Platform.OS === "web") {
-      const audio = new (window as any).Audio(uri);
-      
-      const onTimeUpdate = () => {
-        setPosition(audio.currentTime * 1000);
-      };
-      
-      const onLoadedMetadata = () => {
-        setDuration(audio.duration * 1000);
-      };
-      
-      const onEnded = () => {
-        setIsPlaying(false);
-        setPosition(0);
-      };
-
-      const onError = (e: any) => {
-        console.error("Web audio load error:", e);
-      };
-      
-      audio.addEventListener("timeupdate", onTimeUpdate);
-      audio.addEventListener("loadedmetadata", onLoadedMetadata);
-      audio.addEventListener("ended", onEnded);
-      audio.addEventListener("error", onError);
-      
-      audio.load();
-      if (audio.duration) {
-        setDuration(audio.duration * 1000);
-      }
-      
-      setWebAudio(audio);
-      
-      return () => {
-        audio.pause();
-        audio.removeEventListener("timeupdate", onTimeUpdate);
-        audio.removeEventListener("loadedmetadata", onLoadedMetadata);
-        audio.removeEventListener("ended", onEnded);
-        audio.removeEventListener("error", onError);
-      };
+    if (player) {
+      player.setPlaybackRate(speed);
     }
-  }, [uri]);
+  }, [speed, player]);
 
-  // Native Sound Lifecycle
+  // Reset playback to start on finish
   useEffect(() => {
-    return () => {
-      if (player) {
-        player.remove();
-      }
-      if (subscriptionRef.current) {
-        subscriptionRef.current.remove();
-        subscriptionRef.current = null;
-      }
-    };
-  }, [player]);
-
-  async function playSound() {
-    if (Platform.OS === "web") {
-      if (webAudio) {
-        try {
-          webAudio.playbackRate = speed;
-          await webAudio.play();
-          setIsPlaying(true);
-        } catch (err) {
-          console.log("Web audio play failed:", err);
-        }
-      }
-      return;
+    if (status.didJustFinish && player) {
+      player.seekTo(0);
     }
+  }, [status.didJustFinish, player]);
 
-    try {
-      if (player) {
-        player.setPlaybackRate(speed);
-        player.play();
-        setIsPlaying(true);
-      } else {
-        const newPlayer = createAudioPlayer(uri);
-        newPlayer.setPlaybackRate(speed);
-        if (subscriptionRef.current) {
-          subscriptionRef.current.remove();
-        }
-        subscriptionRef.current = newPlayer.addListener("playbackStatusUpdate", (status: AudioStatus) => {
-          setPosition(status.currentTime * 1000);
-          setDuration(status.duration * 1000 || 0);
-          if (status.didJustFinish) {
-            setIsPlaying(false);
-            setPosition(0);
-          }
-        });
-        setPlayer(newPlayer);
-        newPlayer.play();
-        setIsPlaying(true);
-      }
-    } catch (error) {
-      console.log("Error playing native sound:", error);
-    }
-  }
+  const audioDuration = (status.duration && isFinite(status.duration) && status.duration > 0)
+    ? (status.duration * 1000)
+    : 0;
 
-  async function pauseSound() {
-    if (Platform.OS === "web") {
-      if (webAudio) {
-        webAudio.pause();
-        setIsPlaying(false);
-      }
-      return;
-    }
-
-    if (player) {
-      player.pause();
-      setIsPlaying(false);
-    }
-  }
-
-  const seekWeb = (posMs: number) => {
-    if (webAudio) {
-      webAudio.currentTime = posMs / 1000;
-      setPosition(posMs);
-    }
-  };
-
-  const seekNative = async (posMs: number) => {
-    if (player) {
-      await player.seekTo(posMs / 1000);
-      setPosition(posMs);
-    }
-  };
+  const currentPosition = (status.currentTime * 1000) || 0;
 
   const handleTimelinePress = (event: any) => {
-    if (duration <= 0) return;
+    if (audioDuration <= 0 || !player) return;
     const { locationX } = event.nativeEvent;
     const timelineWidth = 120;
     let clickX = locationX;
     if (clickX < 0) clickX = 0;
     if (clickX > timelineWidth) clickX = timelineWidth;
 
-    const newPos = (clickX / timelineWidth) * duration;
-    if (Platform.OS === "web") {
-      seekWeb(newPos);
-    } else {
-      seekNative(newPos);
-    }
+    const newPos = (clickX / timelineWidth) * audioDuration;
+    player.seekTo(newPos / 1000);
   };
 
-  const changeSpeed = async () => {
+  const changeSpeed = () => {
     let nextSpeed = 1.0;
     if (speed === 1.0) nextSpeed = 1.5;
     else if (speed === 1.5) nextSpeed = 2.0;
     else nextSpeed = 1.0;
-
     setSpeed(nextSpeed);
-
-    if (Platform.OS === "web") {
-      if (webAudio) {
-        webAudio.playbackRate = nextSpeed;
-      }
-    } else {
-      if (player) {
-        player.setPlaybackRate(nextSpeed);
-      }
-    }
   };
 
   const formatTime = (millis: number) => {
@@ -191,7 +65,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  const progressPercent = duration > 0 ? (position / duration) * 100 : 0;
+  const progressPercent = audioDuration > 0 ? (currentPosition / audioDuration) * 100 : 0;
 
   return (
     <View
@@ -201,13 +75,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
       ]}
     >
       <TouchableOpacity
-        onPress={isPlaying ? pauseSound : playSound}
+        onPress={status.playing ? () => player.pause() : () => player.play()}
         style={[
           styles.playButton,
           isMine ? styles.playButtonMine : [styles.playButtonTheir, { backgroundColor: colors.tint }],
         ]}
       >
-        {isPlaying ? (
+        {status.playing ? (
           <PauseIcon
             size={14}
             color={isMine ? colors.tint : "#fff"}
@@ -261,7 +135,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
             isMine ? styles.timeTextMine : [styles.timeTextTheir, { color: colors.textSecondary }],
           ]}
         >
-          {formatTime(position)} / {formatTime(duration)}
+          {formatTime(currentPosition)} / {formatTime(audioDuration)}
         </Text>
       </View>
 

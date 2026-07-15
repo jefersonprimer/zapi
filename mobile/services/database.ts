@@ -96,7 +96,7 @@ export async function initializeDatabase() {
 
     CREATE TABLE IF NOT EXISTS attachments (
       id TEXT PRIMARY KEY,
-      message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+      message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE ON UPDATE CASCADE,
       type TEXT NOT NULL, -- 'image', 'video', 'audio', 'document'
       remote_url TEXT NOT NULL,
       local_path TEXT,
@@ -378,29 +378,45 @@ export async function getMessagesFromLocal(
   const sortedRows = limit !== undefined ? rows.reverse() : rows;
 
   const messages: Message[] = [];
+  
+  // Batch fetch all attachments for the sorted messages to avoid SQLite finalizeAsync errors in loops
+  const messageIds = sortedRows.map((r) => r.id);
+  const attachmentsByMsgId: Record<string, Attachment[]> = {};
+  
+  if (messageIds.length > 0) {
+    const placeholders = messageIds.map(() => "?").join(",");
+    try {
+      const attRows = await db.getAllAsync<any>(
+        `SELECT * FROM attachments WHERE message_id IN (${placeholders})`,
+        messageIds
+      );
+      for (const a of attRows) {
+        if (!attachmentsByMsgId[a.message_id]) {
+          attachmentsByMsgId[a.message_id] = [];
+        }
+        attachmentsByMsgId[a.message_id].push({
+          id: a.id,
+          message_id: a.message_id,
+          type: a.type,
+          remote_url: a.remote_url,
+          local_path: a.local_path,
+          mime_type: a.mime_type,
+          width: a.width,
+          height: a.height,
+          duration: a.duration,
+          size: a.size,
+          sha256: a.sha256,
+          thumbnail_path: a.thumbnail_path,
+          download_status: a.download_status,
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to fetch attachments for messages:", err);
+    }
+  }
+
   for (const r of sortedRows) {
-    // Fetch corresponding attachments
-    const attRows = await db.getAllAsync<any>(
-      "SELECT * FROM attachments WHERE message_id = ?",
-      [r.id]
-    );
-
-    const attachments: Attachment[] = attRows.map((a) => ({
-      id: a.id,
-      message_id: a.message_id,
-      type: a.type,
-      remote_url: a.remote_url,
-      local_path: a.local_path,
-      mime_type: a.mime_type,
-      width: a.width,
-      height: a.height,
-      duration: a.duration,
-      size: a.size,
-      sha256: a.sha256,
-      thumbnail_path: a.thumbnail_path,
-      download_status: a.download_status,
-    }));
-
+    const attachments = attachmentsByMsgId[r.id] || [];
     const firstAttachment = attachments[0] || null;
 
     messages.push({
@@ -556,22 +572,43 @@ export async function updateMessageStatusLocal(
       // 3. Delete the temporary message (it has been replaced by the server message)
       await db.runAsync("DELETE FROM messages WHERE id = ?", [id]);
     } else {
-      // Normal update changing the local ID to the server ID
-      await db.runAsync(
-        `UPDATE messages SET
-          id = ?,
-          status = ?,
-          image_url = COALESCE(?, image_url),
-          local_file_path = COALESCE(?, local_file_path)
-         WHERE id = ?`,
-        [
-          updates.serverId,
-          status,
-          updates.image_url || null,
-          updates.local_file_path || null,
-          id,
-        ]
+      // Normal update changing the local ID to the server ID.
+      // Since SQLite lacks ON UPDATE CASCADE on some existing schemas, we do this in three steps:
+      // 1. Fetch the existing local message details
+      const localMsg = await db.getFirstAsync<any>(
+        "SELECT * FROM messages WHERE id = ?",
+        [id]
       );
+      if (localMsg) {
+        // 2. Insert the message with the new server ID
+        await db.runAsync(
+          `INSERT OR REPLACE INTO messages (
+            id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            updates.serverId,
+            localMsg.chat_id,
+            localMsg.sender_id,
+            localMsg.sender_username,
+            localMsg.content,
+            updates.image_url !== undefined ? (updates.image_url || null) : (localMsg.image_url || null),
+            updates.local_file_path !== undefined ? (updates.local_file_path || null) : (localMsg.local_file_path || null),
+            localMsg.created_at,
+            status,
+            localMsg.deleted_for_everyone || 0,
+            localMsg.deleted_at || null
+          ]
+        );
+
+        // 3. Point attachments to the server ID
+        await db.runAsync(
+          "UPDATE attachments SET message_id = ? WHERE message_id = ?",
+          [updates.serverId, id]
+        );
+
+        // 4. Delete the temporary message
+        await db.runAsync("DELETE FROM messages WHERE id = ?", [id]);
+      }
     }
   } else {
     await db.runAsync(
@@ -793,10 +830,17 @@ export async function saveLocalChatLists(lists: LocalChatList[]) {
     // Save items
     await db.runAsync("DELETE FROM chat_list_items WHERE list_id = ?", [list.id]);
     for (const chatId of list.chat_ids) {
-      await db.runAsync(
-        "INSERT INTO chat_list_items (list_id, chat_id, created_at) VALUES (?, ?, ?)",
-        [list.id, chatId, new Date().toISOString()]
+      // Check if chat exists locally before inserting to satisfy foreign key constraint
+      const chatExists = await db.getFirstAsync<{ id: string }>(
+        "SELECT id FROM chats WHERE id = ?",
+        [chatId]
       );
+      if (chatExists) {
+        await db.runAsync(
+          "INSERT INTO chat_list_items (list_id, chat_id, created_at) VALUES (?, ?, ?)",
+          [list.id, chatId, new Date().toISOString()]
+        );
+      }
     }
   }
 }

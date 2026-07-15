@@ -52,7 +52,9 @@ export default function GroupDetailScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
   const [groupAvatarModalVisible, setGroupAvatarModalVisible] = useState(false);
-  const [startingChatWithId, setStartingChatWithId] = useState<string | null>(null);
+  const [startingChatWithId, setStartingChatWithId] = useState<string | null>(
+    null,
+  );
 
   const fetchGroupInfo = useCallback(async () => {
     if (!token || !chatId) return;
@@ -241,7 +243,10 @@ export default function GroupDetailScreen() {
         },
       });
     } catch (err: any) {
-      Alert.alert("Erro", err.message || "Não foi possível iniciar a conversa.");
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível iniciar a conversa.",
+      );
     } finally {
       setStartingChatWithId(null);
     }
@@ -700,12 +705,15 @@ export default function GroupDetailScreen() {
                             />
                           ) : (
                             <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                              {(member.name || member.username)[0].toUpperCase()}
+                              {(member.name ||
+                                member.username)[0].toUpperCase()}
                             </Text>
                           )}
                         </View>
                         <View>
-                          <Text style={{ color: colors.text, fontWeight: "600" }}>
+                          <Text
+                            style={{ color: colors.text, fontWeight: "600" }}
+                          >
                             {member.name || member.username} {isMe && "(Você)"}
                           </Text>
 
@@ -724,7 +732,11 @@ export default function GroupDetailScreen() {
                       </View>
 
                       {!isMe && !showRemoveButton && (
-                        <MessageSquare size={20} color={colors.tint} style={{ marginRight: 4 }} />
+                        <MessageSquare
+                          size={20}
+                          color={colors.tint}
+                          style={{ marginRight: 4 }}
+                        />
                       )}
                     </TouchableOpacity>
 

@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 12,
     marginBottom: 4,
-    maxWidth: 220,
+    width: 220,
   },
   docBubbleMine: { backgroundColor: "rgba(255, 255, 255, 0.2)" },
   docBubbleTheir: { backgroundColor: "rgba(0, 0, 0, 0.05)" },
