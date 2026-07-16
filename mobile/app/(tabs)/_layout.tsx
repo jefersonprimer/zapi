@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { MessageCircle, CircleDot, Users2, Phone } from "lucide-react-native";
+import { MessageCircle, CircleDot, Users2, Phone, Compass } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from '@/context/ThemeContext';
 
@@ -51,7 +51,15 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Phone color={color} size={size ?? 24} />,
         }}
       />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Explorar',
+          tabBarIcon: ({ color, size }) => <Compass color={color} size={size ?? 24} />,
+        }}
+      />
     </Tabs>
   );
 }
+
 

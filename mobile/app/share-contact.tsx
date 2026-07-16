@@ -17,6 +17,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getContacts, createChat, type Contact, API_URL } from "@/services/api";
 import { insertMessageLocal } from "@/services/database";
+import { getMyPixKey, type PixKeyData } from "@/services/pixApi";
 import { syncWorker } from "@/services/syncWorker";
 import { generateUUIDv7 } from "@/services/uuidv7";
 import {
@@ -36,15 +37,24 @@ export default function ShareContactScreen() {
     contactAvatarUrl,
     mode,
     forwardMessages,
+    noteId,
+    noteTitle,
+    noteContent,
   } = useLocalSearchParams<{
     contactId?: string;
     contactUsername?: string;
     contactAvatarUrl?: string;
     mode?: string;
     forwardMessages?: string;
+    noteId?: string;
+    noteTitle?: string;
+    noteContent?: string;
   }>();
 
   const isForwardMode = mode === "forward";
+  const isPixMode = mode === "pix";
+  const isNoteMode = mode === "note";
+  const [pixKey, setPixKey] = useState<PixKeyData | null>(null);
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +79,12 @@ export default function ShareContactScreen() {
   useEffect(() => {
     fetchContacts();
   }, [fetchContacts]);
+
+  useEffect(() => {
+    if (isPixMode && token) {
+      getMyPixKey(token).then((res) => setPixKey(res.pix_key)).catch(() => {});
+    }
+  }, [isPixMode, token]);
 
   function toggleContact(contact: Contact) {
     setSelected((prev) => {
@@ -148,6 +164,113 @@ export default function ShareContactScreen() {
       return;
     }
 
+    if (isPixMode) {
+      if (!pixKey) {
+        Alert.alert("Erro", "Nenhuma chave Pix encontrada.");
+        return;
+      }
+      setActionLoading(true);
+      try {
+        const selectedContacts = Array.from(selected.values());
+        const shareContent = JSON.stringify({
+          type: "pix_share",
+          pix_type: pixKey.pix_type,
+          pix_value: pixKey.pix_value,
+          full_name: pixKey.full_name,
+        });
+
+        for (const recipient of selectedContacts) {
+          const chatData = await createChat(token, recipient.contact_id);
+          const chatId = chatData.id;
+
+          const localId = generateUUIDv7();
+
+          const newLocalMsg = {
+            id: localId,
+            chat_id: chatId,
+            sender_id: user?.user_id || "",
+            sender_username: user?.username || "",
+            content: shareContent,
+            image_url: null,
+            created_at: new Date().toISOString(),
+            status: "pending" as const,
+          };
+
+          await insertMessageLocal(newLocalMsg);
+
+          syncWorker.notifyMessagesChanged(chatId);
+          syncWorker.triggerSync(chatId);
+        }
+
+        Alert.alert("Sucesso", "Chave Pix compartilhada com sucesso!", [
+          {
+            text: "OK",
+            onPress: () => {
+              router.back();
+            },
+          },
+        ]);
+      } catch (err: any) {
+        console.error("Failed to share pix key:", err);
+        Alert.alert("Erro", err.message || "Não foi possível compartilhar a chave Pix.");
+      } finally {
+        setActionLoading(false);
+      }
+      return;
+    }
+
+    if (isNoteMode) {
+      if (!noteId) return;
+      setActionLoading(true);
+      try {
+        const selectedContacts = Array.from(selected.values());
+        const shareContent = JSON.stringify({
+          type: "note_share",
+          note_id: noteId,
+          title: noteTitle || "Sem título",
+          content: noteContent || "",
+        });
+
+        for (const recipient of selectedContacts) {
+          const chatData = await createChat(token, recipient.contact_id);
+          const chatId = chatData.id;
+
+          const localId = generateUUIDv7();
+
+          const newLocalMsg = {
+            id: localId,
+            chat_id: chatId,
+            sender_id: user?.user_id || "",
+            sender_username: user?.username || "",
+            content: shareContent,
+            image_url: null,
+            created_at: new Date().toISOString(),
+            status: "pending" as const,
+          };
+
+          await insertMessageLocal(newLocalMsg);
+
+          syncWorker.notifyMessagesChanged(chatId);
+          syncWorker.triggerSync(chatId);
+        }
+
+        Alert.alert("Sucesso", "Nota compartilhada com sucesso!", [
+          {
+            text: "OK",
+            onPress: () => {
+              router.back();
+            },
+          },
+        ]);
+      } catch (err: any) {
+        console.error("Failed to share note:", err);
+        Alert.alert("Erro", err.message || "Não foi possível compartilhar a nota.");
+      } finally {
+        setActionLoading(false);
+      }
+      return;
+    }
+
     if (!contactId || !contactUsername) return;
     setActionLoading(true);
 
@@ -220,7 +343,7 @@ export default function ShareContactScreen() {
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={[styles.headerTitle, { color: colors.headerText }]}>
-              {isForwardMode ? "Encaminhar para..." : "Enviar para ..."}
+              {isForwardMode ? "Encaminhar para..." : isPixMode ? "Compartilhar Pix para..." : isNoteMode ? "Compartilhar nota para..." : "Enviar para ..."}
             </Text>
           </View>
         </View>

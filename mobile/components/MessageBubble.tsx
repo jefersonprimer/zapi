@@ -11,10 +11,12 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Clipboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   FileText as FileIcon,
+  StickyNote,
   Play as PlayIcon,
   Clock,
   Check,
@@ -24,6 +26,7 @@ import {
   ArrowLeft,
   Forward,
 } from "lucide-react-native";
+import { PIX_TYPE_LABELS } from "@/services/pixApi";
 import { type Message, API_URL, createChat } from "../services/api";
 import { AudioPlayer } from "./AudioPlayer";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -34,6 +37,7 @@ import {
   parseForwardContent,
   extractForwardData,
 } from "@/utils/forwardMessage";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 interface MessageBubbleProps {
   item: Message;
@@ -112,18 +116,41 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     username: string;
     avatar_url?: string | null;
   } | null = null;
+  let isPixShare = false;
+  let pixShareData: {
+    pix_type: string;
+    pix_value: string;
+    full_name: string;
+  } | null = null;
+  let isNoteShare = false;
+  let noteShareData: {
+    note_id: string;
+    title: string;
+    content: string;
+  } | null = null;
   const forwardContent = parseForwardContent(item.content);
 
-  if (item.content && !forwardContent) {
+  let sharePayload: any = null;
+  const shareRaw = forwardContent
+    ? forwardContent.forwarded?.content
+    : item.content;
+  if (shareRaw) {
     try {
-      const parsed = JSON.parse(item.content);
-      if (parsed && parsed.type === "contact_share") {
-        isContactShare = true;
-        contactShareData = parsed;
-      }
+      sharePayload = JSON.parse(shareRaw);
     } catch {
-      // not JSON or not contact share
+      // plain text
     }
+  }
+
+  if (sharePayload?.type === "contact_share") {
+    isContactShare = true;
+    contactShareData = sharePayload;
+  } else if (sharePayload?.type === "pix_share") {
+    isPixShare = true;
+    pixShareData = sharePayload;
+  } else if (sharePayload?.type === "note_share") {
+    isNoteShare = true;
+    noteShareData = sharePayload;
   }
 
   const handleStartChat = async () => {
@@ -165,8 +192,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const forwarded = forwardContent?.forwarded;
 
   const mediaUrl = isForwarded
-    ? (forwarded?.local_file_path || forwarded?.image_url)
-    : (item.local_file_path || item.image_url);
+    ? forwarded?.local_file_path || forwarded?.image_url
+    : item.local_file_path || item.image_url;
 
   const fullUrl = mediaUrl
     ? mediaUrl.startsWith("http") || mediaUrl.startsWith("file://")
@@ -175,27 +202,57 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     : null;
 
   const isImage = isForwarded
-    ? forwarded?.attachment_type === "image" || (mediaUrl ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio") : false)
-    : (attachment ? attachment.type === "image" : (mediaUrl ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio") : false));
+    ? forwarded?.attachment_type === "image" ||
+      (mediaUrl
+        ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
+        : false)
+    : attachment
+      ? attachment.type === "image"
+      : mediaUrl
+        ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
+        : false;
 
   const isAudio = isForwarded
-    ? forwarded?.attachment_type === "audio" || (mediaUrl ? isAudioUrl(mediaUrl) || mediaUrl.toLowerCase().includes("audio") : false)
-    : (attachment ? attachment.type === "audio" : (mediaUrl ? isAudioUrl(mediaUrl) || mediaUrl.toLowerCase().includes("audio") : false));
+    ? forwarded?.attachment_type === "audio" ||
+      (mediaUrl
+        ? isAudioUrl(mediaUrl) || mediaUrl.toLowerCase().includes("audio")
+        : false)
+    : attachment
+      ? attachment.type === "audio"
+      : mediaUrl
+        ? isAudioUrl(mediaUrl) || mediaUrl.toLowerCase().includes("audio")
+        : false;
 
   const isVideo = isForwarded
-    ? forwarded?.attachment_type === "video" || (mediaUrl ? isVideoUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio") : false)
-    : (attachment ? attachment.type === "video" : (mediaUrl ? isVideoUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio") : false));
+    ? forwarded?.attachment_type === "video" ||
+      (mediaUrl
+        ? isVideoUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
+        : false)
+    : attachment
+      ? attachment.type === "video"
+      : mediaUrl
+        ? isVideoUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
+        : false;
 
   const fileSize = isForwarded
-    ? forwarded?.file_size ?? null
-    : (attachment ? attachment.size : null);
+    ? (forwarded?.file_size ?? null)
+    : attachment
+      ? attachment.size
+      : null;
   const fileSizeStr = formatFileSize(fileSize);
 
-  const fileName = isForwarded && forwarded?.file_name
-    ? forwarded.file_name
-    : getFileName(mediaUrl);
+  const fileName =
+    isForwarded && forwarded?.file_name
+      ? forwarded.file_name
+      : getFileName(mediaUrl);
 
-  const messageContent = isForwarded ? forwarded?.content : item.content;
+  // Structured shares render their own cards — never dump JSON into the bubble text
+  const messageContent =
+    isNoteShare || isContactShare || isPixShare
+      ? null
+      : isForwarded
+        ? forwarded?.content
+        : item.content;
   const commentText = isForwarded ? forwardContent?.text : null;
 
   if (item.deleted_for_everyone) {
@@ -427,6 +484,284 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   }
 
+  if (isPixShare && pixShareData) {
+    return (
+      <View
+        style={{
+          alignSelf: isMine ? "flex-end" : "flex-start",
+          maxWidth: "75%",
+          marginBottom: 8,
+        }}
+      >
+        <TouchableOpacity
+          style={[
+            styles.messageBubble,
+            isMine
+              ? [styles.myMessage, { backgroundColor: colors.tint }]
+              : [styles.theirMessage, { backgroundColor: colors.surface }],
+            styles.pixShareCard,
+            { borderColor: colors.border, marginBottom: 0 },
+          ]}
+          onPress={() => {
+            Clipboard.setString(pixShareData.pix_value);
+            Alert.alert("Copiado", "Chave Pix copiada com sucesso!");
+          }}
+          activeOpacity={0.8}
+        >
+          {isGroup && !isMine && item.sender_username ? (
+            <Text
+              style={[
+                styles.senderUsername,
+                { color: colors.tint, marginBottom: 8 },
+              ]}
+            >
+              {item.sender_username}
+            </Text>
+          ) : null}
+          <View style={styles.pixShareHeader}>
+            <View
+              style={[
+                styles.pixShareIconCircle,
+                { backgroundColor: "#ffffff" },
+              ]}
+            >
+              <MaterialIcons name="pix" size={24} color="#32BCAD" />
+            </View>
+            <View style={styles.pixShareInfo}>
+              <Text
+                style={[
+                  styles.pixShareName,
+                  { color: isMine ? "#fff" : colors.text },
+                ]}
+                numberOfLines={1}
+              >
+                {pixShareData.full_name}
+              </Text>
+              <View style={styles.pixShareKeyRow}>
+                <Text
+                  style={[
+                    styles.pixShareType,
+                    {
+                      color: isMine
+                        ? "rgba(255,255,255,0.7)"
+                        : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {PIX_TYPE_LABELS[pixShareData.pix_type] || "Chave Pix"}
+                </Text>
+                <Text
+                  style={[
+                    styles.pixShareValue,
+                    { color: isMine ? "#fff" : colors.text },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {pixShareData.pix_value}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.timeContainer}>
+            <Text
+              style={[
+                styles.messageTime,
+                isMine
+                  ? styles.myMessageTime
+                  : [styles.theirMessageTime, { color: colors.textSecondary }],
+              ]}
+            >
+              {new Date(item.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+            {isMine && (
+              <View style={styles.statusIconContainer}>
+                {(item.status === "pending" ||
+                  item.status === "uploading" ||
+                  item.status === "sending") && (
+                  <Clock size={13} color="rgba(255,255,255,0.7)" />
+                )}
+                {(item.status === "failed" ||
+                  item.status === "privacy_messages_nobody" ||
+                  item.status === "privacy_messages_contacts" ||
+                  item.status === "chat_blocked") && (
+                  <AlertCircle size={13} color="#FF3B30" />
+                )}
+                {item.status === "sent" && (
+                  <Check size={14} color="rgba(255,255,255,0.8)" />
+                )}
+                {item.status === "delivered" && (
+                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+                )}
+                {item.status === "read" && (
+                  <CheckCheck size={14} color="#34B7F1" />
+                )}
+                {!item.status && (
+                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+                )}
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (isNoteShare && noteShareData) {
+    return (
+      <View
+        style={{
+          alignSelf: isMine ? "flex-end" : "flex-start",
+          maxWidth: "75%",
+          marginBottom: 8,
+        }}
+      >
+        <View
+          style={[
+            styles.messageBubble,
+            isMine
+              ? [styles.myMessage, { backgroundColor: colors.tint }]
+              : [styles.theirMessage, { backgroundColor: colors.surface }],
+            styles.noteShareCard,
+            { borderColor: colors.border, marginBottom: 0 },
+          ]}
+        >
+          {isGroup && !isMine && item.sender_username ? (
+            <Text
+              style={[
+                styles.senderUsername,
+                { color: colors.tint, marginBottom: 8 },
+              ]}
+            >
+              {item.sender_username}
+            </Text>
+          ) : null}
+          {isForwarded && forwarded && (
+            <View style={styles.forwardHeaderRow}>
+              <Forward
+                size={12}
+                color={isMine ? "rgba(255,255,255,0.7)" : colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={[
+                  styles.forwardHeaderText,
+                  {
+                    color: isMine
+                      ? "rgba(255,255,255,0.85)"
+                      : colors.textSecondary,
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                Encaminhada de {forwarded.sender_username}
+              </Text>
+            </View>
+          )}
+          <View style={styles.noteShareHeader}>
+            <View
+              style={[
+                styles.noteShareIconCircle,
+                { backgroundColor: isMine ? "rgba(255,255,255,0.2)" : "#FFF3B0" },
+              ]}
+            >
+              <StickyNote
+                size={18}
+                color={isMine ? "#fff" : "#F5A623"}
+              />
+            </View>
+            <Text
+              style={[
+                styles.noteShareLabel,
+                { color: isMine ? "rgba(255,255,255,0.8)" : colors.textSecondary },
+              ]}
+            >
+              Nota
+            </Text>
+          </View>
+          <Text
+            style={[
+              styles.noteShareTitle,
+              { color: isMine ? "#fff" : colors.text },
+            ]}
+            numberOfLines={1}
+          >
+            {noteShareData.title}
+          </Text>
+          {noteShareData.content ? (
+            <Text
+              style={[
+                styles.noteShareContent,
+                { color: isMine ? "rgba(255,255,255,0.8)" : colors.textSecondary },
+              ]}
+              numberOfLines={3}
+            >
+              {noteShareData.content}
+            </Text>
+          ) : null}
+          {commentText ? (
+            <Text
+              style={[
+                isMine
+                  ? styles.myMessageText
+                  : [styles.messageText, { color: colors.text }],
+                { marginTop: 8 },
+              ]}
+            >
+              {commentText}
+            </Text>
+          ) : null}
+
+          <View style={styles.timeContainer}>
+            <Text
+              style={[
+                styles.messageTime,
+                isMine
+                  ? styles.myMessageTime
+                  : [styles.theirMessageTime, { color: colors.textSecondary }],
+              ]}
+            >
+              {new Date(item.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+            {isMine && (
+              <View style={styles.statusIconContainer}>
+                {(item.status === "pending" ||
+                  item.status === "uploading" ||
+                  item.status === "sending") && (
+                  <Clock size={13} color="rgba(255,255,255,0.7)" />
+                )}
+                {(item.status === "failed" ||
+                  item.status === "privacy_messages_nobody" ||
+                  item.status === "privacy_messages_contacts" ||
+                  item.status === "chat_blocked") && (
+                  <AlertCircle size={13} color="#FF3B30" />
+                )}
+                {item.status === "sent" && (
+                  <Check size={14} color="rgba(255,255,255,0.8)" />
+                )}
+                {item.status === "delivered" && (
+                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+                )}
+                {item.status === "read" && (
+                  <CheckCheck size={14} color="#34B7F1" />
+                )}
+                {!item.status && (
+                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   const isFileMessage = !!fullUrl && !isAudio;
 
   return (
@@ -447,7 +782,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             width: 36,
             height: 36,
             borderRadius: 18,
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+            backgroundColor: isDark
+              ? "rgba(255, 255, 255, 0.08)"
+              : "rgba(0, 0, 0, 0.05)",
             justifyContent: "center",
             alignItems: "center",
           }}
@@ -481,7 +818,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <Text
               style={[
                 styles.forwardHeaderText,
-                { color: isMine ? "rgba(255,255,255,0.85)" : colors.textSecondary },
+                {
+                  color: isMine
+                    ? "rgba(255,255,255,0.85)"
+                    : colors.textSecondary,
+                },
               ]}
               numberOfLines={1}
             >
@@ -847,6 +1188,77 @@ const styles = StyleSheet.create({
   contactShareButtonText: {
     fontSize: 14,
     fontWeight: "bold",
+  },
+  pixShareCard: {
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 16,
+    width: 240,
+  },
+  pixShareHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pixShareIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  pixShareInfo: {
+    flex: 1,
+  },
+  pixShareName: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  pixShareKeyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pixShareType: {
+    fontSize: 12,
+    marginRight: 6,
+  },
+  pixShareValue: {
+    fontSize: 13,
+    flex: 1,
+  },
+  noteShareCard: {
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 16,
+    width: 220,
+  },
+  noteShareHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  noteShareIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  noteShareLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  noteShareTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  noteShareContent: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   forwardBox: {
     borderLeftWidth: 3,

@@ -1,9 +1,23 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { Camera, Mic, Video, FileText, Ban, PhoneOutgoing, PhoneIncoming, PhoneMissed, User, BellOff, Pin } from "lucide-react-native";
+import {
+  Camera,
+  Mic,
+  Video,
+  FileText,
+  Ban,
+  PhoneOutgoing,
+  PhoneIncoming,
+  PhoneMissed,
+  User,
+  BellOff,
+  Pin,
+  StickyNote,
+} from "lucide-react-native";
 import { ChatListItem as ChatListItemType, API_URL } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
 import { resolveLastMessagePreview } from "@/utils/forwardMessage";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 interface ChatListItemProps {
   item: ChatListItemType;
@@ -80,22 +94,24 @@ export default function ChatListItem({
           <Text style={styles.avatarText}>
             {item.is_group
               ? (item.name ?? "G")[0].toUpperCase()
-              : (item.participant_name ?? item.participant_username ?? "?")[0].toUpperCase()}
+              : (item.participant_name ??
+                  item.participant_username ??
+                  "?")[0].toUpperCase()}
           </Text>
         )}
       </View>
       <View style={styles.chatInfo}>
         <Text style={[styles.chatName, { color: colors.text }]}>
-          {item.name ?? item.participant_name ?? item.participant_username ?? "Unknown"}
+          {item.name ??
+            item.participant_name ??
+            item.participant_username ??
+            "Unknown"}
         </Text>
         {(() => {
           if (item.is_blocked_by_me) {
             return (
               <Text
-                style={[
-                  styles.lastMessage,
-                  { color: colors.textSecondary },
-                ]}
+                style={[styles.lastMessage, { color: colors.textSecondary }]}
                 numberOfLines={1}
               >
                 Você bloqueou esse contato
@@ -106,10 +122,7 @@ export default function ChatListItem({
           if (!item.last_message) {
             return (
               <Text
-                style={[
-                  styles.lastMessage,
-                  { color: colors.textSecondary },
-                ]}
+                style={[styles.lastMessage, { color: colors.textSecondary }]}
                 numberOfLines={1}
               >
                 Nenhuma mensagem ainda
@@ -143,10 +156,7 @@ export default function ChatListItem({
                 style={{ marginRight: 4 }}
               />
             );
-          } else if (
-            lastMessage === "Photo" ||
-            lastMessage === "📷 Foto"
-          ) {
+          } else if (lastMessage === "Photo" || lastMessage === "📷 Foto") {
             displayMessage = "Foto";
             iconElement = (
               <Camera
@@ -155,10 +165,7 @@ export default function ChatListItem({
                 style={{ marginRight: 4 }}
               />
             );
-          } else if (
-            lastMessage === "Video" ||
-            lastMessage === "🎥 Vídeo"
-          ) {
+          } else if (lastMessage === "Video" || lastMessage === "🎥 Vídeo") {
             displayMessage = "Vídeo";
             iconElement = (
               <Video
@@ -185,9 +192,7 @@ export default function ChatListItem({
             }
 
             if (rawFileName) {
-              const match = rawFileName.match(
-                /^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/,
-              );
+              const match = rawFileName.match(/^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/);
               if (match) {
                 fileName = match[1];
               } else {
@@ -242,9 +247,7 @@ export default function ChatListItem({
                 style={{ marginRight: 4 }}
               />
             );
-          } else if (
-            lastMessage.startsWith('{"type":"contact_share"')
-          ) {
+          } else if (lastMessage.startsWith('{"type":"contact_share"')) {
             try {
               const parsed = JSON.parse(lastMessage);
               displayMessage = parsed.username;
@@ -255,6 +258,36 @@ export default function ChatListItem({
               <User
                 size={15}
                 color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (
+            lastMessage.startsWith("Pix:") ||
+            item.last_message?.trimStart().startsWith('{"type":"pix_share"')
+          ) {
+            // resolveLastMessagePreview turns pix_share JSON into "Pix: Label: value"
+            displayMessage = lastMessage.startsWith("Pix:")
+              ? lastMessage.slice(5).trimStart()
+              : "Chave Pix";
+            iconElement = (
+              <MaterialIcons
+                name="pix"
+                size={15}
+                color="#32BCAD"
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (
+            lastMessage.startsWith("Nota:") ||
+            item.last_message?.trimStart().startsWith('{"type":"note_share"')
+          ) {
+            displayMessage = lastMessage.startsWith("Nota:")
+              ? lastMessage.slice(5).trimStart()
+              : "Nota";
+            iconElement = (
+              <StickyNote
+                size={15}
+                color="#F5A623"
                 style={{ marginRight: 4 }}
               />
             );
@@ -313,25 +346,12 @@ export default function ChatListItem({
             <Pin
               color={colors.textSecondary}
               size={14}
-              style={[
-                styles.pinIcon,
-                { transform: [{ rotate: "45deg" }] },
-              ]}
+              style={[styles.pinIcon, { transform: [{ rotate: "45deg" }] }]}
             />
           )}
           {item.unread_count > 0 && (
-            <View
-              style={[
-                styles.badge,
-                { backgroundColor: colors.badge },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.badgeText,
-                  { color: colors.badgeText },
-                ]}
-              >
+            <View style={[styles.badge, { backgroundColor: colors.badge }]}>
+              <Text style={[styles.badgeText, { color: colors.badgeText }]}>
                 {item.unread_count}
               </Text>
             </View>

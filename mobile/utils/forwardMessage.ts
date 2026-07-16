@@ -31,6 +31,10 @@ export function extractForwardData(msg: Message): ForwardedMessageData {
       if (parsed?.type === "contact_share") {
         content = `Contato: ${parsed.username}`;
       }
+      if (parsed?.type === "pix_share") {
+        const label = PIX_TYPE_LABELS[parsed.pix_type] || "Chave Pix";
+        content = `Pix: ${label}: ${parsed.pix_value}`;
+      }
     } catch {
       // plain text
     }
@@ -88,12 +92,44 @@ export function parseForwardContent(
   return null;
 }
 
+export interface NoteShareData {
+  note_id: string;
+  title: string;
+  content: string;
+}
+
+export function parseNoteShareContent(
+  content: string | null | undefined,
+): NoteShareData | null {
+  if (!content) return null;
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed?.type === "note_share") {
+      return {
+        note_id: parsed.note_id,
+        title: parsed.title || "Sem título",
+        content: parsed.content || "",
+      };
+    }
+  } catch {
+    // plain text
+  }
+  return null;
+}
+
 export function getForwardPreviewText(data: ForwardedMessageData): string {
   if (data.content) {
     try {
       const parsed = JSON.parse(data.content);
       if (parsed?.type === "contact_share") {
         return `Contato: ${parsed.username}`;
+      }
+      if (parsed?.type === "pix_share") {
+        const label = PIX_TYPE_LABELS[parsed.pix_type] || "Chave Pix";
+        return `Pix: ${label}: ${parsed.pix_value}`;
+      }
+      if (parsed?.type === "note_share") {
+        return `Nota: ${parsed.title || "Sem título"}`;
       }
       if (parsed?.type === "forward" && parsed.forwarded) {
         return getForwardPreviewText(parsed.forwarded);
@@ -119,6 +155,13 @@ export function getForwardPreviewText(data: ForwardedMessageData): string {
   }
 }
 
+const PIX_TYPE_LABELS: Record<string, string> = {
+  celular: "Celular",
+  cpf: "CPF",
+  email: "E-mail",
+  aleatoria: "Chave aleatória",
+};
+
 /** Resolve chat list preview: forwards become normal text/media labels. */
 export function resolveLastMessagePreview(
   content: string | null | undefined,
@@ -132,6 +175,13 @@ export function resolveLastMessagePreview(
         typeof parsed.text === "string" ? parsed.text.trim() : "";
       if (caption) return caption;
       return getForwardPreviewText(parsed.forwarded as ForwardedMessageData);
+    }
+    if (parsed?.type === "pix_share") {
+      const label = PIX_TYPE_LABELS[parsed.pix_type] || "Chave Pix";
+      return `Pix: ${label}: ${parsed.pix_value}`;
+    }
+    if (parsed?.type === "note_share") {
+      return `Nota: ${parsed.title}`;
     }
   } catch {
     // plain text

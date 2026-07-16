@@ -33,10 +33,10 @@ import {
   Camera,
   MessageSquareText,
   User,
+  CreditCard,
 } from "lucide-react-native";
 import { API_URL, uploadImage, updateProfile } from "@/services/api";
 import ImagePickerModal from "@/components/ImagePickerModal";
-
 const ABOUT_MAX_LEN = 139;
 
 export default function SettingsScreen() {
@@ -523,6 +523,25 @@ export default function SettingsScreen() {
                 </Text>
                 <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
                   Segurança, bloqueios, confirmações
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          {/* Pagamentos */}
+          <TouchableOpacity
+            style={styles.optionRowClickable}
+            onPress={() => router.push("/payments")}
+          >
+            <View style={styles.optionLeft}>
+              <CreditCard size={20} color={colors.textSecondary} />
+              <View style={styles.optionTextContainer}>
+                <Text style={[styles.optionTitle, { color: colors.text }]}>
+                  Pagamentos
+                </Text>
+                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                  Gerenciar sua chave Pix
                 </Text>
               </View>
             </View>

@@ -3,6 +3,7 @@ use sqlx::PgPool;
 use tower_http::services::ServeDir;
 
 use crate::handlers;
+use crate::notes;
 use crate::ws;
 use crate::AppState;
 
@@ -59,7 +60,11 @@ pub fn create_router(state: AppState) -> Router {
         .route("/contacts/:contact_id", delete(handlers::contacts::remove_contact))
         .route("/contacts/:contact_id/block", post(handlers::contacts::block_contact))
         .route("/contacts/:contact_id/unblock", post(handlers::contacts::unblock_contact))
+        .route("/pix/me", get(handlers::pix::get_my_pix_key))
+        .route("/pix", post(handlers::pix::upsert_pix_key).put(handlers::pix::update_pix_key).delete(handlers::pix::delete_pix_key))
+        .route("/pix/:user_id", get(handlers::pix::get_user_pix_key))
         .route("/ws", get(handlers::ws::ws_handler))
+        .nest("/notes", notes::routes::router())
         .nest_service("/uploads", ServeDir::new("uploads"))
         .with_state(state)
 }

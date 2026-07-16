@@ -6,6 +6,7 @@ pub mod push;
 mod routes;
 pub mod ws;
 pub mod signaling;
+pub mod notes;
 
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;

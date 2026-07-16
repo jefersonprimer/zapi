@@ -1,10 +1,11 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { X as XIcon } from "lucide-react-native";
+import { StickyNote, X as XIcon } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
   type ForwardedMessageData,
   getForwardPreviewText,
+  parseNoteShareContent,
 } from "@/utils/forwardMessage";
 
 interface ForwardPreviewBarProps {
@@ -17,6 +18,7 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
   onClear,
 }) => {
   const { colors, isDark } = useAppTheme();
+  const noteShare = parseNoteShareContent(forwarded.content);
 
   return (
     <View
@@ -25,24 +27,51 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
         {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          borderLeftColor: colors.tint,
+          borderLeftColor: noteShare ? "#F5A623" : colors.tint,
         },
       ]}
     >
-      <View style={styles.content}>
-        <Text style={[styles.label, { color: colors.tint }]}>
-          Reencaminhar mensagem
-        </Text>
-        <Text style={[styles.sender, { color: colors.text }]} numberOfLines={1}>
-          {forwarded.sender_username}
-        </Text>
-        <Text
-          style={[styles.preview, { color: colors.textSecondary }]}
-          numberOfLines={2}
-        >
-          {getForwardPreviewText(forwarded)}
-        </Text>
-      </View>
+      {noteShare ? (
+        <View style={styles.noteRow}>
+          <View style={[styles.noteIconCircle, { backgroundColor: "#FFF3B0" }]}>
+            <StickyNote size={18} color="#F5A623" />
+          </View>
+          <View style={styles.content}>
+            <Text style={[styles.label, { color: "#F5A623" }]}>
+              Reencaminhar nota
+            </Text>
+            <Text style={[styles.sender, { color: colors.text }]} numberOfLines={1}>
+              {forwarded.sender_username}
+            </Text>
+            <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={1}>
+              {noteShare.title}
+            </Text>
+            {noteShare.content ? (
+              <Text
+                style={[styles.preview, { color: colors.textSecondary }]}
+                numberOfLines={2}
+              >
+                {noteShare.content}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      ) : (
+        <View style={styles.content}>
+          <Text style={[styles.label, { color: colors.tint }]}>
+            Reencaminhar mensagem
+          </Text>
+          <Text style={[styles.sender, { color: colors.text }]} numberOfLines={1}>
+            {forwarded.sender_username}
+          </Text>
+          <Text
+            style={[styles.preview, { color: colors.textSecondary }]}
+            numberOfLines={2}
+          >
+            {getForwardPreviewText(forwarded)}
+          </Text>
+        </View>
+      )}
       <TouchableOpacity
         style={[
           styles.closeBtn,
@@ -64,6 +93,20 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderLeftWidth: 4,
   },
+  noteRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  noteIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+    marginTop: 2,
+  },
   content: {
     flex: 1,
   },
@@ -75,6 +118,11 @@ const styles = StyleSheet.create({
   sender: {
     fontSize: 13,
     fontWeight: "600",
+  },
+  noteTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginTop: 2,
   },
   preview: {
     fontSize: 13,

@@ -9,3 +9,4 @@ pub mod users;
 pub mod ws;
 pub mod calls;
 pub mod contacts;
+pub mod pix;

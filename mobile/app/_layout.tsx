@@ -207,6 +207,9 @@ function InitialLayout() {
       <Stack.Screen name="contacts" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="archived" options={{ headerShown: false }} />
+      <Stack.Screen name="notes" options={{ headerShown: false }} />
+      <Stack.Screen name="note-editor" options={{ headerShown: false }} />
+      <Stack.Screen name="payments" options={{ headerShown: false }} />
     </Stack>
   );
 }
