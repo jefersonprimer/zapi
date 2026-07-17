@@ -4,6 +4,7 @@ use tower_http::services::ServeDir;
 
 use crate::handlers;
 use crate::notes;
+use crate::updates;
 use crate::ws;
 use crate::AppState;
 
@@ -65,6 +66,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/pix/:user_id", get(handlers::pix::get_user_pix_key))
         .route("/ws", get(handlers::ws::ws_handler))
         .nest("/notes", notes::routes::router())
+        .nest("/updates", updates::routes::router())
         .nest_service("/uploads", ServeDir::new("uploads"))
         .with_state(state)
 }

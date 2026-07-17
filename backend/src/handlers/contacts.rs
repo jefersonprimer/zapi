@@ -95,6 +95,24 @@ pub async fn add_contact(
         )
     })?;
 
+    // Auto-follow: ensure both publishers exist and A follows B
+    if let (Ok(my_pub), Ok(their_pub)) = (
+        crate::updates::handlers::ensure_user_publisher(&pool, user_id).await,
+        crate::updates::handlers::ensure_user_publisher(&pool, contact_id).await,
+    ) {
+        let _ = sqlx::query(
+            r#"
+            INSERT INTO follows (follower_id, following_id)
+            VALUES ($1, $2)
+            ON CONFLICT DO NOTHING
+            "#,
+        )
+        .bind(my_pub)
+        .bind(their_pub)
+        .execute(&pool)
+        .await;
+    }
+
     Ok((StatusCode::CREATED, Json(json!({ "status": "success" }))))
 }
 

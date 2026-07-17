@@ -89,6 +89,17 @@ pub async fn register(
         )
     })?;
 
+    // Create a publisher for the new user
+    let publisher_name = user.name.clone().unwrap_or(user.username.clone());
+    let _ = sqlx::query(
+        "INSERT INTO publishers (type, ref_id, name, avatar_url) VALUES ('user', $1, $2, $3) ON CONFLICT (type, ref_id) DO NOTHING",
+    )
+    .bind(user.id)
+    .bind(&publisher_name)
+    .bind(&user.avatar_url)
+    .execute(&pool)
+    .await;
+
     let token = auth::create_token(user.id).map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,

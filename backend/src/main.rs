@@ -7,6 +7,7 @@ mod routes;
 pub mod ws;
 pub mod signaling;
 pub mod notes;
+pub mod updates;
 
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
@@ -34,6 +35,7 @@ async fn main() {
 
     // Start background notification queue worker
     push::start_notification_worker(pool.clone());
+    updates::cleanup::start_story_cleanup(pool.clone());
 
     let state = AppState {
         pool,

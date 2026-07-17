@@ -30,6 +30,9 @@ import {
   Image as ImageIcon,
   Ban,
   ShieldCheck,
+  UserPlus,
+  UserCheck,
+  Sparkles,
 } from "lucide-react-native";
 import { Svg, Path } from "react-native-svg";
 import { useAuth } from "@/context/AuthContext";
@@ -52,6 +55,7 @@ import { getChatsFromLocal, saveChats } from "@/services/database";
 import { useChatLists } from "@/hooks/useChatLists";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { getUserPixKey, type PixKeyData } from "@/services/pixApi";
+import * as updatesApi from "@/services/updatesApi";
 import CreateListModal from "@/components/CreateListModal";
 import MuteModal from "@/components/MuteModal";
 import ListSelectorModal from "@/components/ListSelectorModal";
@@ -78,6 +82,9 @@ export default function ContactDetailScreen() {
   const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
 
   const [muteModalVisible, setMuteModalVisible] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [publisherId, setPublisherId] = useState<string | null>(null);
+  const [followLoading, setFollowLoading] = useState(false);
   const [chatSettings, setChatSettings] = useState<{
     notification_muted_until?: string | null;
     notification_muted_forever?: boolean;
@@ -320,6 +327,14 @@ export default function ContactDetailScreen() {
       } catch {
         setPixKey(null);
       }
+
+      try {
+        const publisher = await updatesApi.getPublisherByUser(token, participantId);
+        setPublisherId(publisher.id);
+        setIsFollowing(!!publisher.is_following);
+      } catch (err) {
+        console.error("Error fetching publisher follow state:", err);
+      }
     } catch (err: any) {
       console.error("Error fetching contact details:", err);
     } finally {
@@ -347,6 +362,31 @@ export default function ContactDetailScreen() {
       true,
       contact?.avatar_url || avatarUrl,
     );
+  };
+
+  const handleToggleFollow = async () => {
+    if (!token || !participantId || followLoading) return;
+    const prev = isFollowing;
+    setIsFollowing(!prev);
+    setFollowLoading(true);
+    try {
+      const res = await updatesApi.toggleFollowByUser(token, participantId);
+      setIsFollowing(res.following);
+    } catch (err) {
+      console.error("Error toggling follow:", err);
+      setIsFollowing(prev);
+      Alert.alert("Erro", "Não foi possível atualizar o follow.");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleOpenPublisherProfile = () => {
+    if (!publisherId) return;
+    router.push({
+      pathname: "/publisher-profile",
+      params: { publisherId },
+    });
   };
 
   const handleToggleBlock = async () => {
@@ -789,6 +829,61 @@ export default function ContactDetailScreen() {
                 }
               />
             </View>
+
+            {/* Seguir atualizações */}
+            <View style={styles.optionRow}>
+              <View style={styles.optionLeft}>
+                {isFollowing ? (
+                  <UserCheck size={20} color={colors.textSecondary} />
+                ) : (
+                  <UserPlus size={20} color={colors.textSecondary} />
+                )}
+                <View style={styles.optionTextContainer}>
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>
+                    {isFollowing ? "Seguindo atualizações" : "Seguir atualizações"}
+                  </Text>
+                  <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                    Ver stories e posts deste contato
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={isFollowing}
+                onValueChange={handleToggleFollow}
+                disabled={followLoading}
+                trackColor={{
+                  false: isDark ? "#2C2C2E" : "#E5E5EA",
+                  true: isDark ? "#48484A" : "#C7C7CC",
+                }}
+                thumbColor={
+                  Platform.OS === "android"
+                    ? isFollowing
+                      ? isDark
+                        ? "#D1D1D6"
+                        : "#FFFFFF"
+                      : "#F4F3F4"
+                    : undefined
+                }
+              />
+            </View>
+
+            {/* Ver perfil de atualizações */}
+            {publisherId && (
+              <TouchableOpacity
+                style={styles.optionRowClickable}
+                onPress={handleOpenPublisherProfile}
+              >
+                <View style={styles.optionLeft}>
+                  <Sparkles size={20} color={colors.textSecondary} />
+                  <View style={styles.optionTextContainer}>
+                    <Text style={[styles.optionTitle, { color: colors.text }]}>
+                      Ver perfil de atualizações
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
 
             {/* Adicionar à lista */}
             <TouchableOpacity

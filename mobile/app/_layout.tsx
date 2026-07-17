@@ -210,6 +210,12 @@ function InitialLayout() {
       <Stack.Screen name="notes" options={{ headerShown: false }} />
       <Stack.Screen name="note-editor" options={{ headerShown: false }} />
       <Stack.Screen name="payments" options={{ headerShown: false }} />
+      <Stack.Screen name="story-viewer" options={{ headerShown: false, presentation: "fullScreenModal" }} />
+      <Stack.Screen name="create-story" options={{ headerShown: false, presentation: "fullScreenModal" }} />
+      <Stack.Screen name="create-post" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="saved-posts" options={{ headerShown: false }} />
+      <Stack.Screen name="publisher-profile" options={{ headerShown: false }} />
+      <Stack.Screen name="comments-modal" options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }
