@@ -3193,8 +3193,10 @@ pub async fn get_order(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let order = sqlx::query_as::<_, Order>(
-        "SELECT id, user_id, store_id, status::text, subtotal, delivery_fee, discount, total, observation, address_snapshot, coupon_code, fulfillment_type, scheduled_date, slot_start, slot_end, payment_method, payment_status, payment_details, created_at, updated_at
-         FROM orders WHERE id = $1 AND user_id = $2",
+        "SELECT o.id, o.user_id, o.store_id, o.status::text, o.subtotal, o.delivery_fee, o.discount, o.total, o.observation, o.address_snapshot, o.coupon_code, o.fulfillment_type, o.scheduled_date, o.slot_start, o.slot_end, o.payment_method, o.payment_status, o.payment_details, o.created_at, o.updated_at
+         FROM orders o
+         LEFT JOIN stores s ON s.id = o.store_id
+         WHERE o.id = $1 AND (o.user_id = $2 OR s.owner_id = $2)",
     )
     .bind(id)
     .bind(auth.0)
@@ -3258,7 +3260,7 @@ pub async fn update_order_status(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateOrderStatusRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let valid_statuses = ["PENDING_PAYMENT", "PAID", "ACCEPTED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"];
+    let valid_statuses = ["PENDING_PAYMENT", "PAID", "ACCEPTED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "REJECTED"];
     if !valid_statuses.contains(&body.status.as_str()) {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -3325,6 +3327,8 @@ pub async fn update_order_status(
                     ("Entregue!", "Seu pedido foi entregue")
                 }
             }
+            "CANCELLED" => ("Pedido cancelado", "Infelizmente seu pedido foi cancelado"),
+            "REJECTED" => ("Pedido recusado", "Infelizmente seu pedido foi recusado pelo estabelecimento"),
             _ => ("", ""),
         };
 
@@ -3372,6 +3376,7 @@ pub async fn update_order_status(
                 }
             }
             "CANCELLED" => "❌ Pedido cancelado\n\nInfelizmente seu pedido foi cancelado.",
+            "REJECTED" => "❌ Pedido recusado\n\nInfelizmente seu pedido foi recusado pelo estabelecimento.",
             _ => "",
         };
 

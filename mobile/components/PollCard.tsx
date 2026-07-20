@@ -8,7 +8,11 @@ interface PollCardProps {
   onVote: (optionId: string) => void;
 }
 
-export default function PollCard({ options, votedOption, onVote }: PollCardProps) {
+export default function PollCard({
+  options,
+  votedOption,
+  onVote,
+}: PollCardProps) {
   const { colors } = useAppTheme();
 
   const totalVotes = options.reduce((sum, o) => sum + o.votes_count, 0);
@@ -30,12 +34,15 @@ export default function PollCard({ options, votedOption, onVote }: PollCardProps
                 styles.fill,
                 {
                   width: `${option.percentage}%` as any,
-                  backgroundColor: option.id === votedOption ? colors.tint : colors.border,
+                  backgroundColor:
+                    option.id === votedOption ? colors.tint : colors.border,
                 },
               ]}
             />
             <View style={styles.optionContent}>
-              <Text style={[styles.optionLabel, { color: colors.text }]}>{option.label}</Text>
+              <Text style={[styles.optionLabel, { color: colors.text }]}>
+                {option.label}
+              </Text>
               <Text style={[styles.optionPct, { color: colors.textSecondary }]}>
                 {Math.round(option.percentage)}%
               </Text>
@@ -54,10 +61,15 @@ export default function PollCard({ options, votedOption, onVote }: PollCardProps
       {options.map((option) => (
         <TouchableOpacity
           key={option.id}
-          style={[styles.voteButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
+          style={[
+            styles.voteButton,
+            { borderColor: colors.border, backgroundColor: colors.surface },
+          ]}
           onPress={() => onVote(option.id)}
         >
-          <Text style={[styles.voteLabel, { color: colors.text }]}>{option.label}</Text>
+          <Text style={[styles.voteLabel, { color: colors.text }]}>
+            {option.label}
+          </Text>
         </TouchableOpacity>
       ))}
     </View>

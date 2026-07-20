@@ -76,7 +76,7 @@ function isStoreOpenNow(store: StoreType): boolean {
 
 export default function DeliveryScreen() {
   const { token } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { storeId: cartStoreId, getItemCount } = useCartStore();
@@ -583,14 +583,14 @@ export default function DeliveryScreen() {
           style={[
             styles.cartButton,
             {
-              backgroundColor: colors.tint,
+              backgroundColor: colors.fab,
               bottom: Math.max(insets.bottom, 16) + 16,
             },
           ]}
           onPress={() => router.push("/delivery/cart")}
           activeOpacity={0.8}
         >
-          <ShoppingCart color="#fff" size={24} />
+          <ShoppingCart color={isDark ? "#121212" : "#FFFFFF"} size={24} />
           <View style={[styles.badge, { backgroundColor: colors.badge }]}>
             <Text style={[styles.badgeText, { color: colors.badgeText }]}>
               {getItemCount()}

@@ -1325,14 +1325,6 @@ export default function ChatListScreen() {
                   Toque no botão abaixo para iniciar
                 </Text>
               </View>
-              <View style={[styles.footerContainer, { marginBottom: 60 }]}>
-                <Lock color={colors.textSecondary} size={13} />
-                <Text
-                  style={[styles.footerText, { color: colors.textSecondary }]}
-                >
-                  Suas mensagens estão protegidas por criptografia.
-                </Text>
-              </View>
             </View>
           ) : (
             <FlatList

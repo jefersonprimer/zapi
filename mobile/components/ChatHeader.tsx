@@ -127,12 +127,22 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 </Text>
               )}
             </View>
-            <Text
-              style={[styles.headerTitleText, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {displayTitle}
-            </Text>
+            <View style={{ flex: 1, justifyContent: "center" }}>
+              <Text
+                style={[styles.headerTitleText, { color: colors.text, flex: 0 }]}
+                numberOfLines={1}
+              >
+                {displayTitle}
+              </Text>
+              {participantStoreId ? (
+                <Text
+                  style={[styles.subTitleText, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  Conta comercial
+                </Text>
+              ) : null}
+            </View>
           </TouchableOpacity>
         )}
       </View>
@@ -186,19 +196,21 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 <ShoppingBag size={22} color={colors.tint} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity
-              onPress={() =>
-                voiceCallManager.startCall(
-                  participantId,
-                  participantUsername,
-                  true,
-                  participantAvatarUrl,
-                )
-              }
-              style={styles.headerActionBtn}
-            >
-              <Video size={22} color={colors.text} />
-            </TouchableOpacity>
+            {!participantStoreId && (
+              <TouchableOpacity
+                onPress={() =>
+                  voiceCallManager.startCall(
+                    participantId,
+                    participantUsername,
+                    true,
+                    participantAvatarUrl,
+                  )
+                }
+                style={styles.headerActionBtn}
+              >
+                <Video size={22} color={colors.text} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() =>
                 voiceCallManager.startCall(
@@ -248,6 +260,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#272727",
     flex: 1,
+  },
+  subTitleText: {
+    fontSize: 12,
+    marginTop: 2,
   },
   headerRightContainer: {
     flexDirection: "row",

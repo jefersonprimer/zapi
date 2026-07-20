@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -17,13 +18,11 @@ import {
   Package,
   ToggleLeft,
   ToggleRight,
-  Plus,
   Clock,
-  Pencil,
-  Tag,
-  Calendar,
-  FolderOpen,
-  Bike,
+  MessageCircle,
+  ExternalLink,
+  TrendingUp,
+  ShoppingCart,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -37,6 +36,8 @@ import {
   getOrderStatusLabel,
   ORDER_STATUS_COLORS,
 } from "@/services/deliveryApi";
+
+const DASHBOARD_WEB_URL = "https://dashboard.zapi.com";
 
 export default function VendorDashboardScreen() {
   const { token } = useAuth();
@@ -87,12 +88,41 @@ export default function VendorDashboardScreen() {
     }
   };
 
+  const handleOpenDashboard = () => {
+    Linking.openURL(DASHBOARD_WEB_URL);
+  };
+
   const recentOrders = orders.slice(0, 5);
-  const pendingCount = orders.filter((o) => o.status === "WAITING_STORE_CONFIRMATION" || o.status === "PAID" || o.status === "pendente").length;
+  const pendingCount = orders.filter(
+    (o) =>
+      o.status === "WAITING_STORE_CONFIRMATION" ||
+      o.status === "PAID" ||
+      o.status === "pendente"
+  ).length;
+  const todayRevenue = orders
+    .filter((o) => {
+      const d = new Date(o.created_at);
+      const now = new Date();
+      return (
+        d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear()
+      );
+    })
+    .reduce((sum, o) => sum + o.total, 0);
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            alignItems: "center",
+            justifyContent: "center",
+          },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
@@ -101,24 +131,46 @@ export default function VendorDashboardScreen() {
   if (!store) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.headerBackground },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft color={colors.headerText} size={24} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.headerText }]}>Vendedor</Text>
+          <Text
+            style={[styles.headerTitle, { color: colors.headerText }]}
+          >
+            Minha Loja
+          </Text>
         </View>
         <View style={styles.emptyContainer}>
           <Store color={colors.icon} size={64} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Criar sua loja</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            Cadastre sua loja em menos de 5 minutos
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            Crie sua loja no Dashboard
+          </Text>
+          <Text
+            style={[
+              styles.emptySubtitle,
+              { color: colors.textSecondary },
+            ]}
+          >
+            Acesse o painel web para cadastrar sua loja, produtos,
+            horários e muito mais.
           </Text>
           <TouchableOpacity
-            style={[styles.createButton, { backgroundColor: colors.tint }]}
-            onPress={() => router.push("/delivery/vendor/create-store")}
+            style={[styles.dashboardButton, { backgroundColor: colors.tint }]}
+            onPress={handleOpenDashboard}
           >
-            <Plus color="#fff" size={20} />
-            <Text style={styles.createButtonText}>Criar Loja</Text>
+            <ExternalLink color="#fff" size={18} />
+            <Text style={styles.dashboardButtonText}>
+              Abrir Dashboard
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -127,17 +179,21 @@ export default function VendorDashboardScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.headerBackground },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ArrowLeft color={colors.headerText} size={24} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.headerText }]}>Minha Loja</Text>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.push({ pathname: "/delivery/vendor/create-store", params: { mode: "edit" } })}
-        >
-          <Pencil color={colors.headerText} size={22} />
-        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>
+          Minha Loja
+        </Text>
       </View>
 
       <FlatList
@@ -145,20 +201,46 @@ export default function VendorDashboardScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={colors.tint} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadData();
+            }}
+            tintColor={colors.tint}
+          />
         }
         ListHeaderComponent={
           <>
             {/* Store Card */}
-            <View style={[styles.storeCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.storeCard,
+                {
+                  backgroundColor: colors.cardBackground,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
               <View style={styles.storeHeader}>
                 <View style={styles.storeInfo}>
-                  <Text style={[styles.storeName, { color: colors.text }]}>{store.name}</Text>
-                  <Text style={[styles.storeCategory, { color: colors.textSecondary }]}>
-                    {STORE_CATEGORIES[store.category] || store.category} • {store.city}/{store.state}
+                  <Text style={[styles.storeName, { color: colors.text }]}>
+                    {store.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.storeCategory,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {STORE_CATEGORIES[store.category] || store.category} •{" "}
+                    {store.city}/{store.state}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={handleToggle} disabled={toggling}>
+                <TouchableOpacity
+                  onPress={handleToggle}
+                  disabled={toggling}
+                >
                   {toggling ? (
                     <ActivityIndicator color={colors.tint} />
                   ) : store.is_open ? (
@@ -169,114 +251,248 @@ export default function VendorDashboardScreen() {
                 </TouchableOpacity>
               </View>
               <View style={styles.storeStatus}>
-                <View style={[styles.statusDot, { backgroundColor: store.is_open ? "#10B981" : "#EF4444" }]} />
-                <Text style={[styles.statusText, { color: store.is_open ? "#10B981" : "#EF4444" }]}>
+                <View
+                  style={[
+                    styles.statusDot,
+                    {
+                      backgroundColor: store.is_open
+                        ? "#10B981"
+                        : "#EF4444",
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.statusText,
+                    {
+                      color: store.is_open ? "#10B981" : "#EF4444",
+                    },
+                  ]}
+                >
                   {store.is_open ? "Aberta" : "Fechada"}
                 </Text>
               </View>
-              <View style={styles.storeStats}>
-                <View style={styles.stat}>
-                  <Text style={[styles.statValue, { color: colors.tint }]}>R$ {store.delivery_fee.toFixed(2)}</Text>
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Taxa entrega</Text>
-                </View>
-                <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-                <View style={styles.stat}>
-                  <Text style={[styles.statValue, { color: colors.tint }]}>R$ {store.minimum_order.toFixed(2)}</Text>
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Pedido mín.</Text>
-                </View>
-                <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-                <View style={styles.stat}>
-                  <Text style={[styles.statValue, { color: pendingCount > 0 ? "#F59E0B" : colors.text }]}>
-                    {pendingCount}
-                  </Text>
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Pendentes</Text>
-                </View>
+            </View>
+
+            {/* Today Stats */}
+            <View style={styles.statsRow}>
+              <View
+                style={[
+                  styles.statCard,
+                  {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <ShoppingCart color={colors.tint} size={20} />
+                <Text style={[styles.statValue, { color: colors.text }]}>
+                  {pendingCount}
+                </Text>
+                <Text
+                  style={[
+                    styles.statLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Pedidos hoje
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.statCard,
+                  {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <TrendingUp color="#10B981" size={20} />
+                <Text style={[styles.statValue, { color: "#10B981" }]}>
+                  R$ {todayRevenue.toFixed(2)}
+                </Text>
+                <Text
+                  style={[
+                    styles.statLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Faturamento
+                </Text>
               </View>
             </View>
 
             {/* Quick Actions */}
             <View style={styles.actionsRow}>
               <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-                onPress={() => router.push("/delivery/vendor/products")}
-              >
-                <Package color={colors.tint} size={28} />
-                <Text style={[styles.actionTitle, { color: colors.text }]}>Produtos</Text>
-                <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Gerenciar cardápio</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+                style={[
+                  styles.actionCard,
+                  {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                  },
+                ]}
                 onPress={() => router.push("/delivery/vendor/orders")}
               >
                 <Clock color={colors.tint} size={28} />
-                <Text style={[styles.actionTitle, { color: colors.text }]}>Pedidos</Text>
-                <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Ver recebidos</Text>
+                <Text
+                  style={[styles.actionTitle, { color: colors.text }]}
+                >
+                  Pedidos
+                </Text>
+                <Text
+                  style={[
+                    styles.actionSubtitle,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Gerenciar
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.actionCard,
+                  {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => router.push("/delivery/vendor/products")}
+              >
+                <Package color={colors.tint} size={28} />
+                <Text
+                  style={[styles.actionTitle, { color: colors.text }]}
+                >
+                  Produtos
+                </Text>
+                <Text
+                  style={[
+                    styles.actionSubtitle,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Estoque e preço
+                </Text>
               </TouchableOpacity>
             </View>
+
             <View style={styles.actionsRow}>
               <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-                onPress={() => router.push("/delivery/vendor/categories")}
+                style={[
+                  styles.actionCard,
+                  {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => router.push("/(tabs)")}
               >
-                <FolderOpen color={colors.tint} size={28} />
-                <Text style={[styles.actionTitle, { color: colors.text }]}>Categorias</Text>
-                <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Frutas, Legumes…</Text>
+                <MessageCircle color={colors.tint} size={28} />
+                <Text
+                  style={[styles.actionTitle, { color: colors.text }]}
+                >
+                  Mensagens
+                </Text>
+                <Text
+                  style={[
+                    styles.actionSubtitle,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Chat com clientes
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-                onPress={() => router.push("/delivery/vendor/coupons")}
+                style={[
+                  styles.actionCard,
+                  {
+                    backgroundColor: colors.tint,
+                    borderColor: colors.tint,
+                  },
+                ]}
+                onPress={handleOpenDashboard}
               >
-                <Tag color={colors.tint} size={28} />
-                <Text style={[styles.actionTitle, { color: colors.text }]}>Cupons</Text>
-                <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Descontos</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.actionsRow}>
-              <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-                onPress={() => router.push("/delivery/vendor/hours")}
-              >
-                <Calendar color={colors.tint} size={28} />
-                <Text style={[styles.actionTitle, { color: colors.text }]}>Horários</Text>
-                <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Funcionamento</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-                onPress={() => router.push("/delivery/vendor/slots")}
-              >
-                <Bike color={colors.tint} size={28} />
-                <Text style={[styles.actionTitle, { color: colors.text }]}>Agendamento</Text>
-                <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Entrega e retirada</Text>
+                <ExternalLink color="#fff" size={28} />
+                <Text style={[styles.actionTitle, { color: "#fff" }]}>
+                  Dashboard
+                </Text>
+                <Text style={[styles.actionSubtitle, { color: "#ffffffcc" }]}>
+                  Gerenciar no navegador
+                </Text>
               </TouchableOpacity>
             </View>
 
             {/* Recent Orders */}
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Pedidos recentes</Text>
+              <Text
+                style={[styles.sectionTitle, { color: colors.text }]}
+              >
+                Pedidos recentes
+              </Text>
             </View>
           </>
         }
         renderItem={({ item }) => (
-          <View style={[styles.orderCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.orderCard,
+              {
+                backgroundColor: colors.cardBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <View style={styles.orderHeader}>
               <Text style={[styles.orderId, { color: colors.text }]}>
                 #{item.id.slice(0, 8).toUpperCase()}
               </Text>
-              <View style={[styles.statusBadge, { backgroundColor: ORDER_STATUS_COLORS[item.status] + "20" }]}>
-                <Text style={[styles.statusBadgeText, { color: ORDER_STATUS_COLORS[item.status] }]}>
-                  {getOrderStatusLabel(item.status, item.fulfillment_type)}
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor:
+                      ORDER_STATUS_COLORS[item.status] + "20",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusBadgeText,
+                    { color: ORDER_STATUS_COLORS[item.status] },
+                  ]}
+                >
+                  {getOrderStatusLabel(
+                    item.status,
+                    item.fulfillment_type
+                  )}
                 </Text>
               </View>
             </View>
-            <Text style={[styles.orderTotal, { color: colors.tint }]}>R$ {item.total.toFixed(2)}</Text>
-            <Text style={[styles.orderDate, { color: colors.textSecondary }]}>
-              {new Date(item.created_at).toLocaleDateString("pt-BR")} {new Date(item.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            <Text style={[styles.orderTotal, { color: colors.tint }]}>
+              R$ {item.total.toFixed(2)}
+            </Text>
+            <Text
+              style={[
+                styles.orderDate,
+                { color: colors.textSecondary },
+              ]}
+            >
+              {new Date(item.created_at).toLocaleDateString("pt-BR")}{" "}
+              {new Date(item.created_at).toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </Text>
           </View>
         )}
         ListEmptyComponent={
           <View style={styles.ordersEmpty}>
-            <Text style={[styles.ordersEmptyText, { color: colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.ordersEmptyText,
+                { color: colors.textSecondary },
+              ]}
+            >
               Nenhum pedido recebido ainda
             </Text>
           </View>
@@ -296,7 +512,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backButton: { padding: 8 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: "600", marginHorizontal: 8 },
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "600",
+    marginHorizontal: 8,
+  },
   listContent: { padding: 16, paddingBottom: 32 },
   storeCard: {
     padding: 16,
@@ -320,21 +541,24 @@ const styles = StyleSheet.create({
   },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 14, fontWeight: "600" },
-  storeStats: {
+  statsRow: {
     flexDirection: "row",
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
+    gap: 12,
+    marginBottom: 12,
   },
-  stat: { flex: 1, alignItems: "center" },
-  statValue: { fontSize: 16, fontWeight: "700" },
-  statLabel: { fontSize: 11, marginTop: 2 },
-  statDivider: { width: 1, marginVertical: -4 },
+  statCard: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  statValue: { fontSize: 18, fontWeight: "700", marginTop: 6 },
+  statLabel: { fontSize: 12, marginTop: 2 },
   actionsRow: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   actionCard: {
     flex: 1,
@@ -345,7 +569,7 @@ const styles = StyleSheet.create({
   },
   actionTitle: { fontSize: 15, fontWeight: "600", marginTop: 8 },
   actionSubtitle: { fontSize: 12, marginTop: 2 },
-  sectionHeader: { marginBottom: 10 },
+  sectionHeader: { marginBottom: 10, marginTop: 4 },
   sectionTitle: { fontSize: 17, fontWeight: "600" },
   orderCard: {
     padding: 14,
@@ -359,16 +583,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   orderId: { fontSize: 14, fontWeight: "600" },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
   statusBadgeText: { fontSize: 12, fontWeight: "600" },
   orderTotal: { fontSize: 18, fontWeight: "700", marginTop: 8 },
   orderDate: { fontSize: 13, marginTop: 4 },
   ordersEmpty: { alignItems: "center", paddingVertical: 24 },
   ordersEmptyText: { fontSize: 14 },
-  emptyContainer: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
   emptyTitle: { fontSize: 20, fontWeight: "700", marginTop: 16 },
-  emptySubtitle: { fontSize: 15, marginTop: 8, textAlign: "center" },
-  createButton: {
+  emptySubtitle: {
+    fontSize: 15,
+    marginTop: 8,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  dashboardButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -377,5 +615,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 24,
   },
-  createButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  dashboardButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
 });

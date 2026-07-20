@@ -162,24 +162,6 @@ export default function ChatScreen() {
         participantStoreId={participantStoreId}
       />
 
-      {participantStoreId && !isSelectionMode && (
-        <View style={[styles.storeBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <Text style={[styles.storeBarText, { color: colors.text }]}>Esta é uma conta comercial</Text>
-          <TouchableOpacity
-            style={[styles.storeBarBtn, { backgroundColor: colors.tint }]}
-            onPress={() =>
-              router.push({
-                pathname: "/delivery/[storeId]",
-                params: { storeId: participantStoreId },
-              })
-            }
-            activeOpacity={0.8}
-          >
-            <Text style={styles.storeBarBtnText}>Ver catálogo</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       <FlatList
         ref={flatListRef}
         data={chatItems}
@@ -260,7 +242,9 @@ export default function ChatScreen() {
             onPauseResumeRecording={handlePauseResumeRecording}
             recordedUri={recordedUri}
             onStopAndPreview={stopRecordingAndPreview}
-            onSendAudio={recordedUri ? sendPreviewedAudio : sendRecordingImmediately}
+            onSendAudio={
+              recordedUri ? sendPreviewedAudio : sendRecordingImmediately
+            }
           />
         ) : (
           <>

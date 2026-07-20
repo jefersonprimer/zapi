@@ -13,6 +13,9 @@ build/
 out/
 bin/
 obj/
+.next/
+*.tsbuildinfo
+.turbo/
 
 # Environment / Secrets
 .env

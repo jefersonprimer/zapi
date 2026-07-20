@@ -85,7 +85,7 @@ const formatDate = (dateStr: string) => {
 export default function StoreScreen() {
   const { storeId } = useLocalSearchParams<{ storeId: string }>();
   const { token } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const router = useRouter();
   const {
     storeId: cartStoreId,
@@ -1987,7 +1987,7 @@ export default function StoreScreen() {
           style={[
             styles.floatingCartBar,
             {
-              backgroundColor: colors.tint,
+              backgroundColor: colors.fab,
               bottom: Math.max(insets.bottom, 16),
             },
           ]}
@@ -1995,8 +1995,8 @@ export default function StoreScreen() {
           activeOpacity={0.9}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <ShoppingCart color="#fff" size={20} style={{ marginRight: 8 }} />
-            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
+            <ShoppingCart color={isDark ? "#121212" : "#FFFFFF"} size={20} style={{ marginRight: 8 }} />
+            <Text style={{ color: isDark ? "#121212" : "#FFFFFF", fontWeight: "600", fontSize: 15 }}>
               {getItemCount()} {getItemCount() === 1 ? "item" : "itens"} • R${" "}
               {getSubtotal().toFixed(2).replace(".", ",")}
             </Text>
@@ -2004,7 +2004,7 @@ export default function StoreScreen() {
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Text
               style={{
-                color: "#fff",
+                color: isDark ? "#121212" : "#FFFFFF",
                 fontWeight: "700",
                 fontSize: 15,
                 marginRight: 4,

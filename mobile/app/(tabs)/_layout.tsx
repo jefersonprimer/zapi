@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { MessageCircle, CircleDot, Users2, Phone, Compass } from "lucide-react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from '@/context/ThemeContext';
 
@@ -27,35 +27,65 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Conversas',
-          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size ?? 24} />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons 
+              name={focused ? 'message-text' : 'message-text-outline'} 
+              color={color} 
+              size={size ?? 24} 
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="updates"
         options={{
           title: 'Atualizações',
-          tabBarIcon: ({ color, size }) => <CircleDot color={color} size={size ?? 24} />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons 
+              name={focused ? 'circle-slice-8' : 'circle-double'} 
+              color={color} 
+              size={size ?? 24} 
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="communities"
         options={{
           title: 'Comunidades',
-          tabBarIcon: ({ color, size }) => <Users2 color={color} size={size ?? 24} />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons 
+              name={focused ? 'account-group' : 'account-group-outline'} 
+              color={color} 
+              size={size ?? 24} 
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="calls"
         options={{
           title: 'Ligações',
-          tabBarIcon: ({ color, size }) => <Phone color={color} size={size ?? 24} />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons 
+              name={focused ? 'phone' : 'phone-outline'} 
+              color={color} 
+              size={size ?? 24} 
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explorar',
-          tabBarIcon: ({ color, size }) => <Compass color={color} size={size ?? 24} />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons 
+              name={focused ? 'compass' : 'compass-outline'} 
+              color={color} 
+              size={size ?? 24} 
+            />
+          ),
         }}
       />
     </Tabs>

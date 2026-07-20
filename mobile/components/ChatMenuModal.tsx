@@ -120,20 +120,6 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
             </TouchableOpacity>
           )}
 
-          {!isGroup && onBlockPress && (
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                onBlockPress();
-                onClose();
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.danger }]}>
-                {isBlocked ? "Desbloquear" : "Bloquear"}
-              </Text>
-            </TouchableOpacity>
-          )}
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
@@ -152,6 +138,20 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
               {isContact ? "Remover dos contatos" : "Adicionar aos contatos"}
             </Text>
           </TouchableOpacity>
+
+          {!isGroup && onBlockPress && (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                onBlockPress();
+                onClose();
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.danger }]}>
+                {isBlocked ? "Desbloquear" : "Bloquear"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     </Modal>

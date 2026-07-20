@@ -224,12 +224,8 @@ function InitialLayout() {
       <Stack.Screen name="delivery/orders/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="delivery/addresses" options={{ headerShown: false }} />
       <Stack.Screen name="delivery/vendor/dashboard" options={{ headerShown: false }} />
-      <Stack.Screen name="delivery/vendor/create-store" options={{ headerShown: false }} />
       <Stack.Screen name="delivery/vendor/products" options={{ headerShown: false }} />
-      <Stack.Screen name="delivery/vendor/categories" options={{ headerShown: false }} />
       <Stack.Screen name="delivery/vendor/orders" options={{ headerShown: false }} />
-      <Stack.Screen name="delivery/vendor/coupons" options={{ headerShown: false }} />
-      <Stack.Screen name="delivery/vendor/hours" options={{ headerShown: false }} />
     </Stack>
   );
 }

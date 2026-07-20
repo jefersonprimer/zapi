@@ -28,7 +28,8 @@ const PAGE_SIZE = 12;
 const COLS = 3;
 const GAP = 2;
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const GRID_ITEM_SIZE = (SCREEN_WIDTH - GAP * (COLS - 1)) / COLS;
+const GRID_ITEM_SIZE = (SCREEN_WIDTH - GAP * (COLS + 1)) / COLS;
+const GRID_ITEM_HEIGHT = GRID_ITEM_SIZE * 1.35;
 
 function formatFollowers(count: number): string {
   if (count === 1) return "1 seguidor";
@@ -76,7 +77,7 @@ function PostGridItem({
     <TouchableOpacity
       style={[
         styles.gridItem,
-        { width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE },
+        { width: GRID_ITEM_SIZE, height: GRID_ITEM_HEIGHT },
       ]}
       onPress={onPress}
       activeOpacity={0.85}
@@ -112,7 +113,7 @@ function PostGridItem({
                 styles.textPlaceholderLabel,
                 { color: colors.textSecondary },
               ]}
-              numberOfLines={3}
+              numberOfLines={4}
             >
               {post.content}
             </Text>
@@ -326,7 +327,8 @@ export default function PublisherProfileScreen() {
             : ""}
       </Text>
       <Text style={[styles.followersCount, { color: colors.text }]}>
-        {formatFollowers(publisher.followers_count ?? 0)} · {formatFollowing(publisher.following_count ?? 0)}
+        {formatFollowers(publisher.followers_count ?? 0)} ·{" "}
+        {formatFollowing(publisher.following_count ?? 0)}
       </Text>
       {!isOwnProfile && (
         <TouchableOpacity
@@ -474,7 +476,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   title: { fontSize: 18, fontWeight: "600" },
-  listContent: { paddingBottom: 24 },
+  listContent: { paddingHorizontal: GAP, paddingBottom: 24 },
   profileSection: { alignItems: "center", paddingTop: 24, gap: 10 },
   avatar: { width: 96, height: 96, borderRadius: 48 },
   nameRow: { flexDirection: "column", alignItems: "center", gap: 6 },
@@ -498,10 +500,16 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   postsTitle: { fontSize: 15, fontWeight: "600" },
-  gridRow: { gap: GAP, marginBottom: GAP },
+  gridRow: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    gap: GAP,
+    marginBottom: GAP,
+  },
   gridItem: {
     overflow: "hidden",
     backgroundColor: "#000",
+    borderRadius: 8,
   },
   gridImage: {
     width: "100%",

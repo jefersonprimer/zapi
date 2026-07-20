@@ -6,25 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import {
-  Utensils,
-  Croissant,
-  ShoppingBasket,
-  Pill,
-  Hamburger,
-  Coffee,
-  CakeSlice,
-  Beef,
-  Wine,
-  Store,
-  type LucideIcon,
-} from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface CategoryConfig {
   key: string;
   label: string;
-  icon: LucideIcon;
+  iconActive: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  iconInactive: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   color: string;
 }
 
@@ -32,23 +21,73 @@ const CATEGORY_CONFIG: CategoryConfig[] = [
   {
     key: "restaurante",
     label: "Restaurante",
-    icon: Utensils,
+    iconActive: "food",
+    iconInactive: "food-outline",
     color: "#F97316",
   },
-  { key: "fast_food", label: "Fast Food", icon: Hamburger, color: "#EF4444" },
-  { key: "lanchonete", label: "Lanchonete", icon: Coffee, color: "#EAB308" },
-  { key: "padaria", label: "Padaria", icon: Croissant, color: "#D97706" },
+  {
+    key: "fast_food",
+    label: "Fast Food",
+    iconActive: "hamburger",
+    iconInactive: "hamburger", // No outline icon exists for hamburger in MaterialCommunityIcons
+    color: "#EF4444",
+  },
+  {
+    key: "lanchonete",
+    label: "Lanchonete",
+    iconActive: "coffee",
+    iconInactive: "coffee-outline",
+    color: "#EAB308",
+  },
+  {
+    key: "padaria",
+    label: "Padaria",
+    iconActive: "bread-slice",
+    iconInactive: "bread-slice-outline",
+    color: "#D97706",
+  },
   {
     key: "confeitaria",
     label: "Confeitaria",
-    icon: CakeSlice,
+    iconActive: "cake-variant",
+    iconInactive: "cake-variant-outline",
     color: "#EC4899",
   },
-  { key: "acougue", label: "Açougue", icon: Beef, color: "#DC2626" },
-  { key: "mercado", label: "Mercado", icon: ShoppingBasket, color: "#16A34A" },
-  { key: "bebidas", label: "Bebidas", icon: Wine, color: "#7C3AED" },
-  { key: "farmacia", label: "Farmácia", icon: Pill, color: "#059669" },
-  { key: "outro", label: "Outro", icon: Store, color: "#6B7280" },
+  {
+    key: "acougue",
+    label: "Açougue",
+    iconActive: "food-drumstick",
+    iconInactive: "food-drumstick-outline",
+    color: "#DC2626",
+  },
+  {
+    key: "mercado",
+    label: "Mercado",
+    iconActive: "basket",
+    iconInactive: "basket-outline",
+    color: "#16A34A",
+  },
+  {
+    key: "bebidas",
+    label: "Bebidas",
+    iconActive: "bottle-wine",
+    iconInactive: "bottle-wine-outline",
+    color: "#7C3AED",
+  },
+  {
+    key: "farmacia",
+    label: "Farmácia",
+    iconActive: "hospital-box",
+    iconInactive: "hospital-box-outline",
+    color: "#059669",
+  },
+  {
+    key: "outro",
+    label: "Outro",
+    iconActive: "store",
+    iconInactive: "store-outline",
+    color: "#6B7280",
+  },
 ];
 
 interface CategoryGridProps {
@@ -71,7 +110,7 @@ export default function CategoryGrid({
     >
       {CATEGORY_CONFIG.map((cat) => {
         const isSelected = selectedCategory === cat.key;
-        const Icon = cat.icon;
+        const iconName = isSelected ? cat.iconActive : cat.iconInactive;
         return (
           <TouchableOpacity
             key={cat.key}
@@ -88,10 +127,10 @@ export default function CategoryGrid({
                 },
               ]}
             >
-              <Icon
+              <MaterialCommunityIcons
+                name={iconName}
                 size={22}
                 color={isSelected ? "#FFFFFF" : cat.color}
-                strokeWidth={2}
               />
             </View>
             <Text
