@@ -67,6 +67,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/ws", get(handlers::ws::ws_handler))
         .nest("/notes", notes::routes::router())
         .nest("/updates", updates::routes::router())
+        .nest("/delivery", handlers::delivery::router())
         .nest_service("/uploads", ServeDir::new("uploads"))
         .with_state(state)
 }

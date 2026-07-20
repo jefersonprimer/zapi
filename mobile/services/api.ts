@@ -33,6 +33,7 @@ export interface ChatListItem {
   participant_username: string | null;
   participant_avatar_url: string | null;
   participant_name: string | null;
+  participant_store_id?: string | null;
   is_group: boolean;
   name: string | null;
   avatar_url?: string | null;
@@ -75,6 +76,7 @@ export interface Message {
   sender_username: string;
   content: string | null;
   image_url: string | null;
+  order_id?: string | null;
   local_file_path?: string | null; // Local cached file URI
   status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked"; // Delivery status
   created_at: string;

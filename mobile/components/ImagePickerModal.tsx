@@ -18,6 +18,7 @@ interface ImagePickerModalProps {
   onRemoveImage?: () => void;
   hasImage?: boolean;
   title?: string;
+  aspect?: [number, number];
 }
 
 export default function ImagePickerModal({
@@ -27,6 +28,7 @@ export default function ImagePickerModal({
   onRemoveImage,
   hasImage = false,
   title = "Foto do perfil",
+  aspect = [1, 1],
 }: ImagePickerModalProps) {
   const { colors } = useAppTheme();
 
@@ -40,7 +42,7 @@ export default function ImagePickerModal({
 
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
-        aspect: [1, 1],
+        aspect,
         quality: 0.8,
       });
 
@@ -64,7 +66,7 @@ export default function ImagePickerModal({
 
       const result = await ImagePicker.launchImageLibraryAsync({
         allowsEditing: true,
-        aspect: [1, 1],
+        aspect,
         quality: 0.8,
       });
 

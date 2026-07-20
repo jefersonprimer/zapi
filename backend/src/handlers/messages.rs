@@ -131,8 +131,8 @@ pub async fn send_message(
 
     let message_id = Uuid::now_v7();
     let mut msg = sqlx::query_as::<_, Message>(
-        "INSERT INTO messages (id, chat_id, sender_id, content, image_url)
-         VALUES ($1, $2, $3, $4, $5)
+        "INSERT INTO messages (id, chat_id, sender_id, content, image_url, msg_type)
+         VALUES ($1, $2, $3, $4, $5, 'TEXT')
          RETURNING
             id,
             chat_id,
@@ -140,6 +140,8 @@ pub async fn send_message(
             (SELECT username FROM users WHERE id = $3) AS sender_username,
             content,
             image_url,
+            order_id,
+            msg_type,
             created_at,
             deleted_for_everyone,
             deleted_at",
@@ -151,7 +153,8 @@ pub async fn send_message(
     .bind(&body.image_url)
     .fetch_one(&pool)
     .await
-    .map_err(|_| {
+    .map_err(|e| {
+        tracing::error!("Failed to send message: {:?}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({ "error": "failed to send message" })),
@@ -419,7 +422,7 @@ pub async fn get_messages(
 
     let mut messages = if let Some(since) = query.since {
         sqlx::query_as::<_, Message>(
-            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at, m.deleted_for_everyone, m.deleted_at
+            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at
              FROM messages m
              JOIN users u ON u.id = m.sender_id
              JOIN chat_participants cp ON cp.chat_id = m.chat_id AND cp.user_id = $2
@@ -436,7 +439,7 @@ pub async fn get_messages(
     } else {
         // Initial load: return last 50 messages
         sqlx::query_as::<_, Message>(
-            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.created_at, m.deleted_for_everyone, m.deleted_at
+            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at
              FROM (
                  SELECT * FROM messages 
                  WHERE chat_id = $1 

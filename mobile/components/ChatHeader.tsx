@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { Phone as PhoneIcon, MoreVertical as MoreVerticalIcon, Video, ArrowLeft, Trash2, Forward, CornerUpLeft } from "lucide-react-native";
+import { Phone as PhoneIcon, MoreVertical as MoreVerticalIcon, Video, ArrowLeft, Trash2, Forward, CornerUpLeft, ShoppingBag } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useAppTheme } from "@/context/ThemeContext";
 import { voiceCallManager } from "@/services/voiceCallManager";
@@ -24,6 +24,7 @@ interface ChatHeaderProps {
   onDeletePress: () => void;
   onOptionsPress: () => void;
   onMenuPress: () => void;
+  participantStoreId?: string | null;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -44,6 +45,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onDeletePress,
   onOptionsPress,
   onMenuPress,
+  participantStoreId,
 }) => {
   const router = useRouter();
   const { colors } = useAppTheme();
@@ -171,6 +173,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </>
         ) : (
           <>
+            {participantStoreId && (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/delivery/[storeId]",
+                    params: { storeId: participantStoreId },
+                  })
+                }
+                style={styles.headerActionBtn}
+              >
+                <ShoppingBag size={22} color={colors.tint} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() =>
                 voiceCallManager.startCall(

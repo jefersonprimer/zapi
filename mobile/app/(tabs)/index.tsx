@@ -983,7 +983,7 @@ export default function ChatListScreen() {
               { color: isDark ? colors.headerText : colors.tint },
             ]}
           >
-            Zapi
+            Zapi Chat
           </Text>
           <View style={styles.headerRight}>
             <TouchableOpacity
@@ -1266,14 +1266,21 @@ export default function ChatListScreen() {
                         renderListIcon(
                           item.icon,
                           item.color,
-                          isActive ? "#fff" : colors.tint,
+                          isActive
+                            ? isDark
+                              ? "#121212"
+                              : "#fff"
+                            : colors.textSecondary,
                           14,
                         )}
                       <Text
                         style={[
                           styles.filterChipText,
                           { color: colors.textSecondary, fontSize: 14 },
-                          isActive && { color: "#fff", fontWeight: "600" },
+                          isActive && {
+                            color: isDark ? "#121212" : "#fff",
+                            fontWeight: "600",
+                          },
                         ]}
                       >
                         {item.name}

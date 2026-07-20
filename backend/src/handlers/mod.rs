@@ -10,3 +10,4 @@ pub mod ws;
 pub mod calls;
 pub mod contacts;
 pub mod pix;
+pub mod delivery;

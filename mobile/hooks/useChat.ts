@@ -109,6 +109,7 @@ export function useChat() {
   const [calls, setCalls] = useState<CallHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [content, setContent] = useState("");
+  const [participantStoreId, setParticipantStoreId] = useState<string | null>(null);
   const sending = false;
 
   const callState = useCallStore((state) => state.callState);
@@ -228,6 +229,11 @@ export function useChat() {
             : null,
         );
         setClearedAt(currentChat.cleared_at || null);
+        if (currentChat.participant_store_id) {
+          setParticipantStoreId(currentChat.participant_store_id);
+        } else {
+          setParticipantStoreId(null);
+        }
         if (currentChat.is_group) {
           if (currentChat.name) {
             setDisplayTitle(currentChat.name);
@@ -1423,6 +1429,7 @@ export function useChat() {
     isDeleteForEveryoneAvailable,
     deleteModalTitle,
     handleUnblock,
+    participantStoreId,
     user,
     token,
   };

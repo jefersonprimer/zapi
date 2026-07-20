@@ -1,15 +1,15 @@
 import { Platform } from "react-native";
 
-const tintColorLight = "#007AFF";
-const tintColorDark = "#0A84FF";
+const tintColorLight = "#111827";
+const tintColorDark = "#8E8E93";
 
 export const Colors = {
   light: {
     text: "#111827",
     textSecondary: "#6B7280",
 
-    background: "#FAFAFA",      // fundo principal
-    surface: "#FFFFFF",         // cards
+    background: "#FAFAFA", // fundo principal
+    surface: "#FFFFFF", // cards
     cardBackground: "#FFFFFF",
 
     border: "#ECECEC",
@@ -42,8 +42,8 @@ export const Colors = {
     text: "#F9FAFB",
     textSecondary: "#9CA3AF",
 
-    background: "#121212",      // fundo principal
-    surface: "#1A1A1A",         // AppBar
+    background: "#121212", // fundo principal
+    surface: "#1A1A1A", // AppBar
     cardBackground: "#1E1E1E",
 
     border: "#222222",
@@ -52,7 +52,7 @@ export const Colors = {
     icon: "#9CA3AF",
 
     tabIconDefault: "#6B7280",
-    tabIconSelected: tintColorDark,
+    tabIconSelected: "#FFFFFF",
 
     headerBackground: "#121212",
     headerText: "#FFFFFF",
@@ -62,7 +62,7 @@ export const Colors = {
     badge: "#10B981",
     badgeText: "#FFFFFF",
 
-    fab: tintColorDark,
+    fab: "#FFFFFF",
 
     menuBackground: "#242424",
 

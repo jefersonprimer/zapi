@@ -610,6 +610,125 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   }
 
+  if (item.order_id) {
+    return (
+      <View
+        style={{
+          alignSelf: isMine ? "flex-end" : "flex-start",
+          maxWidth: "85%",
+          marginBottom: 8,
+        }}
+      >
+        <View
+          style={[
+            styles.messageBubble,
+            isMine
+              ? [styles.myMessage, { backgroundColor: colors.tint }]
+              : [styles.theirMessage, { backgroundColor: colors.surface }],
+            styles.orderShareCard,
+            { borderColor: colors.border, marginBottom: 0, padding: 12 },
+          ]}
+        >
+          {isGroup && !isMine && item.sender_username ? (
+            <Text
+              style={[
+                styles.senderUsername,
+                { color: colors.tint, marginBottom: 8 },
+              ]}
+            >
+              {item.sender_username}
+            </Text>
+          ) : null}
+          
+          <View style={styles.orderShareHeader}>
+            <View
+              style={[
+                styles.orderShareIconCircle,
+                { backgroundColor: isMine ? "rgba(255, 255, 255, 0.2)" : "rgba(10, 132, 255, 0.15)" },
+              ]}
+            >
+              <MaterialIcons
+                name="shopping-bag"
+                size={20}
+                color={isMine ? "#fff" : colors.tint}
+              />
+            </View>
+            <Text
+              style={[
+                styles.orderShareLabel,
+                { color: isMine ? "#fff" : colors.text, fontWeight: "bold", fontSize: 16 },
+              ]}
+            >
+              Pedido
+            </Text>
+          </View>
+
+          {item.content ? (
+            <Text
+              style={[
+                styles.orderShareContent,
+                {
+                  color: isMine ? "#fff" : colors.text,
+                  marginTop: 10,
+                  fontSize: 14,
+                  lineHeight: 20,
+                },
+              ]}
+            >
+              {item.content}
+            </Text>
+          ) : null}
+
+          <TouchableOpacity
+            style={[
+              styles.orderShareButton,
+              {
+                backgroundColor: isMine ? "#fff" : colors.tint,
+                marginTop: 12,
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: "center",
+              },
+            ]}
+            onPress={() => {
+              router.push({
+                pathname: "/delivery/orders/[id]",
+                params: { id: item.order_id! },
+              });
+            }}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.orderShareButtonText,
+                { color: isMine ? colors.tint : "#fff", fontWeight: "600", fontSize: 14 },
+              ]}
+            >
+              Ver Detalhes do Pedido
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.timeContainer}>
+            <Text
+              style={[
+                styles.messageTime,
+                isMine
+                  ? styles.myMessageTime
+                  : [styles.theirMessageTime, { color: colors.textSecondary }],
+              ]}
+            >
+              {new Date(item.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+            {isMine && renderStatusIcons()}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   if (isNoteShare && noteShareData) {
     return (
       <View
@@ -1296,5 +1415,42 @@ const styles = StyleSheet.create({
   forwardHeaderText: {
     fontSize: 11.5,
     fontWeight: "500",
+  },
+  orderShareCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    width: 250,
+  },
+  orderShareHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  orderShareIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  orderShareLabel: {
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  orderShareContent: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  orderShareButton: {
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  orderShareButtonText: {
+    fontSize: 13,
+    fontWeight: "bold",
   },
 });

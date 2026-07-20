@@ -112,6 +112,7 @@ export default function ChatScreen() {
     isDeleteForEveryoneAvailable,
     deleteModalTitle,
     handleUnblock,
+    participantStoreId,
     user,
   } = useChat();
 
@@ -158,7 +159,26 @@ export default function ChatScreen() {
         onDeletePress={() => setDeleteModalVisible(true)}
         onOptionsPress={() => setOptionsModalVisible(true)}
         onMenuPress={() => setMenuVisible(true)}
+        participantStoreId={participantStoreId}
       />
+
+      {participantStoreId && !isSelectionMode && (
+        <View style={[styles.storeBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Text style={[styles.storeBarText, { color: colors.text }]}>Esta é uma conta comercial</Text>
+          <TouchableOpacity
+            style={[styles.storeBarBtn, { backgroundColor: colors.tint }]}
+            onPress={() =>
+              router.push({
+                pathname: "/delivery/[storeId]",
+                params: { storeId: participantStoreId },
+              })
+            }
+            activeOpacity={0.8}
+          >
+            <Text style={styles.storeBarBtnText}>Ver catálogo</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FlatList
         ref={flatListRef}
@@ -460,5 +480,32 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  storeBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+  },
+  storeBarText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  storeBarBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  storeBarBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "bold",
   },
 });

@@ -216,6 +216,20 @@ function InitialLayout() {
       <Stack.Screen name="saved-posts" options={{ headerShown: false }} />
       <Stack.Screen name="publisher-profile" options={{ headerShown: false }} />
       <Stack.Screen name="comments-modal" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="delivery/index" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/[storeId]" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/cart" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/checkout" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/orders" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/orders/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/addresses" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/vendor/dashboard" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/vendor/create-store" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/vendor/products" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/vendor/categories" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/vendor/orders" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/vendor/coupons" options={{ headerShown: false }} />
+      <Stack.Screen name="delivery/vendor/hours" options={{ headerShown: false }} />
     </Stack>
   );
 }

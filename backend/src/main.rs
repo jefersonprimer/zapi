@@ -1,5 +1,6 @@
 mod auth;
 mod db;
+mod geocode;
 mod handlers;
 mod models;
 pub mod push;
@@ -8,6 +9,7 @@ pub mod ws;
 pub mod signaling;
 pub mod notes;
 pub mod updates;
+pub mod payment;
 
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
@@ -42,6 +44,12 @@ async fn main() {
         ws: ws::WsState::default(),
         call_manager: signaling::CallManager::new(),
     };
+
+    updates::cleanup::start_order_timeout_worker(
+        state.pool.clone(),
+        state.ws.clone(),
+        state.call_manager.clone(),
+    );
 
     let app = routes::create_router(state).layer(CorsLayer::permissive());
 

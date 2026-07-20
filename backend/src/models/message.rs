@@ -30,6 +30,8 @@ pub struct Message {
     pub sender_username: String,
     pub content: Option<String>,
     pub image_url: Option<String>,
+    pub order_id: Option<Uuid>,
+    pub msg_type: String,
     pub created_at: DateTime<Utc>,
     pub deleted_for_everyone: bool,
     pub deleted_at: Option<DateTime<Utc>>,
