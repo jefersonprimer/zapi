@@ -16,9 +16,10 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { ArrowLeft, Plus, Trash2, MapPin, Check, X } from "lucide-react-native";
+import { ArrowLeft, Plus, Trash2, MapPin, Check, X, LocateFixed } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
+import { getCurrentUserAddress } from "@/utils/location";
 import {
   listAddresses,
   createAddress,
@@ -48,6 +49,8 @@ interface AddressForm {
   numero: string;
   ponto_referencia: string;
   is_default: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 const emptyForm: AddressForm = {
@@ -60,6 +63,8 @@ const emptyForm: AddressForm = {
   numero: "",
   ponto_referencia: "",
   is_default: false,
+  latitude: null,
+  longitude: null,
 };
 
 export default function AddressesScreen() {
@@ -74,6 +79,7 @@ export default function AddressesScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<AddressForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   const loadAddresses = useCallback(async () => {
     if (!token) return;
@@ -107,12 +113,43 @@ export default function AddressesScreen() {
         numero: addr.numero,
         ponto_referencia: addr.ponto_referencia || "",
         is_default: addr.is_default,
+        latitude: addr.latitude,
+        longitude: addr.longitude,
       });
     } else {
       setEditingId(null);
       setForm(emptyForm);
     }
     setShowForm(true);
+  };
+
+  const handleUseLocation = async () => {
+    setGettingLocation(true);
+    try {
+      const loc = await getCurrentUserAddress();
+      setForm((prev) => ({
+        ...prev,
+        estado: loc.estado || prev.estado,
+        cidade: loc.cidade || prev.cidade,
+        bairro: loc.bairro || prev.bairro,
+        cep: loc.cep || prev.cep,
+        rua: loc.rua || prev.rua,
+        numero: loc.numero || prev.numero,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+      }));
+      Alert.alert(
+        "Localização obtida!",
+        "Os campos do seu endereço foram preenchidos automaticamente com base na sua localização atual. Confira os dados e ajuste o número ou complemento se necessário."
+      );
+    } catch (err: any) {
+      Alert.alert(
+        "Erro ao obter localização",
+        err.message || "Não foi possível obter sua localização atual."
+      );
+    } finally {
+      setGettingLocation(false);
+    }
   };
 
   const handleSave = async () => {
@@ -258,6 +295,21 @@ export default function AddressesScreen() {
             </View>
 
             <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+              <TouchableOpacity
+                style={[styles.locationBtn, { backgroundColor: `${colors.tint}15`, borderColor: colors.tint }]}
+                onPress={handleUseLocation}
+                disabled={gettingLocation}
+              >
+                {gettingLocation ? (
+                  <ActivityIndicator size="small" color={colors.tint} />
+                ) : (
+                  <LocateFixed color={colors.tint} size={18} />
+                )}
+                <Text style={[styles.locationBtnText, { color: colors.tint }]}>
+                  {gettingLocation ? "Buscando localização..." : "Usar minha localização atual"}
+                </Text>
+              </TouchableOpacity>
+
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Tipo *</Text>
               <View style={styles.labelRow}>
                 {LABELS.map((l) => (
@@ -433,6 +485,21 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 17, fontWeight: "600" },
   modalBody: { flex: 1 },
   modalBodyContent: { padding: 16, paddingBottom: 40 },
+  locationBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  locationBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
   fieldLabel: { fontSize: 13, fontWeight: "500", marginBottom: 6, marginTop: 12 },
   labelRow: { flexDirection: "row", gap: 8 },
   labelChip: {

@@ -26,23 +26,18 @@ import {
   Plus,
   Edit,
   Trash2,
-  Layers,
   Image as ImageIcon,
   Check,
   X,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
-  DollarSign,
-  Tag,
-  Eye,
-  EyeOff,
   Package,
   ShoppingBag,
   ListPlus,
   Loader2,
   Trash
 } from "lucide-react";
+import Image from "next/image";
 
 interface ProductFormData {
   name: string;
@@ -113,7 +108,17 @@ export default function ProdutosPage() {
   }, [token]);
 
   useEffect(() => {
-    load();
+    let active = true;
+    const init = async () => {
+      await Promise.resolve();
+      if (active) {
+        load();
+      }
+    };
+    init();
+    return () => {
+      active = false;
+    };
   }, [load]);
 
   const filtered = products.filter((p) =>
@@ -421,10 +426,13 @@ export default function ProdutosPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {p.image ? (
-                            <img
+                            <Image
                               src={`${API_URL}${p.image}`}
                               alt={p.name}
+                              width={44}
+                              height={44}
                               className="h-11 w-11 rounded-xl object-cover shadow-xs border border-slate-100 dark:border-slate-800 transition-transform group-hover:scale-[1.03]"
+                              unoptimized
                             />
                           ) : (
                             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-600 border border-slate-100 dark:border-slate-850">
@@ -503,7 +511,14 @@ export default function ProdutosPage() {
               <div key={p.id} className="rounded-2xl border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 p-4 shadow-xs">
                 <div className="flex gap-3">
                   {p.image ? (
-                    <img src={`${API_URL}${p.image}`} alt={p.name} className="h-14 w-14 rounded-xl object-cover border border-slate-100 dark:border-slate-850" />
+                    <Image
+                      src={`${API_URL}${p.image}`}
+                      alt={p.name}
+                      width={56}
+                      height={56}
+                      className="h-14 w-14 rounded-xl object-cover border border-slate-100 dark:border-slate-850"
+                      unoptimized
+                    />
                   ) : (
                     <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-600 border border-slate-100 dark:border-slate-850">
                       <Package className="h-6 w-6" />
@@ -687,10 +702,13 @@ export default function ProdutosPage() {
                   
                   {form.image ? (
                     <div className="relative group/img-preview">
-                      <img
+                      <Image
                         src={`${API_URL}${form.image}`}
                         alt="Preview"
+                        width={64}
+                        height={64}
                         className="h-16 w-16 rounded-xl object-cover border border-slate-200 dark:border-slate-800 shadow-sm"
+                        unoptimized
                       />
                       <button
                         type="button"

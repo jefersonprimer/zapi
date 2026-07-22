@@ -63,7 +63,17 @@ export default function CategoriasPage() {
   }, [token]);
 
   useEffect(() => {
-    load();
+    let active = true;
+    const init = async () => {
+      await Promise.resolve();
+      if (active) {
+        load();
+      }
+    };
+    init();
+    return () => {
+      active = false;
+    };
   }, [load]);
 
   const handleCreate = async () => {

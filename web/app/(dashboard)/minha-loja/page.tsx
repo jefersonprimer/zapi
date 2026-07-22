@@ -19,18 +19,17 @@ import {
   AlertCircle,
   CheckCircle2,
   Camera,
-  Upload,
   Sparkles,
   Copy,
   Check,
   ArrowLeft,
-  Settings,
-  ChevronRight,
   ShieldCheck,
-  Map,
-  DollarSign as MoneyIcon,
-  Activity
+  Activity,
+  Pencil,
 } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { getImageUrl } from "@/lib/utils";
 
 const EMPTY_FORM = {
   name: "",
@@ -61,7 +60,7 @@ export default function LojaPage() {
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [copied, setCopied] = useState(false);
-  
+
   const avatarInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
 
@@ -217,7 +216,6 @@ export default function LojaPage() {
         }
       );
       setStore(data.store);
-      // Synchronize form
       setForm(prev => ({
         ...prev,
         [field]: data.store[field] ?? true
@@ -227,7 +225,7 @@ export default function LojaPage() {
           ? (data.store.accepts_delivery ? "Opção de entrega ativada!" : "Opção de entrega desativada.")
           : (data.store.accepts_pickup ? "Opção de retirada ativada!" : "Opção de retirada desativada.")
       );
-    } catch (e: unknown) {
+    } catch {
       showToast("Erro ao atualizar modo de operação", "error");
     } finally {
       setTogglingModes(null);
@@ -308,7 +306,7 @@ export default function LojaPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-850 shadow-sm transition-all hover:shadow-md">
+          <div className="bg-white dark:bg-[#1a1a2e] p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm transition-all hover:shadow-md">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4">
               <Truck className="w-5 h-5" />
             </div>
@@ -319,7 +317,7 @@ export default function LojaPage() {
               Defina taxas de entrega dinâmicas e decida se deseja aceitar entregas ou retirada no local.
             </p>
           </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-850 shadow-sm transition-all hover:shadow-md">
+          <div className="bg-white dark:bg-[#1a1a2e] p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm transition-all hover:shadow-md">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4">
               <Clock className="w-5 h-5" />
             </div>
@@ -330,7 +328,7 @@ export default function LojaPage() {
               Determine o tempo médio de preparo dos pedidos para manter seus clientes informados e satisfeitos.
             </p>
           </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-850 shadow-sm transition-all hover:shadow-md">
+          <div className="bg-white dark:bg-[#1a1a2e] p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm transition-all hover:shadow-md">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4">
               <CreditCard className="w-5 h-5" />
             </div>
@@ -356,44 +354,11 @@ export default function LojaPage() {
     );
   }
 
-  const statCards = store ? [
-    {
-      label: "Taxa de Entrega",
-      value: store.delivery_fee === 0 ? "Grátis" : `R$ ${store.delivery_fee.toFixed(2)}`,
-      icon: Truck,
-      color: "text-emerald-500 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30",
-    },
-    {
-      label: "Pedido Mínimo",
-      value: `R$ ${(store.minimum_order ?? 0).toFixed(2)}`,
-      icon: DollarSign,
-      color: "text-amber-500 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30",
-    },
-    {
-      label: "Tempo de Preparo",
-      value: `${store.prep_time_minutes ?? 20} min`,
-      icon: Clock,
-      color: "text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30",
-    },
-    {
-      label: "Canais de Retirada",
-      value: store.accepts_delivery && store.accepts_pickup
-        ? "Entrega e Retirada"
-        : store.accepts_delivery
-        ? "Apenas Entrega"
-        : store.accepts_pickup
-        ? "Apenas Retirada"
-        : "Nenhum Ativo",
-      icon: StoreIcon,
-      color: "text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30",
-    },
-  ] : [];
-
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      {/* Toast Alert */}
+    <div className="max-w-5xl mx-auto space-y-5 pb-12">
+      {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl border animate-in slide-in-from-bottom duration-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl border animate-in slide-in-from-bottom duration-300 bg-white dark:bg-[#1a1a2e] border-gray-200 dark:border-gray-800">
           {toast.type === "success" ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
           ) : (
@@ -405,7 +370,7 @@ export default function LojaPage() {
         </div>
       )}
 
-      {/* Main Error Alert */}
+      {/* Error */}
       {error && (
         <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 text-red-800 dark:text-red-400 px-4 py-3 rounded-xl text-sm flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
@@ -434,36 +399,36 @@ export default function LojaPage() {
       ) : (
         store && (
           <>
-            {/* Banner & Avatar Wrapper */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-850 overflow-hidden shadow-sm">
-              {/* Banner Area */}
-              <div className="relative h-48 sm:h-64 bg-slate-100 dark:bg-slate-950 group/banner overflow-hidden">
+            {/* ===== HEADER: Banner + Profile ===== */}
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1a2e] overflow-hidden shadow-sm">
+              {/* Banner - compact */}
+              <div className="relative h-32 sm:h-36 bg-slate-100 dark:bg-slate-950 group/banner overflow-hidden">
                 {store.image_banner ? (
-                  <img
-                    src={store.image_banner}
+                  <Image
+                    src={getImageUrl(store.image_banner)}
                     alt="Banner da Loja"
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover/banner:scale-103"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover/banner:scale-[1.02]"
+                    unoptimized
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-800 flex items-center justify-center text-white/20">
-                    <Sparkles className="w-16 h-16 animate-pulse" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-700 flex items-center justify-center text-white/10">
+                    <Sparkles className="w-12 h-12" />
                   </div>
                 )}
-                {/* Banner Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/5" />
 
-                {/* Edit Banner Trigger */}
                 <button
                   onClick={() => bannerInput.current?.click()}
                   disabled={uploadingBanner}
-                  className="absolute top-4 right-4 bg-slate-900/60 hover:bg-slate-900/90 text-white px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur-md border border-white/10 active:scale-95"
+                  className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur-sm border border-white/10"
                 >
                   {uploadingBanner ? (
-                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
                   ) : (
-                    <Camera className="w-3.5 h-3.5" />
+                    <Camera className="w-3 h-3" />
                   )}
-                  <span>Alterar Capa</span>
+                  <span>Capa</span>
                 </button>
                 <input
                   ref={bannerInput}
@@ -477,35 +442,37 @@ export default function LojaPage() {
                 />
               </div>
 
-              {/* Profile Details (Avatar and Name overlay) */}
-              <div className="px-6 pb-6 -mt-16 sm:-mt-20 relative z-10 flex flex-col sm:flex-row items-center sm:items-end gap-6 text-center sm:text-left">
+              {/* Profile row */}
+              <div className="px-5 pb-5 -mt-10 relative z-10 flex items-end gap-4">
                 {/* Avatar */}
-                <div className="relative group/avatar">
-                  <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-md border-4 border-white dark:border-slate-900 overflow-hidden">
+                <div className="relative group/avatar shrink-0">
+                  <div className="w-20 h-20 rounded-xl bg-white dark:bg-[#1a1a2e] p-1 shadow-md border-3 border-white dark:border-[#1a1a2e] overflow-hidden">
                     {store.avatar ? (
-                      <img
-                        src={store.avatar}
+                      <Image
+                        src={getImageUrl(store.avatar)}
                         alt={store.name}
-                        className="w-full h-full object-cover rounded-xl"
+                        width={80}
+                        height={80}
+                        className="w-full h-full object-cover rounded-lg"
+                        unoptimized
                       />
                     ) : (
-                      <div className="w-full h-full rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-4xl font-extrabold text-white">
+                      <div className="w-full h-full rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-2xl font-extrabold text-white">
                         {store.name[0]?.toUpperCase()}
                       </div>
                     )}
                   </div>
-                  {/* Upload Avatar Trigger */}
                   <button
                     onClick={() => avatarInput.current?.click()}
                     disabled={uploadingAvatar}
-                    className="absolute inset-1 rounded-2xl bg-slate-900/50 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-200 cursor-pointer"
+                    className="absolute inset-1 rounded-xl bg-black/50 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-200 cursor-pointer"
                   >
                     {uploadingAvatar ? (
-                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" />
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
                     ) : (
                       <>
-                        <Camera className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-semibold">Alterar Foto</span>
+                        <Camera className="w-4 h-4 mb-0.5" />
+                        <span className="text-[9px] font-semibold">Foto</span>
                       </>
                     )}
                   </button>
@@ -521,58 +488,52 @@ export default function LojaPage() {
                   />
                 </div>
 
-                {/* Name / Category / Actions */}
-                <div className="flex-1 pb-2">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                          {store.name}
-                        </h1>
-                        <span className="px-3 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/20">
+                {/* Info + Actions */}
+                <div className="flex-1 min-w-0 pb-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight truncate">
+                        {store.name}
+                      </h1>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <span className="inline-flex items-center gap-1">
+                          <StoreIcon className="w-3.5 h-3.5" />
                           {STORE_CATEGORIES[store.category] || store.category}
                         </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-amber-400">★</span>
+                          {store.score && store.score > 0 ? store.score.toFixed(1) : "—"}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {store.city}, {store.state}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 font-semibold ${store.is_open ? "text-emerald-500" : "text-gray-400"}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${store.is_open ? "bg-emerald-500" : "bg-gray-400"}`} />
+                          {store.is_open ? "Aberta agora" : "Fechada"}
+                        </span>
                       </div>
-                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-center sm:justify-start gap-1">
-                        <MapPin className="w-4 h-4 text-slate-400" />
-                        {store.city}, {store.state}
-                      </p>
                     </div>
 
-                    {/* Actions Panel */}
-                    <div className="flex items-center justify-center sm:justify-start gap-3">
-                      {/* Interactive Open/Close Toggle Button */}
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={handleToggle}
                         disabled={toggling}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                           store.is_open
-                            ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/10 active:scale-95"
-                            : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/10 active:scale-95"
+                            ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                            : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
                         } disabled:opacity-50`}
                       >
-                        <span className="relative flex h-2 w-2">
-                          {store.is_open && (
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                          )}
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                        </span>
-                        <span>
-                          {toggling
-                            ? "Salvando..."
-                            : store.is_open
-                            ? "Loja Aberta"
-                            : "Loja Fechada"}
-                        </span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${store.is_open ? "bg-white" : "bg-gray-500"}`} />
+                        {toggling ? "..." : store.is_open ? "Aberta" : "Fechada"}
                       </button>
-
-                      {/* Edit Button */}
                       <button
                         onClick={() => setEditing(true)}
-                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-200 text-sm font-semibold transition-colors cursor-pointer shadow-xs"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a2e] hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 text-xs font-semibold transition-colors cursor-pointer"
                       >
-                        <Settings className="w-4 h-4 text-slate-400" />
-                        <span>Configurar</span>
+                        <Pencil className="w-3.5 h-3.5" />
+                        Editar
                       </button>
                     </div>
                   </div>
@@ -580,24 +541,53 @@ export default function LojaPage() {
               </div>
             </div>
 
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {statCards.map((stat, i) => {
-                const Icon = stat.icon;
+            {/* ===== STATS: Frete, Mínimo, Preparo, Retirada ===== */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                {
+                  label: "Frete",
+                  value: store.delivery_fee === 0 ? "Grátis" : `R$ ${store.delivery_fee.toFixed(2)}`,
+                  icon: Truck,
+                  iconColor: "text-emerald-500",
+                  bg: "bg-emerald-50 dark:bg-emerald-900/20",
+                },
+                {
+                  label: "Pedido mínimo",
+                  value: `R$ ${(store.minimum_order ?? 0).toFixed(2)}`,
+                  icon: DollarSign,
+                  iconColor: "text-amber-500",
+                  bg: "bg-amber-50 dark:bg-amber-900/20",
+                },
+                {
+                  label: "Preparo",
+                  value: `${store.prep_time_minutes ?? 20} min`,
+                  icon: Clock,
+                  iconColor: "text-blue-500",
+                  bg: "bg-blue-50 dark:bg-blue-900/20",
+                },
+                {
+                  label: "Retirada",
+                  value: store.accepts_pickup ? "Disponível" : "Indisponível",
+                  icon: StoreIcon,
+                  iconColor: store.accepts_pickup ? "text-emerald-500" : "text-gray-400",
+                  bg: store.accepts_pickup ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-gray-100 dark:bg-gray-800/40",
+                },
+              ].map((s) => {
+                const Icon = s.icon;
                 return (
                   <div
-                    key={i}
-                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-850 p-4 shadow-xs flex items-center gap-4 transition-all hover:-translate-y-0.5"
+                    key={s.label}
+                    className="bg-white dark:bg-[#1a1a2e] rounded-xl border border-gray-200 dark:border-gray-800 p-3.5 shadow-sm flex items-center gap-3"
                   >
-                    <div className={`p-3 rounded-xl ${stat.color} shrink-0`}>
-                      <Icon className="w-5 h-5" />
+                    <div className={`p-2 rounded-lg ${s.bg} ${s.iconColor} shrink-0`}>
+                      <Icon className="w-4 h-4" />
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        {stat.label}
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                        {s.label}
                       </p>
-                      <p className="text-base font-bold text-slate-900 dark:text-white mt-0.5 leading-tight">
-                        {stat.value}
+                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">
+                        {s.value}
                       </p>
                     </div>
                   </div>
@@ -605,141 +595,163 @@ export default function LojaPage() {
               })}
             </div>
 
-            {/* Content Two-Column Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Side (About & Operation Settings) */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* About & Description */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-850 p-6 shadow-xs">
-                  <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">
-                    Sobre o Estabelecimento
-                  </h3>
+            {/* ===== GRID: Informações + Sidebar ===== */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+              {/* LEFT: Informações da loja */}
+              <div className="lg:col-span-3 space-y-5">
+
+                {/* Sobre */}
+                <div className="bg-white dark:bg-[#1a1a2e] rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Sobre</h3>
+                    {store.description && (
+                      <button
+                        onClick={() => setEditing(true)}
+                        className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        Editar
+                      </button>
+                    )}
+                  </div>
                   {store.description ? (
-                    <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-line">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
                       {store.description}
                     </p>
                   ) : (
-                    <div className="text-center py-6 text-slate-400 dark:text-slate-600 text-sm">
-                      Nenhuma descrição cadastrada para esta loja.
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-400 dark:text-gray-500">
+                        Ainda não existe descrição.
+                      </p>
+                      <button
+                        onClick={() => setEditing(true)}
+                        className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer shrink-0 ml-4"
+                      >
+                        Adicionar
+                      </button>
                     </div>
                   )}
                 </div>
 
-                {/* Interactive Operating Mode Panel */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-850 p-6 shadow-xs">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Activity className="w-4 h-4 text-emerald-500" />
-                    <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                      Modos de Operação
-                    </h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Delivery Toggle Card */}
-                    <div
-                      onClick={() => handleToggleMode("accepts_delivery")}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between group ${
-                        store.accepts_delivery
-                          ? "border-emerald-500/80 bg-emerald-50/20 dark:bg-emerald-950/10"
-                          : "border-slate-200 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-800"
-                      } ${togglingModes === "accepts_delivery" ? "opacity-50 pointer-events-none" : ""}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-xl ${store.accepts_delivery ? "bg-emerald-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-550"}`}>
-                          <Truck className="w-5 h-5" />
+                {/* Contato */}
+                <div className="bg-white dark:bg-[#1a1a2e] rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Contato</h3>
+                  <div className="space-y-3">
+                    {store.phone && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{store.phone}</span>
                         </div>
-                        <div>
-                          <p className="font-bold text-sm text-slate-900 dark:text-white">Aceitar Entrega</p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Leve o produto até o cliente</p>
-                        </div>
+                        <a
+                          href={`tel:${store.phone}`}
+                          className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                        >
+                          Ligar
+                        </a>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${store.accepts_delivery ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300 dark:border-slate-700"}`}>
-                        {store.accepts_delivery && <Check className="w-3 h-3" />}
-                      </div>
-                    </div>
-
-                    {/* Pickup Toggle Card */}
-                    <div
-                      onClick={() => handleToggleMode("accepts_pickup")}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between group ${
-                        store.accepts_pickup
-                          ? "border-emerald-500/80 bg-emerald-50/20 dark:bg-emerald-950/10"
-                          : "border-slate-200 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-800"
-                      } ${togglingModes === "accepts_pickup" ? "opacity-50 pointer-events-none" : ""}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-xl ${store.accepts_pickup ? "bg-emerald-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-550"}`}>
-                          <StoreIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm text-slate-900 dark:text-white">Aceitar Retirada</p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Clientes retiram no balcão</p>
-                        </div>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${store.accepts_pickup ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300 dark:border-slate-700"}`}>
-                        {store.accepts_pickup && <Check className="w-3 h-3" />}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Side (Contact, Pix & Rating Summary) */}
-              <div className="space-y-6">
-                {/* Contact & Pix Panel */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-850 p-6 shadow-xs space-y-4">
-                  <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-                    Contato & Recebimentos
-                  </h3>
-
-                  {/* Phone */}
-                  {store.phone && (
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 mt-0.5">
-                        <Phone className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400 dark:text-slate-550 font-medium">Telefone de Contato</p>
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">{store.phone}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pix Key */}
-                  <div className="flex items-start gap-3 pt-2">
-                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 mt-0.5">
-                      <CreditCard className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-400 dark:text-slate-550 font-medium">Chave Pix de Recebimento</p>
-                      <div className="flex items-center gap-2 mt-1 bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-850">
-                        <span className="text-xs font-mono text-slate-650 dark:text-slate-400 truncate flex-1 select-all">
+                    )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <CreditCard className="w-4 h-4 text-purple-500 shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate font-mono">
                           {store.pix_key}
                         </span>
-                        <button
-                          onClick={handleCopyPix}
-                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0 cursor-pointer p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-                          title="Copiar Chave Pix"
-                        >
-                          {copied ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-500" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                          )}
-                        </button>
+                      </div>
+                      <button
+                        onClick={handleCopyPix}
+                        className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1 shrink-0 ml-3"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="w-3 h-3" />
+                            Copiado
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            Copiar
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Horários */}
+                {store.hours && store.hours.length > 0 && (
+                  <div className="bg-white dark:bg-[#1a1a2e] rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Horários</h3>
+                      <Link
+                        href="/horarios"
+                        className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+                      >
+                        Gerenciar
+                      </Link>
+                    </div>
+                    <div className="space-y-2">
+                      {store.hours.slice(0, 7).map((h) => (
+                        <div key={h.day_of_week} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500 dark:text-gray-400">
+                            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][h.day_of_week]}
+                          </span>
+                          <span className="text-gray-700 dark:text-gray-300 font-mono text-xs">
+                            {h.open_time?.slice(0, 5)} — {h.close_time?.slice(0, 5)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT: Operação + Avaliações */}
+              <div className="space-y-5">
+
+                {/* Modos de operação */}
+                <div className="bg-white dark:bg-[#1a1a2e] rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Operação</h3>
+                  <div className="space-y-3">
+                    {/* Delivery */}
+                    <div
+                      onClick={() => handleToggleMode("accepts_delivery")}
+                      className={`flex items-center justify-between cursor-pointer p-2.5 rounded-lg transition-colors ${
+                        togglingModes === "accepts_delivery" ? "opacity-50 pointer-events-none" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Truck className="w-4 h-4 text-emerald-500" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Entrega</span>
+                      </div>
+                      <div className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${store.accepts_delivery ? "bg-emerald-500 justify-end" : "bg-gray-300 dark:bg-gray-600 justify-start"}`}>
+                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                      </div>
+                    </div>
+                    {/* Pickup */}
+                    <div
+                      onClick={() => handleToggleMode("accepts_pickup")}
+                      className={`flex items-center justify-between cursor-pointer p-2.5 rounded-lg transition-colors ${
+                        togglingModes === "accepts_pickup" ? "opacity-50 pointer-events-none" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <StoreIcon className="w-4 h-4 text-purple-500" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Retirada</span>
+                      </div>
+                      <div className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${store.accepts_pickup ? "bg-emerald-500 justify-end" : "bg-gray-300 dark:bg-gray-600 justify-start"}`}>
+                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Score & Reviews Panel */}
-                {(store.score !== undefined && store.score > 0) && (
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-850 p-6 shadow-xs">
-                    <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
-                      Avaliação dos Clientes
-                    </h3>
+                {/* Avaliação */}
+                <div className="bg-white dark:bg-[#1a1a2e] rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Avaliação</h3>
+                  {(store.score !== undefined && store.score > 0) ? (
                     <div className="flex items-center gap-4">
-                      <div className="text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+                      <div className="text-4xl font-black text-gray-900 dark:text-white">
                         {store.score.toFixed(1)}
                       </div>
                       <div>
@@ -747,10 +759,10 @@ export default function LojaPage() {
                           {[...Array(5)].map((_, i) => (
                             <svg
                               key={i}
-                              className={`w-5 h-5 ${
+                              className={`w-4 h-4 ${
                                 i < Math.round(store.score || 0)
                                   ? "fill-current"
-                                  : "text-slate-200 dark:text-slate-800"
+                                  : "text-gray-200 dark:text-gray-700"
                               }`}
                               viewBox="0 0 20 20"
                               fill="currentColor"
@@ -759,13 +771,38 @@ export default function LojaPage() {
                             </svg>
                           ))}
                         </div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1 font-medium">
-                          Média de {store.ratings_count ?? 0} avaliações
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
+                          {store.ratings_count ?? 0} avaliações
                         </span>
                       </div>
                     </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 dark:text-gray-500">
+                      Nenhuma avaliação ainda.
+                    </p>
+                  )}
+                </div>
+
+                {/* Ações rápidas */}
+                <div className="bg-white dark:bg-[#1a1a2e] rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Ações rápidas</h3>
+                  <div className="space-y-2">
+                    <Link
+                      href="/produtos"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4 text-emerald-500" />
+                      Criar produto
+                    </Link>
+                    <Link
+                      href="/pedidos"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                    >
+                      <Activity className="w-4 h-4 text-blue-500" />
+                      Ver pedidos
+                    </Link>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </>
@@ -794,26 +831,26 @@ function StoreForm({
   onCancel,
   isNew,
 }: StoreFormProps) {
-  function update(field: string, value: any) {
+  function update(field: keyof typeof EMPTY_FORM, value: typeof EMPTY_FORM[keyof typeof EMPTY_FORM]) {
     setForm({ ...form, [field]: value });
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-850 p-6 md:p-8 shadow-sm max-w-3xl mx-auto">
+    <div className="bg-white dark:bg-[#1a1a2e] rounded-2xl border border-gray-200 dark:border-gray-800 p-6 md:p-8 shadow-sm max-w-3xl mx-auto">
       {/* Header Form */}
       <div className="flex items-center gap-4 mb-8">
         <button
           type="button"
           onClick={onCancel}
-          className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+          className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
             {isNew ? "Criar Minha Loja" : "Configurações do Estabelecimento"}
           </h2>
-          <p className="text-sm text-slate-400 dark:text-slate-500 mt-0.5">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Insira os dados essenciais da sua loja para receber pedidos.
           </p>
         </div>
@@ -829,16 +866,16 @@ function StoreForm({
       <form onSubmit={onSubmit} className="space-y-8">
         {/* SECTION: BASIC INFO */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">
-            <StoreIcon className="w-4.5 h-4.5 text-emerald-500" />
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-2 mb-4">
+            <StoreIcon className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
               Identificação & Categoria
             </h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Nome da loja *
               </label>
               <input
@@ -847,18 +884,18 @@ function StoreForm({
                 value={form.name}
                 onChange={(e) => update("name", e.target.value)}
                 placeholder="Ex: Cantina do Nono, Farmácia Central"
-                className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Categoria *
               </label>
               <select
                 required
                 value={form.category}
                 onChange={(e) => update("category", e.target.value)}
-                className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer transition-all"
+                className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer transition-all"
               >
                 {Object.entries(STORE_CATEGORIES).map(([key, label]) => (
                   <option key={key} value={key}>
@@ -870,7 +907,7 @@ function StoreForm({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
               Descrição
             </label>
             <textarea
@@ -878,23 +915,23 @@ function StoreForm({
               value={form.description}
               onChange={(e) => update("description", e.target.value)}
               placeholder="Fale um pouco sobre a sua loja, especialidades, política de atendimento..."
-              className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none transition-all placeholder:text-slate-400"
+              className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none transition-all placeholder:text-gray-400"
             />
           </div>
         </div>
 
         {/* SECTION: CONTACT & FINANCES */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">
-            <CreditCard className="w-4.5 h-4.5 text-emerald-500" />
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-2 mb-4">
+            <CreditCard className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
               Contato & Pagamento
             </h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Telefone de Contato
               </label>
               <input
@@ -902,11 +939,11 @@ function StoreForm({
                 value={form.phone}
                 onChange={(e) => update("phone", e.target.value)}
                 placeholder="Ex: (51) 99999-9999"
-                className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Chave Pix de Recebimento *
               </label>
               <input
@@ -915,7 +952,7 @@ function StoreForm({
                 value={form.pix_key}
                 onChange={(e) => update("pix_key", e.target.value)}
                 placeholder="Celular, CNPJ, E-mail ou Chave Aleatória"
-                className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400"
               />
             </div>
           </div>
@@ -923,16 +960,16 @@ function StoreForm({
 
         {/* SECTION: ADDRESS */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">
-            <Map className="w-4.5 h-4.5 text-emerald-500" />
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-2 mb-4">
+            <MapPin className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
               Localização
             </h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Cidade *
               </label>
               <input
@@ -941,11 +978,11 @@ function StoreForm({
                 value={form.city}
                 onChange={(e) => update("city", e.target.value)}
                 placeholder="Ex: Porto Alegre"
-                className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Estado (UF) *
               </label>
               <input
@@ -957,7 +994,7 @@ function StoreForm({
                   update("state", e.target.value.toUpperCase().slice(0, 2))
                 }
                 placeholder="RS"
-                className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none uppercase transition-all placeholder:text-slate-400"
+                className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none uppercase transition-all placeholder:text-gray-400"
               />
             </div>
           </div>
@@ -965,16 +1002,16 @@ function StoreForm({
 
         {/* SECTION: DELIVERY CONFIGS */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">
-            <MoneyIcon className="w-4.5 h-4.5 text-emerald-500" />
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-2 mb-4">
+            <DollarSign className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
               Logística & Valores
             </h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Taxa de entrega (R$)
               </label>
               <input
@@ -983,11 +1020,11 @@ function StoreForm({
                 min="0"
                 value={form.delivery_fee}
                 onChange={(e) => update("delivery_fee", e.target.value)}
-                className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Pedido mínimo (R$)
               </label>
               <input
@@ -996,11 +1033,11 @@ function StoreForm({
                 min="0"
                 value={form.minimum_order}
                 onChange={(e) => update("minimum_order", e.target.value)}
-                className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Preparo padrão (min)
               </label>
               <input
@@ -1008,7 +1045,7 @@ function StoreForm({
                 min="1"
                 value={form.prep_time_minutes}
                 onChange={(e) => update("prep_time_minutes", e.target.value)}
-                className="w-full border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                className="w-full border border-gray-250 dark:border-gray-700 dark:bg-slate-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               />
             </div>
           </div>
@@ -1016,56 +1053,56 @@ function StoreForm({
 
         {/* SECTION: OPERATING MODES */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">
-            <ShieldCheck className="w-4.5 h-4.5 text-emerald-500" />
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-2 mb-4">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
               Modo de Operação
             </h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Delivery Toggle Checkbox Card */}
+            {/* Delivery Toggle */}
             <div
               onClick={() => update("accepts_delivery", !form.accepts_delivery)}
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between group ${
                 form.accepts_delivery
                   ? "border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/10"
-                  : "border-slate-250 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl transition-colors ${form.accepts_delivery ? "bg-emerald-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"}`}>
+                <div className={`p-2 rounded-xl transition-colors ${form.accepts_delivery ? "bg-emerald-500 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"}`}>
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm text-slate-800 dark:text-slate-200">Aceito fazer Entregas</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">Levar o pedido até a residência</p>
+                  <p className="font-bold text-sm text-gray-800 dark:text-gray-200">Aceito fazer Entregas</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Levar o pedido até a residência</p>
                 </div>
               </div>
-              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${form.accepts_delivery ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-350 dark:border-slate-700"}`}>
+              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${form.accepts_delivery ? "border-emerald-500 bg-emerald-500 text-white" : "border-gray-300 dark:border-gray-600"}`}>
                 {form.accepts_delivery && <Check className="w-3.5 h-3.5" />}
               </div>
             </div>
 
-            {/* Pickup Toggle Checkbox Card */}
+            {/* Pickup Toggle */}
             <div
               onClick={() => update("accepts_pickup", !form.accepts_pickup)}
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between group ${
                 form.accepts_pickup
                   ? "border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/10"
-                  : "border-slate-250 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl transition-colors ${form.accepts_pickup ? "bg-emerald-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"}`}>
+                <div className={`p-2 rounded-xl transition-colors ${form.accepts_pickup ? "bg-emerald-500 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"}`}>
                   <StoreIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm text-slate-800 dark:text-slate-200">Aceito Retiradas</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">Cliente retira no estabelecimento</p>
+                  <p className="font-bold text-sm text-gray-800 dark:text-gray-200">Aceito Retiradas</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Cliente retira no estabelecimento</p>
                 </div>
               </div>
-              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${form.accepts_pickup ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-350 dark:border-slate-700"}`}>
+              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${form.accepts_pickup ? "border-emerald-500 bg-emerald-500 text-white" : "border-gray-300 dark:border-gray-600"}`}>
                 {form.accepts_pickup && <Check className="w-3.5 h-3.5" />}
               </div>
             </div>
@@ -1073,7 +1110,7 @@ function StoreForm({
         </div>
 
         {/* SUBMIT BUTTONS */}
-        <div className="flex items-center gap-4 pt-4 border-t border-slate-150 dark:border-slate-800">
+        <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
           <button
             type="submit"
             disabled={saving}
@@ -1082,14 +1119,14 @@ function StoreForm({
             {saving ? (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
             ) : (
-              <CheckCircle2 className="w-4.5 h-4.5" />
+              <CheckCircle2 className="w-4 h-4" />
             )}
             <span>{saving ? "Salvando..." : isNew ? "Criar Minha Loja" : "Salvar Configurações"}</span>
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer"
+            className="px-5 py-3 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-xl transition-colors hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer"
           >
             Cancelar
           </button>

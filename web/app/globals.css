@@ -1,41 +1,74 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --sidebar-bg: #ffffff;
-  --sidebar-text: #374151;
+  --background: #FAFAFA;
+  --foreground: #111827;
+  --surface: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --card-border: #ECECEC;
+  --muted-text: #6B7280;
+
+  /* Dashboard specific legacy support if needed */
+  --sidebar-bg: #FFFFFF;
+  --sidebar-text: #6B7280;
   --sidebar-active-bg: #ecfdf5;
   --sidebar-active-border: #10b981;
   --sidebar-active-text: #059669;
-  --card-bg: #ffffff;
-  --card-border: #e5e7eb;
   --muted: #6b7280;
+}
+
+.dark {
+  --background: #121212;
+  --foreground: #F9FAFB;
+  --surface: #1A1A1A;
+  --card-bg: #1E1E1E;
+  --card-border: #222222;
+  --muted-text: #9CA3AF;
+
+  /* Dashboard specific dark mode support */
+  --sidebar-bg: #1A1A1A;
+  --sidebar-text: #9CA3AF;
+  --sidebar-active-bg: rgba(16, 185, 129, 0.15);
+  --sidebar-active-border: #10b981;
+  --sidebar-active-text: #34d399;
+  --muted: #9ca3af;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #121212;
+    --foreground: #F9FAFB;
+    --surface: #1A1A1A;
+    --card-bg: #1E1E1E;
+    --card-border: #222222;
+    --muted-text: #9CA3AF;
+
+    --sidebar-bg: #1A1A1A;
+    --sidebar-text: #9CA3AF;
+    --sidebar-active-bg: rgba(16, 185, 129, 0.15);
+    --sidebar-active-border: #10b981;
+    --sidebar-active-text: #34d399;
+    --muted: #9ca3af;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-muted-text: var(--muted-text);
+  --color-accent: #10b981;
+  
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --sidebar-bg: #1a1a2e;
-    --sidebar-text: #d1d5db;
-    --sidebar-active-bg: rgba(16, 185, 129, 0.15);
-    --sidebar-active-border: #10b981;
-    --sidebar-active-text: #34d399;
-    --card-bg: #1a1a2e;
-    --card-border: #374151;
-    --muted: #9ca3af;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans);
 }

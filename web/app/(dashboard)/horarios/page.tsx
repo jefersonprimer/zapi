@@ -4,15 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { authFetch, API_URL, Store, StoreHours, WEEKDAYS } from "@/lib/api";
 import {
-  Clock,
   Save,
   AlertCircle,
   CheckCircle2,
-  Calendar,
   Check,
   Loader2,
-  Coffee,
-  X
+  Coffee
 } from "lucide-react";
 
 interface HoursForm {

@@ -223,6 +223,8 @@ export async function createAddress(
     numero: string;
     ponto_referencia?: string;
     is_default?: boolean;
+    latitude?: number | null;
+    longitude?: number | null;
   }
 ): Promise<{ status: string; address: UserAddress }> {
   return authFetch(`${API_URL}/delivery/addresses`, token, {
@@ -244,6 +246,8 @@ export async function updateAddress(
     numero?: string;
     ponto_referencia?: string | null;
     is_default?: boolean;
+    latitude?: number | null;
+    longitude?: number | null;
   }
 ): Promise<{ status: string; address: UserAddress }> {
   return authFetch(`${API_URL}/delivery/addresses/${id}`, token, {

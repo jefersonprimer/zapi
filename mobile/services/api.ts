@@ -179,6 +179,7 @@ export interface UserSearchResult {
   avatar_url?: string | null;
   about?: string | null;
   name?: string | null;
+  store_id?: string | null;
 }
 
 export async function searchUsers(
@@ -289,6 +290,7 @@ export interface Contact {
   avatar_url?: string | null;
   about?: string | null;
   name?: string | null;
+  store_id?: string | null;
 }
 
 export async function getContacts(token: string): Promise<Contact[]> {

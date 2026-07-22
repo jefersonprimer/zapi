@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { authFetch, API_URL, Store, StoreDeliverySlot } from "@/lib/api";
 import {
-  Clock,
   Plus,
   Edit,
   Trash2,
@@ -13,8 +12,6 @@ import {
   X,
   Check,
   Loader2,
-  Calendar,
-  Layers,
   Settings2
 } from "lucide-react";
 

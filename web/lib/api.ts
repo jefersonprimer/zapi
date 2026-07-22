@@ -85,7 +85,7 @@ export interface StoreProduct {
   created_at: string;
   updated_at: string;
   has_addons?: boolean;
-  addon_categories?: any[];
+  addon_categories?: unknown[];
 }
 
 export type SaleType = "unit" | "weight";
@@ -171,7 +171,7 @@ export interface Order {
   slot_end?: string | null;
   payment_method?: string | null;
   payment_status?: "pending" | "paid" | "failed";
-  payment_details?: any | null;
+  payment_details?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -191,7 +191,12 @@ export interface OrderItem {
   quantity_decimal: number | null;
 }
 
-export async function authFetch(url: string, token: string, options: RequestInit = {}) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function authFetch<T = any>(
+  url: string,
+  token: string,
+  options: RequestInit = {}
+): Promise<T> {
   const res = await fetch(url, {
     ...options,
     headers: {
@@ -201,7 +206,7 @@ export async function authFetch(url: string, token: string, options: RequestInit
     },
   });
 
-  let data: any;
+  let data: unknown;
   try {
     data = await res.json();
   } catch {
@@ -210,16 +215,17 @@ export async function authFetch(url: string, token: string, options: RequestInit
   }
 
   if (!res.ok) {
-    const code = typeof data.error === "string" ? data.error : undefined;
+    const errorData = data as Record<string, unknown> | null;
+    const code = typeof errorData?.error === "string" ? errorData.error : undefined;
     const message =
-      (typeof data.message === "string" && data.message) ||
+      (errorData && typeof errorData.message === "string" && errorData.message) ||
       code ||
       "Request failed";
     const err = new Error(message) as Error & { code?: string };
     if (code) err.code = code;
     throw err;
   }
-  return data;
+  return data as T;
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
@@ -317,7 +323,7 @@ export type StoreListParams = {
 };
 
 export async function listStores(
-  token: string,
+  token?: string | null,
   params?: StoreListParams
 ): Promise<{ stores: Store[] }> {
   const searchParams = new URLSearchParams();
@@ -327,11 +333,20 @@ export async function listStores(
   if (params?.lat != null) searchParams.set("lat", String(params.lat));
   if (params?.lng != null) searchParams.set("lng", String(params.lng));
   const qs = searchParams.toString();
-  return authFetch(`${API_URL}/delivery/stores${qs ? `?${qs}` : ""}`, token);
+  const url = `${API_URL}/delivery/stores${qs ? `?${qs}` : ""}`;
+  if (token) {
+    return authFetch(url, token);
+  } else {
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) throw new Error("Failed to fetch stores");
+    return res.json();
+  }
 }
 
 export async function searchStores(
-  token: string,
+  token: string | null | undefined,
   query: string,
   params?: Omit<StoreListParams, "category">
 ): Promise<{ stores: Store[] }> {
@@ -341,14 +356,20 @@ export async function searchStores(
   if (params?.city) searchParams.set("city", params.city);
   if (params?.lat != null) searchParams.set("lat", String(params.lat));
   if (params?.lng != null) searchParams.set("lng", String(params.lng));
-  return authFetch(
-    `${API_URL}/delivery/stores/search?${searchParams.toString()}`,
-    token
-  );
+  const url = `${API_URL}/delivery/stores/search?${searchParams.toString()}`;
+  if (token) {
+    return authFetch(url, token);
+  } else {
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) throw new Error("Failed to search stores");
+    return res.json();
+  }
 }
 
 export async function getStore(
-  token: string,
+  token: string | null | undefined,
   storeId: string,
   params?: { lat?: number; lng?: number }
 ): Promise<{
@@ -363,10 +384,16 @@ export async function getStore(
   if (params?.lat != null) searchParams.set("lat", String(params.lat));
   if (params?.lng != null) searchParams.set("lng", String(params.lng));
   const qs = searchParams.toString();
-  return authFetch(
-    `${API_URL}/delivery/stores/${storeId}${qs ? `?${qs}` : ""}`,
-    token
-  );
+  const url = `${API_URL}/delivery/stores/${storeId}${qs ? `?${qs}` : ""}`;
+  if (token) {
+    return authFetch(url, token);
+  } else {
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) throw new Error("Failed to get store details");
+    return res.json();
+  }
 }
 
 // ─── Vendor Store ───
@@ -832,7 +859,8 @@ export async function uploadFile(
   if (typeof fileOrUri === "string") {
     const response = await fetch(fileOrUri);
     const blob = await response.blob();
-    formData.append("file", blob, name || "file");
+    const typedBlob = type ? new Blob([blob], { type }) : blob;
+    formData.append("file", typedBlob, name || "file");
   } else {
     formData.append("file", fileOrUri, name || fileOrUri.name);
   }
@@ -845,7 +873,7 @@ export async function uploadFile(
     body: formData,
   });
 
-  let data: any;
+  let data: { url: string; error?: string };
   try {
     data = await res.json();
   } catch {
@@ -950,5 +978,255 @@ export function formatProductPrice(price: number, saleType: SaleType = "unit"): 
 }
 
 export function getOrderStatusLabel(status: string, fulfillmentType?: FulfillmentType | string | null): string {
+  if (status === "READY" && fulfillmentType === "entrega") {
+    return "Pronto para Entrega";
+  }
   return ORDER_STATUS_LABELS[status] || status;
 }
+
+// Chat API Interfaces
+export interface ChatListItem {
+  id: string;
+  participant_id: string | null;
+  participant_username: string | null;
+  participant_avatar_url: string | null;
+  participant_name: string | null;
+  participant_store_id?: string | null;
+  is_group: boolean;
+  name: string | null;
+  avatar_url?: string | null;
+  description?: string | null;
+  last_message: string | null;
+  last_message_at: string | null;
+  created_at: string;
+  unread_count: number;
+  is_blocked_by_me?: boolean;
+  is_blocked_by_them?: boolean;
+  messages_restricted_reason?: "contacts" | "nobody" | null;
+  cleared_at?: string | null;
+  is_pinned?: boolean;
+  notification_muted_until?: string | null;
+  notification_muted_forever?: boolean;
+  is_archived?: boolean;
+  is_favorite?: boolean;
+}
+
+export interface Attachment {
+  id: string;
+  message_id: string;
+  type: "image" | "video" | "audio" | "document";
+  remote_url: string;
+  local_path: string | null;
+  mime_type: string | null;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  size: number | null;
+  sha256: string | null;
+  thumbnail_path: string | null;
+  download_status: "pending" | "downloading" | "downloaded" | "failed";
+}
+
+export interface Message {
+  id: string;
+  chat_id: string;
+  sender_id: string;
+  sender_username: string;
+  content: string | null;
+  image_url: string | null;
+  order_id?: string | null;
+  local_file_path?: string | null;
+  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked";
+  created_at: string;
+  deleted_for_everyone?: boolean;
+  deleted_at?: string | null;
+  attachments?: Attachment[];
+}
+
+export interface UserSearchResult {
+  id: string;
+  username: string;
+  email: string;
+  avatar_url?: string | null;
+  about?: string | null;
+  name?: string | null;
+  store_id?: string | null;
+}
+
+export interface Contact {
+  contact_id: string;
+  username: string;
+  email: string;
+  is_blocked: boolean;
+  avatar_url?: string | null;
+  about?: string | null;
+  name?: string | null;
+  store_id?: string | null;
+}
+
+// Chat API Client Functions
+export async function getChats(token: string): Promise<{ chats: ChatListItem[] }> {
+  return authFetch(`${API_URL}/chats`, token);
+}
+
+export async function createChat(token: string, participantId: string): Promise<{ id: string; already_exists: boolean }> {
+  return authFetch(`${API_URL}/chats`, token, {
+    method: "POST",
+    body: JSON.stringify({ participant_id: participantId }),
+  });
+}
+
+export async function getMessages(token: string, chatId: string, since?: string | null): Promise<{ messages: Message[] }> {
+  let url = `${API_URL}/chats/${chatId}/messages`;
+  if (since) {
+    url += `?since=${encodeURIComponent(since)}`;
+  }
+  return authFetch(url, token);
+}
+
+export async function sendMessage(
+  token: string,
+  chatId: string,
+  content: string,
+  imageUrl?: string
+): Promise<{ message: Message }> {
+  return authFetch(`${API_URL}/chats/${chatId}/messages`, token, {
+    method: "POST",
+    body: JSON.stringify({
+      content: content || null,
+      image_url: imageUrl || null,
+    }),
+  });
+}
+
+export async function markChatRead(token: string, chatId: string): Promise<void> {
+  return authFetch(`${API_URL}/chats/${chatId}/read`, token, {
+    method: "POST",
+  });
+}
+
+export async function searchUsers(token: string, query: string): Promise<{ users: UserSearchResult[] }> {
+  return authFetch(`${API_URL}/users/search?q=${encodeURIComponent(query)}`, token);
+}
+
+export async function getContacts(token: string): Promise<Contact[]> {
+  return authFetch(`${API_URL}/contacts`, token);
+}
+
+export async function addContact(token: string, contactId: string): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/contacts`, token, {
+    method: "POST",
+    body: JSON.stringify({ contact_id: contactId }),
+  });
+}
+
+export async function favoriteChat(token: string, chatId: string, isFavorite: boolean): Promise<void> {
+  return authFetch(`${API_URL}/chats/${chatId}/favorite`, token, {
+    method: "POST",
+    body: JSON.stringify({ is_favorite: isFavorite }),
+  });
+}
+
+export async function muteChat(
+  token: string,
+  chatId: string,
+  mutedForever: boolean,
+  mutedUntil?: string | null
+): Promise<void> {
+  return authFetch(`${API_URL}/chats/${chatId}/mute`, token, {
+    method: "POST",
+    body: JSON.stringify({ muted_forever: mutedForever, muted_until: mutedUntil || null }),
+  });
+}
+
+export async function clearChatMessages(token: string, chatId: string): Promise<void> {
+  return authFetch(`${API_URL}/chats/${chatId}/clear`, token, {
+    method: "POST",
+  });
+}
+
+export async function blockContact(token: string, contactId: string): Promise<void> {
+  return authFetch(`${API_URL}/contacts/${contactId}/block`, token, {
+    method: "POST",
+  });
+}
+
+export async function unblockContact(token: string, contactId: string): Promise<void> {
+  return authFetch(`${API_URL}/contacts/${contactId}/unblock`, token, {
+    method: "POST",
+  });
+}
+
+export async function archiveChat(token: string, chatId: string, isArchived: boolean): Promise<{ status: string; chat_id: string; is_archived: boolean }> {
+  return authFetch(`${API_URL}/chats/${chatId}/archive`, token, {
+    method: "POST",
+    body: JSON.stringify({ is_archived: isArchived }),
+  });
+}
+
+export interface ChatList {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatListResponse {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  chat_ids: string[];
+}
+
+export async function getChatLists(token: string): Promise<{ lists: ChatListResponse[] }> {
+  return authFetch(`${API_URL}/chat-lists`, token);
+}
+
+export async function createChatList(token: string, name: string, color?: string, icon?: string): Promise<{ list: ChatList; chat_ids: string[] }> {
+  return authFetch(`${API_URL}/chat-lists`, token, {
+    method: "POST",
+    body: JSON.stringify({ name, color, icon }),
+  });
+}
+
+export async function updateChatLists(token: string, chatId: string, listIds: string[]): Promise<{ status: string; chat_id: string; list_ids: string[] }> {
+  return authFetch(`${API_URL}/chats/${chatId}/lists`, token, {
+    method: "POST",
+    body: JSON.stringify({ list_ids: listIds }),
+  });
+}
+
+// ─── Calls ───
+
+export interface CallHistoryItem {
+  id: string;
+  caller_id: string;
+  caller_username: string;
+  caller_avatar_url?: string | null;
+  callee_id: string;
+  callee_username: string;
+  callee_avatar_url?: string | null;
+  status: "completed" | "missed" | "rejected" | "failed" | "busy";
+  duration: number;
+  created_at: string;
+}
+
+export async function getCallHistory(token: string): Promise<CallHistoryItem[]> {
+  return authFetch(`${API_URL}/calls/history`, token);
+}
+
+export async function deleteCallHistoryItem(token: string, callId: string): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/calls/${callId}`, token, {
+    method: "DELETE",
+  });
+}
+

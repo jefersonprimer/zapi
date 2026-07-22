@@ -19,6 +19,7 @@ pub struct ContactResponse {
     pub avatar_url: Option<String>,
     pub about: Option<String>,
     pub name: Option<String>,
+    pub store_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -32,7 +33,8 @@ pub async fn list_contacts(
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let contacts = sqlx::query_as::<_, ContactResponse>(
         r#"
-        SELECT c.contact_id, u.username, u.email, c.is_blocked, u.avatar_url, u.about, u.name
+        SELECT c.contact_id, u.username, u.email, c.is_blocked, u.avatar_url, u.about, u.name,
+               (SELECT s.id FROM stores s WHERE s.owner_id = u.id LIMIT 1) AS store_id
         FROM contacts c
         JOIN users u ON c.contact_id = u.id
         WHERE c.user_id = $1
@@ -150,8 +152,9 @@ pub async fn block_contact(
     State(pool): State<PgPool>,
     Path(contact_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let result = sqlx::query(
-        "UPDATE contacts SET is_blocked = TRUE WHERE user_id = $1 AND contact_id = $2"
+    sqlx::query(
+        "INSERT INTO contacts (user_id, contact_id, is_blocked) VALUES ($1, $2, TRUE) \
+         ON CONFLICT (user_id, contact_id) DO UPDATE SET is_blocked = TRUE"
     )
     .bind(user_id)
     .bind(contact_id)
@@ -163,13 +166,6 @@ pub async fn block_contact(
             Json(json!({ "error": e.to_string() })),
         )
     })?;
-
-    if result.rows_affected() == 0 {
-        return Err((
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "Contact not found" })),
-        ));
-    }
 
     Ok(Json(json!({ "status": "success", "is_blocked": true })))
 }
@@ -179,8 +175,9 @@ pub async fn unblock_contact(
     State(pool): State<PgPool>,
     Path(contact_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let result = sqlx::query(
-        "UPDATE contacts SET is_blocked = FALSE WHERE user_id = $1 AND contact_id = $2"
+    sqlx::query(
+        "INSERT INTO contacts (user_id, contact_id, is_blocked) VALUES ($1, $2, FALSE) \
+         ON CONFLICT (user_id, contact_id) DO UPDATE SET is_blocked = FALSE"
     )
     .bind(user_id)
     .bind(contact_id)
@@ -193,13 +190,7 @@ pub async fn unblock_contact(
         )
     })?;
 
-    if result.rows_affected() == 0 {
-        return Err((
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "Contact not found" })),
-        ));
-    }
-
     Ok(Json(json!({ "status": "success", "is_blocked": false })))
 }
+
 

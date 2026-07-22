@@ -18,13 +18,9 @@ import {
   Trash2,
   AlertCircle,
   CheckCircle2,
-  Calendar,
-  Percent,
-  DollarSign,
   X,
   Check,
-  Loader2,
-  Sparkles
+  Loader2
 } from "lucide-react";
 
 interface CouponFormData {
@@ -88,7 +84,17 @@ export default function CuponsPage() {
   }, [token]);
 
   useEffect(() => {
-    load();
+    let active = true;
+    const init = async () => {
+      await Promise.resolve();
+      if (active) {
+        load();
+      }
+    };
+    init();
+    return () => {
+      active = false;
+    };
   }, [load]);
 
   const openCreateForm = () => {

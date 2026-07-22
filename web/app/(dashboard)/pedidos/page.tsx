@@ -5,8 +5,6 @@ import { useAuth } from "@/lib/auth-context";
 import { authFetch, API_URL, Store, Order, OrderItem } from "@/lib/api";
 import {
   ShoppingBag,
-  Calendar,
-  DollarSign,
   MapPin,
   ChevronDown,
   CheckCircle2,
@@ -15,9 +13,7 @@ import {
   X,
   Clock,
   Truck,
-  FileText,
-  User,
-  Undo
+  FileText
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<
@@ -216,7 +212,7 @@ export default function PedidosPage() {
         ...prev,
         [orderId]: data.items || [],
       }));
-    } catch (e: unknown) {
+    } catch {
       showToast("Erro ao carregar itens do pedido", "error");
     }
   }

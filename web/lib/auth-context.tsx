@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { login as apiLogin, type AuthResponse } from "./api";
+import { login as apiLogin, register as apiRegister, type AuthResponse } from "./api";
 
 interface User {
   user_id: string;
@@ -15,6 +15,7 @@ interface AuthContextType {
   token: string | null;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -42,17 +43,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("token");
-    if (stored) {
-      const parsed = parseToken(stored);
-      if (parsed) {
-        setToken(stored);
-        setUser(parsed);
-      } else {
-        localStorage.removeItem("token");
+    let active = true;
+    const init = async () => {
+      const stored = localStorage.getItem("token");
+      let parsedUser: User | null = null;
+      if (stored) {
+        parsedUser = parseToken(stored);
+        if (!parsedUser) {
+          localStorage.removeItem("token");
+        }
       }
-    }
-    setIsLoading(false);
+      await Promise.resolve();
+      if (!active) return;
+      if (stored && parsedUser) {
+        setToken(stored);
+        setUser(parsedUser);
+      }
+      setIsLoading(false);
+    };
+    init();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -68,6 +80,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const register = useCallback(
+    async (username: string, email: string, password: string) => {
+      const res: AuthResponse = await apiRegister(username, email, password);
+      localStorage.setItem("token", res.token);
+      setToken(res.token);
+      setUser({
+        user_id: res.user_id,
+        username: res.username,
+        email: res.email,
+        avatar_url: res.avatar_url,
+        name: res.name,
+      });
+    },
+    []
+  );
+
   const logout = useCallback(() => {
     localStorage.removeItem("token");
     setToken(null);
@@ -75,7 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, isLoading }}>
+    <AuthContext.Provider
+      value={{ token, user, login, register, logout, isLoading }}
+    >
       {children}
     </AuthContext.Provider>
   );

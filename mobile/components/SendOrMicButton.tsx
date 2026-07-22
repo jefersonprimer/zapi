@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
-import { Send as SendIcon, Mic as MicIcon } from "lucide-react-native";
+import { Mic as MicIcon, SendHorizonal } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface SendOrMicButtonProps {
@@ -29,14 +29,14 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
         onPress={onSend}
         disabled={sending}
       >
-        <SendIcon size={18} color="#f2f2f2" />
+        <SendHorizonal size={18} color="#f2f2f2" />
       </TouchableOpacity>
     );
   }
 
   return (
-    <TouchableOpacity 
-      style={[styles.micButton, { backgroundColor: colors.tint }]} 
+    <TouchableOpacity
+      style={[styles.micButton, { backgroundColor: colors.tint }]}
       onPress={onStartRecording}
     >
       <MicIcon size={20} color="#f2f2f2" />

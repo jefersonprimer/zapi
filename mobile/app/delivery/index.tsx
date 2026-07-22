@@ -100,6 +100,7 @@ export default function DeliveryScreen() {
   const [deliveryModalVisible, setDeliveryModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [hasPromptedAddress, setHasPromptedAddress] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -114,6 +115,10 @@ export default function DeliveryScreen() {
 
       if (!defaultAddr) {
         setStores([]);
+        if (!hasPromptedAddress) {
+          setHasPromptedAddress(true);
+          router.push("/delivery/addresses");
+        }
         return;
       }
 
@@ -192,6 +197,8 @@ export default function DeliveryScreen() {
     paymentFilter,
     promotionOnly,
     sortBy,
+    hasPromptedAddress,
+    router,
   ]);
 
   useFocusEffect(

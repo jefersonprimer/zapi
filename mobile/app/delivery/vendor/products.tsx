@@ -35,7 +35,7 @@ import {
   formatProductPrice,
 } from "@/services/deliveryApi";
 
-const DASHBOARD_WEB_URL = "https://dashboard.zapi.com";
+const DASHBOARD_WEB_URL = "http://192.168.5.22:3001/dashboard";
 
 export default function VendorProductsScreen() {
   const { token } = useAuth();
@@ -69,7 +69,7 @@ export default function VendorProductsScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [loadData]),
   );
 
   const filteredProducts = useMemo(() => {
@@ -78,7 +78,7 @@ export default function VendorProductsScreen() {
     return products.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
-        (p.description || "").toLowerCase().includes(q)
+        (p.description || "").toLowerCase().includes(q),
     );
   }, [products, searchQuery]);
 
@@ -90,10 +90,8 @@ export default function VendorProductsScreen() {
       });
       setProducts((prev) =>
         prev.map((p) =>
-          p.id === product.id
-            ? { ...p, is_available: !p.is_available }
-            : p
-        )
+          p.id === product.id ? { ...p, is_available: !p.is_available } : p,
+        ),
       );
     } catch (err: any) {
       Alert.alert("Erro", err.message || "Falha ao atualizar");
@@ -116,9 +114,7 @@ export default function VendorProductsScreen() {
     try {
       await updateProduct(token, product.id, { price });
       setProducts((prev) =>
-        prev.map((p) =>
-          p.id === product.id ? { ...p, price } : p
-        )
+        prev.map((p) => (p.id === product.id ? { ...p, price } : p)),
       );
       setEditingPriceId(null);
     } catch (err: any) {
@@ -167,10 +163,7 @@ export default function VendorProductsScreen() {
             </Text>
             {item.description ? (
               <Text
-                style={[
-                  styles.productDesc,
-                  { color: colors.textSecondary },
-                ]}
+                style={[styles.productDesc, { color: colors.textSecondary }]}
                 numberOfLines={1}
               >
                 {item.description}
@@ -218,16 +211,8 @@ export default function VendorProductsScreen() {
                   style={styles.priceDisplay}
                   onPress={() => startEditPrice(item)}
                 >
-                  <Text
-                    style={[
-                      styles.productPrice,
-                      { color: colors.tint },
-                    ]}
-                  >
-                    {formatProductPrice(
-                      item.price,
-                      item.sale_type || "unit"
-                    )}
+                  <Text style={[styles.productPrice, { color: colors.tint }]}>
+                    {formatProductPrice(item.price, item.sale_type || "unit")}
                   </Text>
                   <Pencil color={colors.tint} size={12} />
                 </TouchableOpacity>
@@ -238,9 +223,7 @@ export default function VendorProductsScreen() {
             style={[
               styles.toggleBtn,
               {
-                backgroundColor: item.is_available
-                  ? "#10B98120"
-                  : "#EF444420",
+                backgroundColor: item.is_available ? "#10B98120" : "#EF444420",
               },
             ]}
             onPress={() => handleToggleAvailable(item)}
@@ -259,10 +242,7 @@ export default function VendorProductsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.headerBackground },
-        ]}
+        style={[styles.header, { backgroundColor: colors.headerBackground }]}
       >
         <TouchableOpacity
           onPress={() => router.back()}
@@ -270,9 +250,7 @@ export default function VendorProductsScreen() {
         >
           <ArrowLeft color={colors.headerText} size={24} />
         </TouchableOpacity>
-        <Text
-          style={[styles.headerTitle, { color: colors.headerText }]}
-        >
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Produtos
         </Text>
         <TouchableOpacity
@@ -342,12 +320,8 @@ export default function VendorProductsScreen() {
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text
-                  style={[styles.emptyTitle, { color: colors.text }]}
-                >
-                  {searchQuery.trim()
-                    ? "Nenhum resultado"
-                    : "Nenhum produto"}
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                  {searchQuery.trim() ? "Nenhum resultado" : "Nenhum produto"}
                 </Text>
                 <Text
                   style={[

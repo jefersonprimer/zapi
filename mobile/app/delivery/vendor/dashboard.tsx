@@ -37,7 +37,7 @@ import {
   ORDER_STATUS_COLORS,
 } from "@/services/deliveryApi";
 
-const DASHBOARD_WEB_URL = "https://dashboard.zapi.com";
+const DASHBOARD_WEB_URL = "http://192.168.5.22:3001/dashboard";
 
 export default function VendorDashboardScreen() {
   const { token } = useAuth();
@@ -72,7 +72,7 @@ export default function VendorDashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [loadData]),
   );
 
   const handleToggle = async () => {
@@ -97,7 +97,7 @@ export default function VendorDashboardScreen() {
     (o) =>
       o.status === "WAITING_STORE_CONFIRMATION" ||
       o.status === "PAID" ||
-      o.status === "pendente"
+      o.status === "pendente",
   ).length;
   const todayRevenue = orders
     .filter((o) => {
@@ -132,10 +132,7 @@ export default function VendorDashboardScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View
-          style={[
-            styles.header,
-            { backgroundColor: colors.headerBackground },
-          ]}
+          style={[styles.header, { backgroundColor: colors.headerBackground }]}
         >
           <TouchableOpacity
             onPress={() => router.back()}
@@ -143,9 +140,7 @@ export default function VendorDashboardScreen() {
           >
             <ArrowLeft color={colors.headerText} size={24} />
           </TouchableOpacity>
-          <Text
-            style={[styles.headerTitle, { color: colors.headerText }]}
-          >
+          <Text style={[styles.headerTitle, { color: colors.headerText }]}>
             Minha Loja
           </Text>
         </View>
@@ -154,23 +149,16 @@ export default function VendorDashboardScreen() {
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
             Crie sua loja no Dashboard
           </Text>
-          <Text
-            style={[
-              styles.emptySubtitle,
-              { color: colors.textSecondary },
-            ]}
-          >
-            Acesse o painel web para cadastrar sua loja, produtos,
-            horários e muito mais.
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+            Acesse o painel web para cadastrar sua loja, produtos, horários e
+            muito mais.
           </Text>
           <TouchableOpacity
             style={[styles.dashboardButton, { backgroundColor: colors.tint }]}
             onPress={handleOpenDashboard}
           >
             <ExternalLink color="#fff" size={18} />
-            <Text style={styles.dashboardButtonText}>
-              Abrir Dashboard
-            </Text>
+            <Text style={styles.dashboardButtonText}>Abrir Dashboard</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -180,10 +168,7 @@ export default function VendorDashboardScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.headerBackground },
-        ]}
+        style={[styles.header, { backgroundColor: colors.headerBackground }]}
       >
         <TouchableOpacity
           onPress={() => router.back()}
@@ -237,10 +222,7 @@ export default function VendorDashboardScreen() {
                     {store.city}/{store.state}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  onPress={handleToggle}
-                  disabled={toggling}
-                >
+                <TouchableOpacity onPress={handleToggle} disabled={toggling}>
                   {toggling ? (
                     <ActivityIndicator color={colors.tint} />
                   ) : store.is_open ? (
@@ -255,9 +237,7 @@ export default function VendorDashboardScreen() {
                   style={[
                     styles.statusDot,
                     {
-                      backgroundColor: store.is_open
-                        ? "#10B981"
-                        : "#EF4444",
+                      backgroundColor: store.is_open ? "#10B981" : "#EF4444",
                     },
                   ]}
                 />
@@ -290,10 +270,7 @@ export default function VendorDashboardScreen() {
                   {pendingCount}
                 </Text>
                 <Text
-                  style={[
-                    styles.statLabel,
-                    { color: colors.textSecondary },
-                  ]}
+                  style={[styles.statLabel, { color: colors.textSecondary }]}
                 >
                   Pedidos hoje
                 </Text>
@@ -312,10 +289,7 @@ export default function VendorDashboardScreen() {
                   R$ {todayRevenue.toFixed(2)}
                 </Text>
                 <Text
-                  style={[
-                    styles.statLabel,
-                    { color: colors.textSecondary },
-                  ]}
+                  style={[styles.statLabel, { color: colors.textSecondary }]}
                 >
                   Faturamento
                 </Text>
@@ -335,9 +309,7 @@ export default function VendorDashboardScreen() {
                 onPress={() => router.push("/delivery/vendor/orders")}
               >
                 <Clock color={colors.tint} size={28} />
-                <Text
-                  style={[styles.actionTitle, { color: colors.text }]}
-                >
+                <Text style={[styles.actionTitle, { color: colors.text }]}>
                   Pedidos
                 </Text>
                 <Text
@@ -360,9 +332,7 @@ export default function VendorDashboardScreen() {
                 onPress={() => router.push("/delivery/vendor/products")}
               >
                 <Package color={colors.tint} size={28} />
-                <Text
-                  style={[styles.actionTitle, { color: colors.text }]}
-                >
+                <Text style={[styles.actionTitle, { color: colors.text }]}>
                   Produtos
                 </Text>
                 <Text
@@ -388,9 +358,7 @@ export default function VendorDashboardScreen() {
                 onPress={() => router.push("/(tabs)")}
               >
                 <MessageCircle color={colors.tint} size={28} />
-                <Text
-                  style={[styles.actionTitle, { color: colors.text }]}
-                >
+                <Text style={[styles.actionTitle, { color: colors.text }]}>
                   Mensagens
                 </Text>
                 <Text
@@ -424,9 +392,7 @@ export default function VendorDashboardScreen() {
 
             {/* Recent Orders */}
             <View style={styles.sectionHeader}>
-              <Text
-                style={[styles.sectionTitle, { color: colors.text }]}
-              >
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 Pedidos recentes
               </Text>
             </View>
@@ -450,8 +416,7 @@ export default function VendorDashboardScreen() {
                 style={[
                   styles.statusBadge,
                   {
-                    backgroundColor:
-                      ORDER_STATUS_COLORS[item.status] + "20",
+                    backgroundColor: ORDER_STATUS_COLORS[item.status] + "20",
                   },
                 ]}
               >
@@ -461,22 +426,14 @@ export default function VendorDashboardScreen() {
                     { color: ORDER_STATUS_COLORS[item.status] },
                   ]}
                 >
-                  {getOrderStatusLabel(
-                    item.status,
-                    item.fulfillment_type
-                  )}
+                  {getOrderStatusLabel(item.status, item.fulfillment_type)}
                 </Text>
               </View>
             </View>
             <Text style={[styles.orderTotal, { color: colors.tint }]}>
               R$ {item.total.toFixed(2)}
             </Text>
-            <Text
-              style={[
-                styles.orderDate,
-                { color: colors.textSecondary },
-              ]}
-            >
+            <Text style={[styles.orderDate, { color: colors.textSecondary }]}>
               {new Date(item.created_at).toLocaleDateString("pt-BR")}{" "}
               {new Date(item.created_at).toLocaleTimeString("pt-BR", {
                 hour: "2-digit",
@@ -488,10 +445,7 @@ export default function VendorDashboardScreen() {
         ListEmptyComponent={
           <View style={styles.ordersEmpty}>
             <Text
-              style={[
-                styles.ordersEmptyText,
-                { color: colors.textSecondary },
-              ]}
+              style={[styles.ordersEmptyText, { color: colors.textSecondary }]}
             >
               Nenhum pedido recebido ainda
             </Text>

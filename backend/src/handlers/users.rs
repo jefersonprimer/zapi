@@ -16,6 +16,7 @@ pub struct UserSearchResult {
     pub avatar_url: Option<String>,
     pub about: Option<String>,
     pub name: Option<String>,
+    pub store_id: Option<Uuid>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -46,8 +47,8 @@ pub async fn search_users(
     let clean_q = q.strip_prefix('@').unwrap_or(q);
     let pattern = format!("%{}%", clean_q);
 
-    let users = sqlx::query_as::<_, (Uuid, String, String, Option<String>, Option<String>, Option<String>)>(
-        "SELECT id, username, email, avatar_url, about, name FROM users WHERE (username ILIKE $1 OR email ILIKE $1 OR name ILIKE $1) AND id != $2 LIMIT 20",
+    let users = sqlx::query_as::<_, (Uuid, String, String, Option<String>, Option<String>, Option<String>, Option<Uuid>)>(
+        "SELECT u.id, u.username, u.email, u.avatar_url, u.about, u.name, (SELECT s.id FROM stores s WHERE s.owner_id = u.id LIMIT 1) AS store_id FROM users u WHERE (u.username ILIKE $1 OR u.email ILIKE $1 OR u.name ILIKE $1) AND u.id != $2 LIMIT 20",
     )
     .bind(&pattern)
     .bind(auth.0)
@@ -62,13 +63,14 @@ pub async fn search_users(
 
     let results: Vec<UserSearchResult> = users
         .into_iter()
-        .map(|(id, username, email, avatar_url, about, name)| UserSearchResult {
+        .map(|(id, username, email, avatar_url, about, name, store_id)| UserSearchResult {
             id,
             username,
             email,
             avatar_url,
             about,
             name,
+            store_id,
         })
         .collect();
 
