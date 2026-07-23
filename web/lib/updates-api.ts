@@ -135,6 +135,17 @@ export async function getPublisherByUser(
   return authFetch(`${API_URL}/updates/publishers/by-user/${userId}`, token);
 }
 
+export async function getPublisherByUsername(
+  token: string,
+  username: string
+): Promise<Publisher> {
+  const cleanUsername = username.replace(/^@/, "");
+  return authFetch(
+    `${API_URL}/updates/publishers/by-username/${cleanUsername}`,
+    token
+  );
+}
+
 export async function getStories(token: string): Promise<StoryGroup[]> {
   return authFetch(`${API_URL}/updates/stories`, token);
 }
@@ -201,26 +212,28 @@ export async function getFeed(
   );
 }
 
+export interface CreatePostPayload {
+  type: string;
+  content?: string | null;
+  visibility?: string;
+  attachments?: {
+    url: string;
+    type: string;
+    mime_type?: string;
+    width?: number;
+    height?: number;
+    duration?: number;
+    size?: number;
+    sha256?: string;
+    thumbnail_url?: string;
+  }[];
+  poll_options?: string[];
+  poll_duration_hours?: number;
+}
+
 export async function createPost(
   token: string,
-  data: {
-    type: string;
-    content?: string | null;
-    visibility?: string;
-    attachments?: {
-      url: string;
-      type: string;
-      mime_type?: string;
-      width?: number;
-      height?: number;
-      duration?: number;
-      size?: number;
-      sha256?: string;
-      thumbnail_url?: string;
-    }[];
-    poll_options?: string[];
-    poll_duration_hours?: number;
-  }
+  data: CreatePostPayload
 ): Promise<FeedPost> {
   return authFetch(`${API_URL}/updates/posts`, token, {
     method: "POST",

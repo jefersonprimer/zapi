@@ -40,11 +40,17 @@ export default function CommentsModal({
   }, [token, postId]);
 
   useEffect(() => {
-    if (isOpen && postId && token) {
-      loadComments();
+    if (!isOpen || !postId || !token) return;
+    let isMounted = true;
+    Promise.resolve().then(() => {
+      if (!isMounted) return;
       setReplyTo(null);
       setContent("");
-    }
+      loadComments();
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen, postId, token, loadComments]);
 
   if (!isOpen || !postId) return null;
@@ -55,7 +61,7 @@ export default function CommentsModal({
 
     setIsSending(true);
     try {
-      const payload: any = { content: content.trim() };
+      const payload: { content: string; parent_id?: string } = { content: content.trim() };
       if (replyTo) payload.parent_id = replyTo.id;
 
       await updatesApi.addComment(token, postId, payload);
@@ -115,7 +121,7 @@ export default function CommentsModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-card-border/60">
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-emerald-500" />
+            <MessageSquare className="w-5 h-5 text-black dark:text-white" />
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
               Comentários
             </h3>
@@ -132,7 +138,7 @@ export default function CommentsModal({
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
-              <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+              <Loader2 className="w-8 h-8 text-black dark:text-white animate-spin" />
             </div>
           ) : comments.length === 0 ? (
             <div className="text-center py-12 text-muted-text space-y-2">
@@ -155,7 +161,7 @@ export default function CommentsModal({
                         unoptimized
                       />
                     ) : (
-                      <div className="w-full h-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs">
+                      <div className="w-full h-full bg-neutral-800 dark:bg-neutral-200 text-white dark:text-black font-bold flex items-center justify-center text-xs">
                         {comment.user_name.charAt(0)}
                       </div>
                     )}
@@ -191,7 +197,7 @@ export default function CommentsModal({
                         onClick={() =>
                           setReplyTo({ id: comment.id, name: comment.user_name })
                         }
-                        className="hover:text-emerald-500 cursor-pointer"
+                        className="hover:text-black dark:hover:text-white cursor-pointer"
                       >
                         Responder
                       </button>
@@ -214,10 +220,10 @@ export default function CommentsModal({
 
                 {/* Nested Replies */}
                 {comment.replies && comment.replies.length > 0 && (
-                  <div className="pl-8 space-y-2 border-l-2 border-emerald-500/20 ml-4">
+                  <div className="pl-8 space-y-2 border-l-2 border-black/20 dark:border-white/20 ml-4">
                     {comment.replies.map((reply) => (
                       <div key={reply.id} className="flex items-start gap-2.5 group">
-                        <CornerDownRight className="w-4 h-4 text-emerald-500 opacity-60 flex-shrink-0 mt-2" />
+                        <CornerDownRight className="w-4 h-4 text-black dark:text-white opacity-60 flex-shrink-0 mt-2" />
                         <div className="flex-1 bg-neutral-100 dark:bg-white/[0.03] p-2.5 rounded-xl border border-card-border/30">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs font-bold text-gray-900 dark:text-gray-100">
@@ -251,7 +257,7 @@ export default function CommentsModal({
           className="p-4 border-t border-card-border/60 bg-neutral-50 dark:bg-white/5 space-y-2"
         >
           {replyTo && (
-            <div className="flex items-center justify-between text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-lg font-semibold">
+            <div className="flex items-center justify-between text-xs bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white px-3 py-1.5 rounded-lg font-semibold">
               <span>Respondendo a @{replyTo.name}</span>
               <button
                 type="button"
@@ -269,12 +275,12 @@ export default function CommentsModal({
               placeholder="Escreva um comentário..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="flex-1 bg-white dark:bg-[#151528] border border-card-border/60 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+              className="flex-1 bg-white dark:bg-[#151528] border border-card-border/60 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
             />
             <button
               type="submit"
               disabled={!content.trim() || isSending}
-              className="p-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl shadow transition-all cursor-pointer"
+              className="p-2.5 bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 rounded-xl shadow transition-all cursor-pointer"
             >
               {isSending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

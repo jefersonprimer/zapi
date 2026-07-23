@@ -64,6 +64,75 @@ pub async fn send_push_notification(
     }
 }
 
+pub async fn send_community_push_notification(
+    pool: &PgPool,
+    community_id: Uuid,
+    sender_name: &str,
+    content: &str,
+    member_ids: Vec<Uuid>,
+    exclude_user_id: Option<Uuid>,
+) {
+    let target_ids: Vec<Uuid> = if let Some(exclude) = exclude_user_id {
+        member_ids.into_iter().filter(|id| *id != exclude).collect()
+    } else {
+        member_ids
+    };
+
+    if target_ids.is_empty() {
+        return;
+    }
+
+    let devices: Vec<(Uuid, String)> = sqlx::query_as(
+        "SELECT user_id, token FROM device_tokens WHERE user_id = ANY($1)",
+    )
+    .bind(&target_ids)
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
+
+    if devices.is_empty() {
+        return;
+    }
+
+    let privacy_rows: Vec<(Uuid, bool)> = sqlx::query_as(
+        "SELECT id, show_notification_preview FROM users WHERE id = ANY($1)",
+    )
+    .bind(&target_ids)
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
+
+    let privacy_settings: std::collections::HashMap<Uuid, bool> = privacy_rows
+        .into_iter()
+        .collect();
+
+    for (user_id, token) in devices {
+        let show_preview = privacy_settings.get(&user_id).cloned().unwrap_or(true);
+        let body_text = if show_preview {
+            content.to_string()
+        } else {
+            "Nova atividade na comunidade".to_string()
+        };
+
+        let data_payload = json!({
+            "community_id": community_id.to_string(),
+            "type": "community_notification"
+        });
+
+        let _ = sqlx::query(
+            "INSERT INTO notification_queue (user_id, device_token, title, body, data_payload) \
+             VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(user_id)
+        .bind(token)
+        .bind(sender_name)
+        .bind(&body_text)
+        .bind(data_payload)
+        .execute(pool)
+        .await;
+    }
+}
+
 pub async fn send_call_push_notification(
     pool: &PgPool,
     recipient_id: Uuid,

@@ -29,21 +29,31 @@ export function ListSelectorModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setLoading(true);
-    getChatLists(token)
-      .then((res) => {
+    let isMounted = true;
+    Promise.resolve().then(async () => {
+      if (!isMounted) return;
+      setLoading(true);
+      try {
+        const res = await getChatLists(token);
+        if (!isMounted) return;
         const allLists = res.lists || [];
         setLists(allLists);
         const selected = allLists
           .filter((l) => l.chat_ids.includes(chatId))
           .map((l) => l.id);
         setSelectedIds(selected);
-      })
-      .catch(() => {
-        setLists([]);
-        setSelectedIds([]);
-      })
-      .finally(() => setLoading(false));
+      } catch {
+        if (isMounted) {
+          setLists([]);
+          setSelectedIds([]);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen, token, chatId]);
 
   const toggleList = (listId: string) => {

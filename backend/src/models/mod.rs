@@ -4,3 +4,4 @@ pub mod user;
 pub mod call;
 pub mod pix;
 pub mod delivery;
+pub mod community;

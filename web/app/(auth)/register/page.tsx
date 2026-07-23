@@ -69,7 +69,7 @@ export default function RegisterPage() {
 
     try {
       await register(cleanUsername, email.trim(), password);
-      router.push("/conversas");
+      router.push("/");
     } catch (err) {
       const message =
         err instanceof Error

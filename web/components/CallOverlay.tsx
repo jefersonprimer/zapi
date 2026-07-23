@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import Image from "next/image";
+import { getImageUrl } from "@/lib/utils";
 
 export default function CallOverlay() {
   const {
@@ -87,7 +88,7 @@ export default function CallOverlay() {
               <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-emerald-500/50 shadow-2xl bg-neutral-800 flex items-center justify-center">
                 {remoteAvatarUrl ? (
                   <Image
-                    src={remoteAvatarUrl}
+                    src={getImageUrl(remoteAvatarUrl)}
                     alt={displayName}
                     fill
                     className="object-cover"
@@ -147,7 +148,7 @@ export default function CallOverlay() {
               <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl bg-neutral-800 flex items-center justify-center">
                 {remoteAvatarUrl ? (
                   <Image
-                    src={remoteAvatarUrl}
+                    src={getImageUrl(remoteAvatarUrl)}
                     alt={displayName}
                     fill
                     className="object-cover"
@@ -217,7 +218,7 @@ export default function CallOverlay() {
                 <div className="relative h-36 w-36 rounded-full overflow-hidden border-4 border-emerald-500/40 shadow-2xl bg-neutral-800 flex items-center justify-center">
                   {remoteAvatarUrl ? (
                     <Image
-                      src={remoteAvatarUrl}
+                      src={getImageUrl(remoteAvatarUrl)}
                       alt={displayName}
                       fill
                       className="object-cover"

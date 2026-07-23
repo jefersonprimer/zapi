@@ -21,7 +21,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email.trim(), password);
-      router.push("/conversas");
+      router.push("/");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Falha ao entrar";
       setError(message);

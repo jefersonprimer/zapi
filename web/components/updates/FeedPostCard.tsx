@@ -12,9 +12,9 @@ import {
   Trash2,
   BarChart2,
   CheckCircle2,
-  Sparkles,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import type { FeedPost } from "@/lib/updates-api";
 import { getImageUrl } from "@/lib/utils";
 
@@ -52,12 +52,17 @@ export default function FeedPostCard({
     minute: "2-digit",
   });
 
+  const profileHref = `/atualizacoes/${encodeURIComponent(post.publisher_name)}`;
+
   return (
-    <div className="bg-white dark:bg-[#11111e] rounded-2xl border border-card-border/60 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
+    <div className="overflow-hidden max-w-[500px] mx-auto">
       {/* Post Header */}
       <div className="p-5 flex items-center justify-between border-b border-card-border/40">
         <div className="flex items-center gap-3">
-          <div className="relative w-11 h-11 rounded-full overflow-hidden border border-card-border/60 bg-neutral-100 dark:bg-neutral-800 flex-shrink-0">
+          <Link
+            href={profileHref}
+            className="relative w-11 h-11 rounded-full overflow-hidden border border-card-border/60 bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 hover:opacity-90 transition-opacity"
+          >
             {publisherAvatar ? (
               <Image
                 src={publisherAvatar}
@@ -67,21 +72,24 @@ export default function FeedPostCard({
                 unoptimized
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold flex items-center justify-center text-sm">
+              <div className="w-full h-full bg-neutral-800 dark:bg-neutral-200 text-white dark:text-black font-bold flex items-center justify-center text-sm">
                 {post.publisher_name.charAt(0).toUpperCase()}
               </div>
             )}
-          </div>
+          </Link>
           <div>
             <div className="flex items-center gap-1.5">
-              <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 hover:underline cursor-pointer">
+              <Link
+                href={profileHref}
+                className="font-bold text-sm text-gray-900 dark:text-gray-100 hover:underline cursor-pointer"
+              >
                 {post.publisher_name}
-              </h4>
+              </Link>
               {post.is_verified && (
-                <BadgeCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                <BadgeCheck className="w-4 h-4 text-black dark:text-white flex-shrink-0" />
               )}
               {post.publisher_type === "channel" && (
-                <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-semibold bg-neutral-100 dark:bg-white/10 text-neutral-800 dark:text-neutral-200 px-2 py-0.5 rounded-full">
                   Canal
                 </span>
               )}
@@ -145,8 +153,8 @@ export default function FeedPostCard({
             post.attachments.length === 1
               ? "grid-cols-1"
               : post.attachments.length === 2
-              ? "grid-cols-2"
-              : "grid-cols-2"
+                ? "grid-cols-2"
+                : "grid-cols-2"
           }`}
         >
           {post.attachments.map((att) => {
@@ -157,7 +165,7 @@ export default function FeedPostCard({
               <div
                 key={att.id}
                 onClick={() => !isVideo && setSelectedMedia(fullUrl)}
-                className="relative rounded-xl overflow-hidden bg-black/5 dark:bg-white/5 max-h-[400px] flex items-center justify-center border border-card-border/40 cursor-pointer group"
+                className="relative rounded-xl overflow-hidden bg-black/5 dark:bg-white/5 max-h-[600px] flex items-center justify-center border border-card-border/40 cursor-pointer group"
               >
                 {isVideo ? (
                   <video
@@ -166,10 +174,11 @@ export default function FeedPostCard({
                     className="w-full h-full object-cover max-h-[400px]"
                   />
                 ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={fullUrl}
                     alt="Anexo"
-                    className="w-full h-full object-cover max-h-[400px] group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover max-h-[600px]"
                   />
                 )}
               </div>
@@ -182,14 +191,14 @@ export default function FeedPostCard({
       {post.poll_options && post.poll_options.length > 0 && (
         <div className="px-5 py-3 space-y-2.5">
           <div className="flex items-center gap-2 text-xs font-bold text-muted-text mb-1">
-            <BarChart2 className="w-4 h-4 text-emerald-500" />
+            <BarChart2 className="w-4 h-4 text-black dark:text-white" />
             <span>Enquete</span>
           </div>
 
           {(() => {
             const totalVotes = post.poll_options.reduce(
               (acc, o) => acc + o.votes_count,
-              0
+              0,
             );
 
             return (
@@ -207,24 +216,26 @@ export default function FeedPostCard({
                       onClick={() => onVote(option.id)}
                       className={`relative w-full text-left p-3 rounded-xl border transition-all overflow-hidden cursor-pointer ${
                         isVoted
-                          ? "border-emerald-500 bg-emerald-500/10 font-bold"
-                          : "border-card-border/60 hover:border-emerald-500/50 bg-neutral-50 dark:bg-white/5"
+                          ? "border-black dark:border-white bg-black/10 dark:bg-white/10 font-bold"
+                          : "border-card-border/60 hover:border-black/50 dark:hover:border-white/50 bg-neutral-50 dark:bg-white/5"
                       }`}
                     >
                       {/* Vote percentage bar background */}
                       <div
-                        className="absolute left-0 top-0 bottom-0 bg-emerald-500/20 transition-all duration-500"
+                        className="absolute left-0 top-0 bottom-0 bg-black/15 dark:bg-white/15 transition-all duration-500"
                         style={{ width: `${pct}%` }}
                       />
 
                       <div className="relative z-10 flex items-center justify-between text-xs">
                         <span className="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100">
                           {isVoted && (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                            <CheckCircle2 className="w-4 h-4 text-black dark:text-white flex-shrink-0" />
                           )}
                           {option.label}
                         </span>
-                        <span className="font-bold text-muted-text">{pct}%</span>
+                        <span className="font-bold text-muted-text">
+                          {pct}%
+                        </span>
                       </div>
                     </button>
                   );
@@ -239,7 +250,7 @@ export default function FeedPostCard({
       )}
 
       {/* Footer Actions */}
-      <div className="px-5 py-3 border-t border-card-border/40 bg-neutral-50/50 dark:bg-white/[0.02] flex items-center justify-between text-xs text-muted-text">
+      <div className="px-5 py-3  flex items-center justify-between text-xs text-muted-text">
         <div className="flex items-center gap-6">
           {/* Like */}
           <button
@@ -261,7 +272,7 @@ export default function FeedPostCard({
           {/* Comment */}
           <button
             onClick={onComment}
-            className="flex items-center gap-1.5 hover:text-emerald-500 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
           >
             <MessageCircle className="w-4 h-4" />
             <span>{post.comments_count}</span>
@@ -271,11 +282,13 @@ export default function FeedPostCard({
           <button
             onClick={() => {
               if (navigator.share) {
-                navigator.share({
-                  title: post.publisher_name,
-                  text: post.content || "Confira este post no Zapi!",
-                  url: window.location.href,
-                }).catch(() => {});
+                navigator
+                  .share({
+                    title: post.publisher_name,
+                    text: post.content || "Confira este post no Zapi!",
+                    url: window.location.href,
+                  })
+                  .catch(() => {});
               } else {
                 navigator.clipboard.writeText(window.location.href);
                 alert("Link copiado para a área de transferência!");
@@ -284,7 +297,9 @@ export default function FeedPostCard({
             className="flex items-center gap-1.5 hover:text-blue-500 transition-colors cursor-pointer"
           >
             <Share2 className="w-4 h-4" />
-            <span>{post.shares_count > 0 ? post.shares_count : "Compartilhar"}</span>
+            <span>
+              {post.shares_count > 0 ? post.shares_count : "Compartilhar"}
+            </span>
           </button>
         </div>
 
@@ -293,14 +308,16 @@ export default function FeedPostCard({
           onClick={onSave}
           className={`flex items-center gap-1 transition-colors cursor-pointer ${
             post.saved_by_me
-              ? "text-emerald-500 font-bold"
-              : "hover:text-emerald-500"
+              ? "text-black dark:text-white font-bold"
+              : "hover:text-black dark:hover:text-white"
           }`}
           title={post.saved_by_me ? "Salvo" : "Salvar"}
         >
           <Bookmark
             className={`w-4 h-4 ${
-              post.saved_by_me ? "fill-emerald-500 text-emerald-500" : ""
+              post.saved_by_me
+                ? "fill-black dark:fill-white text-black dark:text-white"
+                : ""
             }`}
           />
         </button>
@@ -312,6 +329,7 @@ export default function FeedPostCard({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
           onClick={() => setSelectedMedia(null)}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={selectedMedia}
             alt="Enlarged media"

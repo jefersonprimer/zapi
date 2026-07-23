@@ -1198,10 +1198,27 @@ export async function createChatList(token: string, name: string, color?: string
   });
 }
 
+export async function deleteChatList(token: string, listId: string): Promise<{ status: string; id: string }> {
+  return authFetch(`${API_URL}/chat-lists/${listId}`, token, {
+    method: "DELETE",
+  });
+}
+
 export async function updateChatLists(token: string, chatId: string, listIds: string[]): Promise<{ status: string; chat_id: string; list_ids: string[] }> {
   return authFetch(`${API_URL}/chats/${chatId}/lists`, token, {
     method: "POST",
     body: JSON.stringify({ list_ids: listIds }),
+  });
+}
+
+export async function updateChatList(
+  token: string,
+  listId: string,
+  updates: { name?: string; color?: string | null; icon?: string | null; position?: number }
+): Promise<{ status: string; id: string }> {
+  return authFetch(`${API_URL}/chat-lists/${listId}`, token, {
+    method: "POST",
+    body: JSON.stringify(updates),
   });
 }
 

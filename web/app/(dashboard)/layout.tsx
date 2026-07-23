@@ -18,7 +18,7 @@ import {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/conversas", label: "Conversas", icon: MessageSquare },
+  { href: "/", label: "Conversas", icon: MessageSquare },
   { href: "/minha-loja", label: "Minha Loja", icon: Store },
   { href: "/produtos", label: "Produtos", icon: Package },
   { href: "/categorias", label: "Categorias", icon: Folder },

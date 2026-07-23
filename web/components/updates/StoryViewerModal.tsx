@@ -144,7 +144,7 @@ export default function StoryViewerModal({
                     unoptimized
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs">
+                  <div className="w-full h-full bg-neutral-800 text-white font-bold flex items-center justify-center text-xs">
                     {currentStory.publisher_name.charAt(0)}
                   </div>
                 )}
@@ -155,7 +155,7 @@ export default function StoryViewerModal({
                     {currentStory.publisher_name}
                   </h4>
                   {currentStory.is_verified && (
-                    <BadgeCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <BadgeCheck className="w-3.5 h-3.5 text-white" />
                   )}
                 </div>
                 <span className="text-[11px] text-white/70">

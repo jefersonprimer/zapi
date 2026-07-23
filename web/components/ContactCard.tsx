@@ -6,11 +6,23 @@ import {
   Users,
   Star,
   BellOff,
-  MoreVertical,
   MoreHorizontal,
+  Mic,
+  Camera,
+  Video,
+  FileText,
+  Ban,
+  PhoneOutgoing,
+  PhoneIncoming,
+  PhoneMissed,
+  User,
+  QrCode,
+  StickyNote,
 } from "lucide-react";
 import type { ChatListItem, UserSearchResult } from "@/lib/api";
 import { ChatCardContextMenu } from "./ChatCardContextMenu";
+import { getImageUrl } from "@/lib/utils";
+import { resolveLastMessagePreview } from "@/lib/forwardMessage";
 
 const formatChatTime = (isoString: string | null) => {
   if (!isoString) return "";
@@ -76,15 +88,12 @@ export function ContactCard({
     userResult?.username ||
     "Contato";
 
-  const avatarUrl =
+  const rawAvatarUrl =
     targetChat?.participant_avatar_url ||
     targetChat?.avatar_url ||
     userResult?.avatar_url;
 
-  const subtitle =
-    targetChat?.last_message ||
-    (userResult?.username ? `@${userResult.username}` : userResult?.email) ||
-    "Nenhuma mensagem";
+  const avatarUrl = getImageUrl(rawAvatarUrl);
 
   const lastMessageAt = targetChat?.last_message_at;
   const timeStr = lastMessageAt ? formatChatTime(lastMessageAt) : null;
@@ -97,6 +106,125 @@ export function ContactCard({
   const isGroup = targetChat?.is_group || false;
 
   const hasActions = !!targetChat && !!onArchive;
+
+  const renderLastMessage = () => {
+    if (targetChat?.is_blocked_by_me) {
+      return {
+        icon: null,
+        text: "Você bloqueou esse contato",
+      };
+    }
+
+    if (!targetChat?.last_message) {
+      const fallbackText =
+        (userResult?.username ? `@${userResult.username}` : userResult?.email) ||
+        "Nenhuma mensagem ainda";
+      return {
+        icon: null,
+        text: fallbackText,
+      };
+    }
+
+    const lastMessage = resolveLastMessagePreview(targetChat.last_message);
+    let displayMessage = lastMessage;
+    let iconElement: React.ReactNode = null;
+
+    if (
+      lastMessage.startsWith("Audio") ||
+      lastMessage.startsWith("🎵 Áudio")
+    ) {
+      let durationStr = "";
+      const parts = lastMessage.split("|duration:");
+      if (parts.length > 1) {
+        const secs = parseInt(parts[1], 10);
+        if (!isNaN(secs)) {
+          const m = Math.floor(secs / 60);
+          const s = secs % 60;
+          durationStr = ` (${m}:${s < 10 ? "0" : ""}${s})`;
+        }
+      }
+      displayMessage = `Mensagem de voz${durationStr}`;
+      iconElement = <Mic className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+    } else if (lastMessage === "Photo" || lastMessage === "📷 Foto") {
+      displayMessage = "Foto";
+      iconElement = <Camera className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+    } else if (lastMessage === "Video" || lastMessage === "🎥 Vídeo") {
+      displayMessage = "Vídeo";
+      iconElement = <Video className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+    } else if (
+      lastMessage === "File" ||
+      lastMessage.startsWith("File|") ||
+      lastMessage === "📁 Arquivo" ||
+      lastMessage.startsWith("📁 Arquivo|") ||
+      lastMessage.startsWith("Arquivo|")
+    ) {
+      let fileName = "Arquivo";
+      let rawFileName = "";
+      if (lastMessage.startsWith("File|")) {
+        rawFileName = lastMessage.substring(5);
+      } else if (lastMessage.startsWith("📁 Arquivo|")) {
+        rawFileName = lastMessage.substring(11);
+      } else if (lastMessage.startsWith("Arquivo|")) {
+        rawFileName = lastMessage.substring(8);
+      }
+
+      if (rawFileName) {
+        const match = rawFileName.match(/^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/);
+        if (match) {
+          fileName = match[1];
+        } else {
+          const oldMatch = rawFileName.match(/^[^_]+_([0-9a-fA-F\-]{36}\..+)$/);
+          fileName = oldMatch ? oldMatch[1] : rawFileName;
+        }
+      }
+
+      displayMessage = fileName;
+      iconElement = <FileText className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+    } else if (lastMessage === "Message deleted") {
+      displayMessage = "Mensagem apagada";
+      iconElement = <Ban className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+    } else if (lastMessage === "Chamada efetuada") {
+      displayMessage = "Chamada efetuada";
+      iconElement = <PhoneOutgoing className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+    } else if (lastMessage === "Chamada recebida") {
+      displayMessage = "Chamada recebida";
+      iconElement = <PhoneIncoming className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+    } else if (lastMessage === "Chamada perdida") {
+      displayMessage = "Chamada perdida";
+      iconElement = <PhoneMissed className="h-3.5 w-3.5 shrink-0 text-red-500" />;
+    } else if (lastMessage.startsWith('{"type":"contact_share"')) {
+      try {
+        const parsed = JSON.parse(lastMessage);
+        displayMessage = parsed.username;
+      } catch {
+        displayMessage = "Contato";
+      }
+      iconElement = <User className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+    } else if (
+      lastMessage.startsWith("Pix:") ||
+      targetChat.last_message?.trimStart().startsWith('{"type":"pix_share"')
+    ) {
+      displayMessage = lastMessage.startsWith("Pix:")
+        ? lastMessage.slice(5).trimStart()
+        : "Chave Pix";
+      iconElement = <QrCode className="h-3.5 w-3.5 shrink-0 text-[#32BCAD]" />;
+    } else if (
+      lastMessage.startsWith("Nota:") ||
+      targetChat.last_message?.trimStart().startsWith('{"type":"note_share"')
+    ) {
+      displayMessage = lastMessage.startsWith("Nota:")
+        ? lastMessage.slice(5).trimStart()
+        : "Nota";
+      iconElement = <StickyNote className="h-3.5 w-3.5 shrink-0 text-amber-500" />;
+    }
+
+    return {
+      icon: iconElement,
+      text: displayMessage,
+    };
+  };
+
+  const lastMsgData = renderLastMessage();
 
   return (
     <div className="relative group">
@@ -154,18 +282,25 @@ export function ContactCard({
             )}
           </div>
 
-          <div className="flex items-center justify-between">
-            <p
-              className={`text-xs truncate max-w-[180px] ${
-                isSelected
-                  ? "text-neutral-300 dark:text-neutral-600"
-                  : "text-muted-text"
-              }`}
-            >
-              {subtitle}
-            </p>
+          <div className="flex items-center justify-between min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 max-w-[180px]">
+              {lastMsgData.icon}
+              <span
+                className={`text-xs truncate ${
+                  isSelected
+                    ? "text-neutral-300 dark:text-neutral-600"
+                    : "text-muted-text"
+                } ${
+                  unreadCount > 0
+                    ? "font-semibold text-foreground dark:text-foreground"
+                    : ""
+                }`}
+              >
+                {lastMsgData.text}
+              </span>
+            </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0 ml-2">
               {isFavorite && (
                 <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
               )}
@@ -198,7 +333,9 @@ export function ContactCard({
           className="absolute bottom-0 -translate-y-1/2 right-2 p-1.5 opacity-0 group-hover:opacity-100 cursor-pointer z-10"
         >
           <MoreHorizontal
-            className={`h-4 w-4 ${isSelected ? "text-white dark:text-neutral-900" : "text-muted-text"}`}
+            className={`h-4 w-4 ${
+              isSelected ? "text-white dark:text-neutral-900" : "text-muted-text"
+            }`}
           />
         </button>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Camera, Type, Image as ImageIcon, Loader2, Send } from "lucide-react";
+import { X, Type, Image as ImageIcon, Loader2, Send } from "lucide-react";
 import { uploadFile } from "@/lib/api";
 import { createStory } from "@/lib/updates-api";
 import { useAuth } from "@/lib/auth-context";
@@ -77,8 +77,8 @@ export default function CreateStoryModal({
 
       onSuccess();
       handleClose();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Erro ao publicar status");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Erro ao publicar status");
     } finally {
       setIsSubmitting(false);
     }
@@ -125,8 +125,8 @@ export default function CreateStoryModal({
                 Escolha como deseja publicar seu status (expira em 24h):
               </p>
 
-              <label className="flex items-center gap-4 p-4 rounded-xl border border-card-border/60 hover:border-emerald-500 bg-neutral-50 dark:bg-white/5 cursor-pointer transition-all hover:scale-[1.01]">
-                <div className="p-3 bg-emerald-500 text-white rounded-xl">
+              <label className="flex items-center gap-4 p-4 rounded-xl border border-card-border/60 hover:border-black dark:hover:border-white bg-neutral-50 dark:bg-white/5 cursor-pointer transition-all hover:scale-[1.01]">
+                <div className="p-3 bg-black dark:bg-white text-white dark:text-black rounded-xl">
                   <ImageIcon className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
@@ -147,9 +147,9 @@ export default function CreateStoryModal({
 
               <button
                 onClick={() => setMode("text")}
-                className="w-full flex items-center gap-4 p-4 rounded-xl border border-card-border/60 hover:border-emerald-500 bg-neutral-50 dark:bg-white/5 cursor-pointer transition-all hover:scale-[1.01] text-left"
+                className="w-full flex items-center gap-4 p-4 rounded-xl border border-card-border/60 hover:border-black dark:hover:border-white bg-neutral-50 dark:bg-white/5 cursor-pointer transition-all hover:scale-[1.01] text-left"
               >
-                <div className="p-3 bg-indigo-600 text-white rounded-xl">
+                <div className="p-3 bg-neutral-800 dark:bg-neutral-200 text-white dark:text-black rounded-xl">
                   <Type className="w-6 h-6" />
                 </div>
                 <div>
@@ -174,6 +174,7 @@ export default function CreateStoryModal({
                     className="w-full h-full object-contain"
                   />
                 ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={filePreview}
                     alt="Preview"
@@ -197,7 +198,7 @@ export default function CreateStoryModal({
                 placeholder="Adicionar legenda (opcional)..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                className="w-full bg-neutral-100 dark:bg-white/5 border border-card-border/60 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-neutral-100 dark:bg-white/5 border border-card-border/60 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
               />
             </div>
           )}
@@ -228,7 +229,7 @@ export default function CreateStoryModal({
                     onClick={() => setBgColor(color)}
                     className={`w-7 h-7 rounded-full transition-transform cursor-pointer ${
                       bgColor === color
-                        ? "ring-2 ring-emerald-500 ring-offset-2 scale-110"
+                        ? "ring-2 ring-black dark:ring-white ring-offset-2 scale-110"
                         : "hover:scale-105"
                     }`}
                     style={{ backgroundColor: color }}
@@ -260,7 +261,7 @@ export default function CreateStoryModal({
                 (mode === "text" && !text.trim()) ||
                 (mode === "media" && !file)
               }
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer"
             >
               {isSubmitting ? (
                 <>

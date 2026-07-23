@@ -8,10 +8,6 @@ import {
   Search,
   X,
   Upload,
-  Plus,
-  Flame,
-  Sparkles,
-  Heart,
   SmilePlus,
   Loader2,
   Trash2,
@@ -47,7 +43,11 @@ const BUILTIN_STICKER_PACKS = [
       { id: "hahaha", name: "Hahaha", url: "/stickers/Memes/hahaha.svg" },
       { id: "crying", name: "Chorando", url: "/stickers/Memes/crying.svg" },
       { id: "fire", name: "Fogo", url: "/stickers/Memes/fire.svg" },
-      { id: "mindblown", name: "Explodiu", url: "/stickers/Memes/mindblown.svg" },
+      {
+        id: "mindblown",
+        name: "Explodiu",
+        url: "/stickers/Memes/mindblown.svg",
+      },
     ],
   },
   {
@@ -55,10 +55,26 @@ const BUILTIN_STICKER_PACKS = [
     name: "Flork",
     icon: "🤍",
     stickers: [
-      { id: "flork_love", name: "Flork Amor", url: "/stickers/Flork/flork_love.svg" },
-      { id: "flork_coffee", name: "Flork Café", url: "/stickers/Flork/flork_coffee.svg" },
-      { id: "flork_angry", name: "Flork Bravo", url: "/stickers/Flork/flork_angry.svg" },
-      { id: "flork_happy", name: "Flork Feliz", url: "/stickers/Flork/flork_happy.svg" },
+      {
+        id: "flork_love",
+        name: "Flork Amor",
+        url: "/stickers/Flork/flork_love.svg",
+      },
+      {
+        id: "flork_coffee",
+        name: "Flork Café",
+        url: "/stickers/Flork/flork_coffee.svg",
+      },
+      {
+        id: "flork_angry",
+        name: "Flork Bravo",
+        url: "/stickers/Flork/flork_angry.svg",
+      },
+      {
+        id: "flork_happy",
+        name: "Flork Feliz",
+        url: "/stickers/Flork/flork_happy.svg",
+      },
     ],
   },
   {
@@ -150,7 +166,9 @@ export function EmojiGifStickerPicker({
   onSelectSticker,
   onClose,
 }: EmojiGifStickerPickerProps) {
-  const [activeTab, setActiveTab] = useState<"emojis" | "gifs" | "stickers">("emojis");
+  const [activeTab, setActiveTab] = useState<"emojis" | "gifs" | "stickers">(
+    "emojis",
+  );
   const [gifSearchQuery, setGifSearchQuery] = useState("");
   const [selectedGifCategory, setSelectedGifCategory] = useState("🔥 Trending");
   const [gifs, setGifs] = useState(CURATED_GIFS);
@@ -158,20 +176,16 @@ export function EmojiGifStickerPicker({
 
   // Sticker pack selection
   const [selectedStickerPackId, setSelectedStickerPackId] = useState("Animals");
-  const [customStickers, setCustomStickers] = useState<string[]>([]);
-  const customFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Load custom stickers from localStorage on mount
-  useEffect(() => {
+  const [customStickers, setCustomStickers] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
     try {
       const saved = localStorage.getItem("zapi_custom_stickers");
-      if (saved) {
-        setCustomStickers(JSON.parse(saved));
-      }
-    } catch (e) {
-      console.error("Failed to load custom stickers", e);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-  }, []);
+  });
+  const customFileInputRef = useRef<HTMLInputElement>(null);
 
   // Save custom stickers to localStorage
   const saveCustomStickers = (newStickers: string[]) => {
@@ -184,7 +198,9 @@ export function EmojiGifStickerPicker({
   };
 
   // Handle uploading custom sticker (converts image to DataURL webp/png)
-  const handleCustomStickerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomStickerUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -211,7 +227,9 @@ export function EmojiGifStickerPicker({
     if (activeTab !== "gifs") return;
 
     let isMounted = true;
-    const query = gifSearchQuery.trim() || selectedGifCategory.replace(/[^a-zA-ZáàâãéèêíóôõúçÁÀÂÃÉÈÊÍÓÔÕÚÇ]/g, "");
+    const query =
+      gifSearchQuery.trim() ||
+      selectedGifCategory.replace(/[^a-zA-ZáàâãéèêíóôõúçÁÀÂÃÉÈÊÍÓÔÕÚÇ]/g, "");
 
     const fetchTenorGifs = async () => {
       const tenorApiKey = process.env.NEXT_PUBLIC_TENOR_API_KEY;
@@ -223,7 +241,7 @@ export function EmojiGifStickerPicker({
           const filtered = CURATED_GIFS.filter(
             (g) =>
               g.title.toLowerCase().includes(query.toLowerCase()) ||
-              g.category.toLowerCase().includes(query.toLowerCase())
+              g.category.toLowerCase().includes(query.toLowerCase()),
           );
           setGifs(filtered.length > 0 ? filtered : CURATED_GIFS);
         }
@@ -237,13 +255,23 @@ export function EmojiGifStickerPicker({
         const data = await res.json();
 
         if (isMounted && data?.results) {
-          const fetchedGifs = data.results.map((item: any) => ({
-            id: item.id,
-            title: item.title || "GIF",
-            category: "Tenor",
-            url: item.media_formats?.gif?.url || item.media_formats?.tinygif?.url,
-            preview: item.media_formats?.tinygif?.url || item.media_formats?.gif?.url,
-          }));
+          const fetchedGifs = data.results.map(
+            (item: {
+              id: string;
+              title?: string;
+              media_formats?: Record<string, { url: string }>;
+            }) => ({
+              id: item.id,
+              title: item.title || "GIF",
+              category: "Tenor",
+              url:
+                item.media_formats?.gif?.url ||
+                item.media_formats?.tinygif?.url,
+              preview:
+                item.media_formats?.tinygif?.url ||
+                item.media_formats?.gif?.url,
+            }),
+          );
           setGifs(fetchedGifs);
         }
       } catch (err) {
@@ -266,7 +294,7 @@ export function EmojiGifStickerPicker({
   }, [selectedStickerPackId]);
 
   return (
-    <div className="flex flex-col w-[360px] sm:w-[420px] h-[460px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl transition-all duration-200 animate-fadeIn z-50">
+    <div className="flex flex-col w-[360px] sm:w-[480px] h-[460px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl transition-all duration-200 animate-fadeIn z-50">
       {/* Top Header & Tab Navigation */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
         <div className="flex items-center gap-1 bg-neutral-200/60 dark:bg-neutral-800 p-1 rounded-2xl">
@@ -324,10 +352,10 @@ export function EmojiGifStickerPicker({
       <div className="flex-1 overflow-hidden relative">
         {/* EMOJIS TAB */}
         {activeTab === "emojis" && (
-          <div className="h-full w-full flex justify-center items-center overflow-auto emoji-mart-container">
+          <div className="h-full w-full overflow-hidden emoji-mart-container flex flex-col">
             <Picker
               data={data}
-              onEmojiSelect={(emoji: any) => {
+              onEmojiSelect={(emoji: { native?: string }) => {
                 if (emoji?.native) {
                   onSelectEmoji(emoji.native);
                 }
@@ -337,7 +365,7 @@ export function EmojiGifStickerPicker({
               previewPosition="none"
               skinTonePosition="none"
               navPosition="bottom"
-              perLine={8}
+              perLine={12}
             />
           </div>
         )}
@@ -408,6 +436,7 @@ export function EmojiGifStickerPicker({
                       onClick={() => onSelectGif(gif.url)}
                       className="group relative h-28 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/50 dark:border-neutral-800/80 hover:ring-2 hover:ring-purple-500 transition-all cursor-pointer"
                     >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={gif.preview || gif.url}
                         alt={gif.title}
@@ -514,6 +543,7 @@ export function EmojiGifStickerPicker({
                           onClick={() => onSelectSticker(st)}
                           className="w-full aspect-square p-1.5 rounded-2xl bg-neutral-100 dark:bg-neutral-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-neutral-200 dark:border-neutral-800 hover:border-emerald-400 transition-all flex items-center justify-center cursor-pointer group-hover:scale-105 transform"
                         >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={st}
                             alt={`Custom sticker ${idx}`}
@@ -545,6 +575,7 @@ export function EmojiGifStickerPicker({
                       className="aspect-square p-2 rounded-2xl bg-neutral-100/70 dark:bg-neutral-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-neutral-200/60 dark:border-neutral-800 hover:border-emerald-400/60 transition-all flex items-center justify-center cursor-pointer hover:scale-110 transform duration-200"
                       title={st.name}
                     >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={st.url}
                         alt={st.name}

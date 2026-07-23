@@ -23,7 +23,7 @@ export function useUpdates() {
     try {
       const groups = await updatesApi.getStories(token);
       setStoryGroups(groups);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Failed to fetch stories:", e);
     }
   }, [token]);
@@ -39,8 +39,8 @@ export function useUpdates() {
       }
       hasMoreRef.current = posts.length === 20;
       pageRef.current = page;
-    } catch (e: any) {
-      setError(e.message || "Failed to load feed");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load feed");
     }
   }, [token]);
 
@@ -49,7 +49,7 @@ export function useUpdates() {
     try {
       const saved = await updatesApi.getSavedPosts(token, 1);
       setSavedPosts(saved);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Failed to fetch saved posts:", e);
     }
   }, [token]);
@@ -67,12 +67,25 @@ export function useUpdates() {
   }, [token, fetchStories, fetchFeed, fetchSavedPosts]);
 
   useEffect(() => {
-    if (token) {
-      loadInitial();
-    } else {
+    if (!token) {
       setIsLoading(false);
+      return;
     }
-  }, [token, loadInitial]);
+    let isMounted = true;
+    (async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const publisher = await updatesApi.getMyPublisher(token).catch(() => null);
+        if (isMounted) setMyAvatarUrl(publisher?.avatar_url ?? null);
+      } catch {}
+      await Promise.all([fetchStories(), fetchFeed(1, true), fetchSavedPosts()]);
+      if (isMounted) setIsLoading(false);
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [token, fetchStories, fetchFeed, fetchSavedPosts]);
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -220,6 +233,7 @@ export function useUpdates() {
     savedPosts,
     isLoading,
     isLoadingMore,
+    hasMore: hasMoreRef.current,
     refreshing,
     error,
     myAvatarUrl,

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Image as ImageIcon, BarChart3, Trash2, Loader2, Send, Globe, Users, Lock } from "lucide-react";
 import { uploadFile } from "@/lib/api";
-import { createPost } from "@/lib/updates-api";
+import { createPost, CreatePostPayload } from "@/lib/updates-api";
 import { useAuth } from "@/lib/auth-context";
 
 interface CreatePostModalProps {
@@ -96,7 +96,7 @@ export default function CreatePostModal({
         type = allVideo ? "video" : "image";
       }
 
-      const postData: any = {
+      const postData: CreatePostPayload = {
         type,
         content: content.trim() || null,
         visibility,
@@ -111,8 +111,8 @@ export default function CreatePostModal({
       await createPost(token, postData);
       onSuccess();
       handleClose();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Falha ao criar publicação.");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Falha ao criar publicação.");
     } finally {
       setIsSubmitting(false);
     }
@@ -165,7 +165,7 @@ export default function CreatePostModal({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={4}
-            className="w-full bg-neutral-50 dark:bg-white/5 border border-card-border/60 rounded-xl p-4 text-sm text-gray-900 dark:text-gray-100 placeholder-muted-text outline-none focus:ring-2 focus:ring-emerald-500 resize-none transition-all"
+            className="w-full bg-neutral-50 dark:bg-white/5 border border-card-border/60 rounded-xl p-4 text-sm text-gray-900 dark:text-gray-100 placeholder-muted-text outline-none focus:ring-2 focus:ring-black dark:focus:ring-white resize-none transition-all"
           />
 
           {/* Attachments preview grid */}
@@ -179,6 +179,7 @@ export default function CreatePostModal({
                   {item.type.startsWith("video/") ? (
                     <video src={item.url} className="w-full h-full object-cover" />
                   ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={item.url} alt="Preview" className="w-full h-full object-cover" />
                   )}
                   <button
@@ -195,7 +196,7 @@ export default function CreatePostModal({
           {/* Media Attach button */}
           <div className="flex flex-wrap gap-3">
             <label className="flex items-center gap-2 px-4 py-2.5 bg-neutral-100 dark:bg-white/5 hover:bg-neutral-200 dark:hover:bg-white/10 border border-card-border/60 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer transition-all active:scale-95">
-              <ImageIcon className="w-4 h-4 text-emerald-500" />
+              <ImageIcon className="w-4 h-4 text-black dark:text-white" />
               Fotos / Vídeos ({files.length}/4)
               <input
                 type="file"
@@ -212,7 +213,7 @@ export default function CreatePostModal({
               onClick={() => setIsPoll(!isPoll)}
               className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer ${
                 isPoll
-                  ? "bg-emerald-500 text-white border-emerald-500"
+                  ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white"
                   : "bg-neutral-100 dark:bg-white/5 hover:bg-neutral-200 dark:hover:bg-white/10 border-card-border/60 text-gray-700 dark:text-gray-300"
               }`}
             >
@@ -238,7 +239,7 @@ export default function CreatePostModal({
                       next[i] = e.target.value;
                       setPollOptions(next);
                     }}
-                    className="flex-1 bg-white dark:bg-[#151528] border border-card-border/60 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 bg-white dark:bg-[#151528] border border-card-border/60 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                   />
                   {pollOptions.length > 2 && (
                     <button
@@ -255,7 +256,7 @@ export default function CreatePostModal({
                 <button
                   type="button"
                   onClick={handleAddPollOption}
-                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline pt-1 cursor-pointer"
+                  className="text-xs font-bold text-black dark:text-white hover:underline pt-1 cursor-pointer"
                 >
                   + Adicionar opção
                 </button>
@@ -274,7 +275,7 @@ export default function CreatePostModal({
                 onClick={() => setVisibility("contacts")}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   visibility === "contacts"
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow"
+                    ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow"
                     : "bg-neutral-100 dark:bg-white/5 border-card-border/60 text-muted-text hover:text-foreground"
                 }`}
               >
@@ -286,7 +287,7 @@ export default function CreatePostModal({
                 onClick={() => setVisibility("followers")}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   visibility === "followers"
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow"
+                    ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow"
                     : "bg-neutral-100 dark:bg-white/5 border-card-border/60 text-muted-text hover:text-foreground"
                 }`}
               >
@@ -298,7 +299,7 @@ export default function CreatePostModal({
                 onClick={() => setVisibility("public")}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   visibility === "public"
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow"
+                    ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow"
                     : "bg-neutral-100 dark:bg-white/5 border-card-border/60 text-muted-text hover:text-foreground"
                 }`}
               >
@@ -320,7 +321,7 @@ export default function CreatePostModal({
           <button
             onClick={handlePublish}
             disabled={!canSubmit || isSubmitting}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer"
           >
             {isSubmitting ? (
               <>

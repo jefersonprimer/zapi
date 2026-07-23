@@ -1,355 +1,388 @@
 "use client";
 
-import { useState } from "react";
-import { Users, Plus, Search, Compass, Sparkles, Check } from "lucide-react";
-import Image from "next/image";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Community,
+  CommunityChannel,
+  CommunityMessage,
+  CommunityPost,
+  CommunityComment,
+  CommunityEvent,
+  CommunityMember,
+  CreateCommunityPayload,
+  CreateChannelPayload,
+  CreatePostPayload,
+  CreateEventPayload,
+  EventRsvpStatus,
+  MemberRole,
+} from "@/lib/community-types";
+import { communityApi } from "@/lib/community-api";
 
-interface Community {
-  id: string;
-  name: string;
-  description: string;
-  membersCount: number;
-  category: string;
-  avatarUrl: string;
-  bannerUrl: string;
-  joined: boolean;
-}
+// Component imports
+import { CommunityServerList } from "@/components/communities/CommunityServerList";
+import { CommunitySidebar } from "@/components/communities/CommunitySidebar";
+import { CommunityHeader } from "@/components/communities/CommunityHeader";
+import { CommunityChatView } from "@/components/communities/CommunityChatView";
+import { CommunityPostsView } from "@/components/communities/CommunityPostsView";
+import { CommunityEventsView } from "@/components/communities/CommunityEventsView";
+import { CommunityMemberList } from "@/components/communities/CommunityMemberList";
+import { CommunityExploreView } from "@/components/communities/CommunityExploreView";
+
+// Modal imports
+import { CreateCommunityModal } from "@/components/communities/modals/CreateCommunityModal";
+import { CreateChannelModal } from "@/components/communities/modals/CreateChannelModal";
+import { CreatePostModal } from "@/components/communities/modals/CreatePostModal";
+import { CreateEventModal } from "@/components/communities/modals/CreateEventModal";
+import { CommunitySettingsModal } from "@/components/communities/modals/CommunitySettingsModal";
+import { JoinCommunityModal } from "@/components/communities/modals/JoinCommunityModal";
+import { CommunityPostDetailModal } from "@/components/communities/modals/CommunityPostDetailModal";
 
 export default function CommunitiesPage() {
-  const [activeTab, setActiveTab] = useState<"my" | "explore">("explore");
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
+
+  const [channels, setChannels] = useState<CommunityChannel[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<CommunityChannel | null>(null);
+
+  const [messages, setMessages] = useState<CommunityMessage[]>([]);
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [events, setEvents] = useState<CommunityEvent[]>([]);
+  const [members, setMembers] = useState<CommunityMember[]>([]);
+
+  const [activeView, setActiveView] = useState<"chat" | "posts" | "events">("chat");
+  const [showMemberList, setShowMemberList] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const [communities, setCommunities] = useState<Community[]>([
-    {
-      id: "1",
-      name: "Desenvolvedores Zapi",
-      description: "Espaço dedicado a desenvolvedores criando soluções, bots e integrações integradas ao Zapi API e Superapp.",
-      membersCount: 1240,
-      category: "Tecnologia",
-      avatarUrl: "https://images.unsplash.com/photo-1618401471353-b98aedd07871?w=150",
-      bannerUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
-      joined: true
-    },
-    {
-      id: "2",
-      name: "Delivery e Food Commerce Brasil",
-      description: "Dicas, novidades e networking para donos de restaurantes, hamburguerias e delivery na plataforma Zapi.",
-      membersCount: 890,
-      category: "Negócios",
-      avatarUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=150",
-      bannerUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500",
-      joined: false
-    },
-    {
-      id: "3",
-      name: "Marketing Digital de Resultados",
-      description: "Estratégias de vendas no chat, funis de conversão automáticos e atração de clientes via Zapi e redes sociais.",
-      membersCount: 2310,
-      category: "Marketing",
-      avatarUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=150",
-      bannerUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500",
-      joined: false
-    },
-    {
-      id: "4",
-      name: "Suporte e Sucesso do Cliente",
-      description: "Discussões sobre atendimento humanizado e automatizado, NPS elevado e encantamento do cliente no chat.",
-      membersCount: 512,
-      category: "Negócios",
-      avatarUrl: "https://images.unsplash.com/photo-1521791136364-7286472b5399?w=150",
-      bannerUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=500",
-      joined: true
-    }
-  ]);
+  // Modals state
+  const [showCreateCommunityModal, setShowCreateCommunityModal] = useState(false);
+  const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
+  const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
-  const [newCommName, setNewCommName] = useState("");
-  const [newCommDesc, setNewCommDesc] = useState("");
-  const [newCommCategory, setNewCommCategory] = useState("Geral");
+  // Post detail modal state
+  const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
+  const [postComments, setPostComments] = useState<CommunityComment[]>([]);
 
-  const handleCreateCommunity = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCommName.trim()) return;
+  // Load Communities on mount
+  useEffect(() => {
+    communityApi.listCommunities().then((data) => {
+      setCommunities(data);
+      if (data.length > 0) {
+        setSelectedCommunityId((prev) => prev ?? data[0].id);
+      }
+    });
+  }, []);
 
-    const newComm: Community = {
-      id: Date.now().toString(),
-      name: newCommName.trim(),
-      description: newCommDesc.trim() || "Sem descrição disponível.",
-      membersCount: 1,
-      category: newCommCategory,
-      avatarUrl: "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=150",
-      bannerUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500",
-      joined: true
+  // Load channels, posts, events, members when community selection changes
+  useEffect(() => {
+    if (!selectedCommunityId) return;
+
+    let isMounted = true;
+    const loadCommunityData = async () => {
+      const [chans, evts, psts, mems] = await Promise.all([
+        communityApi.listChannels(selectedCommunityId),
+        communityApi.listEvents(selectedCommunityId),
+        communityApi.listPosts(selectedCommunityId),
+        communityApi.listMembers(selectedCommunityId),
+      ]);
+
+      if (!isMounted) return;
+
+      setChannels(chans);
+      setEvents(evts);
+      setPosts(psts);
+      setMembers(mems);
+
+      if (chans.length > 0) {
+        setSelectedChannel(chans[0]);
+        if (chans[0].type === "forum") setActiveView("posts");
+        else if (chans[0].type === "event") setActiveView("events");
+        else setActiveView("chat");
+
+        if (chans[0].type === "text") {
+          const msgs = await communityApi.listMessages(selectedCommunityId, chans[0].id);
+          if (isMounted) setMessages(msgs);
+        }
+      } else {
+        setSelectedChannel(null);
+      }
     };
 
-    setCommunities([newComm, ...communities]);
-    setNewCommName("");
-    setNewCommDesc("");
-    setNewCommCategory("Geral");
-    setShowCreateModal(false);
-  };
+    loadCommunityData();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCommunityId]);
 
-  const handleJoinToggle = (id: string) => {
-    setCommunities(communities.map(comm => {
-      if (comm.id === id) {
-        return {
-          ...comm,
-          joined: !comm.joined,
-          membersCount: comm.joined ? comm.membersCount - 1 : comm.membersCount + 1
-        };
+  // Handle Channel Selection
+  const handleSelectChannel = async (channel: CommunityChannel) => {
+    setSelectedChannel(channel);
+    if (channel.type === "forum") {
+      setActiveView("posts");
+    } else if (channel.type === "event") {
+      setActiveView("events");
+    } else {
+      setActiveView("chat");
+      if (selectedCommunityId) {
+        const msgs = await communityApi.listMessages(selectedCommunityId, channel.id);
+        setMessages(msgs);
       }
-      return comm;
-    }));
+    }
   };
 
-  const filteredCommunities = communities.filter(comm => {
-    const matchesSearch = comm.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          comm.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          comm.category.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!matchesSearch) return false;
-    if (activeTab === "my") return comm.joined;
-    return true;
-  });
+  // Handlers for Communities
+  const handleCreateCommunity = async (payload: CreateCommunityPayload) => {
+    const newComm = await communityApi.createCommunity(payload);
+    setCommunities([newComm, ...communities]);
+    setSelectedCommunityId(newComm.id);
+  };
+
+  const handleUpdateCommunity = async (id: string, payload: Partial<CreateCommunityPayload>) => {
+    const updated = await communityApi.updateCommunity(id, payload);
+    setCommunities(communities.map((c) => (c.id === id ? updated : c)));
+  };
+
+  const handleDeleteCommunity = async (id: string) => {
+    await communityApi.deleteCommunity(id);
+    const updated = communities.filter((c) => c.id !== id);
+    setCommunities(updated);
+    setSelectedCommunityId(updated.length > 0 ? updated[0].id : null);
+  };
+
+  const handleJoinCommunity = async (id: string) => {
+    await communityApi.joinCommunity(id);
+    setSelectedCommunityId(id);
+  };
+
+  const handleJoinByCode = async (code: string) => {
+    const comm = await communityApi.joinByCode(code);
+    if (comm) {
+      if (!communities.some((c) => c.id === comm.id)) {
+        setCommunities([comm, ...communities]);
+      }
+      setSelectedCommunityId(comm.id);
+    }
+  };
+
+  // Handlers for Channels
+  const handleCreateChannel = async (payload: CreateChannelPayload) => {
+    if (!selectedCommunityId) return;
+    const newChan = await communityApi.createChannel(selectedCommunityId, payload);
+    setChannels([...channels, newChan]);
+    handleSelectChannel(newChan);
+  };
+
+  // Handlers for Messages
+  const handleSendMessage = async (content: string, imageUrl?: string) => {
+    if (!selectedCommunityId || !selectedChannel) return;
+    const newMsg = await communityApi.sendMessage(
+      selectedCommunityId,
+      selectedChannel.id,
+      content,
+      imageUrl
+    );
+    setMessages([...messages, newMsg]);
+  };
+
+  // Handlers for Posts
+  const handleCreatePost = async (payload: CreatePostPayload) => {
+    if (!selectedCommunityId) return;
+    const newPost = await communityApi.createPost(selectedCommunityId, payload);
+    setPosts([newPost, ...posts]);
+  };
+
+  const handleSelectPost = async (post: CommunityPost) => {
+    setSelectedPost(post);
+    if (selectedCommunityId) {
+      const comments = await communityApi.listComments(selectedCommunityId, post.id);
+      setPostComments(comments);
+    } else {
+      setPostComments([]);
+    }
+  };
+
+  const handleSendComment = async (postId: string, content: string) => {
+    if (!selectedCommunityId) return;
+    const newComment = await communityApi.createComment(selectedCommunityId, postId, content);
+    setPostComments((prev) => [...prev, newComment]);
+    setPosts(
+      posts.map((p) => (p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p))
+    );
+  };
+
+  // Handlers for Events
+  const handleCreateEvent = async (payload: CreateEventPayload) => {
+    if (!selectedCommunityId) return;
+    const newEvent = await communityApi.createEvent(selectedCommunityId, payload);
+    setEvents([...events, newEvent]);
+  };
+
+  const handleRsvpEvent = async (eventId: string, status: EventRsvpStatus) => {
+    if (!selectedCommunityId) return;
+    await communityApi.rsvpEvent(selectedCommunityId, eventId, status);
+    setEvents(
+      events.map((ev) =>
+        ev.id === eventId ? { ...ev, user_rsvp: status } : ev
+      )
+    );
+  };
+
+  // Handlers for Members
+  const handleUpdateMemberRole = (userId: string, role: MemberRole) => {
+    setMembers(members.map((m) => (m.user_id === userId ? { ...m, role } : m)));
+  };
+
+  const handleToggleMuteMember = (userId: string) => {
+    setMembers(members.map((m) => (m.user_id === userId ? { ...m, muted: !m.muted } : m)));
+  };
+
+  const handleRemoveMember = (userId: string) => {
+    setMembers(members.filter((m) => m.user_id !== userId));
+  };
+
+  const selectedCommunity = communities.find((c) => c.id === selectedCommunityId) || null;
 
   return (
-    <div className="flex flex-col h-full bg-[#fafafa] dark:bg-[#0c0c14] overflow-y-auto">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-8 text-white relative overflow-hidden shadow-lg">
-        <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-12 translate-y-12">
-          <Users className="h-64 w-64 rotate-12" />
-        </div>
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Comunidades</h1>
-            <p className="text-emerald-100 mt-1 text-sm md:text-base">
-              Conecte-se com pessoas com os mesmos interesses e faça parte de grandes grupos.
-            </p>
-          </div>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="self-start md:self-auto flex items-center gap-2 bg-white text-emerald-700 hover:bg-emerald-50 px-4 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            Criar Comunidade
-          </button>
-        </div>
-      </div>
+    <div className="flex h-screen bg-black text-zinc-100 font-sans overflow-hidden">
+      {/* Server Rail Bar (Discord left bar) */}
+      <CommunityServerList
+        communities={communities}
+        selectedCommunityId={selectedCommunityId}
+        onSelectCommunity={(id) => setSelectedCommunityId(id)}
+        onOpenCreateModal={() => setShowCreateCommunityModal(true)}
+        onOpenJoinModal={() => setShowJoinModal(true)}
+      />
 
-      {/* Main Content Area */}
-      <div className="max-w-4xl w-full mx-auto px-4 py-8 flex-grow">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* Left Column: Stats & Search */}
-          <div className="md:col-span-1 space-y-6">
-            {/* Search */}
-            <div className="bg-white dark:bg-[#11111e] rounded-2xl p-4 border border-card-border/60 shadow-sm">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-text" />
-                <input
-                  type="text"
-                  placeholder="Buscar comunidades..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-neutral-100 dark:bg-white/5 border-0 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-[#151528] transition-all outline-none"
+      {/* Main Container */}
+      {selectedCommunityId && selectedCommunity ? (
+        <div className="flex-1 flex h-full overflow-hidden">
+          {/* Channels Sidebar */}
+          <CommunitySidebar
+            community={selectedCommunity}
+            channels={channels}
+            selectedChannelId={selectedChannel?.id || null}
+            activeView={activeView}
+            onSelectChannel={handleSelectChannel}
+            onOpenCreateChannelModal={() => setShowCreateChannelModal(true)}
+            onOpenSettingsModal={() => setShowSettingsModal(true)}
+            onOpenInviteModal={() => setShowSettingsModal(true)}
+            onLeaveCommunity={() => setSelectedCommunityId(null)}
+          />
+
+          {/* Main Area (Header + Content) */}
+          <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <CommunityHeader
+              currentChannel={selectedChannel}
+              activeView={activeView}
+              showMemberList={showMemberList}
+              onToggleMemberList={() => setShowMemberList(!showMemberList)}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onOpenCreateActionModal={() => {
+                if (activeView === "posts") setShowCreatePostModal(true);
+                else if (activeView === "events") setShowCreateEventModal(true);
+              }}
+            />
+
+            <main className="flex-1 flex overflow-hidden">
+              {/* Dynamic View rendering */}
+              {activeView === "chat" && selectedChannel && (
+                <CommunityChatView
+                  channel={selectedChannel}
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
                 />
-              </div>
-            </div>
-
-            {/* Quick Stats Info card */}
-            <div className="bg-white dark:bg-[#11111e] rounded-2xl p-5 border border-card-border/60 shadow-sm space-y-4">
-              <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
-                <Sparkles className="h-5 w-5" />
-                <h3 className="font-bold text-sm">Por que participar?</h3>
-              </div>
-              <ul className="text-xs text-muted-text space-y-2.5 list-disc pl-4 leading-relaxed">
-                <li>Compartilhe insights e aprenda com o ecossistema.</li>
-                <li>Receba atualizações importantes diretamente de organizadores.</li>
-                <li>Encontre desenvolvedores e lojistas parceiros.</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Right Column: Communities List */}
-          <div className="md:col-span-2 space-y-6">
-            {/* Navigation Tabs */}
-            <div className="flex border-b border-card-border/60 gap-6">
-              <button
-                onClick={() => setActiveTab("explore")}
-                className={`pb-3 text-sm font-semibold relative transition-all cursor-pointer ${
-                  activeTab === "explore"
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-muted-text hover:text-foreground"
-                }`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <Compass className="h-4 w-4" /> Explodir & Explorar
-                </span>
-                {activeTab === "explore" && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded" />
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("my")}
-                className={`pb-3 text-sm font-semibold relative transition-all cursor-pointer ${
-                  activeTab === "my"
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-muted-text hover:text-foreground"
-                }`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4" /> Minhas Comunidades
-                </span>
-                {activeTab === "my" && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded" />
-                )}
-              </button>
-            </div>
-
-            {/* List */}
-            <div className="space-y-4">
-              {filteredCommunities.length === 0 ? (
-                <div className="py-12 text-center bg-white dark:bg-[#11111e] rounded-2xl border border-card-border/60 shadow-sm">
-                  <Users className="h-10 w-10 text-gray-300 dark:text-neutral-700 mx-auto mb-3 animate-pulse" />
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhuma comunidade encontrada.</p>
-                </div>
-              ) : (
-                filteredCommunities.map((comm) => (
-                  <div
-                    key={comm.id}
-                    className="bg-white dark:bg-[#11111e] rounded-2xl border border-card-border/60 shadow-sm overflow-hidden flex flex-col md:flex-row group hover:shadow-md transition-all duration-300"
-                  >
-                    {/* Visual Banner on side or background */}
-                    <div className="relative md:w-40 h-28 md:h-auto bg-neutral-200 dark:bg-neutral-800 flex-shrink-0">
-                      <Image
-                        src={comm.bannerUrl}
-                        alt="Community banner"
-                        fill
-                        className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
-                        unoptimized
-                      />
-                      <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-                        {comm.category}
-                      </div>
-                    </div>
-
-                    {/* Community Content */}
-                    <div className="p-5 flex-grow flex flex-col justify-between gap-4">
-                      <div className="flex gap-4">
-                        <Image
-                          src={comm.avatarUrl}
-                          alt={comm.name}
-                          width={48}
-                          height={48}
-                          className="h-12 w-12 rounded-xl object-cover border border-neutral-200 dark:border-neutral-800"
-                          unoptimized
-                        />
-                        <div className="space-y-1">
-                          <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">
-                            {comm.name}
-                          </h3>
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                            {comm.membersCount.toLocaleString()} participantes
-                          </p>
-                          <p className="text-xs text-muted-text leading-relaxed">
-                            {comm.description}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* CTA Button */}
-                      <div className="flex gap-2 self-end">
-                        {comm.joined ? (
-                          <>
-                            <button
-                              onClick={() => handleJoinToggle(comm.id)}
-                              className="flex items-center gap-1.5 border border-emerald-500/20 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer active:scale-95"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                              Membro
-                            </button>
-                            <button className="bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-850 dark:hover:bg-neutral-800 text-gray-700 dark:text-gray-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer active:scale-95">
-                              Abrir
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => handleJoinToggle(comm.id)}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition-all cursor-pointer active:scale-95 shadow-md shadow-emerald-600/10"
-                          >
-                            Participar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
               )}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Create Community Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
-          <div className="relative bg-white dark:bg-[#11111e] rounded-2xl border border-card-border/60 w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Criar Nova Comunidade</h3>
-            <form onSubmit={handleCreateCommunity} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-text mb-1">Nome da Comunidade</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Desenvolvedores Frontend"
-                  value={newCommName}
-                  onChange={(e) => setNewCommName(e.target.value)}
-                  className="w-full bg-neutral-100 dark:bg-white/5 border-0 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-[#151528] transition-all outline-none"
-                  required
+              {activeView === "posts" && (
+                <CommunityPostsView
+                  posts={posts}
+                  onSelectPost={handleSelectPost}
+                  onOpenCreatePostModal={() => setShowCreatePostModal(true)}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-text mb-1">Descrição</label>
-                <textarea
-                  placeholder="Fale brevemente sobre o foco e regras da comunidade..."
-                  value={newCommDesc}
-                  onChange={(e) => setNewCommDesc(e.target.value)}
-                  className="w-full h-24 bg-neutral-100 dark:bg-white/5 border-0 rounded-xl p-4 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-[#151528] transition-all outline-none resize-none"
-                  maxLength={200}
+              )}
+
+              {activeView === "events" && (
+                <CommunityEventsView
+                  events={events}
+                  onRsvp={handleRsvpEvent}
+                  onOpenCreateEventModal={() => setShowCreateEventModal(true)}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-text mb-1">Categoria</label>
-                <select
-                  value={newCommCategory}
-                  onChange={(e) => setNewCommCategory(e.target.value)}
-                  className="w-full bg-neutral-100 dark:bg-[#151528] border-0 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                >
-                  <option value="Geral">Geral</option>
-                  <option value="Tecnologia">Tecnologia</option>
-                  <option value="Negócios">Negócios</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Entretenimento">Entretenimento</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition-all active:scale-95 shadow-md shadow-emerald-600/10 cursor-pointer"
-                >
-                  Criar Comunidade
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 font-bold py-2.5 rounded-xl text-sm transition-all active:scale-95 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
+              )}
+
+              {/* Members Sidebar */}
+              {showMemberList && (
+                <CommunityMemberList
+                  members={members}
+                  currentUserId="user-me"
+                  onUpdateRole={handleUpdateMemberRole}
+                  onToggleMute={handleToggleMuteMember}
+                  onRemoveMember={handleRemoveMember}
+                />
+              )}
+            </main>
           </div>
         </div>
+      ) : (
+        /* Explore / Discovery View when no community selected */
+        <CommunityExploreView
+          communities={communities}
+          onSelectCommunity={(id) => setSelectedCommunityId(id)}
+          onJoinCommunity={handleJoinCommunity}
+          onOpenCreateModal={() => setShowCreateCommunityModal(true)}
+        />
       )}
+
+      {/* Modals */}
+      <CreateCommunityModal
+        isOpen={showCreateCommunityModal}
+        onClose={() => setShowCreateCommunityModal(false)}
+        onCreate={handleCreateCommunity}
+      />
+
+      <CreateChannelModal
+        isOpen={showCreateChannelModal}
+        onClose={() => setShowCreateChannelModal(false)}
+        onCreate={handleCreateChannel}
+      />
+
+      <CreatePostModal
+        isOpen={showCreatePostModal}
+        onClose={() => setShowCreatePostModal(false)}
+        onCreate={handleCreatePost}
+        channelId={selectedChannel?.id}
+      />
+
+      <CreateEventModal
+        isOpen={showCreateEventModal}
+        onClose={() => setShowCreateEventModal(false)}
+        onCreate={handleCreateEvent}
+      />
+
+      {selectedCommunity && (
+        <CommunitySettingsModal
+          isOpen={showSettingsModal}
+          community={selectedCommunity}
+          onClose={() => setShowSettingsModal(false)}
+          onUpdate={handleUpdateCommunity}
+          onDelete={handleDeleteCommunity}
+        />
+      )}
+
+      <JoinCommunityModal
+        isOpen={showJoinModal}
+        onClose={() => setShowJoinModal(false)}
+        onJoinByCode={handleJoinByCode}
+      />
+
+      <CommunityPostDetailModal
+        post={selectedPost}
+        comments={postComments}
+        onClose={() => setSelectedPost(null)}
+        onSendComment={handleSendComment}
+      />
     </div>
   );
 }

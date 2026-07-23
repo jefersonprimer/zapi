@@ -72,3 +72,33 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* Emoji Mart custom styling for modal integration */
+em-emoji-picker {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0px;
+  --shadow: none;
+  border: none !important;
+  box-shadow: none !important;
+  --rgb-bg: 255, 255, 255;
+  --rgb-color: 23, 23, 23;
+  --rgb-input: 245, 245, 245;
+}
+
+.dark em-emoji-picker {
+  --rgb-bg: 23, 23, 23;
+  --rgb-color: 245, 245, 245;
+  --rgb-input: 38, 38, 38;
+}
+
+.emoji-mart-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+

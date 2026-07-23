@@ -83,6 +83,12 @@ async fn handle_socket(socket: WebSocket, state: AppState, user_id: Uuid) {
                             WsCommand::Unsubscribe { chat_id } => {
                                 ws.unsubscribe(chat_id, &tx2_clone).await;
                             }
+                            WsCommand::SubscribeCommunityChannel { channel_id } => {
+                                ws.subscribe(channel_id, tx2_clone.clone()).await;
+                            }
+                            WsCommand::UnsubscribeCommunityChannel { channel_id } => {
+                                ws.unsubscribe(channel_id, &tx2_clone).await;
+                            }
                             WsCommand::Ping => {
                                 let _ = tx2_clone.send(json!({"type": "pong"}).to_string());
                             }
@@ -136,6 +142,10 @@ enum WsCommand {
     Subscribe { chat_id: Uuid },
     #[serde(rename = "unsubscribe")]
     Unsubscribe { chat_id: Uuid },
+    #[serde(rename = "subscribe_community_channel")]
+    SubscribeCommunityChannel { channel_id: Uuid },
+    #[serde(rename = "unsubscribe_community_channel")]
+    UnsubscribeCommunityChannel { channel_id: Uuid },
     #[serde(rename = "ping")]
     Ping,
     #[serde(rename = "delivered_ack")]

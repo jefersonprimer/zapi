@@ -12,7 +12,6 @@ import {
   LogOut,
   CircleDotDashed,
   Users,
-  Phone,
   X,
   User,
   Sun,
@@ -67,12 +66,11 @@ export default function GlobalSidebar() {
 
   navItems.push(
     {
-      href: "/conversas",
+      href: "/",
       label: "Conversas",
       tooltip: "Mensagens & Chat",
       icon: MessageSquareText,
-      active:
-        pathname.startsWith("/conversas") || pathname.startsWith("/conversa"),
+      active: pathname === "/" || pathname.startsWith("/conversa"),
     },
     {
       href: "/atualizacoes",
@@ -87,13 +85,6 @@ export default function GlobalSidebar() {
       tooltip: "Comunidades / Grupos",
       icon: Users,
       active: pathname.startsWith("/comunidades"),
-    },
-    {
-      href: "/ligacoes",
-      label: "Ligações",
-      tooltip: "Ligações / Chamadas",
-      icon: Phone,
-      active: pathname.startsWith("/ligacoes"),
     },
     {
       href: "/delivery",
