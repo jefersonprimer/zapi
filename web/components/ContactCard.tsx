@@ -63,6 +63,8 @@ export interface ContactCardProps {
   onFavorite?: () => void;
   onAddToList?: () => void;
   onClear?: () => void;
+  onMute?: (unmute: boolean, forever?: boolean, hours?: number) => void;
+  onBlock?: () => void;
 }
 
 export function ContactCard({
@@ -76,6 +78,8 @@ export function ContactCard({
   onFavorite,
   onAddToList,
   onClear,
+  onMute,
+  onBlock,
 }: ContactCardProps) {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const targetChat = chat || existingChat;
@@ -117,8 +121,9 @@ export function ContactCard({
 
     if (!targetChat?.last_message) {
       const fallbackText =
-        (userResult?.username ? `@${userResult.username}` : userResult?.email) ||
-        "Nenhuma mensagem ainda";
+        (userResult?.username
+          ? `@${userResult.username}`
+          : userResult?.email) || "Nenhuma mensagem ainda";
       return {
         icon: null,
         text: fallbackText,
@@ -129,10 +134,7 @@ export function ContactCard({
     let displayMessage = lastMessage;
     let iconElement: React.ReactNode = null;
 
-    if (
-      lastMessage.startsWith("Audio") ||
-      lastMessage.startsWith("🎵 Áudio")
-    ) {
+    if (lastMessage.startsWith("Audio") || lastMessage.startsWith("🎵 Áudio")) {
       let durationStr = "";
       const parts = lastMessage.split("|duration:");
       if (parts.length > 1) {
@@ -185,13 +187,19 @@ export function ContactCard({
       iconElement = <Ban className="h-3.5 w-3.5 shrink-0 opacity-70" />;
     } else if (lastMessage === "Chamada efetuada") {
       displayMessage = "Chamada efetuada";
-      iconElement = <PhoneOutgoing className="h-3.5 w-3.5 shrink-0 opacity-60" />;
+      iconElement = (
+        <PhoneOutgoing className="h-3.5 w-3.5 shrink-0 opacity-60" />
+      );
     } else if (lastMessage === "Chamada recebida") {
       displayMessage = "Chamada recebida";
-      iconElement = <PhoneIncoming className="h-3.5 w-3.5 shrink-0 opacity-60" />;
+      iconElement = (
+        <PhoneIncoming className="h-3.5 w-3.5 shrink-0 opacity-60" />
+      );
     } else if (lastMessage === "Chamada perdida") {
       displayMessage = "Chamada perdida";
-      iconElement = <PhoneMissed className="h-3.5 w-3.5 shrink-0 opacity-60 text-neutral-400 dark:text-neutral-500" />;
+      iconElement = (
+        <PhoneMissed className="h-3.5 w-3.5 shrink-0 opacity-60 text-neutral-400 dark:text-neutral-500" />
+      );
     } else if (lastMessage.startsWith('{"type":"contact_share"')) {
       try {
         const parsed = JSON.parse(lastMessage);
@@ -241,7 +249,7 @@ export function ContactCard({
         className={`w-full flex items-center gap-3.5 p-3 rounded-xl transition-all duration-300 ease-out cursor-pointer text-left relative overflow-hidden outline-none ${
           isSelected
             ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-[0_4px_20px_rgba(0,0,0,0.08)] scale-[0.99]"
-            : "hover:bg-neutral-100/70 dark:hover:bg-neutral-900/60 text-foreground hover:translate-x-0.5"
+            : "hover:bg-neutral-100/70 dark:hover:bg-neutral-900/60 text-foreground"
         }`}
       >
         {/* Elegant indicator line inside the button */}
@@ -255,13 +263,13 @@ export function ContactCard({
 
         {/* Avatar */}
         <div className="relative flex-shrink-0">
-          <div className="h-11 w-11 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-medium border border-neutral-200/40 dark:border-neutral-700/40 text-neutral-800 dark:text-neutral-200 transition-transform duration-300 group-hover:scale-[1.04]">
+          <div className="h-12 w-12 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-medium border border-neutral-200/40 dark:border-neutral-700/40 text-neutral-800 dark:text-neutral-200 transition-transform duration-300 group-hover:scale-[1.04]">
             {avatarUrl ? (
               <Image
                 src={avatarUrl}
                 alt={displayName}
-                width={44}
-                height={44}
+                width={48}
+                height={48}
                 className="h-full w-full object-cover"
                 unoptimized
               />
@@ -280,8 +288,10 @@ export function ContactCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
             <h3
-              className={`text-sm font-medium truncate tracking-tight transition-colors duration-200 ${
-                isSelected ? "text-white dark:text-neutral-900" : "text-neutral-900 dark:text-neutral-100"
+              className={`text-base font-medium truncate tracking-tight transition-colors duration-200 ${
+                isSelected
+                  ? "text-white dark:text-neutral-900"
+                  : "text-neutral-900 dark:text-neutral-100"
               }`}
             >
               {displayName}
@@ -303,7 +313,7 @@ export function ContactCard({
             <div className="flex items-center gap-1.5 min-w-0 max-w-[180px]">
               {lastMsgData.icon}
               <span
-                className={`text-[11px] truncate transition-colors duration-200 ${
+                className={`text-sm truncate transition-colors duration-200 ${
                   isSelected
                     ? "text-neutral-300 dark:text-neutral-600"
                     : "text-neutral-500 dark:text-neutral-400"
@@ -374,6 +384,8 @@ export function ContactCard({
           onFavorite={() => onFavorite?.()}
           onAddToList={() => onAddToList?.()}
           onClear={() => onClear?.()}
+          onMute={(unmute, forever, hours) => onMute?.(unmute, forever, hours)}
+          onBlock={() => onBlock?.()}
         />
       )}
     </div>

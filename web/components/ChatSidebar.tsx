@@ -43,6 +43,8 @@ interface ChatSidebarProps {
   onPinChat?: (chatId: string) => void;
   onFavoriteChat?: (chatId: string) => void;
   onClearChat?: (chatId: string) => void;
+  onMuteChat?: (chatId: string, unmute?: boolean, forever?: boolean, hours?: number) => void;
+  onBlockChat?: (chatId: string) => void;
   onRefreshChats?: () => void;
 }
 
@@ -58,6 +60,8 @@ export default function ChatSidebar({
   onPinChat,
   onFavoriteChat,
   onClearChat,
+  onMuteChat,
+  onBlockChat,
   onRefreshChats,
 }: ChatSidebarProps) {
   const [showNewChatSidebar, setShowNewChatSidebar] = useState(false);
@@ -265,9 +269,6 @@ export default function ChatSidebar({
             >
               <MessageSquarePlus className="h-5 w-5" />
             </button>
-            <button className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-100 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer">
-              <EllipsisVertical className="h-5 w-5" />
-            </button>
           </div>
         </div>
 
@@ -290,13 +291,13 @@ export default function ChatSidebar({
         {/* List Filters System Bar */}
         <div className="py-3 border-b border-card-border/40 overflow-hidden">
           <div
-            className="flex items-center gap-1.5 overflow-x-auto px-0.5"
+            className="flex items-center gap-1.5 overflow-hidden px-0.5"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {/* All / Tudo */}
             <button
               onClick={() => setActiveFilterId("all")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
+              className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
                 activeFilterId === "all"
                   ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-sm font-semibold scale-102"
                   : "bg-neutral-100/70 dark:bg-neutral-800/60 text-muted-text hover:text-foreground hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80"
@@ -308,7 +309,7 @@ export default function ChatSidebar({
             {/* Unread / Não lidas */}
             <button
               onClick={() => setActiveFilterId("unread")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
+              className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
                 activeFilterId === "unread"
                   ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-sm font-semibold scale-102"
                   : "bg-neutral-100/70 dark:bg-neutral-800/60 text-muted-text hover:text-foreground hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80"
@@ -320,7 +321,7 @@ export default function ChatSidebar({
             {/* Favorites / Favoritas */}
             <button
               onClick={() => setActiveFilterId("favorites")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
+              className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
                 activeFilterId === "favorites"
                   ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-sm font-semibold scale-102"
                   : "bg-neutral-100/70 dark:bg-neutral-800/60 text-muted-text hover:text-foreground hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80"
@@ -332,7 +333,7 @@ export default function ChatSidebar({
             {/* Groups / Grupos */}
             <button
               onClick={() => setActiveFilterId("groups")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
+              className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
                 activeFilterId === "groups"
                   ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-sm font-semibold scale-102"
                   : "bg-neutral-100/70 dark:bg-neutral-800/60 text-muted-text hover:text-foreground hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80"
@@ -366,7 +367,7 @@ export default function ChatSidebar({
                   <button
                     onClick={() => setActiveFilterId(list.id)}
                     style={chipStyle}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                    className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5 active:scale-95 ${
                       !hasColor
                         ? isActive
                           ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-sm font-semibold scale-102"
@@ -409,7 +410,7 @@ export default function ChatSidebar({
         </div>
 
         {/* Scrollable Chats List */}
-        <div className="flex-1 overflow-y-auto py-2 space-y-1.5 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-2 space-y-1.5 scrollbar-thin">
           {/* Archived Chats Card Button */}
           {archivedChats.length > 0 &&
             !chatSearchQuery &&
@@ -474,6 +475,8 @@ export default function ChatSidebar({
                   onFavorite={() => onFavoriteChat?.(chat.id)}
                   onAddToList={() => handleOpenListSelector(chat.id)}
                   onClear={() => onClearChat?.(chat.id)}
+                  onMute={(unmute, forever, hours) => onMuteChat?.(chat.id, unmute, forever, hours)}
+                  onBlock={() => onBlockChat?.(chat.id)}
                 />
               ))}
             </div>
@@ -653,7 +656,7 @@ export default function ChatSidebar({
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto space-y-1.5 py-1">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-1.5 py-1">
           {filteredArchivedChats.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4 animate-in fade-in duration-300">
               <Archive className="h-9 w-9 text-muted-text/40 mb-2" />
@@ -674,6 +677,8 @@ export default function ChatSidebar({
                 onFavorite={() => onFavoriteChat?.(chat.id)}
                 onAddToList={() => handleOpenListSelector(chat.id)}
                 onClear={() => onClearChat?.(chat.id)}
+                onMute={(unmute, forever, hours) => onMuteChat?.(chat.id, unmute, forever, hours)}
+                onBlock={() => onBlockChat?.(chat.id)}
               />
             ))
           )}

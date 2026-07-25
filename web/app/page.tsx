@@ -36,8 +36,6 @@ import {
   Phone,
   Video,
   SendHorizonal,
-  Star,
-  StarOff,
   Bell,
   BellOff,
   Trash2,
@@ -45,6 +43,8 @@ import {
   User,
   ShieldAlert,
   Mic,
+  Heart,
+  HeartOff,
 } from "lucide-react";
 import ChatSidebar from "@/components/ChatSidebar";
 import { EmojiGifStickerPicker } from "@/components/EmojiGifStickerPicker";
@@ -98,8 +98,6 @@ function ConversasContent() {
     }
   }, [token, router]);
 
-
-
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatListItem | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -134,9 +132,12 @@ function ConversasContent() {
 
   // Sync total unread count to GlobalSidebar
   useEffect(() => {
-    const totalUnread = chats.reduce((acc, c) => acc + (c.unread_count || 0), 0);
+    const totalUnread = chats.reduce(
+      (acc, c) => acc + (c.unread_count || 0),
+      0,
+    );
     window.dispatchEvent(
-      new CustomEvent("zapi_unread_count_update", { detail: totalUnread })
+      new CustomEvent("zapi_unread_count_update", { detail: totalUnread }),
     );
   }, [chats]);
 
@@ -221,7 +222,7 @@ function ConversasContent() {
           if (!active) return;
           setChats(applyPinnedState(chatsRes.chats || []));
           const found = chatsRes.chats?.find(
-            (c) => c.id === res.id || c.participant_id === participantId
+            (c) => c.id === res.id || c.participant_id === participantId,
           );
           if (found) setSelectedChat(found);
         }
@@ -824,7 +825,9 @@ function ConversasContent() {
       const updatedChats = prev.map((c) =>
         c.id === chatId ? { ...c, is_pinned: !c.is_pinned } : c,
       );
-      const pinnedIds = updatedChats.filter((c) => c.is_pinned).map((c) => c.id);
+      const pinnedIds = updatedChats
+        .filter((c) => c.is_pinned)
+        .map((c) => c.id);
       savePinnedChatIds(pinnedIds);
       return updatedChats;
     });
@@ -874,6 +877,82 @@ function ConversasContent() {
     }
   };
 
+  const handleMuteChatFromSidebar = async (
+    chatId: string,
+    unmute?: boolean,
+    forever?: boolean,
+    hours?: number,
+  ) => {
+    if (!token) return;
+    try {
+      const chat = chats.find((c) => c.id === chatId);
+      if (!chat) return;
+      if (unmute) {
+        await muteChat(token, chatId, false, null);
+        const updated = {
+          ...chat,
+          notification_muted_forever: false,
+          notification_muted_until: null,
+        };
+        setChats((prev) => prev.map((c) => (c.id === chatId ? updated : c)));
+        if (selectedChat?.id === chatId) {
+          setSelectedChat(updated);
+        }
+      } else {
+        let mutedUntil: string | null = null;
+        if (!forever && hours) {
+          const date = new Date();
+          date.setHours(date.getHours() + hours);
+          mutedUntil = date.toISOString();
+        }
+        await muteChat(token, chatId, !!forever, mutedUntil);
+        const updated = {
+          ...chat,
+          notification_muted_forever: !!forever,
+          notification_muted_until: mutedUntil,
+        };
+        setChats((prev) => prev.map((c) => (c.id === chatId ? updated : c)));
+        if (selectedChat?.id === chatId) {
+          setSelectedChat(updated);
+        }
+      }
+    } catch (err) {
+      console.error("Error muting/unmuting chat from sidebar:", err);
+    }
+  };
+
+  const handleToggleBlockFromSidebar = async (chatId: string) => {
+    if (!token) return;
+    try {
+      const chat = chats.find((c) => c.id === chatId);
+      if (!chat || !chat.participant_id) return;
+      const isBlocked = !!chat.is_blocked_by_me;
+      if (
+        !isBlocked &&
+        !confirm(
+          `Deseja realmente bloquear ${chat.participant_name || chat.participant_username || "este contato"}?`,
+        )
+      ) {
+        return;
+      }
+      if (isBlocked) {
+        await unblockContact(token, chat.participant_id);
+      } else {
+        await blockContact(token, chat.participant_id);
+      }
+      const updated = {
+        ...chat,
+        is_blocked_by_me: !isBlocked,
+      };
+      setChats((prev) => prev.map((c) => (c.id === chatId ? updated : c)));
+      if (selectedChat?.id === chatId) {
+        setSelectedChat(updated);
+      }
+    } catch (err) {
+      console.error("Error toggling block from sidebar:", err);
+    }
+  };
+
   // Sort chats: pinned first, then by last_message_at
   const sortedChats = [...chats].sort((a, b) => {
     if (a.is_pinned && !b.is_pinned) return -1;
@@ -900,6 +979,8 @@ function ConversasContent() {
           onPinChat={handlePinChatFromSidebar}
           onFavoriteChat={handleFavoriteChatFromSidebar}
           onClearChat={handleClearChatFromSidebar}
+          onMuteChat={handleMuteChatFromSidebar}
+          onBlockChat={handleToggleBlockFromSidebar}
           onRefreshChats={loadChatList}
         />
 
@@ -998,7 +1079,7 @@ function ConversasContent() {
                       })
                     }
                     title="Chamada de vídeo"
-                    className="p-2 text-muted-text hover:text-foreground rounded-lg hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <Video className="h-5 w-5" />
                   </button>
@@ -1020,7 +1101,7 @@ function ConversasContent() {
                       })
                     }
                     title="Chamada de voz"
-                    className="p-2 text-muted-text hover:text-foreground rounded-lg hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <Phone className="h-5 w-5" />
                   </button>
@@ -1030,7 +1111,7 @@ function ConversasContent() {
                     <button
                       onClick={() => setShowMoreMenu((prev) => !prev)}
                       title="Mais opções"
-                      className="p-2 text-muted-text hover:text-foreground rounded-lg hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                      className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                     >
                       <MoreVertical className="h-5 w-5" />
                     </button>
@@ -1091,12 +1172,12 @@ function ConversasContent() {
                           >
                             {selectedChat.is_favorite ? (
                               <>
-                                <StarOff className="h-4 w-4 text-amber-500 fill-amber-500/20" />
+                                <HeartOff className="h-4 w-4 text-amber-500 fill-amber-500/20" />
                                 <span>Remover dos favoritos</span>
                               </>
                             ) : (
                               <>
-                                <Star className="h-4 w-4 text-muted-text" />
+                                <Heart className="h-4 w-4 text-muted-text" />
                                 <span>Adicionar aos favoritos</span>
                               </>
                             )}
@@ -1290,7 +1371,7 @@ function ConversasContent() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-2 text-muted-text hover:text-foreground rounded-xl hover:bg-neutral-200/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                      className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-200/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
                       title="Anexar arquivo"
                     >
                       <Paperclip className="h-5 w-5" />
@@ -1300,7 +1381,7 @@ function ConversasContent() {
                     <button
                       type="button"
                       onClick={() => setShowEmojiPicker((prev) => !prev)}
-                      className="p-2 text-muted-text hover:text-foreground rounded-xl hover:bg-neutral-200/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                      className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-200/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
                       title="Emojis"
                     >
                       <Smile className="h-5 w-5" />

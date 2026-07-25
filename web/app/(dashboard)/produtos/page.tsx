@@ -221,7 +221,7 @@ export default function ProdutosPage() {
       setProducts((prev) =>
         prev.map((p) =>
           p.category_id === deleteCategoryTarget.id
-            ? { ...p, category_id: null, category: null }
+            ? { ...p, category_id: null, category: "" }
             : p,
         ),
       );
@@ -391,7 +391,7 @@ export default function ProdutosPage() {
     );
     if (hasPromo) {
       discountPct = String(
-        Math.round(((p.price - p.promotional_price) / p.price) * 100),
+        Math.round(((p.price - p.promotional_price!) / p.price) * 100),
       );
     }
     setForm({
