@@ -54,9 +54,9 @@ export default function CallSidebar({
   const [contactSearch, setContactSearch] = useState("");
 
   const fetchCalls = useCallback(async () => {
+    await Promise.resolve();
     if (!token) return;
     try {
-      setLoading(true);
       const data = await getCallHistory(token);
       setCalls(data || []);
     } catch (err) {
@@ -67,13 +67,19 @@ export default function CallSidebar({
   }, [token]);
 
   useEffect(() => {
-    fetchCalls();
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) fetchCalls();
+    });
+    return () => {
+      active = false;
+    };
   }, [fetchCalls]);
 
   const fetchContactsList = useCallback(async () => {
+    await Promise.resolve();
     if (!token) return;
     try {
-      setLoadingContacts(true);
       const data = await getContacts(token);
       setContacts(data || []);
     } catch (err) {
@@ -85,15 +91,21 @@ export default function CallSidebar({
 
   useEffect(() => {
     if (showNewCallModal && contacts.length === 0) {
-      fetchContactsList();
+      let active = true;
+      Promise.resolve().then(() => {
+        if (active) fetchContactsList();
+      });
+      return () => {
+        active = false;
+      };
     }
   }, [showNewCallModal, contacts.length, fetchContactsList]);
 
   const handleDeleteCall = async (e: React.MouseEvent, callId: string) => {
     e.stopPropagation();
     if (!token) return;
+    setDeletingId(callId);
     try {
-      setDeletingId(callId);
       await deleteCallHistoryItem(token, callId);
       setCalls((prev) => prev.filter((c) => c.id !== callId));
     } catch (err) {
@@ -181,23 +193,23 @@ export default function CallSidebar({
   );
 
   return (
-    <div className="flex flex-col h-full w-full bg-surface animate-in slide-in-from-left duration-200">
+    <div className="flex flex-col h-full w-full bg-surface relative overflow-hidden">
       {/* Header Row */}
-      <div className="py-4 px-2 border-b border-card-border flex items-center justify-between">
+      <div className="py-2 px-1 flex items-center justify-between border-b border-card-border/50">
         <div className="flex items-center gap-2">
           <button
             onClick={onClose}
-            className="p-2 text-muted-text hover:text-foreground rounded-xl hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-100 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
             title="Voltar para conversas"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h2 className="text-xl font-bold">Ligações</h2>
+          <h2 className="text-lg font-bold text-foreground">Ligações</h2>
         </div>
 
         <button
           onClick={() => setShowNewCallModal(true)}
-          className="p-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+          className="px-3 py-1.5 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold active:scale-95"
           title="Nova ligação"
         >
           <PhoneCall className="h-4 w-4" />
@@ -206,39 +218,39 @@ export default function CallSidebar({
       </div>
 
       {/* Search bar */}
-      <div className="p-3 border-b border-card-border/60">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-4 w-4 text-muted-text" />
+      <div className="py-3">
+        <div className="relative group">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+            <Search className="h-4 w-4 text-muted-text group-focus-within:text-foreground transition-colors duration-200" />
           </span>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar no histórico..."
-            className="w-full pl-9 pr-4 py-2 text-sm border border-card-border rounded-full bg-background text-foreground placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-card-border rounded-full bg-background text-foreground placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-neutral-950 dark:focus:ring-white focus:border-neutral-950 dark:focus:border-white transition-all duration-300"
           />
         </div>
       </div>
 
       {/* Filter Chips */}
-      <div className="px-3 py-2 border-b border-card-border/40 flex items-center gap-2">
+      <div className="pb-3 px-1 border-b border-card-border/40 flex items-center gap-2">
         <button
           onClick={() => setActiveFilter("all")}
-          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer active:scale-95 ${
             activeFilter === "all"
-              ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-sm"
-              : "bg-neutral-100 dark:bg-neutral-800 text-muted-text hover:text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700"
+              ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-sm font-semibold scale-102"
+              : "bg-neutral-100/70 dark:bg-neutral-800/60 text-muted-text hover:text-foreground hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80"
           }`}
         >
           Todas ({calls.length})
         </button>
         <button
           onClick={() => setActiveFilter("missed")}
-          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer active:scale-95 ${
             activeFilter === "missed"
-              ? "bg-emerald-600 text-white dark:bg-emerald-500 shadow-sm"
-              : "bg-neutral-100 dark:bg-neutral-800 text-muted-text hover:text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700"
+              ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 shadow-sm font-semibold scale-102"
+              : "bg-neutral-100/70 dark:bg-neutral-800/60 text-muted-text hover:text-foreground hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80"
           }`}
         >
           Perdidas (
@@ -255,183 +267,204 @@ export default function CallSidebar({
       </div>
 
       {/* Call History List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-card-border/30 p-2 space-y-1">
+      <div className="flex-1 overflow-y-auto py-2 space-y-1.5 scrollbar-thin">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-text space-y-2">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
-            <span className="text-xs">Carregando histórico...</span>
+          <div className="flex flex-col items-center justify-center py-16 text-muted-text space-y-2 animate-pulse">
+            <Loader2 className="h-6 w-6 animate-spin text-neutral-400 dark:text-neutral-600" />
+            <span className="text-xs font-medium">Carregando histórico...</span>
           </div>
         ) : filteredCalls.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-            <PhoneOff className="h-10 w-10 text-muted-text/40 mb-2" />
+          <div className="flex flex-col items-center justify-center py-16 text-center px-4 animate-in fade-in duration-300">
+            <PhoneOff className="h-9 w-9 text-muted-text/40 mb-2" />
             <p className="text-sm font-semibold">Nenhuma chamada encontrada</p>
-            <p className="text-xs text-muted-text mt-1">
+            <p className="text-xs text-muted-text mt-1 max-w-[220px]">
               {activeFilter === "missed"
                 ? "Você não possui chamadas perdidas no momento."
                 : "Seu histórico de chamadas efetuadas e recebidas aparecerá aqui."}
             </p>
           </div>
         ) : (
-          filteredCalls.map((call) => {
-            const isOutgoing = call.caller_id === currentUserId;
-            const peerId = isOutgoing ? call.callee_id : call.caller_id;
-            const peerName = isOutgoing
-              ? call.callee_username
-              : call.caller_username;
-            const peerAvatar = isOutgoing
-              ? call.callee_avatar_url
-              : call.caller_avatar_url;
+          <div className="space-y-1.5 animate-in fade-in duration-300">
+            {filteredCalls.map((call) => {
+              const isOutgoing = call.caller_id === currentUserId;
+              const peerId = isOutgoing ? call.callee_id : call.caller_id;
+              const peerName = isOutgoing
+                ? call.callee_username
+                : call.caller_username;
+              const peerAvatar = isOutgoing
+                ? call.callee_avatar_url
+                : call.caller_avatar_url;
 
-            const isMissed =
-              call.status === "missed" ||
-              call.status === "rejected" ||
-              call.status === "busy";
+              const isMissed =
+                call.status === "missed" ||
+                call.status === "rejected" ||
+                call.status === "busy";
 
-            return (
-              <div
-                key={call.id}
-                onClick={() => onSelectChat?.(peerId)}
-                className="group flex items-center justify-between p-2.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/5 transition-all cursor-pointer"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  {/* Avatar */}
-                  <div className="relative flex-shrink-0">
-                    {peerAvatar ? (
-                      <Image
-                        src={getImageUrl(peerAvatar)}
-                        alt={peerName || "Usuário"}
-                        width={40}
-                        height={40}
-                        className="h-10 w-10 rounded-full object-cover border border-card-border"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-sm">
-                        {(peerName || "U")[0].toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={`text-sm font-semibold truncate ${
-                        isMissed
-                          ? "text-red-500 dark:text-red-400"
-                          : "text-foreground"
-                      }`}
-                    >
-                      {peerName || "Usuário"}
-                    </p>
-
-                    <div className="flex items-center gap-1.5 text-xs text-muted-text mt-0.5">
-                      {/* Direction Icon */}
-                      {isOutgoing ? (
-                        <PhoneOutgoing className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
-                      ) : isMissed ? (
-                        <PhoneMissed className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+              return (
+                <div
+                  key={call.id}
+                  onClick={() => onSelectChat?.(peerId)}
+                  className="group flex items-center justify-between p-2.5 rounded-2xl hover:bg-neutral-100/70 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer active:scale-99"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Avatar */}
+                    <div className="relative flex-shrink-0">
+                      {peerAvatar ? (
+                        <Image
+                          src={getImageUrl(peerAvatar)}
+                          alt={peerName || "Usuário"}
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 rounded-full object-cover border border-card-border"
+                          unoptimized
+                        />
                       ) : (
-                        <PhoneIncoming className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
-                      )}
-
-                      <span className="truncate">
-                        {formatDate(call.created_at)}
-                      </span>
-
-                      {call.duration > 0 && (
-                        <span className="text-muted-text/80">
-                          • {formatDuration(call.duration)}
-                        </span>
+                        <div className="h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold text-sm">
+                          {(peerName || "U")[0].toUpperCase()}
+                        </div>
                       )}
                     </div>
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`text-sm font-semibold truncate ${
+                          isMissed
+                            ? "text-red-500 dark:text-red-400"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {peerName || "Usuário"}
+                      </p>
+
+                      <div className="flex items-center gap-1.5 text-xs text-muted-text mt-0.5">
+                        {/* Direction Icon */}
+                        {isOutgoing ? (
+                          <PhoneOutgoing className="h-3.5 w-3.5 text-neutral-400 flex-shrink-0" />
+                        ) : isMissed ? (
+                          <PhoneMissed className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                        ) : (
+                          <PhoneIncoming className="h-3.5 w-3.5 text-neutral-400 flex-shrink-0" />
+                        )}
+
+                        <span className="truncate">
+                          {formatDate(call.created_at)}
+                        </span>
+
+                        {call.duration > 0 && (
+                          <span className="text-muted-text/80">
+                            • {formatDuration(call.duration)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Action Buttons */}
+                  <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) =>
+                        handleStartCall(e, peerId, peerName, false, peerAvatar)
+                      }
+                      className="p-2 text-muted-text hover:text-foreground hover:bg-neutral-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer active:scale-90"
+                      title="Chamada de voz"
+                    >
+                      <Phone className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      onClick={(e) =>
+                        handleStartCall(e, peerId, peerName, true, peerAvatar)
+                      }
+                      className="p-2 text-muted-text hover:text-foreground hover:bg-neutral-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer active:scale-90"
+                      title="Chamada de vídeo"
+                    >
+                      <Video className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      onClick={(e) => handleDeleteCall(e, call.id)}
+                      disabled={deletingId === call.id}
+                      className="p-2 text-muted-text hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer active:scale-90"
+                      title="Excluir da lista"
+                    >
+                      {deletingId === call.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
-
-                {/* Quick Action Buttons */}
-                <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) =>
-                      handleStartCall(e, peerId, peerName, false, peerAvatar)
-                    }
-                    className="p-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg transition-colors cursor-pointer"
-                    title="Chamada de voz"
-                  >
-                    <Phone className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={(e) =>
-                      handleStartCall(e, peerId, peerName, true, peerAvatar)
-                    }
-                    className="p-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg transition-colors cursor-pointer"
-                    title="Chamada de vídeo"
-                  >
-                    <Video className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={(e) => handleDeleteCall(e, call.id)}
-                    disabled={deletingId === call.id}
-                    className="p-2 text-muted-text hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer"
-                    title="Excluir da lista"
-                  >
-                    {deletingId === call.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* New Call Contact Selector Modal */}
-      {showNewCallModal && (
-        <div className="absolute inset-0 bg-surface z-20 flex flex-col animate-in slide-in-from-bottom duration-200">
-          <div className="p-4 border-b border-card-border flex items-center justify-between">
-            <h3 className="font-bold text-lg">Nova Chamada</h3>
+      {/* New Call Contact Selector Panel (Slide Over) */}
+      <div
+        className={`absolute inset-0 bg-surface z-20 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          showNewCallModal
+            ? "translate-x-0 opacity-100 pointer-events-auto"
+            : "translate-x-full opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="py-2 px-1 border-b border-card-border/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowNewCallModal(false)}
-              className="p-1.5 text-muted-text hover:text-foreground rounded-lg hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-100 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
+              title="Voltar para histórico"
             >
-              <X className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
             </button>
+            <h3 className="font-bold text-lg text-foreground">Nova Chamada</h3>
           </div>
+          <button
+            onClick={() => setShowNewCallModal(false)}
+            className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-100 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-          <div className="p-3 border-b border-card-border/60">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-text" />
-              <input
-                type="text"
-                value={contactSearch}
-                onChange={(e) => setContactSearch(e.target.value)}
-                placeholder="Buscar contato..."
-                className="w-full pl-9 pr-4 py-2 text-sm border border-card-border rounded-full bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
+        <div className="py-3">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+              <Search className="h-4 w-4 text-muted-text" />
+            </span>
+            <input
+              type="text"
+              value={contactSearch}
+              onChange={(e) => setContactSearch(e.target.value)}
+              placeholder="Buscar contato..."
+              className="w-full pl-10 pr-4 py-2.5 text-sm border border-card-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-neutral-950 dark:focus:ring-white focus:border-neutral-950 dark:focus:border-white transition-all duration-300"
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-2 divide-y divide-card-border/30 scrollbar-thin">
+          {loadingContacts ? (
+            <div className="flex items-center justify-center py-10 text-muted-text gap-2 animate-pulse">
+              <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+              <span className="text-xs font-medium">
+                Carregando contatos...
+              </span>
             </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2 divide-y divide-card-border/30">
-            {loadingContacts ? (
-              <div className="flex items-center justify-center py-10 text-muted-text gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="text-xs">Carregando contatos...</span>
-              </div>
-            ) : filteredContacts.length === 0 ? (
-              <div className="py-10 text-center text-xs text-muted-text flex items-center justify-center gap-1.5">
-                <AlertCircle className="h-4 w-4 text-muted-text/60" />
-                Nenhum contato encontrado
-              </div>
-            ) : (
-              filteredContacts.map((contact) => {
+          ) : filteredContacts.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-text flex items-center justify-center gap-1.5 animate-in fade-in duration-300">
+              <AlertCircle className="h-4 w-4 text-muted-text/60" />
+              Nenhum contato encontrado
+            </div>
+          ) : (
+            <div className="space-y-1 py-1.5 animate-in fade-in duration-300">
+              {filteredContacts.map((contact) => {
                 const name = contact.name || contact.username;
                 return (
                   <div
-                    key={contact.id}
-                    className="flex items-center justify-between p-3 hover:bg-neutral-100 dark:hover:bg-white/5 rounded-xl transition-all"
+                    key={contact.contact_id}
+                    className="flex items-center justify-between p-3 hover:bg-neutral-100/70 dark:hover:bg-white/5 rounded-2xl transition-all duration-250"
                   >
                     <div className="flex items-center gap-3">
                       {contact.avatar_url ? (
@@ -440,11 +473,11 @@ export default function CallSidebar({
                           alt={name}
                           width={36}
                           height={36}
-                          className="h-9 w-9 rounded-full object-cover"
+                          className="h-9 w-9 rounded-full object-cover border border-card-border"
                           unoptimized
                         />
                       ) : (
-                        <div className="h-9 w-9 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-xs">
+                        <div className="h-9 w-9 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold text-xs">
                           {name[0]?.toUpperCase()}
                         </div>
                       )}
@@ -452,7 +485,7 @@ export default function CallSidebar({
                         <p className="text-sm font-semibold text-foreground">
                           {name}
                         </p>
-                        <p className="text-xs text-muted-text">
+                        <p className="text-xs text-muted-text font-normal">
                           @{contact.username}
                         </p>
                       </div>
@@ -469,7 +502,7 @@ export default function CallSidebar({
                             contact.avatar_url,
                           )
                         }
-                        className="p-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 rounded-lg transition-colors cursor-pointer"
+                        className="p-2 text-muted-text hover:text-foreground hover:bg-neutral-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer active:scale-90"
                         title="Iniciar chamada de áudio"
                       >
                         <Phone className="h-4 w-4" />
@@ -484,7 +517,7 @@ export default function CallSidebar({
                             contact.avatar_url,
                           )
                         }
-                        className="p-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 rounded-lg transition-colors cursor-pointer"
+                        className="p-2 text-muted-text hover:text-foreground hover:bg-neutral-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer active:scale-90"
                         title="Iniciar chamada de vídeo"
                       >
                         <Video className="h-4 w-4" />
@@ -492,11 +525,11 @@ export default function CallSidebar({
                     </div>
                   </div>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

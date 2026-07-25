@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import {
   Users,
-  Star,
   BellOff,
   MoreHorizontal,
   Mic,
@@ -18,6 +17,7 @@ import {
   User,
   QrCode,
   StickyNote,
+  Pin,
 } from "lucide-react";
 import type { ChatListItem, UserSearchResult } from "@/lib/api";
 import { ChatCardContextMenu } from "./ChatCardContextMenu";
@@ -99,7 +99,7 @@ export function ContactCard({
   const timeStr = lastMessageAt ? formatChatTime(lastMessageAt) : null;
 
   const unreadCount = targetChat?.unread_count || 0;
-  const isFavorite = targetChat?.is_favorite || false;
+  const isPinned = targetChat?.is_pinned || false;
   const isMuted =
     targetChat?.notification_muted_forever ||
     !!targetChat?.notification_muted_until;
@@ -185,13 +185,13 @@ export function ContactCard({
       iconElement = <Ban className="h-3.5 w-3.5 shrink-0 opacity-70" />;
     } else if (lastMessage === "Chamada efetuada") {
       displayMessage = "Chamada efetuada";
-      iconElement = <PhoneOutgoing className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+      iconElement = <PhoneOutgoing className="h-3.5 w-3.5 shrink-0 opacity-60" />;
     } else if (lastMessage === "Chamada recebida") {
       displayMessage = "Chamada recebida";
-      iconElement = <PhoneIncoming className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+      iconElement = <PhoneIncoming className="h-3.5 w-3.5 shrink-0 opacity-60" />;
     } else if (lastMessage === "Chamada perdida") {
       displayMessage = "Chamada perdida";
-      iconElement = <PhoneMissed className="h-3.5 w-3.5 shrink-0 text-red-500" />;
+      iconElement = <PhoneMissed className="h-3.5 w-3.5 shrink-0 opacity-60 text-neutral-400 dark:text-neutral-500" />;
     } else if (lastMessage.startsWith('{"type":"contact_share"')) {
       try {
         const parsed = JSON.parse(lastMessage);
@@ -199,7 +199,7 @@ export function ContactCard({
       } catch {
         displayMessage = "Contato";
       }
-      iconElement = <User className="h-3.5 w-3.5 shrink-0 opacity-70" />;
+      iconElement = <User className="h-3.5 w-3.5 shrink-0 opacity-60" />;
     } else if (
       lastMessage.startsWith("Pix:") ||
       targetChat.last_message?.trimStart().startsWith('{"type":"pix_share"')
@@ -207,7 +207,7 @@ export function ContactCard({
       displayMessage = lastMessage.startsWith("Pix:")
         ? lastMessage.slice(5).trimStart()
         : "Chave Pix";
-      iconElement = <QrCode className="h-3.5 w-3.5 shrink-0 text-[#32BCAD]" />;
+      iconElement = <QrCode className="h-3.5 w-3.5 shrink-0 opacity-60" />;
     } else if (
       lastMessage.startsWith("Nota:") ||
       targetChat.last_message?.trimStart().startsWith('{"type":"note_share"')
@@ -215,7 +215,7 @@ export function ContactCard({
       displayMessage = lastMessage.startsWith("Nota:")
         ? lastMessage.slice(5).trimStart()
         : "Nota";
-      iconElement = <StickyNote className="h-3.5 w-3.5 shrink-0 text-amber-500" />;
+      iconElement = <StickyNote className="h-3.5 w-3.5 shrink-0 opacity-60" />;
     }
 
     return {
@@ -228,23 +228,40 @@ export function ContactCard({
 
   return (
     <div className="relative group">
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
-        className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all cursor-pointer text-left ${
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+        className={`w-full flex items-center gap-3.5 p-3 rounded-xl transition-all duration-300 ease-out cursor-pointer text-left relative overflow-hidden outline-none ${
           isSelected
-            ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-md"
-            : "hover:bg-neutral-100 dark:hover:bg-white/5 text-foreground"
+            ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 shadow-[0_4px_20px_rgba(0,0,0,0.08)] scale-[0.99]"
+            : "hover:bg-neutral-100/70 dark:hover:bg-neutral-900/60 text-foreground hover:translate-x-0.5"
         }`}
       >
+        {/* Elegant indicator line inside the button */}
+        <div
+          className={`absolute left-0 top-[25%] bottom-[25%] w-[3px] rounded-r-full transition-all duration-300 origin-left ${
+            isSelected
+              ? "bg-white dark:bg-neutral-900 scale-y-100"
+              : "bg-neutral-900 dark:bg-white scale-y-0"
+          }`}
+        />
+
         {/* Avatar */}
         <div className="relative flex-shrink-0">
-          <div className="h-12 w-12 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-base font-bold shadow-inner">
+          <div className="h-11 w-11 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-medium border border-neutral-200/40 dark:border-neutral-700/40 text-neutral-800 dark:text-neutral-200 transition-transform duration-300 group-hover:scale-[1.04]">
             {avatarUrl ? (
               <Image
                 src={avatarUrl}
                 alt={displayName}
-                width={48}
-                height={48}
+                width={44}
+                height={44}
                 className="h-full w-full object-cover"
                 unoptimized
               />
@@ -253,7 +270,7 @@ export function ContactCard({
             )}
           </div>
           {isGroup && (
-            <div className="absolute -bottom-1 -right-1 bg-neutral-800 text-white p-0.5 rounded-md text-[10px]">
+            <div className="absolute -bottom-1 -right-1 bg-neutral-800 dark:bg-neutral-700 text-white p-0.5 rounded-md text-[9px] shadow-sm">
               <Users className="h-3 w-3" />
             </div>
           )}
@@ -263,18 +280,18 @@ export function ContactCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
             <h3
-              className={`text-sm font-semibold truncate ${
-                isSelected ? "text-white dark:text-neutral-900" : ""
+              className={`text-sm font-medium truncate tracking-tight transition-colors duration-200 ${
+                isSelected ? "text-white dark:text-neutral-900" : "text-neutral-900 dark:text-neutral-100"
               }`}
             >
               {displayName}
             </h3>
             {timeStr && (
               <span
-                className={`text-[11px] ${
+                className={`text-[10px] tracking-wide transition-colors duration-200 ${
                   isSelected
-                    ? "text-neutral-300 dark:text-neutral-600"
-                    : "text-muted-text"
+                    ? "text-neutral-400 dark:text-neutral-500"
+                    : "text-neutral-400 dark:text-neutral-500"
                 }`}
               >
                 {timeStr}
@@ -282,17 +299,17 @@ export function ContactCard({
             )}
           </div>
 
-          <div className="flex items-center justify-between min-w-0">
+          <div className="flex items-center justify-between min-w-0 relative">
             <div className="flex items-center gap-1.5 min-w-0 max-w-[180px]">
               {lastMsgData.icon}
               <span
-                className={`text-xs truncate ${
+                className={`text-[11px] truncate transition-colors duration-200 ${
                   isSelected
                     ? "text-neutral-300 dark:text-neutral-600"
-                    : "text-muted-text"
+                    : "text-neutral-500 dark:text-neutral-400"
                 } ${
                   unreadCount > 0
-                    ? "font-semibold text-foreground dark:text-foreground"
+                    ? "font-semibold text-neutral-900 dark:text-neutral-100"
                     : ""
                 }`}
               >
@@ -300,16 +317,20 @@ export function ContactCard({
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0 ml-2">
-              {isFavorite && (
-                <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+            <div
+              className={`flex items-center gap-1.5 shrink-0 ml-2 transition-transform duration-300 ease-out ${
+                hasActions ? "group-hover:-translate-x-7" : ""
+              }`}
+            >
+              {isPinned && (
+                <Pin className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500 fill-neutral-400 dark:fill-neutral-500 rotate-45" />
               )}
               {isMuted && (
-                <BellOff className="h-3.5 w-3.5 text-muted-text opacity-70" />
+                <BellOff className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500" />
               )}
               {unreadCount > 0 && (
                 <span
-                  className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${
+                  className={`min-w-[18px] h-[18px] flex items-center justify-center px-1.5 text-[9px] font-semibold rounded-full transition-all duration-300 ${
                     isSelected
                       ? "bg-white text-neutral-900 dark:bg-neutral-900 dark:text-white"
                       : "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
@@ -319,26 +340,28 @@ export function ContactCard({
                 </span>
               )}
             </div>
+
+            {/* More options button - visible on hover, aligned with the row items */}
+            {hasActions && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowContextMenu(true);
+                }}
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-1 opacity-0 group-hover:opacity-100 hover:scale-105 transition-all duration-200 cursor-pointer z-10"
+              >
+                <MoreHorizontal
+                  className={`h-4 w-4 ${
+                    isSelected
+                      ? "text-white dark:text-neutral-900"
+                      : "text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300"
+                  }`}
+                />
+              </button>
+            )}
           </div>
         </div>
-      </button>
-
-      {/* More options button - visible on hover */}
-      {hasActions && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowContextMenu(true);
-          }}
-          className="absolute bottom-0 -translate-y-1/2 right-2 p-1.5 opacity-0 group-hover:opacity-100 cursor-pointer z-10"
-        >
-          <MoreHorizontal
-            className={`h-4 w-4 ${
-              isSelected ? "text-white dark:text-neutral-900" : "text-muted-text"
-            }`}
-          />
-        </button>
-      )}
+      </div>
 
       {/* Context Menu */}
       {targetChat && (

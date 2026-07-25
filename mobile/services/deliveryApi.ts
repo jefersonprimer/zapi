@@ -26,6 +26,7 @@ export interface Store {
   avatar: string | null;
   image_banner: string | null;
   phone: string | null;
+  cnpj?: string | null;
   pix_key: string;
   category: string;
   delivery_fee: number;
@@ -91,6 +92,7 @@ export interface StoreProduct {
   name: string;
   description: string | null;
   price: number;
+  promotional_price?: number | null;
   image: string | null;
   category: string;
   category_id: string | null;
@@ -100,6 +102,25 @@ export interface StoreProduct {
   updated_at: string;
   has_addons?: boolean;
   addon_categories?: any[];
+}
+
+export interface PromotionalProduct {
+  id: string;
+  store_id: string;
+  store_name: string;
+  store_avatar: string | null;
+  store_city: string;
+  delivery_fee: number;
+  minimum_order: number;
+  is_store_open: boolean;
+  name: string;
+  description: string | null;
+  price: number;
+  promotional_price: number;
+  image: string | null;
+  category: string;
+  sale_type: SaleType;
+  is_available: boolean;
 }
 
 export interface ProductAddon {
@@ -679,6 +700,7 @@ export async function createStore(
     avatar?: string;
     image_banner?: string;
     phone?: string;
+    cnpj?: string;
     pix_key: string;
     category: string;
     delivery_fee?: number;
@@ -707,6 +729,7 @@ export async function updateStore(
     avatar?: string | null;
     image_banner?: string | null;
     phone?: string | null;
+    cnpj?: string | null;
     pix_key?: string;
     category?: string;
     delivery_fee?: number;

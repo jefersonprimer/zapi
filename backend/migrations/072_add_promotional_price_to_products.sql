@@ -1,0 +1,1 @@
+ALTER TABLE store_products ADD COLUMN promotional_price DOUBLE PRECISION DEFAULT NULL;

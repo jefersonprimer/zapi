@@ -15,6 +15,7 @@ export function useUpdates() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
   const pageRef = useRef(1);
   const hasMoreRef = useRef(true);
 
@@ -37,7 +38,9 @@ export function useUpdates() {
       } else {
         setFeed((prev) => [...prev, ...posts]);
       }
-      hasMoreRef.current = posts.length === 20;
+      const hasMorePosts = posts.length === 20;
+      hasMoreRef.current = hasMorePosts;
+      setHasMore(hasMorePosts);
       pageRef.current = page;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load feed");
@@ -54,21 +57,9 @@ export function useUpdates() {
     }
   }, [token]);
 
-  const loadInitial = useCallback(async () => {
-    if (!token) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const publisher = await updatesApi.getMyPublisher(token).catch(() => null);
-      setMyAvatarUrl(publisher?.avatar_url ?? null);
-    } catch {}
-    await Promise.all([fetchStories(), fetchFeed(1, true), fetchSavedPosts()]);
-    setIsLoading(false);
-  }, [token, fetchStories, fetchFeed, fetchSavedPosts]);
-
   useEffect(() => {
     if (!token) {
-      setIsLoading(false);
+      Promise.resolve().then(() => setIsLoading(false));
       return;
     }
     let isMounted = true;
@@ -208,7 +199,7 @@ export function useUpdates() {
         const res = await updatesApi.toggleFollow(token, publisherId);
         await fetchStories();
         return res.following;
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error("Failed to toggle follow:", e);
         return false;
       }
@@ -233,7 +224,7 @@ export function useUpdates() {
     savedPosts,
     isLoading,
     isLoadingMore,
-    hasMore: hasMoreRef.current,
+    hasMore,
     refreshing,
     error,
     myAvatarUrl,

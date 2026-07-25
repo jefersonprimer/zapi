@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
+import { useCall } from "@/lib/call-context";
 import {
   LayoutDashboard,
   MessageSquareText,
@@ -18,15 +19,17 @@ import {
   Moon,
   Monitor,
 } from "lucide-react";
-import { getVendorStore } from "@/lib/api";
+import { getVendorStore, getChats } from "@/lib/api";
 
 export default function GlobalSidebar() {
   const pathname = usePathname();
   const { user, token, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { addWSListener } = useCall();
   const router = useRouter();
   const [hasStore, setHasStore] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!token) return;
@@ -38,6 +41,54 @@ export default function GlobalSidebar() {
       })
       .catch(() => {});
   }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      Promise.resolve().then(() => {
+        setUnreadCount(0);
+      });
+      return;
+    }
+
+    const fetchCount = async () => {
+      try {
+        const res = await getChats(token);
+        if (res && res.chats) {
+          const total = res.chats.reduce((acc, c) => acc + (c.unread_count || 0), 0);
+          setUnreadCount(total);
+        }
+      } catch (err) {
+        console.error("Error fetching chats in sidebar:", err);
+      }
+    };
+
+    fetchCount();
+
+    // Listen to WebSocket events to update count in real-time
+    const removeListener = addWSListener((data) => {
+      if (
+        data.type === "new_message" ||
+        data.type === "new_message_notification" ||
+        data.type === "chat_list_update"
+      ) {
+        fetchCount();
+      }
+    });
+
+    // Also listen to custom events dispatched by the Chat page to avoid unnecessary API requests and have instant sync
+    const handleCustomUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (typeof customEvent.detail === "number") {
+        setUnreadCount(customEvent.detail);
+      }
+    };
+    window.addEventListener("zapi_unread_count_update", handleCustomUpdate);
+
+    return () => {
+      removeListener();
+      window.removeEventListener("zapi_unread_count_update", handleCustomUpdate);
+    };
+  }, [token, addWSListener]);
 
   // If on login or auth page, do not render sidebar
   if (pathname === "/login" || pathname.startsWith("/login/")) {
@@ -91,7 +142,23 @@ export default function GlobalSidebar() {
       label: "Delivery",
       tooltip: "Cardápio & Delivery",
       icon: ShoppingBag,
-      active: pathname.startsWith("/delivery"),
+      active:
+        pathname.startsWith("/delivery") ||
+        pathname.startsWith("/checkout") ||
+        pathname.startsWith("/orders") ||
+        pathname.startsWith("/categoria") ||
+        pathname.startsWith("/promocoes") ||
+        (pathname !== "/" &&
+          !pathname.startsWith("/atualizacoes") &&
+          !pathname.startsWith("/comunidades") &&
+          !pathname.startsWith("/cadastrar-loja") &&
+          !pathname.startsWith("/configuracoes") &&
+          !pathname.startsWith("/horarios") &&
+          !pathname.startsWith("/minha-loja") &&
+          !pathname.startsWith("/produtos") &&
+          !pathname.startsWith("/pedidos") &&
+          !pathname.startsWith("/login") &&
+          !pathname.startsWith("/register")),
     },
   );
 
@@ -124,7 +191,14 @@ export default function GlobalSidebar() {
                       : "text-muted-text hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-foreground"
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
+                  <div className="relative">
+                    <Icon className="h-5 w-5" />
+                    {item.label === "Conversas" && unreadCount > 0 && (
+                      <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-2 ring-white dark:ring-[#1E1F1F] animate-in zoom-in-50 duration-200">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Tooltip */}
                   <span className="absolute left-14 scale-0 group-hover:scale-100 rounded-md bg-neutral-900 dark:bg-neutral-800 border border-neutral-700/30 px-2.5 py-1.5 text-xs text-white transition-all duration-200 z-50 whitespace-nowrap font-medium shadow-md pointer-events-none origin-left translate-x-[-10px] group-hover:translate-x-0 opacity-0 group-hover:opacity-100">
@@ -178,7 +252,14 @@ export default function GlobalSidebar() {
                   : "text-muted-text hover:text-foreground"
               }`}
             >
-              <Icon className="h-5 w-5 mb-0.5 flex-shrink-0" />
+              <div className="relative">
+                <Icon className="h-5 w-5 mb-0.5 flex-shrink-0" />
+                {item.label === "Conversas" && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-1 ring-white dark:ring-[#1E1F1F] animate-in zoom-in-50 duration-200">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
               <span className="truncate max-w-full px-0.5">{item.label}</span>
             </Link>
           );

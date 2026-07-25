@@ -3,24 +3,19 @@
 import { ReactNode, useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  ShoppingBag,
-  Search,
-  MapPin,
-  ChevronDown,
-  X,
-  Plus,
-  Minus,
-  Trash2,
-  Store,
-  ChevronRight,
-} from "lucide-react";
+import { Search, MapPin, ChevronDown, X, Plus, ClipboardList } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { listStores, listAddresses, createAddress, type UserAddress } from "@/lib/api";
-import { CartProvider, useCart } from "@/lib/cart-context";
-import { slugify, formatPrice } from "@/lib/utils";
+import {
+  listStores,
+  listAddresses,
+  createAddress,
+  type UserAddress,
+} from "@/lib/api";
+import { CartProvider } from "@/lib/cart-context";
 import Footer from "@/components/Footer";
 import AddressModal, { type AddressData } from "@/components/AddressModal";
+import ShoppingCartSelector from "@/components/ShoppingCartSelector";
+import { slugify } from "@/lib/utils";
 
 const LABEL_TEXT: Record<string, string> = {
   casa: "Casa",
@@ -33,30 +28,54 @@ function HeaderControls() {
   const pathname = usePathname();
   const router = useRouter();
   const { token } = useAuth();
-  const {
-    cart,
-    cartStore,
-    addToCart,
-    removeFromCart,
-    clearCart,
-    cartCount,
-    cartTotal,
-  } = useCart();
 
   const [cities, setCities] = useState<string[]>([]);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null,
+  );
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
-  const [isCartDropdownOpen, setIsCartDropdownOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   const cityDropdownRef = useRef<HTMLDivElement>(null);
-  const cartDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get current filters from URL search params
+  // Get current filters from URL search params and pathname
   const searchQuery = searchParams.get("q") || "";
-  const selectedCity = searchParams.get("city") || "all";
+
+  // Determine selected city from URL path, query params, or localStorage
+  const getSelectedCity = () => {
+    const pathParts = pathname.split("/").filter(Boolean);
+    if (pathParts.length > 0) {
+      const firstSegment = decodeURIComponent(pathParts[0]);
+      // Skip static page names
+      const staticPages = [
+        "checkout",
+        "orders",
+        "categoria",
+        "promocoes",
+        "atualizacoes",
+        "comunidades",
+        "cadastrar-loja",
+      ];
+      if (!staticPages.includes(firstSegment)) {
+        let city = firstSegment;
+        if (city.startsWith("city=")) {
+          city = city.substring(5);
+        }
+        return city.replace(/\+/g, " ");
+      }
+    }
+    const queryCity = searchParams.get("city");
+    if (queryCity) return queryCity;
+    if (typeof window !== "undefined") {
+      const storedCity = localStorage.getItem("zapi_user_city");
+      if (storedCity) return storedCity;
+    }
+    return "all";
+  };
+
+  const selectedCity = getSelectedCity();
 
   // Load stores to extract cities & load user addresses if authenticated
   useEffect(() => {
@@ -96,25 +115,39 @@ function HeaderControls() {
           }
         }
 
-        const urlCity = searchParams.get("city");
-
         // Handle filtering and first-access prompt logic
-        if (!urlCity || urlCity === "all") {
-          if (userCity) {
-            // Automatically set city filter to user's address/saved city
-            if (pathname === "/delivery") {
-              const params = new URLSearchParams(window.location.search);
-              params.set("city", userCity);
-              router.replace(`/delivery?${params.toString()}`);
-            }
+        const hasCityInPath = () => {
+          const pathParts = pathname.split("/").filter(Boolean);
+          if (pathParts.length === 0) return false;
+          const staticPages = [
+            "checkout",
+            "orders",
+            "categoria",
+            "promocoes",
+            "atualizacoes",
+            "comunidades",
+            "cadastrar-loja",
+            "delivery",
+          ];
+          return !staticPages.includes(pathParts[0]);
+        };
+
+        if (pathname === "/delivery") {
+          if (userCity && userCity !== "all") {
+            router.replace(`/${slugify(userCity)}`);
           } else {
-            // First time accessing /delivery without address or city saved!
-            const promptSeen = typeof window !== "undefined" ? sessionStorage.getItem("zapi_address_prompt_seen") : null;
-            if (!promptSeen && pathname === "/delivery") {
-              if (isMounted) setIsAddressModalOpen(true);
-              if (typeof window !== "undefined") {
-                sessionStorage.setItem("zapi_address_prompt_seen", "true");
-              }
+            router.replace("/all");
+          }
+        } else if (!hasCityInPath() && selectedCity === "all") {
+          // First time accessing without address or city saved!
+          const promptSeen =
+            typeof window !== "undefined"
+              ? sessionStorage.getItem("zapi_address_prompt_seen")
+              : null;
+          if (!promptSeen) {
+            if (isMounted) setIsAddressModalOpen(true);
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("zapi_address_prompt_seen", "true");
             }
           }
         }
@@ -129,7 +162,7 @@ function HeaderControls() {
     return () => {
       isMounted = false;
     };
-  }, [token, pathname, router, searchParams]);
+  }, [token, pathname, router, searchParams, selectedCity]);
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -139,12 +172,6 @@ function HeaderControls() {
         !cityDropdownRef.current.contains(event.target as Node)
       ) {
         setIsCityDropdownOpen(false);
-      }
-      if (
-        cartDropdownRef.current &&
-        !cartDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsCartDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -159,11 +186,9 @@ function HeaderControls() {
       params.delete("q");
     }
 
-    if (pathname === "/delivery") {
-      router.push(`/delivery?${params.toString()}`);
-    } else {
-      router.push(`/delivery?q=${encodeURIComponent(value)}`);
-    }
+    const currentCitySlug =
+      selectedCity === "all" ? "all" : slugify(selectedCity);
+    router.push(`/${currentCitySlug}?${params.toString()}`);
   };
 
   const handleAddressSelect = (addr: UserAddress) => {
@@ -172,27 +197,23 @@ function HeaderControls() {
   };
 
   const handleCitySelect = (city: string) => {
-    const params = new URLSearchParams(window.location.search);
+    setIsCityDropdownOpen(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("zapi_user_city", city);
+    }
     if (city && city !== "all") {
-      params.set("city", city);
       const matchedAddr = addresses.find(
-        (a) => a.cidade.toLowerCase() === city.toLowerCase()
+        (a) => a.cidade.toLowerCase() === city.toLowerCase(),
       );
       if (matchedAddr) {
         setSelectedAddressId(matchedAddr.id);
       } else {
         setSelectedAddressId(null);
       }
+      router.push(`/${slugify(city)}`);
     } else {
-      params.delete("city");
       setSelectedAddressId(null);
-    }
-    setIsCityDropdownOpen(false);
-
-    if (pathname === "/delivery") {
-      router.push(`/delivery?${params.toString()}`);
-    } else {
-      router.push(`/delivery?city=${encodeURIComponent(city)}`);
+      router.push("/all");
     }
   };
 
@@ -226,7 +247,7 @@ function HeaderControls() {
     addresses.find((a) => a.id === selectedAddressId) ||
     (selectedCity !== "all"
       ? addresses.find(
-          (a) => a.cidade.toLowerCase() === selectedCity.toLowerCase()
+          (a) => a.cidade.toLowerCase() === selectedCity.toLowerCase(),
         )
       : null) ||
     addresses.find((a) => a.is_default) ||
@@ -245,7 +266,7 @@ function HeaderControls() {
           placeholder="Buscar restaurantes ou culinária..."
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
-          className="w-full pl-10 pr-10 py-2.5 rounded-full border border-card-border/60 bg-surface/50 dark:bg-card-bg/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500/80 transition-all text-sm placeholder:text-muted-text/50 font-sans tracking-wide"
+          className="w-full pl-10 pr-10 py-2.5 rounded-full border border-card-border/60 bg-surface/50 dark:bg-card-bg/40 focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/80 transition-all text-sm placeholder:text-muted-text/50 font-sans tracking-wide"
         />
         {searchQuery && (
           <button
@@ -263,9 +284,9 @@ function HeaderControls() {
         <div className="relative" ref={cityDropdownRef}>
           <button
             onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-            className="flex items-center gap-2.5 bg-surface dark:bg-card-bg/60 border border-card-border/60 hover:border-emerald-500/40 rounded-2xl px-3.5 py-1.5 text-left shadow-sm hover:shadow transition-all cursor-pointer max-w-[240px] sm:max-w-[280px]"
+            className="flex items-center gap-2.5 bg-surface dark:bg-card-bg/60 border border-card-border/60 rounded-2xl px-3.5 py-1.5 text-left shadow-sm hover:shadow transition-all cursor-pointer max-w-[240px] sm:max-w-[280px]"
           >
-            <MapPin className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+            <MapPin className="h-4 w-4 flex-shrink-0" />
             <div className="flex flex-col min-w-0 flex-grow leading-tight">
               {token && loadingAddresses ? (
                 <span className="text-xs font-medium text-muted-text animate-pulse">
@@ -274,10 +295,12 @@ function HeaderControls() {
               ) : currentAddress ? (
                 <>
                   <span className="text-xs font-bold text-foreground truncate">
-                    {(LABEL_TEXT[currentAddress.label] || currentAddress.label)} · {currentAddress.cidade}/{currentAddress.estado}
+                    {LABEL_TEXT[currentAddress.label] || currentAddress.label} ·{" "}
+                    {currentAddress.cidade}/{currentAddress.estado}
                   </span>
                   <span className="text-[10px] text-muted-text truncate font-normal">
-                    {currentAddress.rua}, {currentAddress.numero} — {currentAddress.bairro}
+                    {currentAddress.rua}, {currentAddress.numero} —{" "}
+                    {currentAddress.bairro}
                   </span>
                 </>
               ) : selectedCity && selectedCity !== "all" ? (
@@ -316,7 +339,7 @@ function HeaderControls() {
                     setIsCityDropdownOpen(false);
                     setIsAddressModalOpen(true);
                   }}
-                  className="text-[10px] font-bold text-emerald-500 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[10px] font-bold text-foreground hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="h-3 w-3" /> Endereço
                 </button>
@@ -328,21 +351,23 @@ function HeaderControls() {
                     setIsCityDropdownOpen(false);
                     setIsAddressModalOpen(true);
                   }}
-                  className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/20 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 transition-colors flex items-center gap-2 border-b border-card-border/30"
+                  className="w-full text-left px-4 py-2.5 text-xs font-bold text-foreground bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors flex items-center gap-2 border-b border-card-border/30"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>Cadastrar Novo Endereço</span>
                 </button>
                 <button
                   onClick={() => handleCitySelect("all")}
-                  className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-neutral-50 dark:hover:bg-neutral-900/40 transition-colors flex items-center justify-between ${!currentAddress && selectedCity === "all" ? "text-emerald-500 bg-emerald-50/20 font-semibold" : "text-foreground"}`}
+                  className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-neutral-50 dark:hover:bg-neutral-900/40 transition-colors flex items-center justify-between ${!currentAddress && selectedCity === "all" ? "text-foreground bg-neutral-100 dark:bg-neutral-800/60 font-semibold" : "text-foreground"}`}
                 >
                   <div className="flex flex-col">
                     <span className="font-semibold">Todas as Cidades</span>
-                    <span className="text-[10px] text-muted-text">Ver estabelecimentos de todas as regiões</span>
+                    <span className="text-[10px] text-muted-text">
+                      Ver estabelecimentos de todas as regiões
+                    </span>
                   </div>
                   {!currentAddress && selectedCity === "all" && (
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                    <span className="h-2 w-2 rounded-full bg-black dark:bg-white flex-shrink-0" />
                   )}
                 </button>
 
@@ -357,11 +382,11 @@ function HeaderControls() {
                         <button
                           key={addr.id}
                           onClick={() => handleAddressSelect(addr)}
-                          className={`w-full text-left px-4 py-2.5 text-xs transition-colors flex items-center justify-between gap-2 hover:bg-neutral-50 dark:hover:bg-neutral-900/40 ${isSelected ? "text-emerald-500 bg-emerald-50/20 font-semibold" : "text-foreground"}`}
+                          className={`w-full text-left px-4 py-2.5 text-xs transition-colors flex items-center justify-between gap-2 hover:bg-neutral-50 dark:hover:bg-neutral-900/40 ${isSelected ? "text-foreground bg-neutral-100 dark:bg-neutral-800/60 font-semibold" : "text-foreground"}`}
                         >
                           <div className="flex flex-col gap-0.5 min-w-0 flex-grow">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold uppercase text-[10px] tracking-wide text-emerald-600 dark:text-emerald-400">
+                              <span className="font-extrabold uppercase text-[10px] tracking-wide text-foreground">
                                 {LABEL_TEXT[addr.label] || addr.label}
                               </span>
                               <span className="text-[10px] text-muted-text">
@@ -376,7 +401,7 @@ function HeaderControls() {
                             </span>
                           </div>
                           {isSelected && (
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                            <span className="h-2 w-2 rounded-full bg-black dark:bg-white flex-shrink-0" />
                           )}
                         </button>
                       );
@@ -390,16 +415,17 @@ function HeaderControls() {
                       Cidades Disponíveis
                     </div>
                     {cities.map((city) => {
-                      const isSelected = !currentAddress && selectedCity === city;
+                      const isSelected =
+                        !currentAddress && selectedCity === city;
                       return (
                         <button
                           key={city}
                           onClick={() => handleCitySelect(city)}
-                          className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-neutral-50 dark:hover:bg-neutral-900/40 transition-colors flex items-center justify-between ${isSelected ? "text-emerald-500 bg-emerald-50/20 font-semibold" : "text-foreground"}`}
+                          className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-neutral-50 dark:hover:bg-neutral-900/40 transition-colors flex items-center justify-between ${isSelected ? "text-foreground bg-neutral-100 dark:bg-neutral-800/60 font-semibold" : "text-foreground"}`}
                         >
                           <span>{city}</span>
                           {isSelected && (
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                            <span className="h-2 w-2 rounded-full bg-black dark:bg-white flex-shrink-0" />
                           )}
                         </button>
                       );
@@ -411,120 +437,19 @@ function HeaderControls() {
           )}
         </div>
 
-        {/* Shopping Cart Custom Selector */}
-        <div className="relative" ref={cartDropdownRef}>
-          <button
-            onClick={() => setIsCartDropdownOpen(!isCartDropdownOpen)}
-            className={`relative flex items-center justify-center h-9 w-9 rounded-full border border-card-border/60 bg-surface dark:bg-card-bg/60 hover:border-emerald-500/40 hover:shadow-sm transition-all cursor-pointer ${cartCount > 0 ? "text-emerald-500 border-emerald-500/20 bg-emerald-50/10" : "text-muted-text hover:text-foreground"}`}
+        {token && (
+          <Link
+            href="/orders"
+            title="Meus Pedidos"
+            aria-label="Meus Pedidos"
+            className="p-2 text-muted-text hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/50 rounded-full transition-colors flex items-center justify-center mr-1"
           >
-            <ShoppingBag className="h-4.5 w-4.5" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center shadow-sm animate-pulse">
-                {cartCount}
-              </span>
-            )}
-          </button>
+            <ClipboardList className="h-5 w-5" />
+          </Link>
+        )}
 
-          {isCartDropdownOpen && (
-            <div className="absolute right-0 mt-2.5 w-80 rounded-2xl bg-surface dark:bg-card-bg border border-card-border/70 shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="p-4 border-b border-card-border/40 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-foreground">
-                    Sua Sacola
-                  </span>
-                  {cartStore && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Store className="h-3 w-3 text-muted-text" />
-                      <span className="text-[10px] text-muted-text font-medium truncate max-w-[160px]">
-                        {cartStore.name}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {cartCount > 0 && (
-                  <button
-                    onClick={clearCart}
-                    className="text-[10px] font-semibold text-red-500 hover:text-red-600 transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 className="h-3 w-3" /> Limpar
-                  </button>
-                )}
-              </div>
-
-              <div className="max-h-72 overflow-y-auto p-4 space-y-3.5">
-                {cart.length === 0 ? (
-                  <div className="py-8 text-center flex flex-col items-center justify-center">
-                    <div className="h-10 w-10 rounded-full bg-neutral-50 dark:bg-neutral-900/60 flex items-center justify-center mb-2.5">
-                      <ShoppingBag className="h-5 w-5 text-muted-text/60" />
-                    </div>
-                    <span className="text-xs text-muted-text font-medium">
-                      Sacola vazia
-                    </span>
-                    <span className="text-[10px] text-muted-text/60 mt-0.5">
-                      Adicione itens de uma loja para começar
-                    </span>
-                  </div>
-                ) : (
-                  cart.map((item) => (
-                    <div
-                      key={item.product.id}
-                      className="flex justify-between items-start gap-3"
-                    >
-                      <div className="flex-grow min-w-0">
-                        <span className="text-xs font-semibold text-foreground block truncate">
-                          {item.product.name}
-                        </span>
-                        <span className="text-[10px] text-muted-text mt-0.5 block">
-                          {formatPrice(item.product.price)}
-                        </span>
-                      </div>
-
-                      {/* Quantity buttons */}
-                      <div className="flex items-center border border-card-border/60 rounded-full p-0.5 bg-neutral-50 dark:bg-neutral-900/40">
-                        <button
-                          onClick={() => removeFromCart(item.product.id)}
-                          className="h-5 w-5 rounded-full flex items-center justify-center hover:bg-surface dark:hover:bg-card-bg text-muted-text hover:text-foreground cursor-pointer transition-colors"
-                        >
-                          <Minus className="h-2.5 w-2.5" />
-                        </button>
-                        <span className="text-[10px] font-bold text-foreground px-2 min-w-[16px] text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => addToCart(item.product, cartStore!)}
-                          className="h-5 w-5 rounded-full flex items-center justify-center hover:bg-surface dark:hover:bg-card-bg text-muted-text hover:text-foreground cursor-pointer transition-colors"
-                        >
-                          <Plus className="h-2.5 w-2.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {cart.length > 0 && cartStore && (
-                <div className="p-4 bg-neutral-50/50 dark:bg-neutral-900/20 border-t border-card-border/40">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-[11px] font-medium text-muted-text">
-                      Subtotal
-                    </span>
-                    <span className="text-xs font-bold text-foreground">
-                      {formatPrice(cartTotal)}
-                    </span>
-                  </div>
-                  <Link
-                    href={`/delivery/${slugify(cartStore.city)}/${slugify(cartStore.name)}`}
-                    onClick={() => setIsCartDropdownOpen(false)}
-                    className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 hover:shadow-lg transition-all"
-                  >
-                    <span>Finalizar Pedido</span>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Shopping Cart Custom Selector Component */}
+        <ShoppingCartSelector />
       </div>
 
       <AddressModal
@@ -539,21 +464,74 @@ function HeaderControls() {
   );
 }
 
+function LogoLink() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const getSelectedCity = () => {
+    const pathParts = pathname.split("/").filter(Boolean);
+    if (pathParts.length > 0) {
+      const firstSegment = decodeURIComponent(pathParts[0]);
+      // Skip static page names
+      const staticPages = [
+        "checkout",
+        "orders",
+        "categoria",
+        "promocoes",
+        "atualizacoes",
+        "comunidades",
+        "cadastrar-loja",
+        "delivery",
+      ];
+      if (!staticPages.includes(firstSegment)) {
+        let city = firstSegment;
+        if (city.startsWith("city=")) {
+          city = city.substring(5);
+        }
+        return city.replace(/\+/g, " ");
+      }
+    }
+    const queryCity = searchParams.get("city");
+    if (queryCity) return queryCity;
+    if (typeof window !== "undefined") {
+      const storedCity = localStorage.getItem("zapi_user_city");
+      if (storedCity) return storedCity;
+    }
+    return "all";
+  };
+
+  const selectedCity = getSelectedCity();
+
+  return (
+    <Link
+      href={selectedCity === "all" ? "/all" : `/${slugify(selectedCity)}`}
+      className="flex items-center space-x-2.5 group flex-shrink-0"
+    >
+      <span className="text-lg font-black tracking-tight text-foreground/90 font-sans group-hover:text-foreground transition-colors">
+        Zapi Food
+      </span>
+    </Link>
+  );
+}
+
 export default function DeliveryLayout({ children }: { children: ReactNode }) {
   return (
     <CartProvider>
       <div className="h-full overflow-y-auto bg-background text-foreground flex flex-col font-sans">
-        <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/70 border-b border-card-border/40 transition-all duration-300">
+        <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/70 transition-all duration-300">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6 sm:gap-10">
             {/* Logo Section */}
-            <Link
-              href="/delivery"
-              className="flex items-center space-x-2.5 group flex-shrink-0"
+            <Suspense
+              fallback={
+                <div className="flex items-center space-x-2.5 group flex-shrink-0">
+                  <span className="text-lg font-black tracking-tight text-foreground/90 font-sans">
+                    Zapi Food
+                  </span>
+                </div>
+              }
             >
-              <span className="text-lg font-black tracking-tight text-foreground/90 font-sans group-hover:text-foreground transition-colors">
-                Zapi Food
-              </span>
-            </Link>
+              <LogoLink />
+            </Suspense>
 
             {/* Middle and Right Controls */}
             <Suspense

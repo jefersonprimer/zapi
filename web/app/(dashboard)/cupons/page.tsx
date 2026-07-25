@@ -14,13 +14,18 @@ import {
 import {
   Tag,
   Plus,
-  Edit,
+  Edit2,
   Trash2,
   AlertCircle,
   CheckCircle2,
   X,
   Check,
-  Loader2
+  Loader2,
+  Calendar,
+  Layers,
+  Copy,
+  Clock,
+  Sparkles,
 } from "lucide-react";
 
 interface CouponFormData {
@@ -57,9 +62,15 @@ export default function CuponsPage() {
   const [saving, setSaving] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<StoreCoupon | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
-  const showToast = (message: string, type: "success" | "error" = "success") => {
+  const showToast = (
+    message: string,
+    type: "success" | "error" = "success",
+  ) => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
@@ -140,15 +151,23 @@ export default function CuponsPage() {
         min_order: form.min_order ? parseFloat(form.min_order) : 0,
         max_uses: form.max_uses ? parseInt(form.max_uses) : undefined,
         applies_to: form.applies_to,
-        category: form.applies_to === "category" ? form.category || undefined : undefined,
+        category:
+          form.applies_to === "category"
+            ? form.category || undefined
+            : undefined,
         expires_at: form.expires_at
-          ? new Date(form.expires_at).toISOString().replace("T", " ").slice(0, 19)
+          ? new Date(form.expires_at)
+              .toISOString()
+              .replace("T", " ")
+              .slice(0, 19)
           : undefined,
       };
 
       if (editingCoupon) {
         const { coupon } = await updateCoupon(token, editingCoupon.id, data);
-        setCoupons((prev) => prev.map((c) => (c.id === coupon.id ? coupon : c)));
+        setCoupons((prev) =>
+          prev.map((c) => (c.id === coupon.id ? coupon : c)),
+        );
         showToast("Cupom atualizado com sucesso!");
       } else {
         const { coupon } = await createCoupon(token, storeId, data);
@@ -157,7 +176,10 @@ export default function CuponsPage() {
       }
       setShowForm(false);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Erro ao salvar cupom", "error");
+      showToast(
+        err instanceof Error ? err.message : "Erro ao salvar cupom",
+        "error",
+      );
     }
     setSaving(false);
   };
@@ -165,12 +187,14 @@ export default function CuponsPage() {
   const handleToggleActive = async (c: StoreCoupon) => {
     if (!token) return;
     try {
-      const { coupon } = await updateCoupon(token, c.id, { is_active: !c.is_active });
+      const { coupon } = await updateCoupon(token, c.id, {
+        is_active: !c.is_active,
+      });
       setCoupons((prev) => prev.map((x) => (x.id === c.id ? coupon : x)));
       showToast(
         coupon.is_active
           ? `Cupom ${coupon.code} ativado!`
-          : `Cupom ${coupon.code} desativado.`
+          : `Cupom ${coupon.code} desativado.`,
       );
     } catch (err) {
       console.error(err);
@@ -187,7 +211,10 @@ export default function CuponsPage() {
       showToast(`Cupom ${deleteTarget.code} excluído.`);
       setDeleteTarget(null);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Erro ao excluir", "error");
+      showToast(
+        err instanceof Error ? err.message : "Erro ao excluir",
+        "error",
+      );
     }
     setSaving(false);
   };
@@ -195,6 +222,11 @@ export default function CuponsPage() {
   const isExpired = (expires_at: string | null) => {
     if (!expires_at) return false;
     return new Date(expires_at) < new Date();
+  };
+
+  const copyToClipboard = (code: string) => {
+    navigator.clipboard.writeText(code);
+    showToast(`Código "${code}" copiado!`);
   };
 
   if (loading) {
@@ -217,7 +249,9 @@ export default function CuponsPage() {
         <div className="w-16 h-16 bg-amber-50 dark:bg-amber-950/20 rounded-full flex items-center justify-center mx-auto text-amber-500 border border-amber-100 dark:border-amber-900/30">
           <AlertCircle className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Loja Não Encontrada</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+          Loja Não Encontrada
+        </h2>
         <p className="text-slate-500 dark:text-slate-400 text-sm">
           Você precisa configurar sua loja para gerenciar cupons.
         </p>
@@ -226,7 +260,7 @@ export default function CuponsPage() {
   }
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-8 pb-16 max-w-7xl mx-auto px-1 md:px-0">
       {/* Toast Alert */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl border animate-in slide-in-from-bottom duration-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
@@ -245,237 +279,235 @@ export default function CuponsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Cupons</h1>
-            <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/25">
-              {coupons.length} cadastrado{coupons.length !== 1 ? "s" : ""}
+            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Cupons
+            </h1>
+            <span>
+              ({coupons.length} cadastrado{coupons.length !== 1 ? "s" : ""})
             </span>
           </div>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Atraia clientes oferecendo descontos fixos ou percentuais nas compras.
+          <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+            Atraia clientes oferecendo descontos fixos ou percentuais nas
+            compras.
           </p>
         </div>
         <button
           onClick={openCreateForm}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-600/10 cursor-pointer active:scale-98"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg shadow-emerald-600/10 cursor-pointer active:scale-95 whitespace-nowrap self-start sm:self-center"
         >
-          <Plus className="h-4.5 w-4.5" />
+          <Plus className="h-5 w-5" />
           Novo Cupom
         </button>
       </div>
 
       {coupons.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-250 dark:border-slate-800 py-16 text-center text-sm text-slate-450 dark:text-slate-650 bg-white dark:bg-slate-900 shadow-xs">
-          <Tag className="w-12 h-12 text-slate-350 dark:text-slate-800 mx-auto mb-3" />
-          <p className="font-semibold text-slate-700 dark:text-slate-350">
-            Nenhum cupom cadastrado.
+        <div className="rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 py-20 text-center bg-white dark:bg-slate-900 shadow-sm flex flex-col items-center justify-center">
+          <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-100 dark:border-slate-850">
+            <Tag className="w-8 h-8" />
+          </div>
+          <p className="font-semibold text-slate-700 dark:text-slate-350 text-base">
+            Nenhum cupom cadastrado
           </p>
-          <p className="text-xs text-slate-450 dark:text-slate-500 mt-1 max-w-xs mx-auto">
-            Crie cupons promocionais para incentivar as vendas no seu estabelecimento.
+          <p className="text-xs text-slate-450 dark:text-slate-500 mt-1 max-w-xs leading-relaxed">
+            Seus cupons ativos aparecerão aqui. Clique no botão acima para criar
+            o seu primeiro cupom promocional!
           </p>
         </div>
       ) : (
-        <>
-          {/* Desktop Table View */}
-          <div className="hidden lg:block">
-            <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 shadow-xs">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/50">
-                    <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs">Código</th>
-                    <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs">Desconto</th>
-                    <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs">Mín. Pedido</th>
-                    <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs">Usos</th>
-                    <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs">Aplicação</th>
-                    <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs">Expiração</th>
-                    <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs">Status</th>
-                    <th className="px-6 py-4 text-right font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                  {coupons.map((c) => {
-                    const expired = isExpired(c.expires_at);
-                    return (
-                      <tr
-                        key={c.id}
-                        className={`group hover:bg-slate-50/45 dark:hover:bg-slate-800/10 transition-all ${
-                          !c.is_active || expired ? "opacity-60" : ""
-                        }`}
-                      >
-                        <td className="px-6 py-4">
-                          <span className="inline-block rounded-lg bg-emerald-50 dark:bg-emerald-950/35 px-3 py-1 font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
-                            {c.code}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 font-bold text-slate-850 dark:text-slate-100">
-                          {c.discount_type === "percentage"
-                            ? `${c.discount_value}%`
-                            : formatProductPrice(c.discount_value)}
-                        </td>
-                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-semibold">
-                          {c.min_order > 0 ? formatProductPrice(c.min_order) : "Sem mínimo"}
-                        </td>
-                        <td className="px-6 py-4 text-slate-500 dark:text-slate-450 font-medium">
-                          <span className="font-bold text-slate-700 dark:text-slate-300">{c.current_uses}</span>
-                          {c.max_uses != null ? ` / ${c.max_uses}` : " / ∞"}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-50 dark:bg-slate-950 text-slate-650 dark:text-slate-400 border border-slate-150 dark:border-slate-850">
-                            {c.applies_to === "all"
-                              ? "Todo o Carrinho"
-                              : c.applies_to === "category"
-                                ? `Categoria: ${c.category || "—"}`
-                                : "Produto"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">
-                          <div className="flex flex-col">
-                            <span>{c.expires_at ? new Date(c.expires_at).toLocaleDateString("pt-BR") : "Nunca"}</span>
-                            {expired && (
-                              <span className="text-[10px] text-rose-500 font-bold uppercase tracking-wider mt-0.5">Expirado</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => handleToggleActive(c)}
-                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
-                              c.is_active ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-850"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
-                                c.is_active ? "translate-x-4.5" : "translate-x-0.5"
-                              }`}
-                            />
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5 opacity-80 group-hover:opacity-100">
-                            <button
-                              onClick={() => openEditForm(c)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
-                            >
-                              <Edit className="w-3.5 h-3.5 text-slate-450" />
-                              <span>Editar</span>
-                            </button>
-                            <button
-                              onClick={() => setDeleteTarget(c)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 cursor-pointer transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Excluir</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <div className="bg-white dark:bg-[#111622] rounded-lg border border-slate-200 dark:border-slate-850 shadow-sm overflow-hidden">
+          {/* Scrollable container to prevent squeezing/overflowing */}
+          <div className="w-full overflow-x-auto scrollbar-thin">
+            <table className="w-full text-left text-sm min-w-[950px] table-fixed">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/20 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-6 py-4.5 w-[20%]">Código</th>
+                  <th className="px-6 py-4.5 w-[15%]">Desconto</th>
+                  <th className="px-6 py-4.5 w-[15%]">Regras / Mínimo</th>
+                  <th className="px-6 py-4.5 w-[15%]">Uso / Limite</th>
+                  <th className="px-6 py-4.5 w-[15%]">Expiração</th>
+                  <th className="px-6 py-4.5 w-[10%]">Status</th>
+                  <th className="px-6 py-4.5 w-[10%] text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                {coupons.map((c) => {
+                  const expired = isExpired(c.expires_at);
+                  const discountLabel =
+                    c.discount_type === "percentage"
+                      ? `${c.discount_value}%`
+                      : formatProductPrice(c.discount_value);
 
-          {/* Mobile Cards View */}
-          <div className="grid grid-cols-1 gap-4 lg:hidden">
-            {coupons.map((c) => {
-              const expired = isExpired(c.expires_at);
-              return (
-                <div
-                  key={c.id}
-                  className={`rounded-2xl border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 p-4 shadow-xs transition-all ${
-                    !c.is_active || expired ? "opacity-60" : ""
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <span className="inline-block rounded-lg bg-emerald-50 dark:bg-emerald-950/35 px-3 py-1 font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
-                      {c.code}
-                    </span>
-                    <button
-                      onClick={() => handleToggleActive(c)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
-                        c.is_active ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-850"
+                  return (
+                    <tr
+                      key={c.id}
+                      className={`group hover:bg-slate-50/40 dark:hover:bg-slate-900/10 transition-colors ${
+                        !c.is_active || expired ? "opacity-70" : ""
                       }`}
                     >
-                      <span
-                        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
-                          c.is_active ? "translate-x-4.5" : "translate-x-0.5"
-                        }`}
-                      />
-                    </button>
-                  </div>
+                      {/* Code Badge */}
+                      <td className="px-6 py-5 align-middle">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => copyToClipboard(c.code)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-900 p-2 font-mono text-xs font-extrabold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition-all cursor-pointer select-all group-hover:border-slate-350 dark:group-hover:border-slate-700"
+                            title="Clique para copiar"
+                          >
+                            <span>{c.code}</span>
+                            <Copy className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                          </button>
+                        </div>
+                      </td>
 
-                  <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm border-t border-slate-50 dark:border-slate-850 pt-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Desconto</p>
-                      <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">
-                        {c.discount_type === "percentage"
-                          ? `${c.discount_value}%`
-                          : formatProductPrice(c.discount_value)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Usos</p>
-                      <p className="font-bold text-slate-850 dark:text-slate-200 mt-0.5">
-                        {c.current_uses}
-                        {c.max_uses != null ? ` / ${c.max_uses}` : " / ∞"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Mín. Pedido</p>
-                      <p className="font-bold text-slate-850 dark:text-slate-200 mt-0.5">
-                        {c.min_order > 0 ? formatProductPrice(c.min_order) : "Nenhum"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Expiração</p>
-                      <p className="font-bold text-slate-850 dark:text-slate-200 mt-0.5 flex flex-wrap gap-1 items-center">
-                        <span>{c.expires_at ? new Date(c.expires_at).toLocaleDateString("pt-BR") : "Nunca"}</span>
-                        {expired && (
-                          <span className="text-[9px] text-rose-500 font-bold bg-rose-50 dark:bg-rose-950/20 px-1 rounded">Exp.</span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
+                      {/* Discount Value */}
+                      <td className="px-6 py-5 align-middle">
+                        <div className="flex flex-col">
+                          <span className="text-base font-extrabold text-slate-900 dark:text-white">
+                            {discountLabel}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+                            {c.discount_type === "percentage"
+                              ? "Percentual"
+                              : "Valor Fixo"}
+                          </span>
+                        </div>
+                      </td>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-850 flex gap-2">
-                    <button
-                      onClick={() => openEditForm(c)}
-                      className="flex-1 inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 cursor-pointer transition-colors"
-                    >
-                      <Edit className="w-3.5 h-3.5 text-slate-450" />
-                      <span>Editar</span>
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(c)}
-                      className="flex-1 inline-flex items-center justify-center gap-1 rounded-xl border border-rose-100 dark:border-rose-950/20 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-50 cursor-pointer transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Excluir</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      {/* Minimum order & applicability */}
+                      <td className="px-6 py-5 align-middle">
+                        <div className="space-y-1">
+                          <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {c.min_order > 0 ? (
+                              <span>
+                                Mín. {formatProductPrice(c.min_order)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 dark:text-slate-500">
+                                Sem mínimo
+                              </span>
+                            )}
+                          </div>
+                          <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                            {c.applies_to === "all" ? (
+                              <span className="flex items-center gap-1 bg-amber-50/60 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-lg border border-amber-100 dark:border-amber-900/20">
+                                Toda loja
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-lg border border-emerald-100 dark:border-emerald-900/20">
+                                Categoria: {c.category}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Usage counter & limits */}
+                      <td className="px-6 py-5 align-middle">
+                        <div className="space-y-1.5 max-w-[140px]">
+                          <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            <span>{c.current_uses}</span>
+                            <span className="text-slate-400">
+                              / {c.max_uses ?? "∞"}
+                            </span>
+                          </div>
+                          {c.max_uses && (
+                            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-950 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                                style={{
+                                  width: `${Math.min(100, (c.current_uses / c.max_uses) * 100)}%`,
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Expiration date */}
+                      <td className="px-6 py-5 align-middle">
+                        <div className="flex items-center gap-2 text-slate-650 dark:text-slate-300 font-semibold">
+                          <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                          <div className="flex flex-col">
+                            <span className="text-xs">
+                              {c.expires_at
+                                ? new Date(c.expires_at).toLocaleDateString(
+                                    "pt-BR",
+                                  )
+                                : "Nunca expira"}
+                            </span>
+                            {expired && (
+                              <span className="inline-flex self-start px-1.5 py-0.5 text-[9px] font-black text-rose-600 bg-rose-50 dark:bg-rose-950/30 rounded-md uppercase tracking-wider mt-0.5 border border-rose-100 dark:border-rose-900/20">
+                                Expirado
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Toggle status switch */}
+                      <td className="px-6 py-5 align-middle">
+                        <button
+                          onClick={() => handleToggleActive(c)}
+                          className={`relative inline-flex h-5.5 w-10 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                            c.is_active && !expired
+                              ? "bg-emerald-500"
+                              : "bg-slate-200 dark:bg-slate-800"
+                          }`}
+                          disabled={expired}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                              c.is_active && !expired
+                                ? "translate-x-5"
+                                : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-5 align-middle text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => openEditForm(c)}
+                            className="inline-flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer"
+                            title="Editar cupom"
+                          >
+                            <Edit2 className="w-4.5 h-4.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(c)}
+                            className="inline-flex items-center justify-center p-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer"
+                            title="Excluir cupom"
+                          >
+                            <Trash2 className="w-4.5 h-4.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </>
+        </div>
       )}
 
       {/* FORM MODAL */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 pt-[5vh]">
-          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 p-6 md:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-lg rounded-xl bg-white dark:bg-[#111622] p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
                   {editingCoupon ? "Editar Cupom" : "Novo Cupom"}
                 </h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                  Configure as regras e descontos para o cupom de vendas.
+                <p className="text-xs text-slate-450 dark:text-slate-500 mt-1">
+                  Configure as regras, descontos e vigência para a promoção.
                 </p>
               </div>
               <button
                 onClick={() => setShowForm(false)}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -490,9 +522,14 @@ export default function CuponsPage() {
                 <input
                   type="text"
                   value={form.code}
-                  onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
-                  className="w-full rounded-xl border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 font-mono text-sm uppercase tracking-wider focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400"
-                  placeholder="EX: DESCONTO20"
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      code: e.target.value.toUpperCase(),
+                    }))
+                  }
+                  className="w-full rounded-lg border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 font-mono text-sm uppercase tracking-wider focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400 bg-white"
+                  placeholder="EX: VERÃO15"
                 />
               </div>
 
@@ -504,8 +541,10 @@ export default function CuponsPage() {
                   </label>
                   <select
                     value={form.discount_type}
-                    onChange={(e) => setForm((f) => ({ ...f, discount_type: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-3 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer transition-all"
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, discount_type: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-3 py-3.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer transition-all bg-white"
                   >
                     <option value="percentage">Porcentagem (%)</option>
                     <option value="fixed">Valor fixo (R$)</option>
@@ -520,9 +559,13 @@ export default function CuponsPage() {
                     step="0.01"
                     min="0"
                     value={form.discount_value}
-                    onChange={(e) => setForm((f) => ({ ...f, discount_value: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                    placeholder={form.discount_type === "percentage" ? "10" : "15.00"}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, discount_value: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white"
+                    placeholder={
+                      form.discount_type === "percentage" ? "15" : "20.00"
+                    }
                   />
                 </div>
               </div>
@@ -538,9 +581,11 @@ export default function CuponsPage() {
                     step="0.50"
                     min="0"
                     value={form.min_order}
-                    onChange={(e) => setForm((f) => ({ ...f, min_order: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                    placeholder="0.00 (opcional)"
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, min_order: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white"
+                    placeholder="Opcional"
                   />
                 </div>
                 <div>
@@ -551,8 +596,10 @@ export default function CuponsPage() {
                     type="number"
                     min="1"
                     value={form.max_uses}
-                    onChange={(e) => setForm((f) => ({ ...f, max_uses: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, max_uses: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white"
                     placeholder="Ilimitado"
                   />
                 </div>
@@ -566,8 +613,10 @@ export default function CuponsPage() {
                   </label>
                   <select
                     value={form.applies_to}
-                    onChange={(e) => setForm((f) => ({ ...f, applies_to: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-3 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer transition-all"
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, applies_to: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-3 py-3.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer transition-all bg-white"
                   >
                     <option value="all">Todos os produtos</option>
                     <option value="category">Categoria específica</option>
@@ -581,8 +630,10 @@ export default function CuponsPage() {
                     <input
                       type="text"
                       value={form.category}
-                      onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                      className="w-full rounded-xl border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400"
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, category: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-450 bg-white"
                       placeholder="Ex: Bebidas"
                     />
                   </div>
@@ -594,14 +645,14 @@ export default function CuponsPage() {
                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                   Data de expiração
                 </label>
-                <div className="relative">
-                  <input
-                    type="datetime-local"
-                    value={form.expires_at}
-                    onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all cursor-pointer"
-                  />
-                </div>
+                <input
+                  type="datetime-local"
+                  value={form.expires_at}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, expires_at: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-slate-250 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all cursor-pointer bg-white"
+                />
               </div>
             </div>
 
@@ -610,7 +661,7 @@ export default function CuponsPage() {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="flex-1 rounded-xl border border-slate-250 dark:border-slate-800 px-4 py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850/40 transition-colors cursor-pointer"
+                className="flex-1 rounded-lg border border-slate-250 dark:border-slate-800 px-4 py-3 text-sm font-semibold text-slate-500 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-850/40 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -618,14 +669,15 @@ export default function CuponsPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-650 text-white px-4 py-3 text-sm font-semibold transition-all cursor-pointer shadow-sm shadow-emerald-600/10 active:scale-98 disabled:opacity-50"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-650 text-white px-4 py-3 text-sm font-semibold transition-all cursor-pointer shadow-sm shadow-emerald-600/10 active:scale-98 disabled:opacity-50"
               >
-                {saving ? (
-                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                ) : (
-                  <Check className="h-4.5 w-4.5" />
-                )}
-                <span>{saving ? "Salvando..." : editingCoupon ? "Salvar" : "Criar Cupom"}</span>
+                <span>
+                  {saving
+                    ? "Salvando..."
+                    : editingCoupon
+                      ? "Salvar"
+                      : "Criar Cupom"}
+                </span>
               </button>
             </div>
           </div>
@@ -635,13 +687,17 @@ export default function CuponsPage() {
       {/* DELETE CONFIRMATION MODAL */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-[#111622] p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
             <div className="w-12 h-12 bg-rose-50 dark:bg-rose-950/20 rounded-full flex items-center justify-center text-rose-500 mb-4 border border-rose-100 dark:border-rose-900/30">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Excluir Cupom</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+              Excluir Cupom
+            </h3>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Tem certeza que deseja excluir o cupom <strong>{deleteTarget.code}</strong>? Os clientes não poderão mais usá-lo em compras.
+              Tem certeza que deseja excluir o cupom{" "}
+              <strong>{deleteTarget.code}</strong>? Os clientes não poderão mais
+              usá-lo em compras.
             </p>
             <div className="mt-6 flex gap-3">
               <button

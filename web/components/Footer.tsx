@@ -33,7 +33,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/login"
+                  href="/cadastrar-loja"
                   className="group inline-flex items-center gap-1.5 text-xs text-muted-text hover:text-foreground font-semibold transition-colors duration-200"
                 >
                   <span>Cadastrar seu Restaurante</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
@@ -58,7 +58,34 @@ const isAudioUrl = (url?: string | null) =>
     url.toLowerCase().includes("voice_note") ||
     url.startsWith("blob:"));
 
-export default function ConversasPage() {
+const getPinnedChatIds = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem("zapi_pinned_chats");
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const savePinnedChatIds = (ids: string[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("zapi_pinned_chats", JSON.stringify(ids));
+  } catch (err) {
+    console.error("Error saving pinned chats:", err);
+  }
+};
+
+const applyPinnedState = (chatsList: ChatListItem[]): ChatListItem[] => {
+  const pinnedIds = getPinnedChatIds();
+  return chatsList.map((c) => ({
+    ...c,
+    is_pinned: pinnedIds.includes(c.id),
+  }));
+};
+
+function ConversasContent() {
   const { token, user } = useAuth();
   const { startCall, addWSListener, sendWSMessage } = useCall();
   const router = useRouter();
@@ -71,43 +98,47 @@ export default function ConversasPage() {
     }
   }, [token, router]);
 
-  // State
+
+
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatListItem | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loadingChats, setLoadingChats] = useState(true);
+  const [loadingChats, setLoadingChats] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [inputText, setInputText] = useState("");
-
-  // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [uploadingFile, setUploadingFile] = useState(false);
-
-  // Emoji picker
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // Audio Recording State
+  // Audio recording states
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
 
-  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-
-  // Modals & Options Menu State
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [showContactModal, setShowContactModal] = useState(false);
+  // Modal & menu states
   const [showMuteModal, setShowMuteModal] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | number | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  // Sync total unread count to GlobalSidebar
+  useEffect(() => {
+    const totalUnread = chats.reduce((acc, c) => acc + (c.unread_count || 0), 0);
+    window.dispatchEvent(
+      new CustomEvent("zapi_unread_count_update", { detail: totalUnread })
+    );
+  }, [chats]);
 
   // Helpers
   const loadChatList = useCallback(async () => {
@@ -115,7 +146,7 @@ export default function ConversasPage() {
     try {
       setLoadingChats(true);
       const res = await getChats(token);
-      setChats(res.chats || []);
+      setChats(applyPinnedState(res.chats || []));
     } catch (err) {
       console.error("Error fetching chats:", err);
     } finally {
@@ -159,20 +190,50 @@ export default function ConversasPage() {
     [selectedChat, loadChatList],
   );
 
-  // Load chats on mount
+  // Load chats on mount and handle optional URL query parameters (chatId / participantId)
   useEffect(() => {
     let active = true;
     const init = async () => {
       await Promise.resolve();
-      if (active) {
-        loadChatList();
+      if (!active) return;
+
+      await loadChatList();
+
+      if (!token) return;
+      const searchParams = new URLSearchParams(window.location.search);
+      const participantId =
+        searchParams.get("participantId") || searchParams.get("startChat");
+      const chatId = searchParams.get("chatId");
+
+      if (!participantId && !chatId) return;
+
+      try {
+        if (chatId) {
+          const chatsRes = await getChats(token);
+          if (!active) return;
+          setChats(applyPinnedState(chatsRes.chats || []));
+          const found = chatsRes.chats?.find((c) => c.id === chatId);
+          if (found) setSelectedChat(found);
+        } else if (participantId) {
+          if (user?.id && participantId === user.id) return;
+          const res = await createChat(token, participantId);
+          const chatsRes = await getChats(token);
+          if (!active) return;
+          setChats(applyPinnedState(chatsRes.chats || []));
+          const found = chatsRes.chats?.find(
+            (c) => c.id === res.id || c.participant_id === participantId
+          );
+          if (found) setSelectedChat(found);
+        }
+      } catch (err) {
+        console.error("Error setting chat from URL query params:", err);
       }
     };
     init();
     return () => {
       active = false;
     };
-  }, [loadChatList]);
+  }, [loadChatList, token, user?.id]);
 
   // Load messages when selectedChat changes
   useEffect(() => {
@@ -299,7 +360,7 @@ export default function ConversasPage() {
 
   // Subscribe to new chat rooms as activeChatId changes
   useEffect(() => {
-    discardRecording();
+    Promise.resolve().then(() => discardRecording());
     if (!selectedChat) return;
     sendWSMessage({ type: "subscribe", chat_id: selectedChat.id });
     return () => {
@@ -443,11 +504,15 @@ export default function ConversasPage() {
         );
 
         if (res.message) {
-          setMessages((prev) =>
-            prev.map((m) =>
+          setMessages((prev) => {
+            const hasOfficial = prev.some((m) => m.id === res.message.id);
+            if (hasOfficial) {
+              return prev.filter((m) => m.id !== tempId);
+            }
+            return prev.map((m) =>
               m.id === tempId ? { ...res.message, status: "sent" } : m,
-            ),
-          );
+            );
+          });
           updateChatsListWithNewMessage(res.message);
         }
       } catch (err) {
@@ -561,11 +626,15 @@ export default function ConversasPage() {
       );
 
       // Replace temporary message with the official server message
-      setMessages((prev) =>
-        prev.map((m) =>
+      setMessages((prev) => {
+        const hasOfficial = prev.some((m) => m.id === res.message.id);
+        if (hasOfficial) {
+          return prev.filter((m) => m.id !== tempId);
+        }
+        return prev.map((m) =>
           m.id === tempId ? { ...res.message, status: "sent" } : m,
-        ),
-      );
+        );
+      });
 
       // Update chats list locally
       updateChatsListWithNewMessage(res.message);
@@ -595,11 +664,15 @@ export default function ConversasPage() {
 
     try {
       const res = await sendMessage(token, selectedChat.id, "", mediaUrl);
-      setMessages((prev) =>
-        prev.map((m) =>
+      setMessages((prev) => {
+        const hasOfficial = prev.some((m) => m.id === res.message.id);
+        if (hasOfficial) {
+          return prev.filter((m) => m.id !== tempId);
+        }
+        return prev.map((m) =>
           m.id === tempId ? { ...res.message, status: "sent" } : m,
-        ),
-      );
+        );
+      });
       updateChatsListWithNewMessage(res.message);
     } catch (err) {
       console.error("Failed to send direct media:", err);
@@ -613,7 +686,7 @@ export default function ConversasPage() {
 
       // Refresh chat list, find the active chat and select it
       const chatsRes = await getChats(token);
-      setChats(chatsRes.chats || []);
+      setChats(applyPinnedState(chatsRes.chats || []));
 
       const openedChat = chatsRes.chats.find((c) => c.id === res.id);
       if (openedChat) {
@@ -641,16 +714,6 @@ export default function ConversasPage() {
         setFilePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  const handleFileChange = handleFileSelect;
-
-  const clearSelectedFile = () => {
-    setSelectedFile(null);
-    setFilePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
     }
   };
 
@@ -757,11 +820,14 @@ export default function ConversasPage() {
   };
 
   const handlePinChatFromSidebar = (chatId: string) => {
-    setChats((prev) =>
-      prev.map((c) =>
+    setChats((prev) => {
+      const updatedChats = prev.map((c) =>
         c.id === chatId ? { ...c, is_pinned: !c.is_pinned } : c,
-      ),
-    );
+      );
+      const pinnedIds = updatedChats.filter((c) => c.is_pinned).map((c) => c.id);
+      savePinnedChatIds(pinnedIds);
+      return updatedChats;
+    });
     if (selectedChat?.id === chatId) {
       setSelectedChat((prev) =>
         prev ? { ...prev, is_pinned: !prev.is_pinned } : prev,
@@ -891,9 +957,6 @@ export default function ConversasPage() {
                           selectedChat.name ||
                           "Contato"}
                       </h2>
-                      {selectedChat.is_favorite && (
-                        <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-                      )}
                       {(selectedChat.notification_muted_forever ||
                         selectedChat.notification_muted_until) && (
                         <BellOff className="h-3.5 w-3.5 text-muted-text opacity-70" />
@@ -1537,5 +1600,19 @@ export default function ConversasPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ConversasPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        </div>
+      }
+    >
+      <ConversasContent />
+    </Suspense>
   );
 }

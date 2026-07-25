@@ -36,6 +36,7 @@ export interface Store {
   avatar: string | null;
   image_banner: string | null;
   phone: string | null;
+  cnpj?: string | null;
   pix_key: string;
   category: string;
   delivery_fee: number;
@@ -59,6 +60,7 @@ export interface Store {
   ratings_count?: number;
   hours?: StoreHours[];
   has_coupons?: boolean;
+  has_promotions?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -77,6 +79,7 @@ export interface StoreProduct {
   name: string;
   description: string | null;
   price: number;
+  promotional_price?: number | null;
   image: string | null;
   category: string;
   category_id: string | null;
@@ -86,6 +89,25 @@ export interface StoreProduct {
   updated_at: string;
   has_addons?: boolean;
   addon_categories?: unknown[];
+}
+
+export interface PromotionalProduct {
+  id: string;
+  store_id: string;
+  store_name: string;
+  store_avatar: string | null;
+  store_city: string;
+  delivery_fee: number;
+  minimum_order: number;
+  is_store_open: boolean;
+  name: string;
+  description: string | null;
+  price: number;
+  promotional_price: number;
+  image: string | null;
+  category: string;
+  sale_type: SaleType;
+  is_available: boolean;
 }
 
 export type SaleType = "unit" | "weight";
@@ -412,6 +434,7 @@ export async function createStore(
     avatar?: string;
     image_banner?: string;
     phone?: string;
+    cnpj?: string;
     pix_key: string;
     category: string;
     delivery_fee?: number;
@@ -440,6 +463,7 @@ export async function updateStore(
     avatar?: string | null;
     image_banner?: string | null;
     phone?: string | null;
+    cnpj?: string | null;
     pix_key?: string;
     category?: string;
     delivery_fee?: number;
@@ -531,6 +555,14 @@ export async function listProducts(
   return authFetch(`${API_URL}/delivery/stores/${storeId}/products`, token);
 }
 
+export async function listPromotions(): Promise<{ promotions: PromotionalProduct[] }> {
+  const res = await fetch(`${API_URL}/delivery/promotions`);
+  if (!res.ok) {
+    throw new Error("Falha ao carregar promoções");
+  }
+  return res.json();
+}
+
 export async function createProduct(
   token: string,
   storeId: string,
@@ -538,6 +570,7 @@ export async function createProduct(
     name: string;
     description?: string;
     price: number;
+    promotional_price?: number | null;
     image?: string;
     category?: string;
     category_id?: string;
@@ -557,6 +590,7 @@ export async function updateProduct(
     name?: string;
     description?: string | null;
     price?: number;
+    promotional_price?: number | null;
     image?: string | null;
     category?: string;
     category_id?: string | null;
@@ -576,6 +610,23 @@ export async function deleteProduct(
 ): Promise<{ status: string; message: string }> {
   return authFetch(`${API_URL}/delivery/products/${productId}`, token, {
     method: "DELETE",
+  });
+}
+
+export async function batchDiscountProducts(
+  token: string,
+  storeId: string,
+  data: {
+    product_ids?: string[];
+    category_id?: string;
+    apply_to_all?: boolean;
+    discount_percent?: number;
+    clear_discount?: boolean;
+  }
+): Promise<{ status: string; products: StoreProduct[] }> {
+  return authFetch(`${API_URL}/delivery/stores/${storeId}/products/batch-discount`, token, {
+    method: "POST",
+    body: JSON.stringify(data),
   });
 }
 
@@ -823,6 +874,15 @@ export async function listOrders(
   return authFetch(`${API_URL}/delivery/orders`, token);
 }
 
+export async function simulatePayment(
+  token: string,
+  orderId: string
+): Promise<{ status: string; order: Order }> {
+  return authFetch(`${API_URL}/delivery/orders/${orderId}/simulate-pay`, token, {
+    method: "POST",
+  });
+}
+
 export async function getOrder(
   token: string,
   orderId: string
@@ -886,16 +946,48 @@ export async function uploadFile(
 }
 
 export const STORE_CATEGORIES: Record<string, string> = {
-  restaurante: "Restaurante",
-  padaria: "Padaria",
-  mercado: "Mercado",
-  farmacia: "Farmácia",
+  // Alimentação
+  restaurante: "Restaurantes",
   fast_food: "Fast Food",
-  lanchonete: "Lanchonete",
+  lanchonete: "Lanches",
+  lanches: "Lanches",
+  pizza: "Pizzas",
+  marmita: "Marmitas & PF",
+  padaria: "Padarias",
+  salgados: "Salgados",
+  pastel: "Pastéis",
   confeitaria: "Confeitaria",
+  acai: "Açaí",
+  sorvete: "Sorvetes",
+  cafe: "Cafés & Cafeterias",
+  comida_japonesa: "Japonesa",
+  comida_italiana: "Italiana",
+  comida_chinesa: "Chinesa",
+  comida_arabe: "Árabe",
+  comida_mexicana: "Mexicana",
+  frango_assado: "Frango Assado",
+  churrascaria: "Churrascaria & Espetos",
+  saudavel: "Saudável",
+  vegetariana: "Vegetariana & Vegana",
+
+  // Compras
+  mercado: "Mercados",
   acougue: "Açougue",
-  bebidas: "Bebidas",
-  outro: "Outro",
+  hortifruti: "Hortifruti",
+  bebidas: "Bebidas & Adega",
+  conveniencia: "Conveniência",
+  queijos_frios: "Queijos & Frios",
+  peixaria: "Peixaria",
+
+  // Serviços & Lojas
+  farmacia: "Farmácias",
+  petshop: "Pet Shop",
+  flores: "Floricultura & Flores",
+  tabacaria: "Tabacaria",
+  shopping: "Shopping",
+
+  // Outros
+  outro: "Outros",
 };
 
 export const PRODUCT_CATEGORIES: Record<string, string> = {
@@ -1246,4 +1338,48 @@ export async function deleteCallHistoryItem(token: string, callId: string): Prom
     method: "DELETE",
   });
 }
+
+// ─── Reviews ───
+
+export interface StoreReview {
+  id: string;
+  store_id: string;
+  user_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StoreReviewWithUser {
+  id: string;
+  store_id: string;
+  user_id: string;
+  user_name: string;
+  user_avatar: string | null;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function createStoreReview(
+  token: string,
+  storeId: string,
+  rating: number,
+  comment?: string | null
+): Promise<{ status: string; review: StoreReview }> {
+  return authFetch(`${API_URL}/delivery/stores/${storeId}/reviews`, token, {
+    method: "POST",
+    body: JSON.stringify({ rating, comment }),
+  });
+}
+
+export async function listStoreReviews(
+  token: string,
+  storeId: string
+): Promise<{ reviews: StoreReviewWithUser[] }> {
+  return authFetch(`${API_URL}/delivery/stores/${storeId}/reviews`, token);
+}
+
 

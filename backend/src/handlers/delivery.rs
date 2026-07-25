@@ -16,10 +16,10 @@ use crate::models::delivery::*;
 use crate::payment::provider::PaymentProvider;
 use crate::AppState;
 
-const STORE_COLS: &str = "id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at";
+const STORE_COLS: &str = "id, owner_id, name, description, (SELECT avatar_url FROM users WHERE users.id = stores.owner_id) AS avatar, image_banner, phone, cnpj, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at";
 const SLOT_COLS: &str = "id, store_id, start_time, end_time, fee, fulfillment_type, is_active, sort_order, created_at, updated_at";
 
-const PRODUCT_COLS: &str = "id, store_id, name, description, price, image, category, category_id, sale_type, is_available, created_at, updated_at";
+const PRODUCT_COLS: &str = "id, store_id, name, description, price, promotional_price, image, category, category_id, sale_type, is_available, created_at, updated_at";
 
 const ORDER_ITEM_COLS: &str = "id, order_id, product_id, product_name, product_image, quantity, unit_price, subtotal, observation, addons, sale_type, quantity_decimal";
 
@@ -64,6 +64,23 @@ async fn enrich_stores_json(
         active_coupon_store_ids.into_iter().collect::<HashSet<Uuid>>()
     };
 
+    let stores_with_promotions = if store_ids.is_empty() {
+        HashSet::new()
+    } else {
+        let active_promo_store_ids = sqlx::query_scalar::<_, Uuid>(
+            "SELECT DISTINCT store_id FROM store_products \
+             WHERE is_available = TRUE \
+               AND promotional_price IS NOT NULL \
+               AND promotional_price > 0 \
+               AND promotional_price < price \
+               AND store_id = ANY($1)"
+        )
+        .bind(&store_ids)
+        .fetch_all(pool)
+        .await?;
+        active_promo_store_ids.into_iter().collect::<HashSet<Uuid>>()
+    };
+
     let mut items: Vec<(Option<f64>, Value)> = stores
         .into_iter()
         .map(|s| {
@@ -71,7 +88,9 @@ async fn enrich_stores_json(
             let store_hours = hours_by_store.get(&s.id).cloned().unwrap_or_default();
             v["hours"] = serde_json::to_value(&store_hours).unwrap_or(json!([]));
             let has_coupons = stores_with_coupons.contains(&s.id);
+            let has_promotions = stores_with_promotions.contains(&s.id) || has_coupons;
             v["has_coupons"] = json!(has_coupons);
+            v["has_promotions"] = json!(has_promotions);
             let dist = match (user_lat, user_lng, s.latitude, s.longitude) {
                 (Some(ulat), Some(ulng), Some(slat), Some(slng)) => {
                     let d = haversine_km(ulat, ulng, slat, slng);
@@ -104,9 +123,11 @@ pub fn router() -> Router<AppState> {
         .route("/addresses/:id", put(update_address).delete(delete_address))
         .route("/stores", get(list_stores).post(create_store))
         .route("/stores/search", get(search_stores))
+        .route("/promotions", get(list_promotions))
         .route("/stores/:id", get(get_store).put(update_store))
         .route("/stores/:id/toggle", patch(toggle_store))
         .route("/stores/:id/products", get(list_products).post(create_product))
+        .route("/stores/:id/products/batch-discount", post(batch_discount))
         .route("/stores/:id/categories", get(list_categories).post(create_category))
         .route("/stores/:id/categories/reorder", put(reorder_categories))
         .route("/stores/:id/pix", get(get_store_pix))
@@ -530,8 +551,7 @@ pub async fn get_store(
     Query(filters): Query<StoreFilters>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let store = sqlx::query_as::<_, Store>(
-        "SELECT id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at
-         FROM stores WHERE id = $1",
+        &format!("SELECT {} FROM stores WHERE id = $1", STORE_COLS),
     )
     .bind(id)
     .fetch_optional(&pool)
@@ -659,9 +679,12 @@ pub async fn create_store(
     Json(body): Json<CreateStoreRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let valid_categories = [
-        "restaurante", "padaria", "mercado", "farmacia",
-        "fast_food", "lanchonete", "confeitaria", "acougue",
-        "bebidas", "outro",
+        "restaurante", "fast_food", "lanchonete", "lanches", "pizza", "marmita",
+        "padaria", "salgados", "pastel", "confeitaria", "acai", "sorvete", "cafe",
+        "comida_japonesa", "comida_italiana", "comida_chinesa", "comida_arabe", "comida_mexicana",
+        "frango_assado", "churrascaria", "saudavel", "vegetariana", "comida_brasileira",
+        "mercado", "acougue", "hortifruti", "bebidas", "conveniencia", "queijos_frios", "peixaria",
+        "farmacia", "petshop", "flores", "tabacaria", "shopping", "outro",
     ];
     if !valid_categories.contains(&body.category.as_str()) {
         return Err((
@@ -701,6 +724,7 @@ pub async fn create_store(
     let minimum_order = body.minimum_order.unwrap_or(0.0);
     let prep_time_minutes = body.prep_time_minutes.unwrap_or(20).max(1);
     let street = body.street.filter(|s| !s.trim().is_empty());
+    let cnpj = body.cnpj.filter(|s| !s.trim().is_empty());
     let number = body.number.filter(|s| !s.trim().is_empty());
     let neighborhood = body.neighborhood.filter(|s| !s.trim().is_empty());
     let cep = body.cep.filter(|s| !s.trim().is_empty());
@@ -724,17 +748,47 @@ pub async fn create_store(
     });
     let order_accept_timeout_minutes = body.order_accept_timeout_minutes.unwrap_or(10);
 
+    let user_avatar = sqlx::query_scalar::<_, Option<String>>(
+        "SELECT avatar_url FROM users WHERE id = $1"
+    )
+    .bind(auth.0)
+    .fetch_one(&pool)
+    .await
+    .unwrap_or(None);
+
+    let avatar = body.avatar.clone().or(user_avatar);
+
+    if body.avatar.is_some() {
+        sqlx::query("UPDATE users SET avatar_url = $1 WHERE id = $2")
+            .bind(&body.avatar)
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .ok();
+
+        sqlx::query("UPDATE publishers SET avatar_url = $1 WHERE type = 'user' AND ref_id = $2")
+            .bind(&body.avatar)
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .ok();
+    }
+
     let store = sqlx::query_as::<_, Store>(
-        "INSERT INTO stores (owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, payment_account_id, order_accept_timeout_minutes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-         RETURNING id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at",
+        &format!(
+            "INSERT INTO stores (owner_id, name, description, avatar, image_banner, phone, cnpj, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, payment_account_id, order_accept_timeout_minutes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+             RETURNING {}",
+            STORE_COLS
+        ),
     )
     .bind(auth.0)
     .bind(&body.name)
     .bind(&body.description)
-    .bind(&body.avatar)
+    .bind(&avatar)
     .bind(&body.image_banner)
     .bind(&body.phone)
+    .bind(&cnpj)
     .bind(&body.pix_key)
     .bind(&body.category)
     .bind(delivery_fee)
@@ -794,8 +848,7 @@ pub async fn update_store(
     Json(body): Json<UpdateStoreRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let existing = sqlx::query_as::<_, Store>(
-        "SELECT id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at
-         FROM stores WHERE id = $1 AND owner_id = $2",
+        &format!("SELECT {} FROM stores WHERE id = $1 AND owner_id = $2", STORE_COLS),
     )
     .bind(id)
     .bind(auth.0)
@@ -820,17 +873,38 @@ pub async fn update_store(
 
     let name = body.name.unwrap_or_else(|| existing.name.clone());
     let description = body.description.unwrap_or_else(|| existing.description.clone());
-    let avatar = match body.avatar {
+    let avatar = match body.avatar.clone() {
         Some(Some(s)) if s.trim().is_empty() => None,
         Some(inner) => inner,
         None => existing.avatar.clone(),
     };
+
+    if body.avatar.is_some() {
+        sqlx::query("UPDATE users SET avatar_url = $1 WHERE id = $2")
+            .bind(&avatar)
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .ok();
+
+        sqlx::query("UPDATE publishers SET avatar_url = $1 WHERE type = 'user' AND ref_id = $2")
+            .bind(&avatar)
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .ok();
+    }
     let image_banner = match body.image_banner {
         Some(Some(s)) if s.trim().is_empty() => None,
         Some(inner) => inner,
         None => existing.image_banner.clone(),
     };
     let phone = body.phone.unwrap_or_else(|| existing.phone.clone());
+    let cnpj = match body.cnpj {
+        Some(Some(s)) if s.trim().is_empty() => None,
+        Some(inner) => inner,
+        None => existing.cnpj.clone(),
+    };
     let pix_key = body.pix_key.unwrap_or_else(|| existing.pix_key.clone());
     let category = body.category.unwrap_or_else(|| existing.category.clone());
     let delivery_fee = body.delivery_fee.unwrap_or(existing.delivery_fee);
@@ -869,9 +943,12 @@ pub async fn update_store(
         .clamp(1, 14);
 
     let valid_categories = [
-        "restaurante", "padaria", "mercado", "farmacia",
-        "fast_food", "lanchonete", "confeitaria", "acougue",
-        "bebidas", "outro",
+        "restaurante", "fast_food", "lanchonete", "lanches", "pizza", "marmita",
+        "padaria", "salgados", "pastel", "confeitaria", "acai", "sorvete", "cafe",
+        "comida_japonesa", "comida_italiana", "comida_chinesa", "comida_arabe", "comida_mexicana",
+        "frango_assado", "churrascaria", "saudavel", "vegetariana", "comida_brasileira",
+        "mercado", "acougue", "hortifruti", "bebidas", "conveniencia", "queijos_frios", "peixaria",
+        "farmacia", "petshop", "flores", "tabacaria", "shopping", "outro",
     ];
     if !valid_categories.contains(&category.as_str()) {
         return Err((
@@ -916,18 +993,22 @@ pub async fn update_store(
     let order_accept_timeout_minutes = body.order_accept_timeout_minutes.unwrap_or(existing.order_accept_timeout_minutes);
 
     let store = sqlx::query_as::<_, Store>(
-        "UPDATE stores SET name = $1, description = $2, avatar = $3, image_banner = $4, phone = $5, pix_key = $6, category = $7,
-         delivery_fee = $8, minimum_order = $9, city = $10, state = $11, street = $12, number = $13, neighborhood = $14, cep = $15,
-         latitude = $16, longitude = $17, prep_time_minutes = $18, accepts_delivery = $19, accepts_pickup = $20, schedule_days = $21,
-         payment_account_id = $22, order_accept_timeout_minutes = $23, updated_at = NOW()
-         WHERE id = $24 AND owner_id = $25
-         RETURNING id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at",
+        &format!(
+            "UPDATE stores SET name = $1, description = $2, avatar = $3, image_banner = $4, phone = $5, cnpj = $6, pix_key = $7, category = $8,
+             delivery_fee = $9, minimum_order = $10, city = $11, state = $12, street = $13, number = $14, neighborhood = $15, cep = $16,
+             latitude = $17, longitude = $18, prep_time_minutes = $19, accepts_delivery = $20, accepts_pickup = $21, schedule_days = $22,
+             payment_account_id = $23, order_accept_timeout_minutes = $24, updated_at = NOW()
+             WHERE id = $25 AND owner_id = $26
+             RETURNING {}",
+            STORE_COLS
+        ),
     )
     .bind(&name)
     .bind(&description)
     .bind(&avatar)
     .bind(&image_banner)
     .bind(&phone)
+    .bind(&cnpj)
     .bind(&pix_key)
     .bind(&category)
     .bind(delivery_fee)
@@ -966,9 +1047,12 @@ pub async fn toggle_store(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let store = sqlx::query_as::<_, Store>(
-        "UPDATE stores SET is_open = NOT is_open, updated_at = NOW()
-         WHERE id = $1 AND owner_id = $2
-         RETURNING id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at",
+        &format!(
+            "UPDATE stores SET is_open = NOT is_open, updated_at = NOW()
+             WHERE id = $1 AND owner_id = $2
+             RETURNING {}",
+            STORE_COLS
+        ),
     )
     .bind(id)
     .bind(auth.0)
@@ -999,8 +1083,7 @@ pub async fn get_vendor_store(
     auth: AuthUser,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let store = sqlx::query_as::<_, Store>(
-        "SELECT id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at
-         FROM stores WHERE owner_id = $1",
+        &format!("SELECT {} FROM stores WHERE owner_id = $1", STORE_COLS),
     )
     .bind(auth.0)
     .fetch_optional(&pool)
@@ -1461,8 +1544,8 @@ pub async fn create_product(
 
     let product = sqlx::query_as::<_, StoreProduct>(
         &format!(
-            "INSERT INTO store_products (store_id, name, description, price, image, category, category_id, sale_type)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            "INSERT INTO store_products (store_id, name, description, price, promotional_price, image, category, category_id, sale_type)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              RETURNING {}",
             PRODUCT_COLS
         ),
@@ -1471,6 +1554,7 @@ pub async fn create_product(
     .bind(&body.name)
     .bind(&body.description)
     .bind(body.price)
+    .bind(body.promotional_price)
     .bind(&body.image)
     .bind(&category)
     .bind(category_id)
@@ -1494,7 +1578,7 @@ pub async fn update_product(
     Json(body): Json<UpdateProductRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let existing = sqlx::query_as::<_, StoreProduct>(
-        "SELECT sp.id, sp.store_id, sp.name, sp.description, sp.price, sp.image, sp.category,
+        "SELECT sp.id, sp.store_id, sp.name, sp.description, sp.price, sp.promotional_price, sp.image, sp.category,
                 sp.category_id, sp.sale_type, sp.is_available, sp.created_at, sp.updated_at
          FROM store_products sp JOIN stores s ON s.id = sp.store_id
          WHERE sp.id = $1 AND s.owner_id = $2",
@@ -1523,6 +1607,10 @@ pub async fn update_product(
     let name = body.name.unwrap_or(existing.name);
     let description = body.description.unwrap_or(existing.description);
     let price = body.price.unwrap_or(existing.price);
+    let promotional_price = match body.promotional_price {
+        Some(inner) => inner,
+        None => existing.promotional_price,
+    };
     let image = match body.image {
         Some(Some(s)) if s.trim().is_empty() => None,
         Some(inner) => inner,
@@ -1557,9 +1645,9 @@ pub async fn update_product(
 
     let product = sqlx::query_as::<_, StoreProduct>(
         &format!(
-            "UPDATE store_products SET name = $1, description = $2, price = $3, image = $4,
-             category = $5, category_id = $6, sale_type = $7, is_available = $8, updated_at = NOW()
-             WHERE id = $9
+            "UPDATE store_products SET name = $1, description = $2, price = $3, promotional_price = $4, image = $5,
+             category = $6, category_id = $7, sale_type = $8, is_available = $9, updated_at = NOW()
+             WHERE id = $10
              RETURNING {}",
             PRODUCT_COLS
         ),
@@ -1567,6 +1655,7 @@ pub async fn update_product(
     .bind(&name)
     .bind(&description)
     .bind(price)
+    .bind(promotional_price)
     .bind(&image)
     .bind(&category)
     .bind(category_id)
@@ -1612,6 +1701,124 @@ pub async fn delete_product(
     }
 
     Ok(Json(json!({ "status": "success", "message": "Product deleted" })))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BatchDiscountRequest {
+    pub product_ids: Option<Vec<Uuid>>,
+    pub category_id: Option<Uuid>,
+    pub apply_to_all: Option<bool>,
+    pub discount_percent: Option<f64>,
+    pub clear_discount: Option<bool>,
+}
+
+pub async fn batch_discount(
+    State(pool): State<PgPool>,
+    auth: AuthUser,
+    Path(store_id): Path<Uuid>,
+    Json(body): Json<BatchDiscountRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let is_owner = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM stores WHERE id = $1 AND owner_id = $2)",
+    )
+    .bind(store_id)
+    .bind(auth.0)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("database error: {}", e) }))))?;
+
+    if !is_owner {
+        return Err((StatusCode::FORBIDDEN, Json(json!({ "error": "Store not owned by user" }))));
+    }
+
+    let clear = body.clear_discount.unwrap_or(false);
+    let pct = body.discount_percent.unwrap_or(0.0);
+
+    if !clear && (pct <= 0.0 || pct >= 100.0) {
+        return Err((StatusCode::BAD_REQUEST, Json(json!({ "error": "Discount percentage must be between 0 and 100" }))));
+    }
+
+    if clear {
+        if let Some(ids) = &body.product_ids {
+            if !ids.is_empty() {
+                sqlx::query(
+                    "UPDATE store_products SET promotional_price = NULL, updated_at = NOW()
+                     WHERE store_id = $1 AND id = ANY($2)",
+                )
+                .bind(store_id)
+                .bind(ids)
+                .execute(&pool)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))))?;
+            }
+        } else if let Some(cat_id) = body.category_id {
+            sqlx::query(
+                "UPDATE store_products SET promotional_price = NULL, updated_at = NOW()
+                 WHERE store_id = $1 AND category_id = $2",
+            )
+            .bind(store_id)
+            .bind(cat_id)
+            .execute(&pool)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))))?;
+        } else if body.apply_to_all.unwrap_or(false) {
+            sqlx::query(
+                "UPDATE store_products SET promotional_price = NULL, updated_at = NOW()
+                 WHERE store_id = $1",
+            )
+            .bind(store_id)
+            .execute(&pool)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))))?;
+        }
+    } else {
+        let multiplier = (100.0 - pct) / 100.0;
+        if let Some(ids) = &body.product_ids {
+            if !ids.is_empty() {
+                sqlx::query(
+                    "UPDATE store_products SET promotional_price = ROUND((price * $1)::numeric, 2)::double precision, updated_at = NOW()
+                     WHERE store_id = $2 AND id = ANY($3)",
+                )
+                .bind(multiplier)
+                .bind(store_id)
+                .bind(ids)
+                .execute(&pool)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))))?;
+            }
+        } else if let Some(cat_id) = body.category_id {
+            sqlx::query(
+                "UPDATE store_products SET promotional_price = ROUND((price * $1)::numeric, 2)::double precision, updated_at = NOW()
+                 WHERE store_id = $2 AND category_id = $3",
+            )
+            .bind(multiplier)
+            .bind(store_id)
+            .bind(cat_id)
+            .execute(&pool)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))))?;
+        } else if body.apply_to_all.unwrap_or(false) {
+            sqlx::query(
+                "UPDATE store_products SET promotional_price = ROUND((price * $1)::numeric, 2)::double precision, updated_at = NOW()
+                 WHERE store_id = $2",
+            )
+            .bind(multiplier)
+            .bind(store_id)
+            .execute(&pool)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))))?;
+        }
+    }
+
+    let products = sqlx::query_as::<_, StoreProduct>(
+        &format!("SELECT {} FROM store_products WHERE store_id = $1 ORDER BY created_at DESC", PRODUCT_COLS),
+    )
+    .bind(store_id)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("database error: {}", e) }))))?;
+
+    Ok(Json(json!({ "status": "success", "products": products })))
 }
 
 // ─── Addon Handlers ───
@@ -2484,8 +2691,7 @@ pub async fn get_store_pix(
     Path(store_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let store = sqlx::query_as::<_, Store>(
-        "SELECT id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at
-         FROM stores WHERE id = $1",
+        &format!("SELECT {} FROM stores WHERE id = $1", STORE_COLS),
     )
     .bind(store_id)
     .fetch_optional(&pool)
@@ -2544,8 +2750,7 @@ pub async fn create_order(
     }
 
     let store = sqlx::query_as::<_, Store>(
-        "SELECT id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at
-         FROM stores WHERE id = $1",
+        &format!("SELECT {} FROM stores WHERE id = $1", STORE_COLS),
     )
     .bind(body.store_id)
     .fetch_optional(&pool)
@@ -3236,8 +3441,7 @@ pub async fn get_order(
     })?;
 
     let store = sqlx::query_as::<_, Store>(
-        "SELECT id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at
-         FROM stores WHERE id = $1",
+        &format!("SELECT {} FROM stores WHERE id = $1", STORE_COLS),
     )
     .bind(order.store_id)
     .fetch_one(&pool)
@@ -3829,8 +4033,7 @@ pub async fn cancel_order(
     };
 
     let store = sqlx::query_as::<_, Store>(
-        "SELECT id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at
-         FROM stores WHERE id = $1",
+        &format!("SELECT {} FROM stores WHERE id = $1", STORE_COLS),
     )
     .bind(order.store_id)
     .fetch_one(&pool)
@@ -3961,8 +4164,7 @@ pub async fn simulate_payment(
 
     // 2. Fetch merchant payment account and calculate splits
     let store = sqlx::query_as::<_, Store>(
-        "SELECT id, owner_id, name, description, avatar, image_banner, phone, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at
-         FROM stores WHERE id = $1",
+        &format!("SELECT {} FROM stores WHERE id = $1", STORE_COLS),
     )
     .bind(order.store_id)
     .fetch_optional(&pool)
@@ -4138,7 +4340,47 @@ pub async fn simulate_payment(
         .ok();
     }
 
-    Ok(Json(json!({ "status": "success", "order": order })))
+    Ok(Json(json!({ "status": "paid", "order": order })))
 }
 
+pub async fn list_promotions(
+    State(pool): State<PgPool>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let items = sqlx::query_as::<_, PromotionalProductItem>(
+        "SELECT 
+            sp.id, 
+            sp.store_id, 
+            s.name AS store_name, 
+            (SELECT avatar_url FROM users u WHERE u.id = s.owner_id) AS store_avatar, 
+            s.city AS store_city, 
+            s.delivery_fee, 
+            s.minimum_order, 
+            s.is_open AS is_store_open, 
+            sp.name, 
+            sp.description, 
+            sp.price, 
+            sp.promotional_price, 
+            sp.image, 
+            sp.category, 
+            sp.sale_type, 
+            sp.is_available
+         FROM store_products sp
+         JOIN stores s ON s.id = sp.store_id
+         WHERE sp.promotional_price IS NOT NULL 
+           AND sp.promotional_price > 0 
+           AND sp.promotional_price < sp.price 
+           AND sp.is_available = TRUE
+         ORDER BY s.is_open DESC, ((sp.price - sp.promotional_price) / sp.price) DESC
+         LIMIT 30"
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": format!("database error: {}", e) })),
+        )
+    })?;
 
+    Ok(Json(json!({ "promotions": items })))
+}

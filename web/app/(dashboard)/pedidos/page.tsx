@@ -13,7 +13,7 @@ import {
   X,
   Clock,
   Truck,
-  FileText
+  FileText,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<
@@ -85,7 +85,14 @@ const STATUS_CANCEL: Record<string, string> = {
   ACCEPTED: "REJECTED",
 };
 
-type FilterStatus = "all" | "WAITING_STORE_CONFIRMATION" | "ACCEPTED" | "PREPARING" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED";
+type FilterStatus =
+  | "all"
+  | "WAITING_STORE_CONFIRMATION"
+  | "ACCEPTED"
+  | "PREPARING"
+  | "READY"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED";
 
 const FILTER_OPTIONS: { value: FilterStatus; label: string }[] = [
   { value: "all", label: "Todos" },
@@ -110,9 +117,15 @@ export default function PedidosPage() {
   const [expandedItems, setExpandedItems] = useState<
     Record<string, OrderItem[]>
   >({});
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
-  const showToast = (message: string, type: "success" | "error" = "success") => {
+  const showToast = (
+    message: string,
+    type: "success" | "error" = "success",
+  ) => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
@@ -124,14 +137,14 @@ export default function PedidosPage() {
       setError(null);
       const storeData = await authFetch(
         `${API_URL}/delivery/vendor/stores`,
-        token
+        token,
       );
       const s: Store | null = storeData.store;
       setStore(s);
       if (s) {
         const orderData = await authFetch(
           `${API_URL}/delivery/vendor/orders`,
-          token
+          token,
         );
         setOrders(orderData.orders || []);
       }
@@ -154,14 +167,10 @@ export default function PedidosPage() {
     setUpdatingId(order.id);
     setError(null);
     try {
-      await authFetch(
-        `${API_URL}/delivery/orders/${order.id}/status`,
-        token,
-        {
-          method: "PUT",
-          body: JSON.stringify({ status: next }),
-        }
-      );
+      await authFetch(`${API_URL}/delivery/orders/${order.id}/status`, token, {
+        method: "PUT",
+        body: JSON.stringify({ status: next }),
+      });
       showToast(`Pedido #${order.id.slice(0, 8).toUpperCase()} avançado!`);
       await loadData();
     } catch (e: unknown) {
@@ -186,9 +195,11 @@ export default function PedidosPage() {
         {
           method: "PUT",
           body: JSON.stringify({ status: next }),
-        }
+        },
       );
-      showToast(`Pedido #${cancelTarget.id.slice(0, 8).toUpperCase()} rejeitado.`);
+      showToast(
+        `Pedido #${cancelTarget.id.slice(0, 8).toUpperCase()} rejeitado.`,
+      );
       setCancelTarget(null);
       await loadData();
     } catch (e: unknown) {
@@ -206,7 +217,7 @@ export default function PedidosPage() {
     try {
       const data = await authFetch(
         `${API_URL}/delivery/orders/${orderId}`,
-        token
+        token,
       );
       setExpandedItems((prev) => ({
         ...prev,
@@ -227,9 +238,7 @@ export default function PedidosPage() {
   }
 
   const filtered =
-    filter === "all"
-      ? orders
-      : orders.filter((o) => o.status === filter);
+    filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
   function formatDate(dateStr: string) {
     const d = new Date(dateStr);
@@ -262,7 +271,9 @@ export default function PedidosPage() {
         <div className="w-16 h-16 bg-amber-50 dark:bg-amber-950/20 rounded-full flex items-center justify-center mx-auto text-amber-500 border border-amber-100 dark:border-amber-900/30">
           <AlertCircle className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Loja Não Encontrada</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+          Loja Não Encontrada
+        </h2>
         <p className="text-slate-500 dark:text-slate-400 text-sm">
           Você precisa configurar sua loja antes de gerenciar seus pedidos.
         </p>
@@ -290,13 +301,14 @@ export default function PedidosPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Pedidos</h1>
-            <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/25">
-              {orders.length} total
-            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Pedidos
+            </h1>
+            <span>({orders.length} total)</span>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Monitore a entrada de pedidos, mude o status de preparo e gerencie as entregas.
+            Monitore a entrada de pedidos, mude o status de preparo e gerencie
+            as entregas.
           </p>
         </div>
       </div>
@@ -319,7 +331,7 @@ export default function PedidosPage() {
             <button
               key={opt.value}
               onClick={() => setFilter(opt.value)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2 cursor-pointer border ${
+              className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2 cursor-pointer border ${
                 filter === opt.value
                   ? "bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-600/10"
                   : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-350 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40"
@@ -329,7 +341,9 @@ export default function PedidosPage() {
               {count > 0 && (
                 <span
                   className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-extrabold ${
-                    filter === opt.value ? "bg-emerald-500 text-emerald-50" : "bg-slate-100 dark:bg-slate-950 text-slate-500 dark:text-slate-450"
+                    filter === opt.value
+                      ? "bg-emerald-500 text-emerald-50"
+                      : "bg-slate-100 dark:bg-slate-950 text-slate-500 dark:text-slate-450"
                   }`}
                 >
                   {count}
@@ -342,19 +356,21 @@ export default function PedidosPage() {
 
       {/* Orders List */}
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-250 dark:border-slate-800 py-16 text-center text-sm text-slate-450 dark:text-slate-650 bg-white dark:bg-slate-900 shadow-xs">
+        <div className="rounded-xl border border-dashed border-slate-250 dark:border-slate-800 py-16 text-center text-sm text-slate-450 dark:text-slate-650 bg-white dark:bg-slate-900 shadow-xs">
           <ShoppingBag className="w-12 h-12 text-slate-300 dark:text-slate-800 mx-auto mb-3" />
           <p className="font-semibold text-slate-700 dark:text-slate-350">
             Nenhum pedido encontrado nesta seção.
           </p>
           <p className="text-xs text-slate-450 dark:text-slate-500 mt-1">
-            Novos pedidos criados pelos clientes serão listados aqui instantaneamente.
+            Novos pedidos criados pelos clientes serão listados aqui
+            instantaneamente.
           </p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((order) => {
-            const statusInfo = STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING;
+            const statusInfo =
+              STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING;
             const nextStatus = STATUS_FLOW[order.status];
             const canCancel = STATUS_CANCEL[order.status];
             const isExpanded = expandedId === order.id;
@@ -364,7 +380,12 @@ export default function PedidosPage() {
             let address = "";
             try {
               if (order.address_snapshot) {
-                address = [order.address_snapshot.rua, order.address_snapshot.numero, order.address_snapshot.bairro, order.address_snapshot.cidade]
+                address = [
+                  order.address_snapshot.rua,
+                  order.address_snapshot.numero,
+                  order.address_snapshot.bairro,
+                  order.address_snapshot.cidade,
+                ]
                   .filter(Boolean)
                   .join(", ");
               }
@@ -375,7 +396,7 @@ export default function PedidosPage() {
             return (
               <div
                 key={order.id}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-850 overflow-hidden shadow-xs hover:border-slate-300 dark:hover:border-slate-800/80 transition-all"
+                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-850 overflow-hidden shadow-xs hover:border-slate-300 dark:hover:border-slate-800/80 transition-all"
               >
                 {/* Header/Summary Line */}
                 <button
@@ -509,7 +530,9 @@ export default function PedidosPage() {
                               <h4 className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider mb-1">
                                 Endereço de Entrega
                               </h4>
-                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-350 leading-relaxed">{address}</p>
+                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-350 leading-relaxed">
+                                {address}
+                              </p>
                             </div>
                           )}
 
@@ -518,7 +541,9 @@ export default function PedidosPage() {
                               <h4 className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider mb-1">
                                 Observações do Cliente
                               </h4>
-                              <p className="text-xs font-medium text-slate-700 dark:text-slate-350 leading-relaxed italic">{order.observation}</p>
+                              <p className="text-xs font-medium text-slate-700 dark:text-slate-350 leading-relaxed italic">
+                                {order.observation}
+                              </p>
                             </div>
                           )}
                         </div>
@@ -529,18 +554,14 @@ export default function PedidosPage() {
                             <button
                               onClick={() => advanceStatus(order)}
                               disabled={updatingId === order.id}
-                              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-650 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-emerald-600/10 cursor-pointer active:scale-98 disabled:opacity-50"
+                              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-650 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm shadow-emerald-600/10 cursor-pointer active:scale-98 disabled:opacity-50"
                             >
-                              {updatingId === order.id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                              )}
                               <span>
                                 {updatingId === order.id
                                   ? "Atualizando..."
                                   : `Avançar para: ${
-                                      STATUS_CONFIG[nextStatus]?.label || nextStatus
+                                      STATUS_CONFIG[nextStatus]?.label ||
+                                      nextStatus
                                     }`}
                               </span>
                             </button>
@@ -549,9 +570,8 @@ export default function PedidosPage() {
                             <button
                               onClick={() => setCancelTarget(order)}
                               disabled={updatingId === order.id}
-                              className="inline-flex items-center gap-1.5 border border-rose-100 dark:border-rose-950/20 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/10 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 border border-rose-100 dark:border-rose-950/20 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/10 px-4 py-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
                             >
-                              <X className="w-3.5 h-3.5" />
                               <span>Rejeitar Pedido</span>
                             </button>
                           )}
@@ -560,7 +580,9 @@ export default function PedidosPage() {
                     ) : (
                       <div className="flex flex-col items-center justify-center py-6 space-y-2">
                         <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-                        <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">Carregando itens...</span>
+                        <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">
+                          Carregando itens...
+                        </span>
                       </div>
                     )}
                   </div>
@@ -578,9 +600,13 @@ export default function PedidosPage() {
             <div className="w-12 h-12 bg-rose-50 dark:bg-rose-950/20 rounded-full flex items-center justify-center text-rose-500 mb-4 border border-rose-100 dark:border-rose-900/30">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Rejeitar Pedido</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+              Rejeitar Pedido
+            </h3>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Tem certeza que deseja recusar o pedido <strong>#{cancelTarget.id.slice(0,8).toUpperCase()}</strong>? O cliente será notificado sobre o cancelamento.
+              Tem certeza que deseja recusar o pedido{" "}
+              <strong>#{cancelTarget.id.slice(0, 8).toUpperCase()}</strong>? O
+              cliente será notificado sobre o cancelamento.
             </p>
             <div className="mt-6 flex gap-3">
               <button
@@ -599,7 +625,11 @@ export default function PedidosPage() {
                 ) : (
                   <X className="h-4.5 w-4.5" />
                 )}
-                <span>{updatingId === cancelTarget.id ? "Cancelando..." : "Rejeitar"}</span>
+                <span>
+                  {updatingId === cancelTarget.id
+                    ? "Cancelando..."
+                    : "Rejeitar"}
+                </span>
               </button>
             </div>
           </div>

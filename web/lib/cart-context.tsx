@@ -121,7 +121,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
-  const cartTotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  const cartTotal = cart.reduce((acc, item) => {
+    const price =
+      item.product.promotional_price &&
+      item.product.promotional_price > 0 &&
+      item.product.promotional_price < item.product.price
+        ? item.product.promotional_price
+        : item.product.price;
+    return acc + price * item.quantity;
+  }, 0);
 
   return (
     <CartContext.Provider

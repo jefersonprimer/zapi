@@ -5,7 +5,7 @@ import GlobalSidebar from "./GlobalSidebar";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage =
+  const isStandalonePage =
     pathname === "/login" ||
     pathname.startsWith("/login/") ||
     pathname === "/register" ||
@@ -13,8 +13,8 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     pathname === "/registrar" ||
     pathname.startsWith("/registrar/");
 
-  if (isAuthPage) {
-    return <>{children}</>;
+  if (isStandalonePage) {
+    return <div className="min-h-screen w-full overflow-y-auto bg-background text-foreground">{children}</div>;
   }
 
   return (

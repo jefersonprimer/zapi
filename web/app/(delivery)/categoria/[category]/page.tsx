@@ -1,107 +1,23 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-
-import { useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { listStores, type Store } from "@/lib/api";
 import { slugify } from "@/lib/utils";
 import {
   Store as StoreIcon,
   AlertCircle,
-  Utensils,
-  Croissant,
-  ShoppingCart,
-  Pill,
-  Pizza,
-  Sandwich,
-  Cake,
-  Beef,
-  Beer,
-  Sparkles,
   ArrowUpDown,
   ChevronDown,
   Clock,
   Bike,
   Tag,
+  ChevronRight,
 } from "lucide-react";
 import StoreCard, { StoreCardSkeleton } from "@/components/StoreCard";
-
-const CATEGORIES: {
-  key: string;
-  label: string;
-  icon: React.ComponentType<{
-    className?: string;
-    style?: React.CSSProperties;
-  }>;
-  color: string;
-}[] = [
-  {
-    key: "all",
-    label: "Todos",
-    icon: StoreIcon,
-    color: "#10B981",
-  },
-  {
-    key: "restaurante",
-    label: "Restaurantes",
-    icon: Utensils,
-    color: "#F97316",
-  },
-  {
-    key: "fast_food",
-    label: "Fast Food",
-    icon: Pizza,
-    color: "#EF4444",
-  },
-  {
-    key: "lanchonete",
-    label: "Lanchonetes",
-    icon: Sandwich,
-    color: "#EAB308",
-  },
-  {
-    key: "padaria",
-    label: "Padarias",
-    icon: Croissant,
-    color: "#D97706",
-  },
-  {
-    key: "confeitaria",
-    label: "Doces & Bolos",
-    icon: Cake,
-    color: "#EC4899",
-  },
-  {
-    key: "acougue",
-    label: "Açougue",
-    icon: Beef,
-    color: "#DC2626",
-  },
-  {
-    key: "mercado",
-    label: "Mercados",
-    icon: ShoppingCart,
-    color: "#16A34A",
-  },
-  {
-    key: "bebidas",
-    label: "Bebidas",
-    icon: Beer,
-    color: "#7C3AED",
-  },
-  {
-    key: "farmacia",
-    label: "Farmácias",
-    icon: Pill,
-    color: "#059669",
-  },
-  {
-    key: "outro",
-    label: "Outros",
-    icon: Sparkles,
-    color: "#6B7280",
-  },
-];
+import { CATEGORIES } from "@/components/CategoryGrid";
 
 function isStoreOpenNow(store: Store): boolean {
   if (!store.is_open) return false;
@@ -130,20 +46,27 @@ function isStoreOpenNow(store: Store): boolean {
   return false;
 }
 
-function DeliveryCatalogPageContent() {
+function CategoryPageContent() {
+  const params = useParams();
+  const router = useRouter();
   const searchParams = useSearchParams();
+
+  const categoryParam =
+    typeof params.category === "string"
+      ? params.category
+      : Array.isArray(params.category)
+        ? params.category[0]
+        : "all";
+
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Read search filters from query parameters
+  // Search & City filters from URL
   const searchQuery = searchParams.get("q") || "";
   const selectedCity = searchParams.get("city") || "all";
 
-  // Category filter remains locally in catalog page as pills
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-
-  // Dropdowns & Checkboxes states matching mobile filters
+  // Dropdowns & Checkboxes states
   const [activeDropdown, setActiveDropdown] = useState<
     "sort" | "delivery" | "payment" | null
   >(null);
@@ -161,9 +84,9 @@ function DeliveryCatalogPageContent() {
         const response = await listStores();
         setStores(response.stores || []);
       } catch (err) {
-        console.error("Error loading stores:", err);
+        console.error("Error loading stores for category:", err);
         setError(
-          "Não foi possível carregar as lojas. Tente novamente mais tarde.",
+          "Não foi possível carregar os estabelecimentos. Tente novamente mais tarde.",
         );
       } finally {
         setLoading(false);
@@ -172,36 +95,39 @@ function DeliveryCatalogPageContent() {
     loadStores();
   }, []);
 
-  // Filter and sort stores using active category pill and other filters
+  // Category details
+  const categoryInfo = CATEGORIES.find((c) => c.key === categoryParam);
+  const categoryTitle =
+    categoryInfo?.label ||
+    categoryParam.charAt(0).toUpperCase() + categoryParam.slice(1);
+  const CategoryIcon = StoreIcon;
+
+  // Filter and sort stores
   const processedStores = stores
     .filter((store) => {
       const matchesCity =
         selectedCity === "all" || slugify(store.city) === slugify(selectedCity);
+
+      // Strict category matching
       const matchesCategory =
-        selectedCategory === "all" || store.category === selectedCategory;
+        categoryParam === "all" || store.category === categoryParam;
+
       const matchesSearch =
         store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (store.description &&
           store.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      // Delivery mode filter
       const matchesDeliveryMode =
         deliveryMode === "all" ||
         (deliveryMode === "delivery" && store.accepts_delivery !== false) ||
         (deliveryMode === "pickup" && store.accepts_pickup !== false);
 
-      // Payment mode filter
       const matchesPayment =
         paymentFilter === "all" ||
         (paymentFilter === "online" && !!store.pix_key);
 
-      // Free delivery filter
       const matchesFreeDelivery = !freeDelivery || store.delivery_fee === 0;
-
-      // Open now filter
       const matchesOpenNow = !openNow || isStoreOpenNow(store);
-
-      // Promotion filter
       const matchesPromotion = !promotionOnly || store.has_coupons === true;
 
       return (
@@ -230,61 +156,50 @@ function DeliveryCatalogPageContent() {
       } else if (sortBy === "price") {
         return a.minimum_order - b.minimum_order;
       }
-      return 0; // Default sorting
+      return 0;
     });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans">
-      {/* Category Grid Section */}
-      <div className="mb-10 overflow-x-auto flex gap-4 sm:gap-6 py-2 px-1 justify-start xl:justify-center [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {CATEGORIES.map((cat) => {
-          const Icon = cat.icon;
-          const isSelected = selectedCategory === cat.key;
-          return (
-            <button
-              key={cat.key}
-              onClick={() => {
-                if (cat.key === "all") {
-                  setSelectedCategory("all");
-                } else {
-                  setSelectedCategory(isSelected ? "all" : cat.key);
-                }
-              }}
-              className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group select-none transition-transform duration-200"
-              style={{ width: "72px" }}
-            >
-              {/* Circle Icon Container */}
-              <div
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm group-hover:scale-105 group-active:scale-95"
-                style={{
-                  backgroundColor: isSelected ? cat.color : "var(--surface)",
-                  border: isSelected
-                    ? `1.5px solid ${cat.color}`
-                    : "1.5px solid var(--card-border)",
-                  boxShadow: isSelected ? `0 4px 12px ${cat.color}30` : "none",
-                }}
-              >
-                <Icon
-                  className="h-6 w-6 sm:h-6.5 sm:w-6.5 transition-colors duration-300"
-                  style={{
-                    color: isSelected ? "#FFFFFF" : cat.color,
-                  }}
-                />
-              </div>
+      {/* Header & Breadcrumbs for Category */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-xs text-muted-text mb-3">
+          <Link
+            href="/delivery"
+            className="hover:text-foreground transition-colors"
+          >
+            Delivery
+          </Link>
+          <ChevronRight className="h-3 w-3" />
+          <span className="font-semibold text-foreground">{categoryTitle}</span>
+        </div>
 
-              {/* Label */}
-              <span
-                className={`text-[11px] sm:text-xs text-center w-full truncate transition-colors duration-200 ${
-                  isSelected
-                    ? "font-bold text-foreground"
-                    : "font-medium text-muted-text group-hover:text-foreground"
-                }`}
-              >
-                {cat.label}
-              </span>
-            </button>
-          );
-        })}
+        <div className="flex items-center gap-3.5">
+          <div
+            className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shadow-md flex-shrink-0 bg-surface dark:bg-card-bg"
+            style={{
+              border: `2px solid ${categoryInfo ? categoryInfo.color : "#10B981"}`,
+            }}
+          >
+            {categoryInfo?.image ? (
+              <Image
+                src={categoryInfo.image}
+                alt={categoryTitle}
+                width={48}
+                height={48}
+                className="w-full h-full object-cover"
+                unoptimized
+              />
+            ) : (
+              <StoreIcon className="h-6 w-6 text-emerald-500" />
+            )}
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+              {categoryTitle}
+            </h1>
+          </div>
+        </div>
       </div>
 
       {/* Filters Bar */}
@@ -549,14 +464,21 @@ function DeliveryCatalogPageContent() {
           {processedStores.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center bg-surface dark:bg-card-bg border border-card-border rounded-2xl shadow-sm">
               <div className="h-14 w-14 rounded-full bg-neutral-50 dark:bg-neutral-900/60 flex items-center justify-center mb-4">
-                <StoreIcon className="h-6 w-6 text-muted-text/80" />
+                <CategoryIcon className="h-6 w-6 text-muted-text/80" />
               </div>
               <h3 className="text-lg font-bold text-foreground">
-                Nenhum estabelecimento encontrado
+                Nenhum estabelecimento em {categoryTitle}
               </h3>
               <p className="text-xs text-muted-text mt-2 max-w-xs">
-                Experimente alterar seus filtros ou termo de busca no cabeçalho.
+                Não encontramos nenhuma loja correspondente aos seus filtros
+                nesta categoria.
               </p>
+              <button
+                onClick={() => router.push("/delivery")}
+                className="mt-4 px-4 py-2 text-xs font-semibold text-emerald-500 border border-emerald-500/30 hover:border-emerald-500 rounded-full transition-colors cursor-pointer"
+              >
+                Ver todos os estabelecimentos
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -571,7 +493,7 @@ function DeliveryCatalogPageContent() {
   );
 }
 
-export default function DeliveryCatalogPage() {
+export default function CategoryDeliveryPage() {
   return (
     <Suspense
       fallback={
@@ -581,7 +503,7 @@ export default function DeliveryCatalogPage() {
         </div>
       }
     >
-      <DeliveryCatalogPageContent />
+      <CategoryPageContent />
     </Suspense>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 import {
   LayoutDashboard,
   Store,
@@ -13,19 +14,16 @@ import {
   ShoppingCart,
   Settings,
   Menu,
-  MessageSquare,
+  Loader2,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/", label: "Conversas", icon: MessageSquare },
   { href: "/minha-loja", label: "Minha Loja", icon: Store },
   { href: "/produtos", label: "Produtos", icon: Package },
-  { href: "/categorias", label: "Categorias", icon: Folder },
   { href: "/cupons", label: "Cupons", icon: Tag },
-  { href: "/horarios", label: "Horários", icon: Clock },
+  { href: "/horarios", label: "Horários e Entrega", icon: Clock },
   { href: "/pedidos", label: "Pedidos", icon: ShoppingCart },
-  { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 export default function DashboardLayout({
@@ -35,6 +33,26 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { token, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !token) {
+      router.replace("/login");
+    }
+  }, [isLoading, token, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-[#0a0e17]">
+        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!token) {
+    return null;
+  }
 
   return (
     <div className="flex h-full">

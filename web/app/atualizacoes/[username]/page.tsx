@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -13,8 +13,6 @@ import {
   Loader2,
   Sparkles,
   RefreshCw,
-  Rss,
-  Share2,
   Calendar,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -23,6 +21,7 @@ import type { Publisher, FeedPost } from "@/lib/updates-api";
 import FeedPostCard from "@/components/updates/FeedPostCard";
 import CommentsModal from "@/components/updates/CommentsModal";
 import { getImageUrl } from "@/lib/utils";
+import { searchUsers } from "@/lib/api";
 
 interface PageProps {
   params: Promise<{
@@ -44,6 +43,7 @@ export default function UserProfilePage({ params }: PageProps) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [searchedUserAvatar, setSearchedUserAvatar] = useState<string | null>(null);
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(
     null
   );
@@ -53,12 +53,30 @@ export default function UserProfilePage({ params }: PageProps) {
     publisher?.ref_id === user?.user_id;
 
   // Load publisher profile and posts
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
+    await Promise.resolve();
     if (!token) return;
-    setIsLoading(true);
 
     try {
       let pubData: Publisher | null = null;
+
+      let searchedUserId: string | null = null;
+      let searchedAvatar: string | null = null;
+
+      // Try to search user by username to get their actual profile avatar and ID
+      try {
+        const searchRes = await searchUsers(token, cleanUsername);
+        const matchedUser = searchRes.users.find(
+          (u) => u.username.toLowerCase() === cleanUsername.toLowerCase()
+        );
+        if (matchedUser) {
+          searchedUserId = matchedUser.id;
+          searchedAvatar = matchedUser.avatar_url ?? null;
+          setSearchedUserAvatar(matchedUser.avatar_url ?? null);
+        }
+      } catch (err) {
+        console.error("Error searching user for avatar:", err);
+      }
 
       // Check if viewing own profile
       if (user?.username?.toLowerCase() === cleanUsername.toLowerCase()) {
@@ -69,9 +87,9 @@ export default function UserProfilePage({ params }: PageProps) {
         }
       }
 
-      if (!pubData) {
+      if (!pubData && searchedUserId) {
         try {
-          pubData = await updatesApi.getPublisherByUsername(token, cleanUsername);
+          pubData = await updatesApi.getPublisherByUser(token, searchedUserId);
         } catch {
           // Fallback mock/constructed publisher if endpoint is missing or returns 404
         }
@@ -79,12 +97,12 @@ export default function UserProfilePage({ params }: PageProps) {
 
       // Fallback publisher if not found
       const currentPublisher: Publisher = pubData || {
-        id: `pub-${cleanUsername}`,
+        id: searchedUserId ? `pub-${searchedUserId}` : `pub-${cleanUsername}`,
         type: "user",
-        ref_id: cleanUsername,
+        ref_id: searchedUserId || cleanUsername,
         name: cleanUsername,
         username: cleanUsername,
-        avatar_url: null,
+        avatar_url: searchedAvatar,
         is_verified: false,
         created_at: new Date().toISOString(),
         is_following: false,
@@ -122,11 +140,18 @@ export default function UserProfilePage({ params }: PageProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [token, user?.username, cleanUsername, isOwnProfile]);
+  };
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) loadData();
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, user?.username, cleanUsername, isOwnProfile]);
 
   // Toggle follow action
   const handleToggleFollow = async () => {
@@ -136,7 +161,11 @@ export default function UserProfilePage({ params }: PageProps) {
     setFollowersCount((prev) => (nextFollowing ? prev + 1 : Math.max(0, prev - 1)));
 
     try {
-      await updatesApi.toggleFollow(token, publisher.id);
+      if (publisher.type === "user" && publisher.ref_id) {
+        await updatesApi.toggleFollowByUser(token, publisher.ref_id);
+      } else {
+        await updatesApi.toggleFollow(token, publisher.id);
+      }
     } catch {
       // Revert state on error
       setIsFollowing(!nextFollowing);
@@ -214,8 +243,14 @@ export default function UserProfilePage({ params }: PageProps) {
     }
   };
 
+  const getAvatarUrl = () => {
+    if (publisher?.avatar_url) return publisher.avatar_url;
+    if (isOwnProfile && user?.avatar_url) return user.avatar_url;
+    if (searchedUserAvatar) return searchedUserAvatar;
+    return null;
+  };
+  const avatarSrc = publisher ? getImageUrl(getAvatarUrl()) : null;
   const displayPosts = activeTab === "posts" ? posts : savedPosts;
-  const avatarSrc = publisher ? getImageUrl(publisher.avatar_url) : null;
 
   return (
     <div className="flex flex-col h-full bg-background overflow-y-auto min-h-screen">

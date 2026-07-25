@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, Loader2, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -31,125 +31,224 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full">
-      {/* Brand Header */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold mb-3 border border-emerald-500/20">
-          <Sparkles className="w-3.5 h-3.5" />
-          Zapi Platform
-        </div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-          Acessar sua conta
-        </h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Entre com seu e-mail e senha para continuar
-        </p>
-      </div>
-
-      {/* Login Card */}
-      <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-[#121824]/90 backdrop-blur-xl p-6 sm:p-8 shadow-xl dark:shadow-emerald-950/10">
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="w-full border border-neutral-200/60 dark:border-neutral-900 rounded-xl p-6 sm:p-8 bg-neutral-50/30 dark:bg-neutral-900/10 shadow-[0_8px_30px_rgb(0,0,0,0.01)]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+        {/* Left Side: Form */}
+        <div className="flex flex-col justify-between space-y-6">
           <div>
-            <label
-              htmlFor="email"
-              className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5"
-            >
-              E-mail
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                <Mail className="h-4 w-4" />
-              </div>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="block w-full rounded-xl border border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-[#0a0e17] pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-emerald-500 focus:bg-white dark:focus:bg-[#0d1320] focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
-                placeholder="seu@email.com"
-              />
+            {/* Brand Header */}
+            <div className="mb-6">
+              <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white">
+                Entrar na sua conta
+              </h1>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5">
+                Insira seu e-mail e senha para continuar.
+              </p>
             </div>
-          </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label
-                htmlFor="password"
-                className="block text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300"
-              >
-                Senha
-              </label>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                <Lock className="h-4 w-4" />
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="email"
+                  className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-700 dark:text-neutral-300"
+                >
+                  E-mail
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nome@exemplo.com"
+                  className="block w-full bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-300 dark:border-neutral-800 rounded-md px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:border-neutral-900 dark:focus:border-neutral-100 focus:ring-1 focus:ring-neutral-900 dark:focus:ring-neutral-100 outline-none transition-all"
+                />
               </div>
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-xl border border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-[#0a0e17] pl-10 pr-10 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:border-emerald-500 focus:bg-white dark:focus:bg-[#0d1320] focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
-                placeholder="••••••••"
-              />
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="password"
+                  className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-700 dark:text-neutral-300"
+                >
+                  Senha
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="block w-full bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-300 dark:border-neutral-800 rounded-md pl-3 pr-10 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:border-neutral-900 dark:focus:border-neutral-100 focus:ring-1 focus:ring-neutral-900 dark:focus:ring-neutral-100 outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 stroke-[1.5]" />
+                    ) : (
+                      <Eye className="h-4 w-4 stroke-[1.5]" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-md p-3 text-center transition-all">
+                  {error}
+                </div>
+              )}
+
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                type="submit"
+                disabled={loading}
+                className="w-full mt-6 flex items-center justify-center gap-2 rounded-full bg-neutral-900 dark:bg-neutral-100 hover:bg-neutral-950 dark:hover:bg-white text-white dark:text-neutral-950 text-xs font-semibold uppercase tracking-wider py-2.5 px-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Entrando...</span>
+                  </>
+                ) : (
+                  <span>Entrar</span>
+                )}
               </button>
-            </div>
+            </form>
           </div>
 
-          {error && (
-            <div className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-xl p-3.5">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full mt-2 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold py-3 px-4 shadow-lg shadow-emerald-600/20 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Entrando...
-              </>
-            ) : (
-              <>
-                <LogIn className="w-4 h-4" />
-                Entrar
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200 dark:border-gray-800" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white dark:bg-[#121824] px-3 text-gray-400 font-medium">
-              Ainda não tem conta?
-            </span>
+          <div className="pt-4 text-center md:text-left border-t border-neutral-100 dark:border-neutral-900 md:border-t-0">
+            <Link
+              href="/register"
+              className="text-xs font-semibold text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-250 transition-colors"
+            >
+              Ainda não tem conta?{" "}
+              <span className="underline underline-offset-4 decoration-neutral-300 dark:decoration-neutral-700">
+                Criar uma
+              </span>
+            </Link>
           </div>
         </div>
 
-        {/* Link to Register */}
-        <div className="text-center">
-          <Link
-            href="/register"
-            className="inline-flex items-center justify-center w-full rounded-xl border border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800 py-2.5 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors"
-          >
-            Criar uma conta
-          </Link>
+        {/* Right Side: QR Code login (Visual only) */}
+        <div className="flex flex-col items-center justify-center text-center p-4 border-t border-neutral-200/60 dark:border-neutral-900 md:border-t-0 md:border-l md:border-neutral-200/60 md:dark:border-neutral-900 md:pl-8">
+          <div className="relative p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl mb-5 shadow-sm">
+            {/* Minimalist QR Code mockup in SVG */}
+            <svg
+              width="140"
+              height="140"
+              viewBox="0 0 160 160"
+              fill="none"
+              className="text-neutral-900 dark:text-white"
+            >
+              {/* Top Left Finder Pattern */}
+              <rect
+                x="10"
+                y="10"
+                width="40"
+                height="40"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <rect x="20" y="20" width="20" height="20" fill="currentColor" />
+
+              {/* Top Right Finder Pattern */}
+              <rect
+                x="110"
+                y="10"
+                width="40"
+                height="40"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <rect x="120" y="20" width="20" height="20" fill="currentColor" />
+
+              {/* Bottom Left Finder Pattern */}
+              <rect
+                x="10"
+                y="110"
+                width="40"
+                height="40"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <rect x="20" y="120" width="20" height="20" fill="currentColor" />
+
+              {/* Abstract QR code dots */}
+              <rect x="60" y="15" width="10" height="10" fill="currentColor" />
+              <rect x="80" y="25" width="15" height="10" fill="currentColor" />
+              <rect x="65" y="40" width="10" height="20" fill="currentColor" />
+
+              <rect x="15" y="60" width="20" height="10" fill="currentColor" />
+              <rect x="25" y="80" width="10" height="15" fill="currentColor" />
+
+              <rect x="120" y="60" width="10" height="20" fill="currentColor" />
+              <rect x="135" y="70" width="15" height="10" fill="currentColor" />
+              <rect x="110" y="90" width="20" height="10" fill="currentColor" />
+
+              <rect x="60" y="115" width="20" height="10" fill="currentColor" />
+              <rect x="70" y="130" width="10" height="15" fill="currentColor" />
+              <rect x="90" y="120" width="10" height="10" fill="currentColor" />
+
+              <rect
+                x="110"
+                y="125"
+                width="20"
+                height="20"
+                fill="currentColor"
+              />
+              <rect
+                x="135"
+                y="115"
+                width="10"
+                height="10"
+                fill="currentColor"
+              />
+              <rect
+                x="125"
+                y="140"
+                width="20"
+                height="10"
+                fill="currentColor"
+              />
+
+              {/* Center 'Z' overlay */}
+              <rect
+                x="58"
+                y="58"
+                width="44"
+                height="44"
+                fill="white"
+                className="dark:fill-neutral-900"
+              />
+              <rect
+                x="60"
+                y="60"
+                width="40"
+                height="40"
+                fill="currentColor"
+                rx="4"
+              />
+              <text
+                x="80"
+                y="88"
+                fill="white"
+                className="dark:fill-neutral-900 font-bold text-2xl tracking-tighter"
+                textAnchor="middle"
+              >
+                Z
+              </text>
+            </svg>
+          </div>
+          <h2 className="text-sm font-semibold text-neutral-900 dark:text-white">
+            Entrar com código QR
+          </h2>
+          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-2 max-w-[210px] leading-relaxed">
+            Escaneie isto com o app do Zapi para fazer login imediatamente.
+          </p>
         </div>
       </div>
     </div>

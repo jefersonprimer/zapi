@@ -3,16 +3,16 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #FAFAFA;
+  --background: #fafafa;
   --foreground: #111827;
-  --surface: #FFFFFF;
-  --card-bg: #FFFFFF;
-  --card-border: #ECECEC;
-  --muted-text: #6B7280;
+  --surface: #ffffff;
+  --card-bg: #ffffff;
+  --card-border: #ececec;
+  --muted-text: #6b7280;
 
   /* Dashboard specific legacy support if needed */
-  --sidebar-bg: #FFFFFF;
-  --sidebar-text: #6B7280;
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #6b7280;
   --sidebar-active-bg: #ecfdf5;
   --sidebar-active-border: #10b981;
   --sidebar-active-text: #059669;
@@ -21,15 +21,15 @@
 
 .dark {
   --background: #121212;
-  --foreground: #F9FAFB;
-  --surface: #1A1A1A;
-  --card-bg: #1E1E1E;
+  --foreground: #f9fafb;
+  --surface: #1a1a1a;
+  --card-bg: #1e1e1e;
   --card-border: #222222;
-  --muted-text: #9CA3AF;
+  --muted-text: #9ca3af;
 
   /* Dashboard specific dark mode support */
-  --sidebar-bg: #1A1A1A;
-  --sidebar-text: #9CA3AF;
+  --sidebar-bg: #1a1a1a;
+  --sidebar-text: #9ca3af;
   --sidebar-active-bg: rgba(16, 185, 129, 0.15);
   --sidebar-active-border: #10b981;
   --sidebar-active-text: #34d399;
@@ -39,14 +39,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     --background: #121212;
-    --foreground: #F9FAFB;
-    --surface: #1A1A1A;
-    --card-bg: #1E1E1E;
+    --foreground: #f9fafb;
+    --surface: #1a1a1a;
+    --card-bg: #1e1e1e;
     --card-border: #222222;
-    --muted-text: #9CA3AF;
+    --muted-text: #9ca3af;
 
-    --sidebar-bg: #1A1A1A;
-    --sidebar-text: #9CA3AF;
+    --sidebar-bg: #1a1a1a;
+    --sidebar-text: #9ca3af;
     --sidebar-active-bg: rgba(16, 185, 129, 0.15);
     --sidebar-active-border: #10b981;
     --sidebar-active-text: #34d399;
@@ -62,7 +62,7 @@
   --color-card-border: var(--card-border);
   --color-muted-text: var(--muted-text);
   --color-accent: #10b981;
-  
+
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
@@ -71,6 +71,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+button {
+  cursor: pointer;
 }
 
 /* Emoji Mart custom styling for modal integration */
@@ -101,4 +105,3 @@ em-emoji-picker {
   height: 100%;
   width: 100%;
 }
-

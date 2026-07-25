@@ -31,6 +31,7 @@ pub struct Store {
     pub avatar: Option<String>,
     pub image_banner: Option<String>,
     pub phone: Option<String>,
+    pub cnpj: Option<String>,
     pub pix_key: String,
     pub category: String,
     pub delivery_fee: f64,
@@ -65,13 +66,14 @@ pub struct StoreProductCategory {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
 pub struct StoreProduct {
     pub id: Uuid,
     pub store_id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub price: f64,
+    pub promotional_price: Option<f64>,
     pub image: Option<String>,
     pub category: String,
     pub category_id: Option<Uuid>,
@@ -79,6 +81,26 @@ pub struct StoreProduct {
     pub is_available: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
+pub struct PromotionalProductItem {
+    pub id: Uuid,
+    pub store_id: Uuid,
+    pub store_name: String,
+    pub store_avatar: Option<String>,
+    pub store_city: String,
+    pub delivery_fee: f64,
+    pub minimum_order: f64,
+    pub is_store_open: bool,
+    pub name: String,
+    pub description: Option<String>,
+    pub price: f64,
+    pub promotional_price: f64,
+    pub image: Option<String>,
+    pub category: String,
+    pub sale_type: String,
+    pub is_available: bool,
 }
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]
@@ -209,6 +231,7 @@ pub struct CreateStoreRequest {
     pub avatar: Option<String>,
     pub image_banner: Option<String>,
     pub phone: Option<String>,
+    pub cnpj: Option<String>,
     pub pix_key: String,
     pub category: String,
     pub delivery_fee: Option<f64>,
@@ -231,6 +254,7 @@ pub struct UpdateStoreRequest {
     pub avatar: Option<Option<String>>,
     pub image_banner: Option<Option<String>>,
     pub phone: Option<Option<String>>,
+    pub cnpj: Option<Option<String>>,
     pub pix_key: Option<String>,
     pub category: Option<String>,
     pub delivery_fee: Option<f64>,
@@ -254,6 +278,7 @@ pub struct CreateProductRequest {
     pub name: String,
     pub description: Option<String>,
     pub price: f64,
+    pub promotional_price: Option<f64>,
     pub image: Option<String>,
     pub category: Option<String>,
     pub category_id: Option<Uuid>,
@@ -265,6 +290,7 @@ pub struct UpdateProductRequest {
     pub name: Option<String>,
     pub description: Option<Option<String>>,
     pub price: Option<f64>,
+    pub promotional_price: Option<Option<f64>>,
     pub image: Option<Option<String>>,
     pub category: Option<String>,
     pub category_id: Option<Option<Uuid>>,

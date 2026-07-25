@@ -16,7 +16,6 @@ interface CommunityMemberListProps {
 
 export const CommunityMemberList: React.FC<CommunityMemberListProps> = ({
   members,
-  currentUserId: _currentUserId,
   onUpdateRole,
   onToggleMute,
   onRemoveMember,

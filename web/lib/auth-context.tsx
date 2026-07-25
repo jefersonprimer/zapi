@@ -5,6 +5,7 @@ import { login as apiLogin, register as apiRegister, type AuthResponse } from ".
 
 interface User {
   user_id: string;
+  id: string;
   username: string;
   email: string;
   avatar_url?: string | null;
@@ -25,8 +26,10 @@ const AuthContext = createContext<AuthContextType | null>(null);
 function parseToken(token: string): User | null {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
+    const uid = payload.user_id || payload.sub || "";
     return {
-      user_id: payload.user_id || payload.sub || "",
+      user_id: uid,
+      id: uid,
       username: payload.username || "",
       email: payload.email || "",
       avatar_url: payload.avatar_url || null,
@@ -73,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(res.token);
     setUser({
       user_id: res.user_id,
+      id: res.user_id,
       username: res.username,
       email: res.email,
       avatar_url: res.avatar_url,
@@ -87,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(res.token);
       setUser({
         user_id: res.user_id,
+        id: res.user_id,
         username: res.username,
         email: res.email,
         avatar_url: res.avatar_url,

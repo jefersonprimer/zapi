@@ -94,6 +94,13 @@ pub async fn update_profile(
                     Json(json!({ "error": format!("database error: {}", e) })),
                 )
             })?;
+
+        sqlx::query("UPDATE publishers SET avatar_url = $1 WHERE type = 'user' AND ref_id = $2")
+            .bind(avatar)
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .ok();
     } else if body.avatar_url.is_none()
         && body.keep_chats_archived.is_none()
         && body.about.is_none()
@@ -113,6 +120,12 @@ pub async fn update_profile(
                     Json(json!({ "error": format!("database error: {}", e) })),
                 )
             })?;
+
+        sqlx::query("UPDATE publishers SET avatar_url = NULL WHERE type = 'user' AND ref_id = $1")
+            .bind(auth.0)
+            .execute(&pool)
+            .await
+            .ok();
     }
 
     if let Some(keep_archived) = body.keep_chats_archived {

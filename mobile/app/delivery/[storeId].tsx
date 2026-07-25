@@ -2158,8 +2158,8 @@ export default function StoreScreen() {
                 </Text>
               </View>
 
-              {/* Phone */}
-              {store.phone && (
+              {/* Phone & CNPJ */}
+              {(store.phone || store.cnpj) && (
                 <View
                   style={[
                     styles.detailsModalSection,
@@ -2172,16 +2172,28 @@ export default function StoreScreen() {
                       { color: colors.text },
                     ]}
                   >
-                    Contato
+                    Contato & Dados
                   </Text>
-                  <Text
-                    style={[
-                      styles.detailsModalAddressText,
-                      { color: colors.text },
-                    ]}
-                  >
-                    {store.phone}
-                  </Text>
+                  {store.phone && (
+                    <Text
+                      style={[
+                        styles.detailsModalAddressText,
+                        { color: colors.text },
+                      ]}
+                    >
+                      Tel: {store.phone}
+                    </Text>
+                  )}
+                  {store.cnpj && (
+                    <Text
+                      style={[
+                        styles.detailsModalAddressText,
+                        { color: colors.text, marginTop: 4 },
+                      ]}
+                    >
+                      CNPJ: {store.cnpj}
+                    </Text>
+                  )}
                 </View>
               )}
 

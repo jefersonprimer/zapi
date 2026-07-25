@@ -7,7 +7,7 @@ import {
   Clock,
   Star,
   Tag,
-  Bike,
+  Motorbike,
 } from "lucide-react";
 import { type Store } from "@/lib/api";
 import { slugify, getImageUrl } from "@/lib/utils";
@@ -63,8 +63,8 @@ export default function StoreCard({ item }: StoreCardProps) {
 
   return (
     <Link
-      href={`/delivery/${citySlug}/${storeSlug}`}
-      className="group flex flex-row items-center p-3 rounded-xl border border-card-border bg-card-bg mb-2.5 transition-all duration-300 hover:border-emerald-500/35 hover:shadow-md cursor-pointer w-full text-left"
+      href={`/${citySlug}/${storeSlug}`}
+      className="group flex flex-row items-center p-3 rounded-xl border border-card-border bg-card-bg mb-2.5 transition-all duration-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:shadow-md cursor-pointer w-full text-left"
     >
       {item.avatar ? (
         <Image
@@ -83,31 +83,37 @@ export default function StoreCard({ item }: StoreCardProps) {
 
       <div className="flex-grow ml-3 min-w-0 flex flex-col justify-between py-0.5">
         <div className="flex flex-col gap-1.5">
-          <span className="text-base font-semibold text-foreground truncate group-hover:text-emerald-500 transition-colors leading-snug">
+          <span className="text-base font-semibold text-foreground truncate group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-colors leading-snug">
             {item.name}
           </span>
           <div className="flex flex-row flex-wrap items-center gap-1.5">
             <div
-              className={`flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                isOpen ? "bg-[#D1FAE5] text-[#065F46]" : "bg-[#FEE2E2] text-[#991B1B]"
+              className={`flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                isOpen
+                  ? "bg-emerald-100/70 text-emerald-800 border-emerald-200/80 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/40"
+                  : "bg-rose-100/70 text-rose-800 border-rose-200/80 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/40"
               }`}
             >
               {isOpen ? "Aberto" : "Fechado"}
             </div>
 
-            <div className="flex flex-row items-center bg-emerald-500/10 px-1.5 py-0.5 rounded gap-0.5">
-              <Star className="w-[11px] h-[11px] text-[#F59E0B] fill-[#F59E0B]" />
+            <div className="flex flex-row items-center bg-neutral-100 dark:bg-neutral-800/80 px-1.5 py-0.5 rounded border border-card-border">
               <span className="text-[11px] font-bold text-foreground">
-                {item.score && Number(item.ratings_count) > 0
-                  ? `${Number(item.score).toFixed(1)}`
-                  : "Novo"}
+                {item.score && Number(item.ratings_count) > 0 ? (
+                  <div className="flex items-center gap-0.5">
+                    <Star className="w-[11px] h-[11px] text-amber-500 fill-amber-500" />
+                    {Number(item.score).toFixed(1)}
+                  </div>
+                ) : (
+                  "Novo"
+                )}
               </span>
             </div>
 
             {item.has_coupons && (
-              <div className="flex flex-row items-center bg-[#FEF3C7] px-1.5 py-0.5 rounded gap-1">
-                <Tag className="w-2.5 h-2.5 text-[#D97706] fill-[#D97706]" />
-                <span className="text-[10px] font-bold text-[#B45309]">
+              <div className="flex flex-row items-center bg-neutral-100 dark:bg-neutral-800/80 px-1.5 py-0.5 rounded border border-card-border gap-1">
+                <Tag className="w-2.5 h-2.5 text-foreground" />
+                <span className="text-[10px] font-bold text-foreground">
                   Cupom
                 </span>
               </div>
@@ -124,13 +130,13 @@ export default function StoreCard({ item }: StoreCardProps) {
           )}
           {item.distance_km != null && (
             <div className="flex items-center gap-1">
-              <Bike className="w-3 h-3 text-muted-text" />
+              <Motorbike className="w-3 h-3 text-muted-text" />
               <span>{formatDistance(item.distance_km)}</span>
             </div>
           )}
           <div className="flex items-center gap-1">
             {item.delivery_fee === 0 && (
-              <Bike className="w-3 h-3 text-muted-text" />
+              <Motorbike className="w-3 h-3 text-muted-text" />
             )}
             <span>
               {item.delivery_fee === 0
@@ -141,7 +147,7 @@ export default function StoreCard({ item }: StoreCardProps) {
         </div>
       </div>
 
-      <ChevronRight className="w-5 h-5 text-muted-text ml-auto flex-shrink-0" />
+      <ChevronRight className="w-5 h-5 text-muted-text group-hover:text-foreground group-hover:translate-x-0.5 transition-all ml-auto flex-shrink-0" />
     </Link>
   );
 }

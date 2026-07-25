@@ -262,7 +262,7 @@ export default function FeedPostCard({
             }`}
           >
             <Heart
-              className={`w-4 h-4 transition-transform group-active:scale-125 ${
+              className={`w-5 h-5 transition-transform group-active:scale-125 ${
                 post.liked_by_me ? "fill-rose-500 text-rose-500" : ""
               }`}
             />
@@ -274,7 +274,7 @@ export default function FeedPostCard({
             onClick={onComment}
             className="flex items-center gap-1.5 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
           >
-            <MessageCircle className="w-4 h-4" />
+            <MessageCircle className="w-5 h-5" />
             <span>{post.comments_count}</span>
           </button>
 
@@ -296,10 +296,7 @@ export default function FeedPostCard({
             }}
             className="flex items-center gap-1.5 hover:text-blue-500 transition-colors cursor-pointer"
           >
-            <Share2 className="w-4 h-4" />
-            <span>
-              {post.shares_count > 0 ? post.shares_count : "Compartilhar"}
-            </span>
+            <Share2 className="w-5 h-5" />
           </button>
         </div>
 
@@ -314,7 +311,7 @@ export default function FeedPostCard({
           title={post.saved_by_me ? "Salvo" : "Salvar"}
         >
           <Bookmark
-            className={`w-4 h-4 ${
+            className={`w-5 h-5 ${
               post.saved_by_me
                 ? "fill-black dark:fill-white text-black dark:text-white"
                 : ""

@@ -983,7 +983,7 @@ export default function ChatListScreen() {
               { color: isDark ? colors.headerText : colors.tint },
             ]}
           >
-            Zapi Chat
+            Zapi
           </Text>
           <View style={styles.headerRight}>
             <TouchableOpacity
@@ -1166,7 +1166,7 @@ export default function ChatListScreen() {
             <View
               style={{
                 paddingHorizontal: 16,
-                paddingTop: 12,
+                paddingTop: 8,
                 paddingBottom: 6,
               }}
             >
@@ -1177,7 +1177,7 @@ export default function ChatListScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   paddingHorizontal: 14,
-                  height: 40,
+                  height: 44,
                   marginBottom: 10,
                 }}
               >
@@ -1529,7 +1529,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  title: { fontSize: 22, fontWeight: "bold" },
+  title: { fontSize: 22, fontWeight: "medium" },
   headerLeftSelected: { flexDirection: "row", alignItems: "center", gap: 12 },
   selectedCountText: { fontSize: 20, fontWeight: "bold", marginLeft: 8 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 16 },

@@ -77,15 +77,8 @@ export default function UpdatesPage() {
 
           <div className="flex items-center gap-2.5">
             <button
-              onClick={() => setShowCreateStory(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-neutral-100 dark:bg-white/10 hover:bg-neutral-200 dark:hover:bg-white/20 text-neutral-900 dark:text-neutral-100 transition-all cursor-pointer border border-neutral-300/50 dark:border-neutral-700/50"
-            >
-              <Plus className="w-4 h-4" />
-              Novo Status
-            </button>
-            <button
               onClick={() => setShowCreatePost(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-md transition-all cursor-pointer active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-md transition-all cursor-pointer active:scale-95"
             >
               <Plus className="w-4 h-4" />
               Nova Publicação
@@ -103,7 +96,7 @@ export default function UpdatesPage() {
 
         {/* Posts List */}
         {isLoading ? (
-          <div className="flex flex-col justify-center items-center py-20 space-y-3 bg-white dark:bg-[#11111e] rounded-2xl border border-card-border/60">
+          <div className="flex flex-col justify-center items-center py-20 space-y-3">
             <Loader2 className="h-10 w-10 text-black dark:text-white animate-spin" />
             <p className="text-xs text-muted-text font-medium">
               Carregando atualizações...
