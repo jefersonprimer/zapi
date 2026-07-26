@@ -16,6 +16,8 @@ import {
   Trash2 as TrashIcon,
   MessageCircle,
   ArrowLeft,
+  QrCode,
+  Scan,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { getContacts, removeContact, createChat, type Contact, API_URL } from "@/services/api";
@@ -113,6 +115,26 @@ export default function ContactsScreen() {
           <UserIcon color="#fff" size={22} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>Novo contato</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.actionItem, { borderBottomColor: colors.border }]}
+        onPress={() => router.push("/scan-qr")}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: "#FF9500" }]}>
+          <Scan color="#fff" size={22} />
+        </View>
+        <Text style={[styles.actionText, { color: colors.text }]}>Escanear QR Code</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.actionItem, { borderBottomColor: colors.border }]}
+        onPress={() => router.push("/my-qr")}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: "#5856D6" }]}>
+          <QrCode color="#fff" size={22} />
+        </View>
+        <Text style={[styles.actionText, { color: colors.text }]}>Meu QR Code</Text>
       </TouchableOpacity>
 
       <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Contatos adicionados</Text>

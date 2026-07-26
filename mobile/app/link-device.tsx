@@ -251,8 +251,11 @@ export default function LinkDeviceScreen() {
     }
 
     // 2. Check if it's a contact or user profile QR code
-    if (trimmedData.startsWith("zapi://contact/") || trimmedData.startsWith("zapi://user/")) {
-      const contactId = trimmedData.replace("zapi://contact/", "").replace("zapi://user/", "");
+    if (trimmedData.startsWith("zapi://contact/") || trimmedData.startsWith("zapi://user/") || trimmedData.startsWith("zapi:user_id:")) {
+      const contactId = trimmedData
+        .replace("zapi://contact/", "")
+        .replace("zapi://user/", "")
+        .replace("zapi:user_id:", "");
       Alert.alert(
         "Contato Encontrado",
         "Deseja adicionar o usuário aos seus contatos?",

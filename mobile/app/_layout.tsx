@@ -205,6 +205,8 @@ function InitialLayout() {
       <Stack.Screen name="new-chat" options={{ headerShown: false }} />
       <Stack.Screen name="new-group" options={{ headerShown: false }} />
       <Stack.Screen name="contacts" options={{ headerShown: false }} />
+      <Stack.Screen name="my-qr" options={{ headerShown: false }} />
+      <Stack.Screen name="scan-qr" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="archived" options={{ headerShown: false }} />
       <Stack.Screen name="notes" options={{ headerShown: false }} />
