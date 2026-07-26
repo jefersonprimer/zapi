@@ -112,7 +112,7 @@ export default function OrderDetailPage() {
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-center">
         <span className="text-sm font-medium text-muted-text">Pedido não encontrado.</span>
         <button
-          onClick={() => router.push("/orders")}
+          onClick={() => router.push("/delivery/orders")}
           className="mt-4 px-6 py-2 bg-foreground text-background font-bold text-xs uppercase rounded-full"
         >
           Voltar para meus pedidos
@@ -129,7 +129,7 @@ export default function OrderDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <button
-          onClick={() => router.push("/orders")}
+          onClick={() => router.push("/delivery/orders")}
           className="p-2.5 rounded-full border border-card-border/60 hover:bg-neutral-50 dark:hover:bg-neutral-900/40 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

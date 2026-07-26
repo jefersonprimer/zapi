@@ -286,7 +286,7 @@ export default function CheckoutPage() {
 
       if (res.order.payment_status === "paid") {
         alert("Pedido criado e pago com sucesso!");
-        router.replace("/orders");
+        router.replace("/delivery/orders");
       } else {
         setPendingOrder(res.order);
       }
@@ -304,7 +304,7 @@ export default function CheckoutPage() {
       await simulatePayment(token, pendingOrder.id);
       alert("Pagamento confirmado com sucesso!");
       setPendingOrder(null);
-      router.replace("/orders");
+      router.replace("/delivery/orders");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Falha ao confirmar pagamento");
     } finally {
@@ -427,7 +427,7 @@ export default function CheckoutPage() {
         </button>
 
         <button
-          onClick={() => router.replace("/orders")}
+          onClick={() => router.replace("/delivery/orders")}
           className="w-full py-3 text-center text-xs font-semibold text-muted-text hover:text-foreground mt-4 transition-colors"
         >
           Pagar mais tarde (Meus Pedidos)

@@ -19,13 +19,25 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  loginWithToken: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 function parseToken(token: string): User | null {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, "=");
+    const jsonPayload = decodeURIComponent(
+      atob(padded)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    const payload = JSON.parse(jsonPayload);
     const uid = payload.user_id || payload.sub || "";
     return {
       user_id: uid,
@@ -70,6 +82,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const loginWithToken = useCallback((newToken: string) => {
+    localStorage.setItem("token", newToken);
+    setToken(newToken);
+    const parsedUser = parseToken(newToken);
+    if (parsedUser) {
+      setUser(parsedUser);
+    }
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const res: AuthResponse = await apiLogin(email, password);
     localStorage.setItem("token", res.token);
@@ -109,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, user, login, register, logout, isLoading }}
+      value={{ token, user, login, register, logout, isLoading, loginWithToken }}
     >
       {children}
     </AuthContext.Provider>

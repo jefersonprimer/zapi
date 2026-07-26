@@ -47,7 +47,7 @@ export function ChatCardContextMenu({
 
   useEffect(() => {
     if (!isOpen) {
-      setShowMuteOptions(false);
+      setTimeout(() => setShowMuteOptions(false), 0);
       return;
     }
     const handleClick = (e: MouseEvent) => {

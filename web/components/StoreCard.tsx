@@ -63,7 +63,7 @@ export default function StoreCard({ item }: StoreCardProps) {
 
   return (
     <Link
-      href={`/${citySlug}/${storeSlug}`}
+      href={`/delivery/${citySlug}/${storeSlug}`}
       className="group flex flex-row items-center p-3 rounded-xl border border-card-border bg-card-bg mb-2.5 transition-all duration-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:shadow-md cursor-pointer w-full text-left"
     >
       {item.avatar ? (

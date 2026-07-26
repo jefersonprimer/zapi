@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import {
   authFetch,
@@ -23,8 +23,6 @@ import {
   Trash2,
   X,
   Settings2,
-  Clock,
-  Truck,
 } from "lucide-react";
 
 interface HoursForm {
@@ -70,9 +68,16 @@ const EMPTY_SLOT: SlotForm = {
 function HorariosContent() {
   const { token } = useAuth();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<"funcionamento" | "slots">(
-    "funcionamento",
-  );
+  const router = useRouter();
+  const pathname = usePathname();
+  const tabParam = searchParams.get("tab");
+  const activeTab = tabParam === "slots" ? "slots" : "funcionamento";
+
+  const setActiveTab = (tab: "funcionamento" | "slots") => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`${pathname}?${params.toString()}`);
+  };
 
   const [store, setStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,15 +111,7 @@ function HorariosContent() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Sync tab from query param
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab === "slots") {
-      setActiveTab("slots");
-    } else {
-      setActiveTab("funcionamento");
-    }
-  }, [searchParams]);
+
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -167,7 +164,10 @@ function HorariosContent() {
   }, [token]);
 
   useEffect(() => {
-    loadData();
+    const timer = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [loadData]);
 
   // --- Funcionamento (Tab 1) Handlers ---

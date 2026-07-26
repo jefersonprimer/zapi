@@ -8,11 +8,9 @@ import {
   LayoutDashboard,
   Store,
   Package,
-  Folder,
   Tag,
   Clock,
   ShoppingCart,
-  Settings,
   Menu,
   Loader2,
 } from "lucide-react";

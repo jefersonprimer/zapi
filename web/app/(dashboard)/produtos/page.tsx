@@ -32,7 +32,6 @@ import {
   Edit,
   Edit2,
   Trash2,
-  Image as ImageIcon,
   Check,
   X,
   AlertCircle,
@@ -42,9 +41,7 @@ import {
   ListPlus,
   Loader2,
   Trash,
-  Tag,
   Percent,
-  Sparkles,
   Layers,
   CheckSquare,
   Square,
@@ -55,7 +52,6 @@ import {
   ChevronDown,
   UploadCloud,
   Camera,
-  FileText,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -261,7 +257,7 @@ export default function ProdutosPage() {
     } catch (err) {
       console.error(err);
       // fallback and load
-      const { products: prods, categories: cats } = await listProducts(
+      const { categories: cats } = await listProducts(
         token,
         storeId,
       );

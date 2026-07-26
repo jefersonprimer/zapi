@@ -340,7 +340,7 @@ export default function CategoryGrid({
       if (catKey === selectedCategory) {
         router.push("/delivery");
       } else {
-        router.push(`/categoria/${catKey}`);
+        router.push(`/delivery/categoria/${catKey}`);
       }
     }
   };

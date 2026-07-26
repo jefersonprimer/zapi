@@ -8,7 +8,6 @@ import {
   Loader2,
   AlertCircle,
   MessageSquarePlus,
-  EllipsisVertical,
   ArrowLeft,
   UserPlus,
   Users,
@@ -43,7 +42,12 @@ interface ChatSidebarProps {
   onPinChat?: (chatId: string) => void;
   onFavoriteChat?: (chatId: string) => void;
   onClearChat?: (chatId: string) => void;
-  onMuteChat?: (chatId: string, unmute?: boolean, forever?: boolean, hours?: number) => void;
+  onMuteChat?: (
+    chatId: string,
+    unmute?: boolean,
+    forever?: boolean,
+    hours?: number,
+  ) => void;
   onBlockChat?: (chatId: string) => void;
   onRefreshChats?: () => void;
 }
@@ -289,9 +293,9 @@ export default function ChatSidebar({
         </div>
 
         {/* List Filters System Bar */}
-        <div className="py-3 border-b border-card-border/40 overflow-hidden">
+        <div className="py-3 border-b border-card-border/40">
           <div
-            className="flex items-center gap-1.5 overflow-hidden px-0.5"
+            className="flex items-center gap-1.5 overflow-x-auto px-0.5 scrollbar-none"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {/* All / Tudo */}
@@ -475,7 +479,9 @@ export default function ChatSidebar({
                   onFavorite={() => onFavoriteChat?.(chat.id)}
                   onAddToList={() => handleOpenListSelector(chat.id)}
                   onClear={() => onClearChat?.(chat.id)}
-                  onMute={(unmute, forever, hours) => onMuteChat?.(chat.id, unmute, forever, hours)}
+                  onMute={(unmute, forever, hours) =>
+                    onMuteChat?.(chat.id, unmute, forever, hours)
+                  }
                   onBlock={() => onBlockChat?.(chat.id)}
                 />
               ))}
@@ -677,7 +683,9 @@ export default function ChatSidebar({
                 onFavorite={() => onFavoriteChat?.(chat.id)}
                 onAddToList={() => handleOpenListSelector(chat.id)}
                 onClear={() => onClearChat?.(chat.id)}
-                onMute={(unmute, forever, hours) => onMuteChat?.(chat.id, unmute, forever, hours)}
+                onMute={(unmute, forever, hours) =>
+                  onMuteChat?.(chat.id, unmute, forever, hours)
+                }
                 onBlock={() => onBlockChat?.(chat.id)}
               />
             ))

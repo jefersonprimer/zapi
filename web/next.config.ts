@@ -28,6 +28,10 @@ const nextConfig: NextConfig = {
         source: "/uploads/:path*",
         destination: `${backendUrl}/uploads/:path*`,
       },
+      {
+        source: "/@:username",
+        destination: "/profile/:username",
+      },
     ];
   },
 };

@@ -10,6 +10,7 @@ import {
   listAddresses,
   createAddress,
   type UserAddress,
+  type Store,
 } from "@/lib/api";
 import { CartProvider } from "@/lib/cart-context";
 import Footer from "@/components/Footer";
@@ -37,6 +38,10 @@ function HeaderControls() {
   );
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  
+  // Track mapped slugs for lookup
+  const [citySlugMap, setCitySlugMap] = useState<Record<string, string>>({});
+  const [storesForLookup, setStoresForLookup] = useState<Store[]>([]);
 
   const cityDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -47,23 +52,32 @@ function HeaderControls() {
   const getSelectedCity = () => {
     const pathParts = pathname.split("/").filter(Boolean);
     if (pathParts.length > 0) {
-      const firstSegment = decodeURIComponent(pathParts[0]);
-      // Skip static page names
-      const staticPages = [
-        "checkout",
-        "orders",
-        "categoria",
-        "promocoes",
-        "atualizacoes",
-        "comunidades",
-        "cadastrar-loja",
-      ];
-      if (!staticPages.includes(firstSegment)) {
-        let city = firstSegment;
-        if (city.startsWith("city=")) {
-          city = city.substring(5);
+      let segmentToEvaluate = decodeURIComponent(pathParts[0]);
+      if (segmentToEvaluate === "delivery" && pathParts.length > 1) {
+        segmentToEvaluate = decodeURIComponent(pathParts[1]);
+      } else if (segmentToEvaluate === "delivery") {
+        segmentToEvaluate = "";
+      }
+
+      if (segmentToEvaluate) {
+        // Skip static page names
+        const staticPages = [
+          "checkout",
+          "orders",
+          "categoria",
+          "promocoes",
+          "atualizacoes",
+          "comunidades",
+          "cadastrar-loja",
+          "all",
+        ];
+        if (!staticPages.includes(segmentToEvaluate)) {
+          let city = segmentToEvaluate;
+          if (city.startsWith("city=")) {
+            city = city.substring(5);
+          }
+          return city.replace(/\+/g, " ");
         }
-        return city.replace(/\+/g, " ");
       }
     }
     const queryCity = searchParams.get("city");
@@ -77,7 +91,33 @@ function HeaderControls() {
 
   const selectedCity = getSelectedCity();
 
+  const getCitySlug = (cityName: string) => {
+    const lower = cityName.toLowerCase();
+    return citySlugMap[lower] || slugify(cityName);
+  };
+
+  const getFormattedCityName = (citySlug: string) => {
+    if (citySlug === "all") return "Todas as Cidades";
+    const entry = Object.entries(citySlugMap).find(
+      ([name, slug]) => slug === citySlug || slugify(name) === citySlug,
+    );
+    if (entry) {
+      const matchedStore = storesForLookup.find(
+        (s) => s.city.toLowerCase() === entry[0].toLowerCase(),
+      );
+      if (matchedStore) {
+        return `${matchedStore.city} - ${matchedStore.state.toUpperCase()}`;
+      }
+      return entry[0].replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+    return citySlug
+      .replace(/-([a-z]{2})$/i, (_, state) => ` - ${state.toUpperCase()}`)
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
   // Load stores to extract cities & load user addresses if authenticated
+  // 1. Load data on mount or when token changes
   useEffect(() => {
     let isMounted = true;
 
@@ -88,73 +128,41 @@ function HeaderControls() {
         const uniqueCities = Array.from(
           new Set(storeRes.stores.map((s) => s.city)),
         ).sort();
-        if (isMounted) setCities(uniqueCities);
-
-        let userCity: string | null = null;
+        if (isMounted) {
+          setCities(uniqueCities);
+          setStoresForLookup(storeRes.stores);
+          
+          const slugMap: Record<string, string> = {};
+          storeRes.stores.forEach((s) => {
+            const cityLower = s.city.toLowerCase();
+            if (!slugMap[cityLower]) {
+              slugMap[cityLower] = `${slugify(s.city)}-${slugify(s.state)}`;
+            }
+          });
+          setCitySlugMap(slugMap);
+        }
 
         if (token) {
           try {
             const addrRes = await listAddresses(token);
             const addrs = addrRes.addresses || [];
-            if (isMounted) setAddresses(addrs);
-            const def = addrs.find((a) => a.is_default) || addrs[0];
-            if (def) {
-              if (isMounted) setSelectedAddressId(def.id);
-              userCity = def.cidade;
+            if (isMounted) {
+              setAddresses(addrs);
+              const def = addrs.find((a) => a.is_default) || addrs[0];
+              if (def) {
+                setSelectedAddressId(def.id);
+              }
             }
           } catch (e) {
             console.error("Error fetching user addresses:", e);
           }
         }
-
-        // Check local storage if no DB address city
-        if (!userCity && typeof window !== "undefined") {
-          const storedCity = localStorage.getItem("zapi_user_city");
-          if (storedCity && storedCity !== "all") {
-            userCity = storedCity;
-          }
-        }
-
-        // Handle filtering and first-access prompt logic
-        const hasCityInPath = () => {
-          const pathParts = pathname.split("/").filter(Boolean);
-          if (pathParts.length === 0) return false;
-          const staticPages = [
-            "checkout",
-            "orders",
-            "categoria",
-            "promocoes",
-            "atualizacoes",
-            "comunidades",
-            "cadastrar-loja",
-            "delivery",
-          ];
-          return !staticPages.includes(pathParts[0]);
-        };
-
-        if (pathname === "/delivery") {
-          if (userCity && userCity !== "all") {
-            router.replace(`/${slugify(userCity)}`);
-          } else {
-            router.replace("/all");
-          }
-        } else if (!hasCityInPath() && selectedCity === "all") {
-          // First time accessing without address or city saved!
-          const promptSeen =
-            typeof window !== "undefined"
-              ? sessionStorage.getItem("zapi_address_prompt_seen")
-              : null;
-          if (!promptSeen) {
-            if (isMounted) setIsAddressModalOpen(true);
-            if (typeof window !== "undefined") {
-              sessionStorage.setItem("zapi_address_prompt_seen", "true");
-            }
-          }
-        }
       } catch (err) {
         console.error("Failed to load cities/addresses in header:", err);
       } finally {
-        if (isMounted) setLoadingAddresses(false);
+        if (isMounted) {
+          setLoadingAddresses(false);
+        }
       }
     }
     loadData();
@@ -162,7 +170,60 @@ function HeaderControls() {
     return () => {
       isMounted = false;
     };
-  }, [token, pathname, router, searchParams, selectedCity]);
+  }, [token]);
+
+  // 2. Routing/modal side effects
+  useEffect(() => {
+    if (loadingAddresses) return;
+
+    const storedCity = typeof window !== "undefined" ? localStorage.getItem("zapi_user_city") : null;
+    let userCity: string | null = null;
+
+    if (storedCity === "all") {
+      userCity = "all";
+    } else {
+      const currentAddress =
+        addresses.find((a) => a.id === selectedAddressId) ||
+        (selectedCity !== "all"
+          ? addresses.find(
+              (a) =>
+                a.cidade.toLowerCase() === selectedCity.toLowerCase() ||
+                slugify(a.cidade) === slugify(selectedCity) ||
+                `${slugify(a.cidade)}-${slugify(a.estado)}` === slugify(selectedCity),
+            )
+          : null) ||
+        addresses.find((a) => a.is_default) ||
+        addresses[0] ||
+        null;
+      
+      if (currentAddress) {
+        userCity = currentAddress.cidade;
+      } else if (storedCity && storedCity !== "all") {
+        userCity = storedCity;
+      }
+    }
+
+    if (pathname === "/delivery" || (pathname === "/delivery/all" && storedCity !== "all")) {
+      if (userCity && userCity !== "all") {
+        const targetCityLower = userCity.toLowerCase();
+        const knownSlug = citySlugMap[targetCityLower] || slugify(userCity);
+        router.replace(`/delivery/${knownSlug}`);
+      } else if (pathname === "/delivery") {
+        router.replace("/delivery/all");
+      }
+    }
+
+    if (pathname === "/delivery/all" && storedCity !== "all" && !userCity) {
+      setTimeout(() => setIsAddressModalOpen(true), 0);
+    }
+  }, [pathname, router, loadingAddresses, addresses, selectedAddressId, selectedCity, citySlugMap]);
+
+  // Listen to external requests to open address modal
+  useEffect(() => {
+    const handleOpenModal = () => setIsAddressModalOpen(true);
+    window.addEventListener("zapi:open-address-modal", handleOpenModal);
+    return () => window.removeEventListener("zapi:open-address-modal", handleOpenModal);
+  }, []);
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -187,8 +248,8 @@ function HeaderControls() {
     }
 
     const currentCitySlug =
-      selectedCity === "all" ? "all" : slugify(selectedCity);
-    router.push(`/${currentCitySlug}?${params.toString()}`);
+      selectedCity === "all" ? "all" : getCitySlug(selectedCity);
+    router.push(`/delivery/${currentCitySlug}?${params.toString()}`);
   };
 
   const handleAddressSelect = (addr: UserAddress) => {
@@ -210,10 +271,10 @@ function HeaderControls() {
       } else {
         setSelectedAddressId(null);
       }
-      router.push(`/${slugify(city)}`);
+      router.push(`/delivery/${getCitySlug(city)}`);
     } else {
       setSelectedAddressId(null);
-      router.push("/all");
+      router.push("/delivery/all");
     }
   };
 
@@ -247,7 +308,10 @@ function HeaderControls() {
     addresses.find((a) => a.id === selectedAddressId) ||
     (selectedCity !== "all"
       ? addresses.find(
-          (a) => a.cidade.toLowerCase() === selectedCity.toLowerCase(),
+          (a) =>
+            a.cidade.toLowerCase() === selectedCity.toLowerCase() ||
+            slugify(a.cidade) === slugify(selectedCity) ||
+            `${slugify(a.cidade)}-${slugify(a.estado)}` === slugify(selectedCity),
         )
       : null) ||
     addresses.find((a) => a.is_default) ||
@@ -306,7 +370,7 @@ function HeaderControls() {
               ) : selectedCity && selectedCity !== "all" ? (
                 <>
                   <span className="text-xs font-bold text-foreground truncate">
-                    {selectedCity}
+                    {getFormattedCityName(selectedCity)}
                   </span>
                   <span className="text-[10px] text-muted-text truncate font-normal">
                     Cidade selecionada
@@ -439,7 +503,7 @@ function HeaderControls() {
 
         {token && (
           <Link
-            href="/orders"
+            href="/delivery/orders"
             title="Meus Pedidos"
             aria-label="Meus Pedidos"
             className="p-2 text-muted-text hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/50 rounded-full transition-colors flex items-center justify-center mr-1"
@@ -459,6 +523,7 @@ function HeaderControls() {
         onSelectCity={handleSelectCityModal}
         availableCities={cities}
         initialCity={selectedCity}
+        closable={selectedCity !== "all"}
       />
     </div>
   );
@@ -471,24 +536,32 @@ function LogoLink() {
   const getSelectedCity = () => {
     const pathParts = pathname.split("/").filter(Boolean);
     if (pathParts.length > 0) {
-      const firstSegment = decodeURIComponent(pathParts[0]);
-      // Skip static page names
-      const staticPages = [
-        "checkout",
-        "orders",
-        "categoria",
-        "promocoes",
-        "atualizacoes",
-        "comunidades",
-        "cadastrar-loja",
-        "delivery",
-      ];
-      if (!staticPages.includes(firstSegment)) {
-        let city = firstSegment;
-        if (city.startsWith("city=")) {
-          city = city.substring(5);
+      let segmentToEvaluate = decodeURIComponent(pathParts[0]);
+      if (segmentToEvaluate === "delivery" && pathParts.length > 1) {
+        segmentToEvaluate = decodeURIComponent(pathParts[1]);
+      } else if (segmentToEvaluate === "delivery") {
+        segmentToEvaluate = "";
+      }
+
+      if (segmentToEvaluate) {
+        // Skip static page names
+        const staticPages = [
+          "checkout",
+          "orders",
+          "categoria",
+          "promocoes",
+          "atualizacoes",
+          "comunidades",
+          "cadastrar-loja",
+          "all",
+        ];
+        if (!staticPages.includes(segmentToEvaluate)) {
+          let city = segmentToEvaluate;
+          if (city.startsWith("city=")) {
+            city = city.substring(5);
+          }
+          return city.replace(/\+/g, " ");
         }
-        return city.replace(/\+/g, " ");
       }
     }
     const queryCity = searchParams.get("city");
@@ -504,7 +577,7 @@ function LogoLink() {
 
   return (
     <Link
-      href={selectedCity === "all" ? "/all" : `/${slugify(selectedCity)}`}
+      href={selectedCity === "all" ? "/delivery/all" : `/delivery/${slugify(selectedCity)}`}
       className="flex items-center space-x-2.5 group flex-shrink-0"
     >
       <span className="text-lg font-black tracking-tight text-foreground/90 font-sans group-hover:text-foreground transition-colors">

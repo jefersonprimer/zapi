@@ -585,6 +585,25 @@ export default function SettingsScreen() {
             </View>
             <ChevronRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
+
+          {/* Aparelhos Conectados */}
+          <TouchableOpacity
+            style={styles.optionRowClickable}
+            onPress={() => router.push("/link-device")}
+          >
+            <View style={styles.optionLeft}>
+              <Laptop size={20} color={colors.textSecondary} />
+              <View style={styles.optionTextContainer}>
+                <Text style={[styles.optionTitle, { color: colors.text }]}>
+                  Aparelhos conectados
+                </Text>
+                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                  Zapi Web / Conectar novo navegador
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />

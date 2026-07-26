@@ -330,7 +330,7 @@ function StoreDetailPageContent({ params }: PageProps) {
           {error || "Não conseguimos localizar a loja solicitada."}
         </p>
         <Link
-          href="/delivery"
+          href="/all"
           className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-xl font-bold shadow-md shadow-emerald-500/20 hover:scale-[1.02] transition-transform"
         >
           <ArrowLeft className="h-4 w-4" /> Voltar para o Catálogo

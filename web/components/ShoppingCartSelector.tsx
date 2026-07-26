@@ -154,7 +154,7 @@ export default function ShoppingCartSelector() {
                 </span>
               </div>
               <Link
-                href="/checkout"
+                href="/delivery/checkout"
                 onClick={() => setIsOpen(false)}
                 className="w-full py-2.5 px-4 bg-black dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-200 active:scale-[0.98] text-white dark:text-black text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md transition-all"
               >

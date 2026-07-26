@@ -52,7 +52,7 @@ export default function FeedPostCard({
     minute: "2-digit",
   });
 
-  const profileHref = `/atualizacoes/${encodeURIComponent(post.publisher_name)}`;
+  const profileHref = `/@${encodeURIComponent(post.publisher_name)}`;
 
   return (
     <div className="overflow-hidden max-w-[500px] mx-auto">

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
+import { API_URL } from "@/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,8 +14,106 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loginWithToken } = useAuth();
   const router = useRouter();
+
+  // QR Code Authentication State
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrStatus, setQrStatus] = useState<"loading" | "waiting" | "expired" | "approved" | "cancelled">("loading");
+  const [timeLeft, setTimeLeft] = useState(60);
+  const wsRef = useRef<WebSocket | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchQrSession = useCallback(async () => {
+    try {
+      setQrStatus("loading");
+      const res = await fetch(`${API_URL}/auth/web/qr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error("Erro ao obter sessão QR");
+      const data = await res.json();
+      
+      setQrCode(`zapi://login/${data.code}`);
+      setTimeLeft(data.expiresIn);
+      setQrStatus("waiting");
+
+      // Close previous ws if any
+      if (wsRef.current) wsRef.current.close();
+
+      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      // Support relative and absolute paths for dev/prod flexibility
+      const wsHost = API_URL.startsWith("http")
+        ? API_URL.replace(/^http(s)?:\/\//, "")
+        : window.location.host;
+      const wsUrl = `${wsProtocol}//${wsHost}/auth/web/ws/${data.sessionId}`;
+
+      const socket = new WebSocket(wsUrl);
+      wsRef.current = socket;
+
+      socket.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "login_success") {
+            setQrStatus("approved");
+            loginWithToken(msg.token);
+            // Redirect to home
+            router.push("/");
+          } else if (msg.type === "cancelled") {
+            setQrStatus("cancelled");
+            socket.close();
+          }
+        } catch (e) {
+          console.error("Failed to parse websocket message:", e);
+        }
+      };
+
+      socket.onerror = (err) => {
+        console.error("WebSocket error:", err);
+      };
+
+      socket.onclose = () => {
+        // Only mark expired if we are still waiting
+        setQrStatus((prev) => (prev === "waiting" ? "expired" : prev));
+      };
+
+    } catch (err) {
+      console.error(err);
+      setQrStatus("expired");
+    }
+  }, [router]);
+
+  // Handle countdown timer
+  useEffect(() => {
+    if (qrStatus === "waiting") {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            if (wsRef.current) wsRef.current.close();
+            setQrStatus("expired");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [qrStatus]);
+
+  // Initial QR Fetch
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchQrSession();
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      if (wsRef.current) wsRef.current.close();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -133,121 +233,56 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Right Side: QR Code login (Visual only) */}
+        {/* Right Side: QR Code Login */}
         <div className="flex flex-col items-center justify-center text-center p-4 border-t border-neutral-200/60 dark:border-neutral-900 md:border-t-0 md:border-l md:border-neutral-200/60 md:dark:border-neutral-900 md:pl-8">
-          <div className="relative p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl mb-5 shadow-sm">
-            {/* Minimalist QR Code mockup in SVG */}
-            <svg
-              width="140"
-              height="140"
-              viewBox="0 0 160 160"
-              fill="none"
-              className="text-neutral-900 dark:text-white"
-            >
-              {/* Top Left Finder Pattern */}
-              <rect
-                x="10"
-                y="10"
-                width="40"
-                height="40"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <rect x="20" y="20" width="20" height="20" fill="currentColor" />
+          <div className="relative p-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 rounded-2xl mb-4 shadow-sm w-[166px] h-[166px] flex items-center justify-center">
+            {qrStatus === "loading" && (
+              <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+            )}
 
-              {/* Top Right Finder Pattern */}
-              <rect
-                x="110"
-                y="10"
-                width="40"
-                height="40"
-                stroke="currentColor"
-                strokeWidth="4"
+            {qrStatus === "waiting" && qrCode && (
+              <Image
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(qrCode)}`}
+                alt="QR Code Login"
+                width={140}
+                height={140}
+                unoptimized
+                className="rounded-lg"
               />
-              <rect x="120" y="20" width="20" height="20" fill="currentColor" />
+            )}
 
-              {/* Bottom Left Finder Pattern */}
-              <rect
-                x="10"
-                y="110"
-                width="40"
-                height="40"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <rect x="20" y="120" width="20" height="20" fill="currentColor" />
-
-              {/* Abstract QR code dots */}
-              <rect x="60" y="15" width="10" height="10" fill="currentColor" />
-              <rect x="80" y="25" width="15" height="10" fill="currentColor" />
-              <rect x="65" y="40" width="10" height="20" fill="currentColor" />
-
-              <rect x="15" y="60" width="20" height="10" fill="currentColor" />
-              <rect x="25" y="80" width="10" height="15" fill="currentColor" />
-
-              <rect x="120" y="60" width="10" height="20" fill="currentColor" />
-              <rect x="135" y="70" width="15" height="10" fill="currentColor" />
-              <rect x="110" y="90" width="20" height="10" fill="currentColor" />
-
-              <rect x="60" y="115" width="20" height="10" fill="currentColor" />
-              <rect x="70" y="130" width="10" height="15" fill="currentColor" />
-              <rect x="90" y="120" width="10" height="10" fill="currentColor" />
-
-              <rect
-                x="110"
-                y="125"
-                width="20"
-                height="20"
-                fill="currentColor"
-              />
-              <rect
-                x="135"
-                y="115"
-                width="10"
-                height="10"
-                fill="currentColor"
-              />
-              <rect
-                x="125"
-                y="140"
-                width="20"
-                height="10"
-                fill="currentColor"
-              />
-
-              {/* Center 'Z' overlay */}
-              <rect
-                x="58"
-                y="58"
-                width="44"
-                height="44"
-                fill="white"
-                className="dark:fill-neutral-900"
-              />
-              <rect
-                x="60"
-                y="60"
-                width="40"
-                height="40"
-                fill="currentColor"
-                rx="4"
-              />
-              <text
-                x="80"
-                y="88"
-                fill="white"
-                className="dark:fill-neutral-900 font-bold text-2xl tracking-tighter"
-                textAnchor="middle"
+            {(qrStatus === "expired" || qrStatus === "cancelled") && (
+              <button
+                onClick={fetchQrSession}
+                className="flex flex-col items-center justify-center gap-2 text-xs font-semibold text-neutral-600 hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-white transition-colors"
               >
-                Z
-              </text>
-            </svg>
+                <RefreshCw className="w-6 h-6 animate-pulse" />
+                <span>Atualizar QR Code</span>
+              </button>
+            )}
+
+            {qrStatus === "approved" && (
+              <div className="flex flex-col items-center justify-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-bounce">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span>Entrando...</span>
+              </div>
+            )}
           </div>
+
           <h2 className="text-sm font-semibold text-neutral-900 dark:text-white">
             Entrar com código QR
           </h2>
+
+          {qrStatus === "waiting" && (
+            <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1 font-mono">
+              Expira em: <span className="font-semibold text-neutral-700 dark:text-neutral-200">{timeLeft}s</span>
+            </p>
+          )}
+
           <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-2 max-w-[210px] leading-relaxed">
-            Escaneie isto com o app do Zapi para fazer login imediatamente.
+            {qrStatus === "cancelled"
+              ? "Login cancelado no aplicativo. Atualize para tentar novamente."
+              : "Escaneie isto com o app do Zapi para fazer login imediatamente."}
           </p>
         </div>
       </div>

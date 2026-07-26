@@ -142,23 +142,7 @@ export default function GlobalSidebar() {
       label: "Delivery",
       tooltip: "Cardápio & Delivery",
       icon: ShoppingBag,
-      active:
-        pathname.startsWith("/delivery") ||
-        pathname.startsWith("/checkout") ||
-        pathname.startsWith("/orders") ||
-        pathname.startsWith("/categoria") ||
-        pathname.startsWith("/promocoes") ||
-        (pathname !== "/" &&
-          !pathname.startsWith("/atualizacoes") &&
-          !pathname.startsWith("/comunidades") &&
-          !pathname.startsWith("/cadastrar-loja") &&
-          !pathname.startsWith("/configuracoes") &&
-          !pathname.startsWith("/horarios") &&
-          !pathname.startsWith("/minha-loja") &&
-          !pathname.startsWith("/produtos") &&
-          !pathname.startsWith("/pedidos") &&
-          !pathname.startsWith("/login") &&
-          !pathname.startsWith("/register")),
+      active: pathname.startsWith("/delivery"),
     },
   );
 

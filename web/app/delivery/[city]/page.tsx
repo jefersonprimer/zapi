@@ -13,6 +13,7 @@ import {
   Clock,
   Bike,
   Tag,
+  MapPin,
 } from "lucide-react";
 import StoreCard, { StoreCardSkeleton } from "@/components/StoreCard";
 import CategoryGrid from "@/components/CategoryGrid";
@@ -102,8 +103,13 @@ function DeliveryCatalogPageContent({ cityParam }: { cityParam: string }) {
   // Filter and sort stores using other filters
   const processedStores = stores
     .filter((store) => {
+      const storeCitySlug = slugify(store.city);
+      const storeCityStateSlug = `${storeCitySlug}-${slugify(store.state)}`;
       const matchesCity =
-        selectedCity === "all" || slugify(store.city) === slugify(selectedCity);
+        selectedCity !== "all" && (
+          storeCitySlug === slugify(selectedCity) ||
+          storeCityStateSlug === slugify(selectedCity)
+        );
       const matchesSearch =
         store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (store.description &&
@@ -428,7 +434,27 @@ function DeliveryCatalogPageContent({ cityParam }: { cityParam: string }) {
       {/* Catalog Grid */}
       {!loading && !error && (
         <>
-          {processedStores.length === 0 ? (
+          {selectedCity === "all" ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center bg-surface dark:bg-card-bg border border-card-border rounded-2xl shadow-sm">
+              <div className="h-14 w-14 rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center mb-4 text-emerald-500">
+                <MapPin className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground">
+                Informe sua localização para ver as lojas
+              </h3>
+              <p className="text-xs text-muted-text mt-2 max-w-xs mb-6 font-sans">
+                Por favor, adicione um endereço de entrega ou selecione a sua cidade para visualizar os restaurantes e estabelecimentos que atendem a sua região.
+              </p>
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent("zapi:open-address-modal"));
+                }}
+                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white rounded-xl font-bold text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+              >
+                Informar Localização
+              </button>
+            </div>
+          ) : processedStores.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center bg-surface dark:bg-card-bg border border-card-border rounded-2xl shadow-sm">
               <div className="h-14 w-14 rounded-full bg-neutral-50 dark:bg-neutral-900/60 flex items-center justify-center mb-4">
                 <StoreIcon className="h-6 w-6 text-muted-text/80" />

@@ -25,6 +25,7 @@ export interface AddressModalProps {
   onSelectCity: (city: string) => void;
   availableCities: string[];
   initialCity?: string;
+  closable?: boolean;
 }
 
 const UFS = [
@@ -66,6 +67,7 @@ export default function AddressModal({
   onSelectCity,
   availableCities,
   initialCity = "",
+  closable = true,
 }: AddressModalProps) {
   const mounted = useSyncExternalStore(
     emptySubscribe,
@@ -258,12 +260,14 @@ export default function AddressModal({
     <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl max-w-lg w-full p-6 sm:p-7 shadow-2xl overflow-hidden my-8 animate-in zoom-in-95 duration-200">
         {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 h-9 w-9 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-center text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer z-10"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        {closable && (
+          <button
+            onClick={onClose}
+            className="absolute top-5 right-5 h-9 w-9 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-center text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer z-10"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
 
         {/* Modal Title */}
         <div className="relative mb-6">

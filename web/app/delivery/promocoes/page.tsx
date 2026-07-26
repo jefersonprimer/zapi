@@ -143,7 +143,7 @@ function PromotionsPageContent() {
 
                 return (
                   <Link
-                    href={`/${slugify(item.store_city || "loja")}/${slugify(item.store_name)}?product=${item.id}`}
+                    href={`/delivery/${slugify(item.store_city || "loja")}/${slugify(item.store_name)}?product=${item.id}`}
                     key={item.id}
                     className="group rounded-2xl p-2.5 bg-surface dark:bg-card-bg border border-card-border/60 hover:border-neutral-400 dark:hover:border-neutral-500 shadow-sm hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-white/5 transition-all duration-300 flex flex-col overflow-hidden relative"
                   >

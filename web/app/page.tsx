@@ -45,6 +45,7 @@ import {
   Mic,
   Heart,
   HeartOff,
+  ShoppingBag,
 } from "lucide-react";
 import ChatSidebar from "@/components/ChatSidebar";
 import { EmojiGifStickerPicker } from "@/components/EmojiGifStickerPicker";
@@ -1062,6 +1063,18 @@ function ConversasContent() {
 
                 {/* Call & More Options Header Buttons */}
                 <div className="flex items-center gap-1">
+                  {!selectedChat.is_group && selectedChat.participant_store_id && (
+                    <button
+                      onClick={() =>
+                        router.push(`/sp/${selectedChat.participant_store_id}`)
+                      }
+                      title="Visitar loja"
+                      className="p-2 text-muted-text hover:text-foreground rounded-full hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    >
+                      <ShoppingBag className="h-5 w-5" />
+                    </button>
+                  )}
+
                   <button
                     onClick={() =>
                       startCall({

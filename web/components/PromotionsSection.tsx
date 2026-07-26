@@ -98,7 +98,7 @@ export default function PromotionsSection() {
         </div>
 
         {/* View All Button in Header */}
-        <Link href="/promocoes">Ver mais</Link>
+        <Link href="/delivery/promocoes">Ver mais</Link>
       </div>
 
       {/* Loading Skeleton */}
@@ -158,7 +158,7 @@ export default function PromotionsSection() {
 
               return (
                 <Link
-                  href={`/${slugify(item.store_city || "loja")}/${slugify(item.store_name)}?product=${item.id}`}
+                  href={`/delivery/${slugify(item.store_city || "loja")}/${slugify(item.store_name)}?product=${item.id}`}
                   key={item.id}
                   className="shrink-0 w-[160px] sm:w-[210px] group/card rounded-2xl p-2 bg-surface dark:bg-card-bg border border-card-border/60 hover:border-neutral-400 dark:hover:border-neutral-500 shadow-sm hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-white/5 transition-all duration-300 flex flex-col overflow-hidden relative"
                 >
@@ -240,7 +240,7 @@ export default function PromotionsSection() {
             {/* Extra Card at the end if there are more than 12 promotions */}
             {hasMore && (
               <Link
-                href="/promocoes"
+                href="/delivery/promocoes"
                 className="shrink-0 w-[160px] sm:w-[210px] group/more rounded-2xl p-4 bg-surface dark:bg-card-bg border border-card-border hover:border-neutral-400 dark:hover:border-neutral-500 transition-all duration-300 flex flex-col items-center justify-center text-center gap-3 shadow-sm hover:shadow-md"
               >
                 <div className="w-12 h-12 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center shadow-md group-hover/more:scale-110 transition-transform">

@@ -19,13 +19,9 @@ import {
   AlertCircle,
   CheckCircle2,
   X,
-  Check,
   Loader2,
   Calendar,
-  Layers,
   Copy,
-  Clock,
-  Sparkles,
 } from "lucide-react";
 
 interface CouponFormData {

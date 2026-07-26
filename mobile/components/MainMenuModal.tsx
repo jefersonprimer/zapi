@@ -53,6 +53,18 @@ export default function MainMenuModal({
             style={styles.menuItem}
             onPress={() => {
               onClose();
+              router.push("/payments");
+            }}
+          >
+            <Text style={[styles.menuItemText, { color: colors.text }]}>
+              Pagamentos
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              onClose();
               router.push("/settings");
             }}
           >
