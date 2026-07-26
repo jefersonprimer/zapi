@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,8 +9,10 @@ import {
   Platform,
   Modal,
   ActivityIndicator,
+  Keyboard,
 } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
+import { ChatMediaSelector } from "@/components/ChatMediaSelector";
 import { ChatHeader } from "@/components/ChatHeader";
 import { ChatBlockedBar } from "@/components/ChatBlockedBar";
 import { ChatDeleteModal } from "@/components/ChatDeleteModal";
@@ -39,6 +41,23 @@ export default function ChatScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const flatListRef = useRef<FlatList>(null);
+  const inputRef = useRef<any>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  useEffect(() => {
+    if (isKeyboardVisible) {
+      setShowEmojiPicker(false);
+      setAttachSheetVisible(false);
+    }
+  }, [isKeyboardVisible]);
+
+  useEffect(() => {
+    if (attachSheetVisible) {
+      inputRef.current?.blur();
+      Keyboard.dismiss();
+      setShowEmojiPicker(false);
+    }
+  }, [attachSheetVisible]);
 
   // Disable native header to render custom styled header bar
   useEffect(() => {
@@ -222,7 +241,7 @@ export default function ChatScreen() {
         style={[
           styles.inputContainer,
           {
-            paddingBottom: isKeyboardVisible ? 6 : insets.bottom,
+            paddingBottom: (isKeyboardVisible || showEmojiPicker || attachSheetVisible) ? 6 : insets.bottom,
             backgroundColor: colors.background,
           },
         ]}
@@ -255,14 +274,56 @@ export default function ChatScreen() {
               ]}
             >
               <ChatEmojiPicker
-                onEmojiSelected={(emoji) => setContent((prev) => prev + emoji)}
+                isEmojiOpen={showEmojiPicker}
+                onPress={() => {
+                  setAttachSheetVisible(false);
+                  if (showEmojiPicker) {
+                    setShowEmojiPicker(false);
+                    // Force focus back to text input to show device keyboard
+                    setTimeout(() => {
+                      inputRef.current?.focus();
+                    }, 50);
+                  } else {
+                    if (isKeyboardVisible) {
+                      Keyboard.dismiss();
+                      setTimeout(() => {
+                        setShowEmojiPicker(true);
+                      }, 200);
+                    } else {
+                      setShowEmojiPicker(true);
+                    }
+                  }
+                }}
               />
 
-              <ChatInput value={content} onChangeText={setContent} />
+              <ChatInput
+                ref={inputRef}
+                value={content}
+                onChangeText={setContent}
+                onFocus={() => {
+                  setShowEmojiPicker(false);
+                  setAttachSheetVisible(false);
+                }}
+              />
 
-              <AttachDocumentButton onPress={handlePickDocument} />
+              <AttachDocumentButton
+                onPress={() => {
+                  inputRef.current?.blur();
+                  Keyboard.dismiss();
+                  setShowEmojiPicker(false);
+                  setTimeout(() => {
+                    handlePickDocument();
+                  }, 100);
+                }}
+              />
 
-              <AttachCameraButton onTakePhoto={setSelectedAttachment} />
+              <AttachCameraButton
+                onTakePhoto={(attachment) => {
+                  setShowEmojiPicker(false);
+                  setAttachSheetVisible(false);
+                  setSelectedAttachment(attachment);
+                }}
+              />
             </View>
 
             <SendOrMicButton
@@ -278,6 +339,25 @@ export default function ChatScreen() {
           </>
         )}
       </View>
+
+      {showEmojiPicker && (
+        <ChatMediaSelector
+          onEmojiSelected={(emojiObject) => setContent((prev) => prev + emojiObject.emoji)}
+          onSendMedia={(media) => {
+            handleSend(media);
+            setShowEmojiPicker(false);
+          }}
+          height={320}
+        />
+      )}
+
+      <AttachMediaSheet
+        visible={attachSheetVisible}
+        onClose={() => setAttachSheetVisible(false)}
+        onPickGallery={handlePickFromGallery}
+        onPickDocument={handlePickFile}
+        onSelectMedia={setSelectedAttachment}
+      />
 
       <ChatMenuModal
         visible={menuVisible}
@@ -342,14 +422,6 @@ export default function ChatScreen() {
           setListSelectorVisible(true);
         }}
         onCreate={handleCreateList}
-      />
-
-      <AttachMediaSheet
-        visible={attachSheetVisible}
-        onClose={() => setAttachSheetVisible(false)}
-        onPickGallery={handlePickFromGallery}
-        onPickDocument={handlePickFile}
-        onSelectMedia={setSelectedAttachment}
       />
 
       {/* Delete Confirmation Modal */}

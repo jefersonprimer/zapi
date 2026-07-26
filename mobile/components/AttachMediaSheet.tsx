@@ -4,7 +4,6 @@ import {
   Alert,
   Dimensions,
   FlatList,
-  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -14,12 +13,7 @@ import {
 import { Image } from "expo-image";
 import * as MediaLibrary from "expo-media-library";
 import { File } from "expo-file-system";
-import {
-  FileText,
-  Images,
-  Play,
-  X,
-} from "lucide-react-native";
+import { FileText, Images, Play } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import type { Attachment } from "@/components/AttachCameraButton";
@@ -30,10 +24,7 @@ const THUMB_COLS = 4;
 const THUMB_SIZE =
   (Dimensions.get("window").width - 32 - THUMB_GAP * (THUMB_COLS - 1)) /
   THUMB_COLS;
-const MEDIA_PERMISSIONS: MediaLibrary.GranularPermission[] = [
-  "photo",
-  "video",
-];
+const MEDIA_PERMISSIONS: MediaLibrary.GranularPermission[] = ["photo", "video"];
 
 interface AttachMediaSheetProps {
   visible: boolean;
@@ -96,10 +87,7 @@ export function AttachMediaSheet({
     try {
       const result = await MediaLibrary.getAssetsAsync({
         first: RECENT_LIMIT,
-        mediaType: [
-          MediaLibrary.MediaType.photo,
-          MediaLibrary.MediaType.video,
-        ],
+        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
         sortBy: [[MediaLibrary.SortBy.creationTime, false]],
       });
       setAssets(result.assets);
@@ -118,8 +106,7 @@ export function AttachMediaSheet({
         false,
         MEDIA_PERMISSIONS,
       );
-      const granted =
-        current.granted || current.accessPrivileges === "limited";
+      const granted = current.granted || current.accessPrivileges === "limited";
       setPermissionGranted(granted);
 
       if (granted) {
@@ -147,8 +134,7 @@ export function AttachMediaSheet({
         false,
         MEDIA_PERMISSIONS,
       );
-      const granted =
-        result.granted || result.accessPrivileges === "limited";
+      const granted = result.granted || result.accessPrivileges === "limited";
       setPermissionGranted(granted);
       if (granted) {
         await loadRecentMedia();
@@ -206,161 +192,126 @@ export function AttachMediaSheet({
     requestAnimationFrame(() => onPickDocument());
   }
 
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+    <View
+      style={[
+        styles.sheet,
+        {
+          backgroundColor: colors.menuBackground,
+          borderColor: colors.border,
+          paddingBottom: Math.max(insets.bottom, 16),
+        },
+      ]}
     >
-      <View style={styles.overlay}>
+      <View style={styles.actions}>
         <TouchableOpacity
-          style={[styles.backdrop, { backgroundColor: colors.modalOverlay }]}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.menuBackground,
-              borderColor: colors.border,
-              paddingBottom: Math.max(insets.bottom, 16),
-            },
-          ]}
+          style={styles.actionItem}
+          onPress={handleGallery}
+          activeOpacity={0.7}
         >
-          <View style={styles.handleRow}>
-            <View
-              style={[styles.handle, { backgroundColor: colors.border }]}
-            />
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={onClose}
-              hitSlop={12}
-            >
-              <X size={20} color={colors.icon} />
-            </TouchableOpacity>
+          <View
+            style={[styles.actionIcon, { backgroundColor: colors.tint + "18" }]}
+          >
+            <Images size={22} color={colors.tint} />
           </View>
-
-          <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.actionItem}
-              onPress={handleGallery}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.actionIcon,
-                  { backgroundColor: colors.tint + "18" },
-                ]}
-              >
-                <Images size={22} color={colors.tint} />
-              </View>
-              <Text style={[styles.actionLabel, { color: colors.text }]}>
-                Galeria
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionItem}
-              onPress={handleDocument}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.actionIcon,
-                  { backgroundColor: colors.tint + "18" },
-                ]}
-              >
-                <FileText size={22} color={colors.tint} />
-              </View>
-              <Text
-                style={[styles.actionLabel, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                Documento
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Recentes
+          <Text style={[styles.actionLabel, { color: colors.text }]}>
+            Galeria
           </Text>
+        </TouchableOpacity>
 
-          {!permissionGranted ? (
-            <View style={styles.permissionBox}>
-              <Text
-                style={[styles.permissionText, { color: colors.textSecondary }]}
-              >
-                Permita o acesso às fotos para ver as mídias recentes aqui.
-              </Text>
-              <TouchableOpacity
-                style={[styles.permissionBtn, { backgroundColor: colors.tint }]}
-                onPress={handleRequestPermission}
-              >
-                <Text style={styles.permissionBtnText}>Permitir acesso</Text>
-              </TouchableOpacity>
-            </View>
-          ) : loadingAssets ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator color={colors.tint} />
-            </View>
-          ) : assets.length === 0 ? (
-            <Text
-              style={[styles.emptyText, { color: colors.textSecondary }]}
-            >
-              Nenhuma mídia recente encontrada.
-            </Text>
-          ) : (
-            <FlatList
-              data={assets}
-              keyExtractor={(item) => item.id}
-              numColumns={THUMB_COLS}
-              style={styles.gridList}
-              columnWrapperStyle={styles.gridRow}
-              contentContainerStyle={styles.grid}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const isVideo =
-                  item.mediaType === MediaLibrary.MediaType.video;
-                const isSelecting = selectingId === item.id;
-
-                return (
-                  <TouchableOpacity
-                    style={styles.thumbWrap}
-                    activeOpacity={0.8}
-                    disabled={!!selectingId}
-                    onPress={() => handleSelectAsset(item)}
-                  >
-                    <Image
-                      source={{ uri: item.uri }}
-                      style={styles.thumb}
-                      contentFit="cover"
-                    />
-                    {isVideo && (
-                      <View style={styles.videoBadge}>
-                        <Play size={10} color="#fff" fill="#fff" />
-                        <Text style={styles.videoDuration}>
-                          {formatDuration(item.duration)}
-                        </Text>
-                      </View>
-                    )}
-                    {isSelecting && (
-                      <View style={styles.thumbOverlay}>
-                        <ActivityIndicator color="#fff" size="small" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          )}
-        </View>
+        <TouchableOpacity
+          style={styles.actionItem}
+          onPress={handleDocument}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[styles.actionIcon, { backgroundColor: colors.tint + "18" }]}
+          >
+            <FileText size={22} color={colors.tint} />
+          </View>
+          <Text
+            style={[styles.actionLabel, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            Documento
+          </Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
+
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+        Recentes
+      </Text>
+
+      {!permissionGranted ? (
+        <View style={styles.permissionBox}>
+          <Text
+            style={[styles.permissionText, { color: colors.textSecondary }]}
+          >
+            Permita o acesso às fotos para ver as mídias recentes aqui.
+          </Text>
+          <TouchableOpacity
+            style={[styles.permissionBtn, { backgroundColor: colors.tint }]}
+            onPress={handleRequestPermission}
+          >
+            <Text style={styles.permissionBtnText}>Permitir acesso</Text>
+          </TouchableOpacity>
+        </View>
+      ) : loadingAssets ? (
+        <View style={styles.loadingBox}>
+          <ActivityIndicator color={colors.tint} />
+        </View>
+      ) : assets.length === 0 ? (
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+          Nenhuma mídia recente encontrada.
+        </Text>
+      ) : (
+        <FlatList
+          data={assets}
+          keyExtractor={(item) => item.id}
+          numColumns={THUMB_COLS}
+          style={styles.gridList}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.grid}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => {
+            const isVideo = item.mediaType === MediaLibrary.MediaType.video;
+            const isSelecting = selectingId === item.id;
+
+            return (
+              <TouchableOpacity
+                style={styles.thumbWrap}
+                activeOpacity={0.8}
+                disabled={!!selectingId}
+                onPress={() => handleSelectAsset(item)}
+              >
+                <Image
+                  source={{ uri: item.uri }}
+                  style={styles.thumb}
+                  contentFit="cover"
+                />
+                {isVideo && (
+                  <View style={styles.videoBadge}>
+                    <Play size={10} color="#fff" fill="#fff" />
+                    <Text style={styles.videoDuration}>
+                      {formatDuration(item.duration)}
+                    </Text>
+                  </View>
+                )}
+                {isSelecting && (
+                  <View style={styles.thumbOverlay}>
+                    <ActivityIndicator color="#fff" size="small" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+        />
+      )}
+    </View>
   );
 }
 

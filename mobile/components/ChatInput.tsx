@@ -1,30 +1,33 @@
-import React from "react";
+import React, { forwardRef } from "react";
 import { TextInput, StyleSheet, Platform } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ChatInputProps {
   value: string;
   onChangeText: (text: string) => void;
+  onFocus?: () => void;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({
-  value,
-  onChangeText,
-}) => {
-  const { colors } = useAppTheme();
+export const ChatInput = forwardRef<TextInput, ChatInputProps>(
+  ({ value, onChangeText, onFocus }, ref) => {
+    const { colors } = useAppTheme();
 
-  return (
-    <TextInput
-      style={[styles.input, { color: colors.text }]}
-      placeholder="Mensagem..."
-      placeholderTextColor={colors.textSecondary}
-      value={value}
-      onChangeText={onChangeText}
-      multiline
-      underlineColorAndroid="transparent"
-    />
-  );
-};
+    return (
+      <TextInput
+        ref={ref}
+        style={[styles.input, { color: colors.text }]}
+        placeholder="Mensagem..."
+        placeholderTextColor={colors.textSecondary}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={onFocus}
+        multiline
+        underlineColorAndroid="transparent"
+      />
+    );
+  }
+);
+ChatInput.displayName = "ChatInput";
 
 const styles = StyleSheet.create({
   input: {

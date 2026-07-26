@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Trash2, Pause, Play, Send } from "lucide-react";
+import { Trash2, Pause, Play, SendHorizonal } from "lucide-react";
 
 interface VoiceNoteRecorderBarProps {
   recordingDuration: number;
@@ -32,7 +32,10 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
   // Auto-play when recordedUri preview becomes available
   useEffect(() => {
     if (recordedUri && audioRef.current) {
-      audioRef.current.play().then(() => setIsPlayingPreview(true)).catch(() => {});
+      audioRef.current
+        .play()
+        .then(() => setIsPlayingPreview(true))
+        .catch(() => {});
     }
   }, [recordedUri]);
 
@@ -42,7 +45,11 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
 
     const handleTimeUpdate = () => setCurrentPosition(audio.currentTime);
     const handleLoadedMetadata = () => {
-      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+      if (
+        audio.duration &&
+        !isNaN(audio.duration) &&
+        isFinite(audio.duration)
+      ) {
         setPreviewDuration(audio.duration);
       }
     };
@@ -75,7 +82,10 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
       audio.pause();
       setIsPlayingPreview(false);
     } else {
-      audio.play().then(() => setIsPlayingPreview(true)).catch((err) => console.error(err));
+      audio
+        .play()
+        .then(() => setIsPlayingPreview(true))
+        .catch((err) => console.error(err));
     }
   };
 
@@ -108,12 +118,16 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
     return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  const effectiveDuration = previewDuration > 0 ? previewDuration : recordingDuration;
-  const progressPercent = effectiveDuration > 0 ? (currentPosition / effectiveDuration) * 100 : 0;
+  const effectiveDuration =
+    previewDuration > 0 ? previewDuration : recordingDuration;
+  const progressPercent =
+    effectiveDuration > 0 ? (currentPosition / effectiveDuration) * 100 : 0;
 
   return (
     <div className="flex flex-col w-full py-1.5 px-2 gap-2 animate-fade-in">
-      {recordedUri && <audio ref={audioRef} src={recordedUri} preload="metadata" />}
+      {recordedUri && (
+        <audio ref={audioRef} src={recordedUri} preload="metadata" />
+      )}
 
       {/* 1. Preview Player (Visible when paused or recordedUri is set) */}
       {(isPaused || recordedUri) && (
@@ -217,7 +231,7 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
           title="Enviar áudio"
           className="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-md"
         >
-          <Send className="h-4 w-4 ml-0.5" />
+          <SendHorizonal className="h-4 w-4 ml-0.5" />
         </button>
       </div>
     </div>

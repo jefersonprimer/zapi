@@ -1,11 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform, LayoutAnimation, UIManager } from "react-native";
-import { Trash2 as TrashIcon, Pause as PauseIcon, Play as PlayIcon, Send as SendIcon } from "lucide-react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  LayoutAnimation,
+  UIManager,
+} from "react-native";
+import {
+  Trash2 as TrashIcon,
+  Pause as PauseIcon,
+  Play as PlayIcon,
+  Send as SendIcon,
+  SendHorizonal,
+} from "lucide-react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useAppTheme } from "@/context/ThemeContext";
 
 // Enable LayoutAnimation for Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -14,7 +31,7 @@ interface VoiceNoteRecorderBarProps {
   isPaused: boolean;
   onPauseResumeRecording: () => void;
   onStopRecording: () => void; // Discards/trashes recording
-  
+
   // Preview/Send props
   recordedUri?: string | null;
   onStopAndPreview?: () => void;
@@ -54,9 +71,10 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
     }
   }, [status.didJustFinish, player]);
 
-  const audioDuration = (status.duration && isFinite(status.duration) && status.duration > 0)
-    ? (status.duration * 1000)
-    : (recordingDuration * 1000);
+  const audioDuration =
+    status.duration && isFinite(status.duration) && status.duration > 0
+      ? status.duration * 1000
+      : recordingDuration * 1000;
 
   const handleTimelinePress = (event: any) => {
     if (audioDuration <= 0 || timelineWidth <= 0 || !player) return;
@@ -83,8 +101,9 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  const currentPosition = (status.currentTime * 1000) || 0;
-  const progressPercent = audioDuration > 0 ? (currentPosition / audioDuration) * 100 : 0;
+  const currentPosition = status.currentTime * 1000 || 0;
+  const progressPercent =
+    audioDuration > 0 ? (currentPosition / audioDuration) * 100 : 0;
 
   return (
     <View style={styles.recordingContainer}>
@@ -92,13 +111,24 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
       {(isPaused || recordedUri) && (
         <View style={[styles.previewContainer, { marginBottom: 12 }]}>
           <TouchableOpacity
-            onPress={status.playing ? () => player.pause() : (recordedUri ? () => player.play() : onStopAndPreview)}
+            onPress={
+              status.playing
+                ? () => player.pause()
+                : recordedUri
+                  ? () => player.play()
+                  : onStopAndPreview
+            }
             style={[styles.previewPlayBtn, { backgroundColor: colors.tint }]}
           >
             {status.playing ? (
-              <PauseIcon size={14} color="#fff" fill="#fff" />
+              <PauseIcon size={16} color="#fff" fill="#fff" />
             ) : (
-              <PlayIcon size={14} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />
+              <PlayIcon
+                size={16}
+                color="#fff"
+                fill="#fff"
+                style={{ marginLeft: 2 }}
+              />
             )}
           </TouchableOpacity>
 
@@ -110,26 +140,35 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
             <View
               style={[
                 styles.timelineBackground,
-                { backgroundColor: isDark ? "rgba(255, 255, 255, 0.2)" : "#dcdcdc" }
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : "#dcdcdc",
+                },
               ]}
               onLayout={(e) => setTimelineWidth(e.nativeEvent.layout.width)}
             >
               <View
                 style={[
                   styles.timelineProgress,
-                  { backgroundColor: colors.tint, width: `${progressPercent}%` }
+                  {
+                    backgroundColor: colors.tint,
+                    width: `${progressPercent}%`,
+                  },
                 ]}
               />
               <View
                 style={[
                   styles.timelineThumb,
-                  { backgroundColor: colors.tint, left: `${progressPercent}%` }
+                  { backgroundColor: colors.tint, left: `${progressPercent}%` },
                 ]}
               />
             </View>
           </TouchableOpacity>
 
-          <Text style={[styles.previewTimeText, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.previewTimeText, { color: colors.textSecondary }]}
+          >
             {formatTime(currentPosition)} / {formatTime(audioDuration)}
           </Text>
         </View>
@@ -138,16 +177,23 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
       {/* 2. Status Row */}
       <View style={[styles.statusContainer, { marginBottom: 8 }]}>
         <View style={styles.statusInfo}>
-          <View 
+          <View
             style={[
-              styles.statusDot, 
-              isPaused || recordedUri ? styles.statusDotPaused : [styles.statusDotActive, { backgroundColor: colors.danger }]
-            ]} 
+              styles.statusDot,
+              isPaused || recordedUri
+                ? styles.statusDotPaused
+                : [styles.statusDotActive, { backgroundColor: colors.danger }],
+            ]}
           />
-          <Text 
+          <Text
             style={[
-              styles.recordingText, 
-              { color: isPaused || recordedUri ? colors.textSecondary : colors.danger }
+              styles.recordingText,
+              {
+                color:
+                  isPaused || recordedUri
+                    ? colors.textSecondary
+                    : colors.danger,
+              },
             ]}
           >
             {isPaused || recordedUri ? "Gravação pausada" : "Gravando áudio"}
@@ -164,11 +210,15 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
         <TouchableOpacity
           style={[
             styles.circleBtn,
-            { backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.08)" }
+            {
+              backgroundColor: isDark
+                ? "rgba(239, 68, 68, 0.15)"
+                : "rgba(239, 68, 68, 0.08)",
+            },
           ]}
           onPress={onStopRecording}
         >
-          <TrashIcon size={18} color="#EF4444" />
+          <TrashIcon size={20} color="#EF4444" />
         </TouchableOpacity>
 
         {/* Middle Pause/Resume/Continue Button */}
@@ -176,23 +226,31 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
           <TouchableOpacity
             style={[
               styles.pillBtn,
-              { 
-                backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.06)",
+              {
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.08)"
+                  : "rgba(0, 0, 0, 0.05)",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.06)",
                 borderWidth: 1,
-              }
+              },
             ]}
             onPress={onPauseResumeRecording}
           >
             {isPaused ? (
               <>
-                <PlayIcon size={16} color={colors.tint} fill={colors.tint} />
-                <Text style={[styles.pillBtnText, { color: colors.tint }]}>Continuar</Text>
+                <PlayIcon size={18} color={colors.tint} fill={colors.tint} />
+                <Text style={[styles.pillBtnText, { color: colors.tint }]}>
+                  Continuar
+                </Text>
               </>
             ) : (
               <>
                 <PauseIcon size={16} color={colors.tint} fill={colors.tint} />
-                <Text style={[styles.pillBtnText, { color: colors.tint }]}>Pausar</Text>
+                <Text style={[styles.pillBtnText, { color: colors.tint }]}>
+                  Pausar
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -200,13 +258,10 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
 
         {/* Right Send Button */}
         <TouchableOpacity
-          style={[
-            styles.circleBtn,
-            { backgroundColor: colors.tint }
-          ]}
+          style={[styles.circleBtn, { backgroundColor: "#34C759" }]}
           onPress={onSendAudio}
         >
-          <SendIcon size={18} color="#fff" style={{ marginLeft: 2 }} />
+          <SendHorizonal size={20} color="#fff" style={{ marginLeft: 2 }} />
         </TouchableOpacity>
       </View>
     </View>
@@ -311,9 +366,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   circleBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -324,8 +379,8 @@ const styles = StyleSheet.create({
   },
   pillBtn: {
     flex: 1,
-    height: 44,
-    borderRadius: 22,
+    height: 48,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

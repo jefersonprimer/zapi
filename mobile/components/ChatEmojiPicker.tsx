@@ -1,38 +1,30 @@
-import React, { useState } from "react";
+import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
-import EmojiPicker, { type EmojiType } from "rn-emoji-keyboard";
-import { Smile } from "lucide-react-native";
+import { Smile, Keyboard } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ChatEmojiPickerProps {
-  onEmojiSelected: (emoji: string) => void;
+  onPress: () => void;
+  isEmojiOpen?: boolean;
 }
 
 export const ChatEmojiPicker: React.FC<ChatEmojiPickerProps> = ({
-  onEmojiSelected,
+  onPress,
+  isEmojiOpen = false,
 }) => {
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const { colors } = useAppTheme();
 
-  const handleEmojiSelected = (emojiObject: EmojiType) => {
-    onEmojiSelected(emojiObject.emoji);
-  };
-
   return (
-    <>
-      <TouchableOpacity
-        style={styles.iconBtn}
-        onPress={() => setShowEmojiPicker(true)}
-      >
+    <TouchableOpacity
+      style={styles.iconBtn}
+      onPress={onPress}
+    >
+      {isEmojiOpen ? (
+        <Keyboard size={24} color={colors.icon} />
+      ) : (
         <Smile size={24} color={colors.icon} />
-      </TouchableOpacity>
-
-      <EmojiPicker
-        open={showEmojiPicker}
-        onClose={() => setShowEmojiPicker(false)}
-        onEmojiSelected={handleEmojiSelected}
-      />
-    </>
+      )}
+    </TouchableOpacity>
   );
 };
 
@@ -44,3 +36,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+
