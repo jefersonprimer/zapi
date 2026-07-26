@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { Phone as PhoneIcon, MoreVertical as MoreVerticalIcon, Video, ArrowLeft, Trash2, Forward, CornerUpLeft, ShoppingBag } from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAppTheme } from "@/context/ThemeContext";
 import { voiceCallManager } from "@/services/voiceCallManager";
@@ -67,7 +67,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           onPress={() => (isSelectionMode ? clearSelection() : router.back())}
           style={styles.headerBackBtn}
         >
-          <ArrowLeft size={24} color={colors.text} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         {isSelectionMode ? (
           <Text
@@ -155,7 +155,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 onPress={onReencaminhar}
                 style={styles.headerActionBtn}
               >
-                <CornerUpLeft size={22} color={colors.text} />
+                <MaterialCommunityIcons name="reply" size={22} color={colors.text} />
               </TouchableOpacity>
             )}
             {hasOnlyMessagesSelected && (
@@ -163,21 +163,21 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 onPress={onEncaminhar}
                 style={styles.headerActionBtn}
               >
-                <Forward size={22} color={colors.text} />
+                <MaterialCommunityIcons name="share" size={22} color={colors.text} />
               </TouchableOpacity>
             )}
             <TouchableOpacity
               onPress={onDeletePress}
               style={styles.headerActionBtn}
             >
-              <Trash2 size={22} color={colors.text} />
+              <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.text} />
             </TouchableOpacity>
             {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
               <TouchableOpacity
                 onPress={onOptionsPress}
                 style={styles.headerActionBtn}
               >
-                <MoreVerticalIcon size={22} color={colors.text} />
+                <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.text} />
               </TouchableOpacity>
             )}
           </>
@@ -193,7 +193,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 }
                 style={styles.headerActionBtn}
               >
-                <ShoppingBag size={22} color={colors.tint} />
+                <MaterialCommunityIcons name="shopping" size={22} color={colors.tint} />
               </TouchableOpacity>
             )}
             {!participantStoreId && (
@@ -208,7 +208,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 }
                 style={styles.headerActionBtn}
               >
-                <Video size={22} color={colors.text} />
+                <MaterialCommunityIcons name="video" size={22} color={colors.text} />
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -222,13 +222,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               }
               style={styles.headerActionBtn}
             >
-              <PhoneIcon size={22} color={colors.text} />
+              <MaterialCommunityIcons name="phone" size={22} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onMenuPress}
               style={styles.headerActionBtn}
             >
-              <MoreVerticalIcon size={22} color={colors.text} />
+              <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.text} />
             </TouchableOpacity>
           </>
         )}

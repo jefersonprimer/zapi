@@ -1397,7 +1397,7 @@ export default function ChatListScreen() {
                         { color: colors.textSecondary },
                       ]}
                     >
-                      Suas mensagens estão protegidas por criptografia.
+                      Seus dados estão protegidas por criptografia.
                     </Text>
                   </View>
                 </View>
