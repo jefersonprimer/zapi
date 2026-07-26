@@ -67,7 +67,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           onPress={() => (isSelectionMode ? clearSelection() : router.back())}
           style={styles.headerBackBtn}
         >
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={24}
+            color={colors.text}
+          />
         </TouchableOpacity>
         {isSelectionMode ? (
           <Text
@@ -129,7 +133,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             </View>
             <View style={{ flex: 1, justifyContent: "center" }}>
               <Text
-                style={[styles.headerTitleText, { color: colors.text, flex: 0 }]}
+                style={[
+                  styles.headerTitleText,
+                  { color: colors.text, flex: 0 },
+                ]}
                 numberOfLines={1}
               >
                 {displayTitle}
@@ -155,7 +162,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 onPress={onReencaminhar}
                 style={styles.headerActionBtn}
               >
-                <MaterialCommunityIcons name="reply" size={22} color={colors.text} />
+                <MaterialCommunityIcons
+                  name="reply"
+                  size={22}
+                  color={colors.text}
+                />
               </TouchableOpacity>
             )}
             {hasOnlyMessagesSelected && (
@@ -163,21 +174,33 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 onPress={onEncaminhar}
                 style={styles.headerActionBtn}
               >
-                <MaterialCommunityIcons name="share" size={22} color={colors.text} />
+                <MaterialCommunityIcons
+                  name="share"
+                  size={22}
+                  color={colors.text}
+                />
               </TouchableOpacity>
             )}
             <TouchableOpacity
               onPress={onDeletePress}
               style={styles.headerActionBtn}
             >
-              <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.text} />
+              <MaterialCommunityIcons
+                name="trash-can-outline"
+                size={22}
+                color={colors.text}
+              />
             </TouchableOpacity>
             {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
               <TouchableOpacity
                 onPress={onOptionsPress}
                 style={styles.headerActionBtn}
               >
-                <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.text} />
+                <MaterialCommunityIcons
+                  name="dots-vertical"
+                  size={22}
+                  color={colors.text}
+                />
               </TouchableOpacity>
             )}
           </>
@@ -193,7 +216,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 }
                 style={styles.headerActionBtn}
               >
-                <MaterialCommunityIcons name="shopping" size={22} color={colors.tint} />
+                <MaterialCommunityIcons
+                  name="shopping"
+                  size={22}
+                  color={colors.tint}
+                />
               </TouchableOpacity>
             )}
             {!participantStoreId && (
@@ -208,7 +235,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 }
                 style={styles.headerActionBtn}
               >
-                <MaterialCommunityIcons name="video" size={22} color={colors.text} />
+                <MaterialCommunityIcons
+                  name="video-outline"
+                  size={22}
+                  color={colors.text}
+                />
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -222,13 +253,21 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               }
               style={styles.headerActionBtn}
             >
-              <MaterialCommunityIcons name="phone" size={22} color={colors.text} />
+              <MaterialCommunityIcons
+                name="phone-outline"
+                size={22}
+                color={colors.text}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onMenuPress}
               style={styles.headerActionBtn}
             >
-              <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.text} />
+              <MaterialCommunityIcons
+                name="dots-vertical"
+                size={22}
+                color={colors.text}
+              />
             </TouchableOpacity>
           </>
         )}

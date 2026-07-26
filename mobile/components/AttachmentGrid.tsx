@@ -47,11 +47,13 @@ function isVideoAttachment(att: PostAttachment) {
 }
 
 function getInstagramAspectRatio(att: PostAttachment): number {
+  const isVideo = isVideoAttachment(att);
   if (att.width && att.height && att.height > 0) {
     const raw = att.width / att.height;
-    return Math.min(Math.max(raw, MIN_ASPECT_RATIO), MAX_ASPECT_RATIO);
+    const minRatio = isVideo ? 1.0 : MIN_ASPECT_RATIO;
+    return Math.min(Math.max(raw, minRatio), MAX_ASPECT_RATIO);
   }
-  return isVideoAttachment(att) ? MIN_ASPECT_RATIO : 1;
+  return isVideo ? 16 / 9 : 1;
 }
 
 function MediaVideo({ uri, isFullScreen }: MediaVideoProps) {

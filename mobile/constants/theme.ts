@@ -1,3 +1,5 @@
+// tons de verde #07C160 ou #34C759 para usar no projeto
+
 import { Platform } from "react-native";
 
 const tintColorLight = "#111827";
