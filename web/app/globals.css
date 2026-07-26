@@ -10,6 +10,10 @@
   --card-border: #ececec;
   --muted-text: #6b7280;
 
+  /* Brand and detail colors */
+  --brand-green: #07C160;
+  --list-bg-green: #e6f9ee;
+
   /* Dashboard specific legacy support if needed */
   --sidebar-bg: #ffffff;
   --sidebar-text: #6b7280;
@@ -26,6 +30,9 @@
   --card-bg: #1e1e1e;
   --card-border: #222222;
   --muted-text: #9ca3af;
+
+  --brand-green: #047c3c;
+  --list-bg-green: #033b1e;
 
   /* Dashboard specific dark mode support */
   --sidebar-bg: #1a1a1a;
@@ -45,6 +52,9 @@
     --card-border: #222222;
     --muted-text: #9ca3af;
 
+    --brand-green: #047c3c;
+    --list-bg-green: #033b1e;
+
     --sidebar-bg: #1a1a1a;
     --sidebar-text: #9ca3af;
     --sidebar-active-bg: rgba(16, 185, 129, 0.15);
@@ -62,6 +72,8 @@
   --color-card-border: var(--card-border);
   --color-muted-text: var(--muted-text);
   --color-accent: #10b981;
+  --color-brand-green: var(--brand-green);
+  --color-list-bg-green: var(--list-bg-green);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);

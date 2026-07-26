@@ -28,7 +28,10 @@ export const Colors = {
     badge: "#10B981",
     badgeText: "#FFFFFF",
 
-    fab: tintColorLight,
+    brandGreen: "#07C160",
+    listBgGreen: "#e6f9ee",
+
+    fab: "#07C160",
 
     menuBackground: "#FFFFFF",
 
@@ -62,7 +65,10 @@ export const Colors = {
     badge: "#10B981",
     badgeText: "#FFFFFF",
 
-    fab: "#FFFFFF",
+    brandGreen: "#047c3c",
+    listBgGreen: "#033b1e",
+
+    fab: "#07C160",
 
     menuBackground: "#242424",
 

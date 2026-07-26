@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
@@ -25,7 +32,9 @@ export default function ScanQrScreen() {
 
   if (!permission) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[styles.centerContainer, { backgroundColor: colors.background }]}
+      >
         <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
@@ -33,7 +42,12 @@ export default function ScanQrScreen() {
 
   if (!permission.granted) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background, padding: 24 }]}>
+      <View
+        style={[
+          styles.centerContainer,
+          { backgroundColor: colors.background, padding: 24 },
+        ]}
+      >
         <Text style={[styles.permissionText, { color: colors.text }]}>
           Precisamos de acesso à câmera para escanear o QR Code de um contato.
         </Text>
@@ -50,7 +64,10 @@ export default function ScanQrScreen() {
   const handleBarcodeScanned = async ({ data }: { data: string }) => {
     if (scanned || loading || !token) return;
 
-    const isContactQr = data.startsWith("zapi://user/") || data.startsWith("zapi://contact/") || data.startsWith("zapi:user_id:");
+    const isContactQr =
+      data.startsWith("zapi://user/") ||
+      data.startsWith("zapi://contact/") ||
+      data.startsWith("zapi:user_id:");
     if (isContactQr) {
       setScanned(true);
       setLoading(true);
@@ -81,7 +98,10 @@ export default function ScanQrScreen() {
           },
         ]);
       } catch (err: any) {
-        Alert.alert("Erro", err.message || "Não foi possível adicionar o contato.");
+        Alert.alert(
+          "Erro",
+          err.message || "Não foi possível adicionar o contato.",
+        );
         setScanned(false);
       } finally {
         setLoading(false);

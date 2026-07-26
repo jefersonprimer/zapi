@@ -7,7 +7,11 @@ interface MuteModalProps {
   onMute: (durationHours: number | "always") => void;
 }
 
-export default function MuteModal({ visible, onClose, onMute }: MuteModalProps) {
+export default function MuteModal({
+  visible,
+  onClose,
+  onMute,
+}: MuteModalProps) {
   const { colors } = useAppTheme();
 
   return (
@@ -18,10 +22,7 @@ export default function MuteModal({ visible, onClose, onMute }: MuteModalProps) 
       onRequestClose={onClose}
     >
       <TouchableOpacity
-        style={[
-          styles.dialogOverlay,
-          { backgroundColor: colors.modalOverlay },
-        ]}
+        style={[styles.dialogOverlay, { backgroundColor: colors.modalOverlay }]}
         activeOpacity={1}
         onPress={onClose}
       >
@@ -35,7 +36,7 @@ export default function MuteModal({ visible, onClose, onMute }: MuteModalProps) 
           ]}
         >
           <Text style={[styles.dialogTitle, { color: colors.text }]}>
-            Silenciar notificações
+            Silenciar Notificações
           </Text>
 
           <TouchableOpacity
@@ -111,10 +112,7 @@ export default function MuteModal({ visible, onClose, onMute }: MuteModalProps) 
             ]}
           />
 
-          <TouchableOpacity
-            style={styles.dialogCloseButton}
-            onPress={onClose}
-          >
+          <TouchableOpacity style={styles.dialogCloseButton} onPress={onClose}>
             <Text style={[styles.dialogCloseText, { color: colors.tint }]}>
               Cancelar
             </Text>

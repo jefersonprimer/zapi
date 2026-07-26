@@ -39,6 +39,7 @@ import {
   STORE_CATEGORIES,
 } from "@/services/deliveryApi";
 import CategoryGrid from "@/components/CategoryGrid";
+import PromotionsSection from "@/components/PromotionsSection";
 import StoreCard, { StoreCardSkeleton } from "@/components/StoreCard";
 
 const LABEL_TEXT: Record<string, string> = {
@@ -213,7 +214,11 @@ export default function DeliveryScreen() {
   };
 
   const renderStore = ({ item }: { item: StoreType }) => {
-    return <StoreCard item={item} />;
+    return (
+      <View style={{ paddingHorizontal: 16 }}>
+        <StoreCard item={item} />
+      </View>
+    );
   };
 
   return (
@@ -321,269 +326,274 @@ export default function DeliveryScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <>
-          <CategoryGrid
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-          />
+        <FlatList
+          data={loading ? [] : displayedStores}
+          keyExtractor={(item) => item.id}
+          renderItem={renderStore}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.tint}
+            />
+          }
+          ListHeaderComponent={
+            <>
+              <CategoryGrid
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+                city={address?.cidade}
+                state={address?.estado}
+              />
 
-          <View style={styles.filtersContainer}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.filterScroll}
-              contentContainerStyle={styles.filterRow}
-            >
-              {/* Ordenar por Filter */}
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  sortBy !== "default" && styles.filterChipActive,
-                  {
-                    backgroundColor:
-                      sortBy !== "default" ? colors.tint : colors.surface,
-                    borderColor:
-                      sortBy !== "default" ? colors.tint : colors.border,
-                  },
-                ]}
-                onPress={() => setSortModalVisible(true)}
-                activeOpacity={0.7}
-              >
-                <ArrowUpDown
-                  size={14}
-                  color={sortBy !== "default" ? "#FFF" : colors.text}
-                />
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    { color: sortBy !== "default" ? "#FFF" : colors.text },
-                  ]}
+              <PromotionsSection />
+
+              <View style={styles.filtersContainer}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.filterScroll}
+                  contentContainerStyle={styles.filterRow}
                 >
-                  {sortBy === "default"
-                    ? "Ordenar"
-                    : sortBy === "price"
-                      ? "Menor pedido"
-                      : sortBy === "rating"
-                        ? "Melhor avaliação"
-                        : sortBy === "delivery_time"
-                          ? "Mais rápido"
-                          : sortBy === "delivery_fee"
-                            ? "Menor taxa"
-                            : "Mais próximo"}
-                </Text>
-                <ChevronDown
-                  size={14}
-                  color={sortBy !== "default" ? "#FFF" : colors.text}
-                />
-              </TouchableOpacity>
-
-              {/* Forma de Entrega Filter */}
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  deliveryMode !== "all" && styles.filterChipActive,
-                  {
-                    backgroundColor:
-                      deliveryMode !== "all" ? colors.tint : colors.surface,
-                    borderColor:
-                      deliveryMode !== "all" ? colors.tint : colors.border,
-                  },
-                ]}
-                onPress={() => setDeliveryModalVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    { color: deliveryMode !== "all" ? "#FFF" : colors.text },
-                  ]}
-                >
-                  {deliveryMode === "all"
-                    ? "Forma de entrega"
-                    : deliveryMode === "delivery"
-                      ? "Entregar (Delivery)"
-                      : "Retirar"}
-                </Text>
-                <ChevronDown
-                  size={14}
-                  color={deliveryMode !== "all" ? "#FFF" : colors.text}
-                />
-              </TouchableOpacity>
-
-              {/* Forma de Pagamento Filter */}
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  paymentFilter !== null && styles.filterChipActive,
-                  {
-                    backgroundColor:
-                      paymentFilter !== null ? colors.tint : colors.surface,
-                    borderColor:
-                      paymentFilter !== null ? colors.tint : colors.border,
-                  },
-                ]}
-                onPress={() => setPaymentModalVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    { color: paymentFilter !== null ? "#FFF" : colors.text },
-                  ]}
-                >
-                  {paymentFilter === null
-                    ? "Forma de pagamento"
-                    : paymentFilter === "card"
-                      ? "Máquina de cartão"
-                      : "Online (Pix)"}
-                </Text>
-                <ChevronDown
-                  size={14}
-                  color={paymentFilter !== null ? "#FFF" : colors.text}
-                />
-              </TouchableOpacity>
-
-              {/* Abertos Filter (toggle) */}
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  openNow && styles.filterChipActive,
-                  {
-                    backgroundColor: openNow ? colors.tint : colors.surface,
-                    borderColor: openNow ? colors.tint : colors.border,
-                  },
-                ]}
-                onPress={() => setOpenNow(!openNow)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    { color: openNow ? "#FFF" : colors.text },
-                  ]}
-                >
-                  Abertos agora
-                </Text>
-              </TouchableOpacity>
-
-              {/* Entrega Gratis Filter (toggle) */}
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  freeDelivery && styles.filterChipActive,
-                  {
-                    backgroundColor: freeDelivery
-                      ? colors.tint
-                      : colors.surface,
-                    borderColor: freeDelivery ? colors.tint : colors.border,
-                  },
-                ]}
-                onPress={() => setFreeDelivery(!freeDelivery)}
-                activeOpacity={0.7}
-              >
-                <Motorbike
-                  size={14}
-                  color={freeDelivery ? "#FFF" : colors.text}
-                />
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    { color: freeDelivery ? "#FFF" : colors.text },
-                  ]}
-                >
-                  Entrega grátis
-                </Text>
-              </TouchableOpacity>
-
-              {/* Promoções Filter (toggle) */}
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  promotionOnly && styles.filterChipActive,
-                  {
-                    backgroundColor: promotionOnly
-                      ? colors.tint
-                      : colors.surface,
-                    borderColor: promotionOnly ? colors.tint : colors.border,
-                  },
-                ]}
-                onPress={() => setPromotionOnly(!promotionOnly)}
-                activeOpacity={0.7}
-              >
-                <Tag size={14} color={promotionOnly ? "#FFF" : colors.text} />
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    { color: promotionOnly ? "#FFF" : colors.text },
-                  ]}
-                >
-                  Promoções
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-
-          {!loading && (
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {selectedCategory
-                  ? STORE_CATEGORIES[selectedCategory] || "Lojas"
-                  : "Lojas"}
-              </Text>
-            </View>
-          )}
-
-          {loading ? (
-            <View style={styles.listContent}>
-              <StoreCardSkeleton />
-              <StoreCardSkeleton />
-              <StoreCardSkeleton />
-              <StoreCardSkeleton />
-              <StoreCardSkeleton />
-            </View>
-          ) : (
-            <FlatList
-              data={displayedStores}
-              keyExtractor={(item) => item.id}
-              renderItem={renderStore}
-              style={styles.list}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  tintColor={colors.tint}
-                />
-              }
-              onEndReached={() => {
-                if (limit < stores.length) {
-                  setLimit((prev) => prev + 24);
-                }
-              }}
-              onEndReachedThreshold={0.4}
-              ListFooterComponent={() => {
-                if (limit < stores.length) {
-                  return (
-                    <View style={{ paddingVertical: 20, alignItems: "center" }}>
-                      <ActivityIndicator size="small" color={colors.tint} />
-                    </View>
-                  );
-                }
-                return null;
-              }}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Store color={colors.icon} size={64} />
-                  <Text
-                    style={[styles.emptyText, { color: colors.textSecondary }]}
+                  {/* Ordenar por Filter */}
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      sortBy !== "default" && styles.filterChipActive,
+                      {
+                        backgroundColor:
+                          sortBy !== "default" ? colors.tint : colors.surface,
+                        borderColor:
+                          sortBy !== "default" ? colors.tint : colors.border,
+                      },
+                    ]}
+                    onPress={() => setSortModalVisible(true)}
+                    activeOpacity={0.7}
                   >
-                    Nenhuma loja em {address.cidade}
+                    <ArrowUpDown
+                      size={14}
+                      color={sortBy !== "default" ? "#FFF" : colors.text}
+                    />
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: sortBy !== "default" ? "#FFF" : colors.text },
+                      ]}
+                    >
+                      {sortBy === "default"
+                        ? "Ordenar"
+                        : sortBy === "price"
+                          ? "Menor pedido"
+                          : sortBy === "rating"
+                            ? "Melhor avaliação"
+                            : sortBy === "delivery_time"
+                              ? "Mais rápido"
+                              : sortBy === "delivery_fee"
+                                ? "Menor taxa"
+                                : "Mais próximo"}
+                    </Text>
+                    <ChevronDown
+                      size={14}
+                      color={sortBy !== "default" ? "#FFF" : colors.text}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Forma de Entrega Filter */}
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      deliveryMode !== "all" && styles.filterChipActive,
+                      {
+                        backgroundColor:
+                          deliveryMode !== "all" ? colors.tint : colors.surface,
+                        borderColor:
+                          deliveryMode !== "all" ? colors.tint : colors.border,
+                      },
+                    ]}
+                    onPress={() => setDeliveryModalVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: deliveryMode !== "all" ? "#FFF" : colors.text },
+                      ]}
+                    >
+                      {deliveryMode === "all"
+                        ? "Forma de entrega"
+                        : deliveryMode === "delivery"
+                          ? "Entregar (Delivery)"
+                          : "Retirar"}
+                    </Text>
+                    <ChevronDown
+                      size={14}
+                      color={deliveryMode !== "all" ? "#FFF" : colors.text}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Forma de Pagamento Filter */}
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      paymentFilter !== null && styles.filterChipActive,
+                      {
+                        backgroundColor:
+                          paymentFilter !== null ? colors.tint : colors.surface,
+                        borderColor:
+                          paymentFilter !== null ? colors.tint : colors.border,
+                      },
+                    ]}
+                    onPress={() => setPaymentModalVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: paymentFilter !== null ? "#FFF" : colors.text },
+                      ]}
+                    >
+                      {paymentFilter === null
+                        ? "Forma de pagamento"
+                        : paymentFilter === "card"
+                          ? "Máquina de cartão"
+                          : "Online (Pix)"}
+                    </Text>
+                    <ChevronDown
+                      size={14}
+                      color={paymentFilter !== null ? "#FFF" : colors.text}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Abertos Filter (toggle) */}
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      openNow && styles.filterChipActive,
+                      {
+                        backgroundColor: openNow ? colors.tint : colors.surface,
+                        borderColor: openNow ? colors.tint : colors.border,
+                      },
+                    ]}
+                    onPress={() => setOpenNow(!openNow)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: openNow ? "#FFF" : colors.text },
+                      ]}
+                    >
+                      Abertos agora
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Entrega Gratis Filter (toggle) */}
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      freeDelivery && styles.filterChipActive,
+                      {
+                        backgroundColor: freeDelivery
+                          ? colors.tint
+                          : colors.surface,
+                        borderColor: freeDelivery ? colors.tint : colors.border,
+                      },
+                    ]}
+                    onPress={() => setFreeDelivery(!freeDelivery)}
+                    activeOpacity={0.7}
+                  >
+                    <Motorbike
+                      size={14}
+                      color={freeDelivery ? "#FFF" : colors.text}
+                    />
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: freeDelivery ? "#FFF" : colors.text },
+                      ]}
+                    >
+                      Entrega grátis
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Promoções Filter (toggle) */}
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      promotionOnly && styles.filterChipActive,
+                      {
+                        backgroundColor: promotionOnly
+                          ? colors.tint
+                          : colors.surface,
+                        borderColor: promotionOnly ? colors.tint : colors.border,
+                      },
+                    ]}
+                    onPress={() => setPromotionOnly(!promotionOnly)}
+                    activeOpacity={0.7}
+                  >
+                    <Tag size={14} color={promotionOnly ? "#FFF" : colors.text} />
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: promotionOnly ? "#FFF" : colors.text },
+                      ]}
+                    >
+                      Promoções
+                    </Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+
+              {!loading && (
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    {selectedCategory
+                      ? STORE_CATEGORIES[selectedCategory] || "Lojas"
+                      : "Lojas"}
                   </Text>
                 </View>
-              }
-            />
-          )}
-        </>
+              )}
+            </>
+          }
+          onEndReached={() => {
+            if (limit < stores.length) {
+              setLimit((prev) => prev + 24);
+            }
+          }}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={() => {
+            if (limit < stores.length) {
+              return (
+                <View style={{ paddingVertical: 20, alignItems: "center" }}>
+                  <ActivityIndicator size="small" color={colors.tint} />
+                </View>
+              );
+            }
+            return null;
+          }}
+          ListEmptyComponent={
+            loading ? (
+              <View style={{ paddingHorizontal: 16 }}>
+                <StoreCardSkeleton />
+                <StoreCardSkeleton />
+                <StoreCardSkeleton />
+                <StoreCardSkeleton />
+                <StoreCardSkeleton />
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Store color={colors.icon} size={64} />
+                <Text
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
+                  Nenhuma loja em {address.cidade}
+                </Text>
+              </View>
+            )
+          }
+        />
       )}
       {cartStoreId && (
         <TouchableOpacity
@@ -956,7 +966,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: "700" },
   sectionCount: { fontSize: 13 },
   list: { flex: 1 },
-  listContent: { padding: 16 },
+  listContent: { paddingTop: 16, paddingBottom: 100 },
   storeCard: {
     flexDirection: "row",
     alignItems: "center",

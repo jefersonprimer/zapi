@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,10 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
@@ -15,10 +19,26 @@ import {
   createChat,
   searchUsers,
   type UserSearchResult,
+  API_URL,
 } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Search, X, Users, MessageSquare } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// Helper to get consistent background color for avatars based on user's name
+function getAvatarColor(name: string) {
+  const colors = [
+    "#FF5733", "#33FF57", "#3357FF", "#F3FF33", "#FF33F3",
+    "#33FFF0", "#FFA833", "#AF33FF", "#33FFA8", "#FF3383",
+    "#07C160", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899"
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+}
 
 export default function NewChatScreen() {
   const router = useRouter();
@@ -29,6 +49,23 @@ export default function NewChatScreen() {
   const [users, setUsers] = useState<UserSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      () => setKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => setKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   async function handleSearch() {
     if (!query.trim() || !token) return;
@@ -37,7 +74,7 @@ export default function NewChatScreen() {
       const data = await searchUsers(token, query.trim());
       setUsers(data.users);
     } catch (err: any) {
-      Alert.alert("Erro", err.message);
+      Alert.alert("Erro", err.message || "Erro ao buscar usuários");
     } finally {
       setSearching(false);
     }
@@ -72,88 +109,160 @@ export default function NewChatScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Custom Header */}
-      <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: colors.headerBackground }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <ArrowLeft size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, { color: colors.headerText }]}>Nova Conversa</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={
+        Platform.OS === "ios"
+          ? "padding"
+          : isKeyboardVisible
+            ? "height"
+            : undefined
+      }
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 0}
+    >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Custom Header */}
+        <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <ArrowLeft size={24} color={colors.text} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>Nova Conversa</Text>
+              <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+                Inicie um chat privado
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.content}>
-        <View style={styles.searchRow}>
-          <TextInput
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-            placeholder="Buscar por usuário ou email..."
-            placeholderTextColor={colors.textSecondary}
-            value={query}
-            onChangeText={setQuery}
-            autoCapitalize="none"
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-          />
-          <TouchableOpacity style={[styles.searchBtn, { backgroundColor: colors.tint }]} onPress={handleSearch}>
-            {searching ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.searchBtnText}>Buscar</Text>
+        <View style={styles.content}>
+          {/* Search Section */}
+          <View style={[styles.searchBarContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Search size={20} color={colors.textSecondary} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Buscar por nome, usuário ou email..."
+              placeholderTextColor={colors.textSecondary}
+              value={query}
+              onChangeText={setQuery}
+              autoCapitalize="none"
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            {query.length > 0 && (
+              <TouchableOpacity onPress={() => setQuery("")} style={styles.clearBtn}>
+                <X size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        </View>
-
-        {loading && <ActivityIndicator style={{ marginTop: 20 }} color={colors.tint} />}
-
-        <FlatList
-          data={users}
-          keyExtractor={(item) => item.id}
-          style={{ marginTop: 16 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.userItem, { borderBottomColor: colors.border }]}
-              onPress={() => handleSelectUser(item.id)}
+            <TouchableOpacity 
+              style={[styles.searchBtn, { backgroundColor: colors.brandGreen || "#07C160" }]} 
+              onPress={handleSearch}
+              disabled={searching}
             >
-              <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
-                <Text style={styles.avatarText}>
-                  {(item.name || item.username)[0].toUpperCase()}
-                </Text>
-              </View>
-              <View>
-                <Text style={[styles.username, { color: colors.text }]}>
-                  {item.name || item.username}
-                </Text>
-                <Text style={[styles.usernameHandle, { color: colors.textSecondary }]}>
-                  @{item.username}
-                </Text>
-                <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
-              </View>
+              {searching ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.searchBtnText}>Buscar</Text>
+              )}
             </TouchableOpacity>
+          </View>
+
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.brandGreen || "#07C160"} />
+            </View>
           )}
-          ListEmptyComponent={
-            query.trim() && !searching ? (
-              <Text style={[styles.empty, { color: colors.textSecondary }]}>Nenhum usuário encontrado</Text>
-            ) : null
-          }
-        />
+
+          <FlatList
+            data={users}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => {
+              const displayName = item.name || item.username;
+              const avatarBg = getAvatarColor(displayName);
+              return (
+                <TouchableOpacity
+                  style={[styles.userItem, { borderBottomColor: colors.border }]}
+                  onPress={() => handleSelectUser(item.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.userRowLeft}>
+                    {/* Avatar */}
+                    <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
+                      {item.avatar_url ? (
+                        <Image 
+                          source={{ 
+                            uri: item.avatar_url.startsWith("http") 
+                              ? item.avatar_url 
+                              : `${API_URL}${item.avatar_url}` 
+                          }} 
+                          style={styles.avatarImage} 
+                        />
+                      ) : (
+                        <Text style={styles.avatarText}>
+                          {displayName[0].toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* User Info */}
+                    <View style={styles.userInfo}>
+                      <Text style={[styles.username, { color: colors.text }]} numberOfLines={1}>
+                        {displayName}
+                      </Text>
+                      <Text style={[styles.usernameHandle, { color: colors.textSecondary }]}>
+                        @{item.username}
+                      </Text>
+                      <Text style={[styles.email, { color: colors.textSecondary }]} numberOfLines={1}>
+                        {item.email}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.userRowRight}>
+                    <MessageSquare size={20} color={colors.brandGreen || "#07C160"} />
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+            ListEmptyComponent={
+              query.trim() && !searching ? (
+                <View style={styles.emptyState}>
+                  <Users size={48} color={colors.textSecondary} style={{ opacity: 0.5, marginBottom: 12 }} />
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    Nenhum usuário encontrado para "{query}"
+                  </Text>
+                </View>
+              ) : !searching ? (
+                <View style={styles.emptyState}>
+                  <Users size={48} color={colors.textSecondary} style={{ opacity: 0.3, marginBottom: 12 }} />
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    Busque contatos para iniciar um bate-papo
+                  </Text>
+                </View>
+              ) : null
+            }
+          />
+        </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flex: 1, padding: 24 },
+  container: { 
+    flex: 1 
+  },
   customHeader: {
-    paddingBottom: 12,
-    elevation: 4,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
   },
   headerContent: {
     flexDirection: "row",
@@ -162,47 +271,122 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backBtn: {
-    padding: 4,
-    marginRight: 16,
+    padding: 8,
+    marginRight: 8,
+    borderRadius: 20,
   },
   headerTitleContainer: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "700",
   },
-  searchRow: { flexDirection: "row", gap: 8 },
-  input: {
-    flex: 1,
+  headerSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  content: { 
+    flex: 1, 
+    padding: 16 
+  },
+  searchBarContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
+    borderRadius: 12,
+    paddingLeft: 12,
+    height: 52,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    height: "100%",
+    paddingVertical: 0,
+  },
+  clearBtn: {
+    padding: 8,
   },
   searchBtn: {
-    borderRadius: 8,
-    paddingHorizontal: 20,
+    height: "100%",
     justifyContent: "center",
+    paddingHorizontal: 16,
   },
-  searchBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  searchBtnText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  loadingContainer: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  listContent: {
+    paddingVertical: 8,
+  },
   userItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  userRowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  userRowRight: {
+    paddingLeft: 8,
+  },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    overflow: "hidden",
   },
-  avatarText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  username: { fontSize: 16, fontWeight: "600" },
-  usernameHandle: { fontSize: 13, marginTop: 1 },
-  email: { fontSize: 14, marginTop: 2 },
-  empty: { textAlign: "center", marginTop: 40 },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  userInfo: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  username: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  usernameHandle: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  email: {
+    fontSize: 12,
+    marginTop: 2,
+    opacity: 0.8,
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
+  },
 });

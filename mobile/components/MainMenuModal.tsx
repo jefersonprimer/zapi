@@ -45,7 +45,7 @@ export default function MainMenuModal({
             }}
           >
             <Text style={[styles.menuItemText, { color: colors.text }]}>
-              Criar grupo
+              Conversas em grupo
             </Text>
           </TouchableOpacity>
 
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 60,
     right: 6,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingVertical: 6,
     width: 220,
     shadowColor: "#000",

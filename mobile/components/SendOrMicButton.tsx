@@ -23,7 +23,7 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
       <TouchableOpacity
         style={[
           styles.sendButtonCircle,
-          { backgroundColor: colors.tint },
+          { backgroundColor: "#07C160" },
           sending && styles.sendButtonCircleDisabled,
         ]}
         onPress={onSend}
@@ -36,7 +36,7 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
 
   return (
     <TouchableOpacity
-      style={[styles.micButton, { backgroundColor: colors.tint }]}
+      style={[styles.micButton, { backgroundColor: "#07C160" }]}
       onPress={onStartRecording}
     >
       <MicIcon size={20} color="#f2f2f2" />
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   sendButtonCircle: {
     width: 50,
     height: 50,
-    borderRadius: 20,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   micButton: {
     width: 50,
     height: 50,
-    borderRadius: 20,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
   },

@@ -67,7 +67,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
               }}
             >
               <Text style={[styles.menuItemText, { color: colors.text }]}>
-                {isGroup ? "Dados do grupo" : "Ver contato"}
+                {isGroup ? "Dados do Grupo" : "Ver Contato"}
               </Text>
             </TouchableOpacity>
           )}
@@ -81,7 +81,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
               }}
             >
               <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Silenciar notificações
+                Silenciar Notificações
               </Text>
             </TouchableOpacity>
           )}
@@ -95,7 +95,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
               }}
             >
               <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Adicionar à lista
+                Adicionar à Lista
               </Text>
             </TouchableOpacity>
           )}
@@ -115,7 +115,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
               }}
             >
               <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Limpar conversa
+                Limpar Conversa
               </Text>
             </TouchableOpacity>
           )}
@@ -135,7 +135,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
                   : [styles.removeText, { color: colors.danger }],
               ]}
             >
-              {isContact ? "Remover dos contatos" : "Adicionar aos contatos"}
+              {isContact ? "Remover dos Contatos" : "Adicionar aos Contatos"}
             </Text>
           </TouchableOpacity>
 
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 60,
     right: 6,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingVertical: 6,
     width: 220,
     shadowColor: "#000",

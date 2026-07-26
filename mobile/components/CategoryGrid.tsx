@@ -1,105 +1,345 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
+import { listStores } from "@/services/deliveryApi";
 
-interface CategoryConfig {
-  key: string;
-  label: string;
-  iconActive: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-  iconInactive: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-  color: string;
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-");
 }
 
-const CATEGORY_CONFIG: CategoryConfig[] = [
+export interface CategoryItem {
+  key: string;
+  label: string;
+  image: any;
+  color: string;
+  featured?: boolean;
+  group?: "alimentacao" | "compras" | "servicos";
+}
+
+export const CATEGORIES: CategoryItem[] = [
+  // --- DESTAQUES DO HEADER ---
   {
     key: "restaurante",
-    label: "Restaurante",
-    iconActive: "food",
-    iconInactive: "food-outline",
+    label: "Restaurantes",
+    image: require("../assets/categorias-imagens/restaurante.jpeg"),
     color: "#F97316",
+    featured: true,
+    group: "alimentacao",
+  },
+  {
+    key: "pizza",
+    label: "Pizzas",
+    image: require("../assets/categorias-imagens/pizza.jpeg"),
+    color: "#DC2626",
+    featured: true,
+    group: "alimentacao",
   },
   {
     key: "fast_food",
     label: "Fast Food",
-    iconActive: "hamburger",
-    iconInactive: "hamburger", // No outline icon exists for hamburger in MaterialCommunityIcons
+    image: require("../assets/categorias-imagens/Burger.jpeg"),
     color: "#EF4444",
+    featured: true,
+    group: "alimentacao",
+  },
+  {
+    key: "lanches",
+    label: "Lanches",
+    image: require("../assets/categorias-imagens/sandowich.jpeg"),
+    color: "#F59E0B",
+    featured: true,
+    group: "alimentacao",
   },
   {
     key: "lanchonete",
     label: "Lanchonete",
-    iconActive: "coffee",
-    iconInactive: "coffee-outline",
+    image: require("../assets/categorias-imagens/sandowich.jpeg"),
     color: "#EAB308",
+    featured: true,
+    group: "alimentacao",
   },
   {
-    key: "padaria",
-    label: "Padaria",
-    iconActive: "bread-slice",
-    iconInactive: "bread-slice-outline",
-    color: "#D97706",
+    key: "acai",
+    label: "Açaí",
+    image: require("../assets/categorias-imagens/acai.jpeg"),
+    color: "#7C3AED",
+    featured: true,
+    group: "alimentacao",
   },
   {
     key: "confeitaria",
     label: "Confeitaria",
-    iconActive: "cake-variant",
-    iconInactive: "cake-variant-outline",
+    image: require("../assets/categorias-imagens/bolo.jpeg"),
     color: "#EC4899",
-  },
-  {
-    key: "acougue",
-    label: "Açougue",
-    iconActive: "food-drumstick",
-    iconInactive: "food-drumstick-outline",
-    color: "#DC2626",
+    featured: true,
+    group: "alimentacao",
   },
   {
     key: "mercado",
-    label: "Mercado",
-    iconActive: "basket",
-    iconInactive: "basket-outline",
-    color: "#16A34A",
+    label: "Mercados",
+    image: require("../assets/categorias-imagens/mercado.jpeg"),
+    color: "#047857",
+    featured: true,
+    group: "compras",
   },
   {
     key: "bebidas",
     label: "Bebidas",
-    iconActive: "bottle-wine",
-    iconInactive: "bottle-wine-outline",
-    color: "#7C3AED",
+    image: require("../assets/categorias-imagens/bebidas.jpeg"),
+    color: "#6D28D9",
+    featured: true,
+    group: "compras",
   },
   {
     key: "farmacia",
-    label: "Farmácia",
-    iconActive: "hospital-box",
-    iconInactive: "hospital-box-outline",
-    color: "#059669",
+    label: "Farmácias",
+    image: require("../assets/categorias-imagens/farmacia.jpeg"),
+    color: "#0D9488",
+    featured: true,
+    group: "servicos",
   },
   {
-    key: "outro",
-    label: "Outro",
-    iconActive: "store",
-    iconInactive: "store-outline",
-    color: "#6B7280",
+    key: "petshop",
+    label: "Pet Shop",
+    image: require("../assets/categorias-imagens/petshop.jpeg"),
+    color: "#F97316",
+    featured: true,
+    group: "servicos",
+  },
+  {
+    key: "shopping",
+    label: "Shopping",
+    image: require("../assets/categorias-imagens/shopping.jpeg"),
+    color: "#E11D48",
+    featured: true,
+    group: "servicos",
+  },
+
+  // --- DEMAIS DE ALIMENTAÇÃO ---
+  {
+    key: "marmita",
+    label: "Marmitas & PF",
+    image: require("../assets/categorias-imagens/marmita.jpeg"),
+    color: "#0284C7",
+    group: "alimentacao",
+  },
+  {
+    key: "padaria",
+    label: "Padarias",
+    image: require("../assets/categorias-imagens/padaria.jpeg"),
+    color: "#B45309",
+    group: "alimentacao",
+  },
+  {
+    key: "salgados",
+    label: "Salgados",
+    image: require("../assets/categorias-imagens/salgados.jpeg"),
+    color: "#D97706",
+    group: "alimentacao",
+  },
+  {
+    key: "pastel",
+    label: "Pastéis",
+    image: require("../assets/categorias-imagens/pastel.jpeg"),
+    color: "#CA8A04",
+    group: "alimentacao",
+  },
+  {
+    key: "sorvete",
+    label: "Sorvetes",
+    image: require("../assets/categorias-imagens/sorvete.jpeg"),
+    color: "#3B82F6",
+    group: "alimentacao",
+  },
+  {
+    key: "cafe",
+    label: "Cafés",
+    image: require("../assets/categorias-imagens/cafe.jpeg"),
+    color: "#78350F",
+    group: "alimentacao",
+  },
+  {
+    key: "comida_japonesa",
+    label: "Japonesa",
+    image: require("../assets/categorias-imagens/comida-japonesa.jpeg"),
+    color: "#E11D48",
+    group: "alimentacao",
+  },
+  {
+    key: "comida_italiana",
+    label: "Italiana",
+    image: require("../assets/categorias-imagens/comida-italiana.jpeg"),
+    color: "#059669",
+    group: "alimentacao",
+  },
+  {
+    key: "comida_chinesa",
+    label: "Chinesa",
+    image: require("../assets/categorias-imagens/comida-chinesa.jpeg"),
+    color: "#B91C1C",
+    group: "alimentacao",
+  },
+  {
+    key: "comida_arabe",
+    label: "Árabe",
+    image: require("../assets/categorias-imagens/comida-arabe.jpeg"),
+    color: "#8B5CF6",
+    group: "alimentacao",
+  },
+  {
+    key: "comida_mexicana",
+    label: "Mexicana",
+    image: require("../assets/categorias-imagens/comida-mexinaca.jpeg"),
+    color: "#EA580C",
+    group: "alimentacao",
+  },
+  {
+    key: "frango_assado",
+    label: "Frango Assado",
+    image: require("../assets/categorias-imagens/frango-assado.jpeg"),
+    color: "#D97706",
+    group: "alimentacao",
+  },
+  {
+    key: "churrascaria",
+    label: "Churrascaria",
+    image: require("../assets/categorias-imagens/churrascaria.jpeg"),
+    color: "#991B1B",
+    group: "alimentacao",
+  },
+  {
+    key: "saudavel",
+    label: "Saudável",
+    image: require("../assets/categorias-imagens/saudavel.jpeg"),
+    color: "#10B981",
+    group: "alimentacao",
+  },
+  {
+    key: "vegetariana",
+    label: "Vegetariana / Vegana",
+    image: require("../assets/categorias-imagens/comida-vegetariana.jpeg"),
+    color: "#84CC16",
+    group: "alimentacao",
+  },
+
+  // --- DEMAIS DE COMPRAS ---
+  {
+    key: "acougue",
+    label: "Açougue",
+    image: require("../assets/categorias-imagens/carne.jpeg"),
+    color: "#991B1B",
+    group: "compras",
+  },
+  {
+    key: "hortifruti",
+    label: "Hortifruti",
+    image: require("../assets/categorias-imagens/hortifruit.jpeg"),
+    color: "#65A30D",
+    group: "compras",
+  },
+  {
+    key: "conveniencia",
+    label: "Conveniência",
+    image: require("../assets/categorias-imagens/conveniencia.jpeg"),
+    color: "#2563EB",
+    group: "compras",
+  },
+  {
+    key: "queijos_frios",
+    label: "Queijos & Frios",
+    image: require("../assets/categorias-imagens/queijos-e-frios.jpeg"),
+    color: "#EAB308",
+    group: "compras",
+  },
+  {
+    key: "peixaria",
+    label: "Peixaria",
+    image: require("../assets/categorias-imagens/peixaria.jpeg"),
+    color: "#0284C7",
+    group: "compras",
+  },
+
+  // --- DEMAIS DE SERVIÇOS ---
+  {
+    key: "flores",
+    label: "Flores",
+    image: require("../assets/categorias-imagens/flores.jpeg"),
+    color: "#DB2777",
+    group: "servicos",
+  },
+  {
+    key: "tabacaria",
+    label: "Tabacaria",
+    image: require("../assets/categorias-imagens/tabacaria.jpeg"),
+    color: "#475569",
+    group: "servicos",
   },
 ];
 
 interface CategoryGridProps {
   selectedCategory: string | null;
   onSelectCategory: (key: string | null) => void;
+  city?: string;
+  state?: string;
 }
 
 export default function CategoryGrid({
   selectedCategory,
   onSelectCategory,
+  city,
+  state,
 }: CategoryGridProps) {
   const { colors } = useAppTheme();
+  const { token } = useAuth();
+  const [availableCategories, setAvailableCategories] = useState<CategoryItem[]>(CATEGORIES);
+
+  useEffect(() => {
+    async function filterCategories() {
+      if (!token) return;
+      try {
+        // Fetch stores in the specific city
+        const storeRes = await listStores(token, { city, state });
+        const stores = storeRes.stores || [];
+
+        // Get unique categories that exist in the stores for this city
+        const existingCategoryKeys = new Set(
+          stores.map((s) => s.category.toLowerCase().trim())
+        );
+
+        // Filter categories list
+        const filteredCats = CATEGORIES.filter((cat) =>
+          existingCategoryKeys.has(cat.key.toLowerCase().trim())
+        );
+
+        setAvailableCategories(filteredCats);
+      } catch (err) {
+        console.error("Error filtering categories by city:", err);
+        setAvailableCategories(CATEGORIES);
+      }
+    }
+
+    filterCategories();
+  }, [token, city, state]);
+
+  if (availableCategories.length === 0) {
+    return null;
+  }
 
   return (
     <ScrollView
@@ -108,9 +348,8 @@ export default function CategoryGrid({
       style={styles.scroll}
       contentContainerStyle={styles.container}
     >
-      {CATEGORY_CONFIG.map((cat) => {
+      {availableCategories.map((cat) => {
         const isSelected = selectedCategory === cat.key;
-        const iconName = isSelected ? cat.iconActive : cat.iconInactive;
         return (
           <TouchableOpacity
             key={cat.key}
@@ -122,15 +361,16 @@ export default function CategoryGrid({
               style={[
                 styles.iconCircle,
                 {
-                  backgroundColor: isSelected ? cat.color : colors.surface,
                   borderColor: isSelected ? cat.color : colors.border,
+                  borderWidth: isSelected ? 2.5 : 1.5,
+                  backgroundColor: colors.surface,
                 },
               ]}
             >
-              <MaterialCommunityIcons
-                name={iconName}
-                size={22}
-                color={isSelected ? "#FFFFFF" : cat.color}
+              <Image
+                source={cat.image}
+                style={styles.image}
+                resizeMode="cover"
               />
             </View>
             <Text
@@ -174,6 +414,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1.5,
     marginBottom: 6,
+    overflow: "hidden",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
   },
   label: {
     fontSize: 11,

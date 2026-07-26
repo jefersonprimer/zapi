@@ -310,6 +310,12 @@ export async function listStores(
   return authFetch(`${API_URL}/delivery/stores${qs ? `?${qs}` : ""}`, token);
 }
 
+export async function listPromotions(
+  token: string
+): Promise<{ promotions: PromotionalProduct[] }> {
+  return authFetch(`${API_URL}/delivery/promotions`, token);
+}
+
 export async function searchStores(
   token: string,
   query: string,

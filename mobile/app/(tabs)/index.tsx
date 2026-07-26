@@ -1212,13 +1212,16 @@ export default function ChatListScreen() {
                       style={[
                         styles.filterChip,
                         {
-                          backgroundColor: isDark ? "#1C1C1E" : "#F1F5F9",
+                          backgroundColor: "transparent",
+                          borderColor: colors.border,
+                          borderWidth: 1,
                           flexDirection: "row",
                           alignItems: "center",
                           gap: 6,
                         },
                         isActive && {
-                          backgroundColor: colors.tint,
+                          backgroundColor: colors.brandGreen,
+                          borderColor: colors.brandGreen,
                           elevation: 2,
                           shadowColor: "#000",
                           shadowOffset: { width: 0, height: 1 },
@@ -1264,11 +1267,7 @@ export default function ChatListScreen() {
                         renderListIcon(
                           item.icon,
                           item.color,
-                          isActive
-                            ? isDark
-                              ? "#121212"
-                              : "#fff"
-                            : colors.textSecondary,
+                          isActive ? "#fff" : colors.textSecondary,
                           14,
                         )}
                       <Text
@@ -1276,7 +1275,7 @@ export default function ChatListScreen() {
                           styles.filterChipText,
                           { color: colors.textSecondary, fontSize: 14 },
                           isActive && {
-                            color: isDark ? "#121212" : "#fff",
+                            color: "#fff",
                             fontWeight: "600",
                           },
                         ]}
@@ -1291,7 +1290,9 @@ export default function ChatListScreen() {
                   style={[
                     styles.filterChip,
                     {
-                      backgroundColor: isDark ? "#1C1C1E" : "#F1F5F9",
+                      backgroundColor: "transparent",
+                      borderColor: colors.border,
+                      borderWidth: 1,
                     },
                   ]}
                   onPress={() => setCreateListModalVisible(true)}
@@ -1420,7 +1421,7 @@ export default function ChatListScreen() {
           style={[styles.fab, { backgroundColor: colors.fab }]}
           onPress={() => router.push("/contacts")}
         >
-          <MessageSquarePlus color={isDark ? "#121212" : "#FFFFFF"} size={24} />
+          <MessageSquarePlus color="#FFFFFF" size={24} />
         </TouchableOpacity>
       )}
 
@@ -1519,7 +1520,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 56,
+    paddingTop: 50,
     paddingBottom: 16,
     elevation: 4,
     shadowColor: "#000",
@@ -1620,7 +1621,7 @@ const styles = StyleSheet.create({
     right: 24,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     elevation: 3,
