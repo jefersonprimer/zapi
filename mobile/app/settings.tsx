@@ -589,7 +589,7 @@ export default function SettingsScreen() {
           {/* Aparelhos Conectados */}
           <TouchableOpacity
             style={styles.optionRowClickable}
-            onPress={() => router.push("/link-device")}
+            onPress={() => router.push("/link-device?mode=link")}
           >
             <View style={styles.optionLeft}>
               <Laptop size={20} color={colors.textSecondary} />

@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import * as MediaLibrary from "expo-media-library";
+import * as ImagePicker from "expo-image-picker";
 import {
   View,
   Text,
@@ -9,24 +11,186 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Clipboard,
+  Linking,
+  Image,
+  FlatList,
+  Animated,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import { API_URL } from "@/services/api";
+import { API_URL, addContact } from "@/services/api";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { ArrowLeft, Monitor, ShieldAlert, CheckCircle2, XCircle, Keyboard, Camera } from "lucide-react-native";
+import { ArrowLeft, Monitor, ShieldAlert, CheckCircle2, XCircle, Keyboard, Camera, RefreshCw, Zap, ZapOff, Image as ImageIcon } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LinkDeviceScreen() {
   const router = useRouter();
   const { token } = useAuth();
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isLinkModeOnly = mode === "link";
 
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanning, setIsScanning] = useState(true);
   const [manualCode, setManualCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionInfo, setSessionInfo] = useState<any | null>(null);
+
+  const cameraRef = useRef<CameraView>(null);
+  const [facing, setFacing] = useState<"back" | "front">("back");
+  const [flash, setFlash] = useState<"off" | "on" | "auto">("off");
+  const [lastMediaUri, setLastMediaUri] = useState<string | null>(null);
+  const [detectedQR, setDetectedQR] = useState(false);
+  const shutterScale = useRef(new Animated.Value(1)).current;
+
+  const [cameraMode, setCameraMode] = useState<"picture" | "video">("picture");
+  const [isRecording, setIsRecording] = useState(false);
+  const [recentMedia, setRecentMedia] = useState<MediaLibrary.Asset[]>([]);
+
+  const loadLastMedia = useCallback(async () => {
+    try {
+      const { status } = await MediaLibrary.getPermissionsAsync(false, ["photo", "video"]);
+      if (status === "granted") {
+        const result = await MediaLibrary.getAssetsAsync({
+          first: 1,
+          mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+          sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+        });
+        if (result.assets && result.assets.length > 0) {
+          setLastMediaUri(result.assets[0].uri);
+        }
+      }
+    } catch (err) {
+      console.log("Error loading last media:", err);
+    }
+  }, []);
+
+  const loadRecentMediaList = useCallback(async () => {
+    try {
+      const { status } = await MediaLibrary.getPermissionsAsync(false, ["photo", "video"]);
+      if (status === "granted") {
+        const result = await MediaLibrary.getAssetsAsync({
+          first: 10,
+          mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+          sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+        });
+        if (result.assets) {
+          setRecentMedia(result.assets);
+        }
+      }
+    } catch (err) {
+      console.log("Error loading recent media list:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isScanning && !isLinkModeOnly) {
+      loadLastMedia();
+      loadRecentMediaList();
+    }
+  }, [isScanning, isLinkModeOnly, loadLastMedia, loadRecentMediaList]);
+
+  async function handleOpenGallery() {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images", "videos"],
+        allowsEditing: false,
+        quality: 1,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        Alert.alert("Mídia Selecionada", `Você selecionou: ${result.assets[0].uri.split("/").pop()}`);
+      }
+    } catch (err: any) {
+      Alert.alert("Erro", "Não foi possível abrir a galeria.");
+    }
+  }
+
+  const handlePressIn = () => {
+    Animated.spring(shutterScale, {
+      toValue: 0.88,
+      useNativeDriver: true,
+      tension: 40,
+      friction: 3,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(shutterScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 40,
+      friction: 3,
+    }).start();
+  };
+
+  async function handleTakePicture() {
+    if (cameraRef.current) {
+      try {
+        setLoading(true);
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.85,
+        });
+        if (photo && photo.uri) {
+          const { status } = await MediaLibrary.requestPermissionsAsync(false, ["photo", "video"]);
+          if (status === "granted") {
+            await MediaLibrary.createAssetAsync(photo.uri);
+            Alert.alert("Sucesso", "Foto salva na galeria!");
+            loadLastMedia();
+            loadRecentMediaList();
+          } else {
+            Alert.alert("Permissão negada", "Permissão para acessar a galeria foi negada.");
+          }
+        }
+      } catch (err: any) {
+        Alert.alert("Erro", err.message || "Erro ao tirar foto.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  }
+
+  async function handleRecordVideo() {
+    if (cameraRef.current) {
+      if (isRecording) {
+        try {
+          cameraRef.current.stopRecording();
+        } catch (err) {
+          console.error("Stop recording error:", err);
+        }
+      } else {
+        try {
+          setIsRecording(true);
+          const video = await cameraRef.current.recordAsync({
+            maxDuration: 60,
+          });
+          if (video && video.uri) {
+            const { status } = await MediaLibrary.requestPermissionsAsync(false, ["photo", "video"]);
+            if (status === "granted") {
+              await MediaLibrary.createAssetAsync(video.uri);
+              Alert.alert("Sucesso", "Vídeo Salvo!", [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    loadLastMedia();
+                    loadRecentMediaList();
+                  }
+                }
+              ]);
+            } else {
+              Alert.alert("Permissão negada", "Permissão para salvar o vídeo foi negada.");
+            }
+          }
+        } catch (err: any) {
+          Alert.alert("Erro", err.message || "Erro ao gravar vídeo.");
+        } finally {
+          setIsRecording(false);
+        }
+      }
+    }
+  }
 
   // Extract session code from QR payload
   function extractSessionCode(qrData: string): string {
@@ -67,12 +231,125 @@ export default function LinkDeviceScreen() {
     }
   }
 
-  async function handleBarcodeScanned({ data }: { data: string }) {
-    if (loading || sessionInfo) return;
-    const code = extractSessionCode(data);
-    if (code) {
-      await handleVerifyCode(code);
+  async function processScannedData(trimmedData: string) {
+    // 1. Check if it's a device login code
+    if (trimmedData.startsWith("zapi://login/") || (!isLinkModeOnly && (trimmedData.includes("/qr/") || (trimmedData.length === 14 && /^[A-Z0-9]+$/.test(trimmedData))))) {
+      const code = extractSessionCode(trimmedData);
+      if (code) {
+        await handleVerifyCode(code);
+      }
+      return;
     }
+
+    // If we are strictly in link mode, reject other formats
+    if (isLinkModeOnly) {
+      Alert.alert(
+        "Aparelho Não Conectado",
+        "Este QR Code não é válido para login. Por favor, escaneie o QR Code exibido na página de login do Zapi Web."
+      );
+      return;
+    }
+
+    // 2. Check if it's a contact or user profile QR code
+    if (trimmedData.startsWith("zapi://contact/") || trimmedData.startsWith("zapi://user/")) {
+      const contactId = trimmedData.replace("zapi://contact/", "").replace("zapi://user/", "");
+      Alert.alert(
+        "Contato Encontrado",
+        "Deseja adicionar o usuário aos seus contatos?",
+        [
+          { text: "Cancelar", style: "cancel", onPress: () => setIsScanning(true) },
+          {
+            text: "Adicionar",
+            onPress: async () => {
+              try {
+                setLoading(true);
+                await addContact(token || "", contactId);
+                Alert.alert("Sucesso", "Contato adicionado com sucesso!", [
+                  {
+                    text: "Conversar",
+                    onPress: () => {
+                      router.push({
+                        pathname: "/chat",
+                        params: {
+                          participantId: contactId,
+                          participantUsername: `Usuário ${contactId.substring(0, 6)}`,
+                        },
+                      });
+                    },
+                  },
+                  { text: "Fechar", onPress: () => setIsScanning(true) },
+                ]);
+              } catch (err: any) {
+                Alert.alert("Erro", err.message || "Não foi possível adicionar o contato.");
+                setIsScanning(true);
+              } finally {
+                setLoading(false);
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // 3. Check if it's a web URL
+    if (trimmedData.startsWith("http://") || trimmedData.startsWith("https://")) {
+      Alert.alert(
+        "Link Escaneado",
+        `O que deseja fazer com o link abaixo?\n\n${trimmedData}`,
+        [
+          { text: "Cancelar", style: "cancel", onPress: () => setIsScanning(true) },
+          {
+            text: "Copiar",
+            onPress: () => {
+              Clipboard.setString(trimmedData);
+              Alert.alert("Copiado", "Link copiado para a área de transferência!");
+              setIsScanning(true);
+            },
+          },
+          {
+            text: "Abrir Link",
+            onPress: () => {
+              Linking.openURL(trimmedData).catch(() =>
+                Alert.alert("Erro", "Não foi possível abrir o link.")
+              );
+              setIsScanning(true);
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // 4. Fallback to generic text
+    Alert.alert(
+      "Código Escaneado",
+      `Conteúdo escaneado:\n\n${trimmedData}`,
+      [
+        { text: "Cancelar", style: "cancel", onPress: () => setIsScanning(true) },
+        {
+          text: "Copiar",
+          onPress: () => {
+            Clipboard.setString(trimmedData);
+            Alert.alert("Copiado", "Texto copiado para a área de transferência!");
+            setIsScanning(true);
+          },
+        },
+      ]
+    );
+  }
+
+  async function handleBarcodeScanned({ data }: { data: string }) {
+    if (loading || sessionInfo || detectedQR) return;
+    const trimmedData = data.trim();
+    if (!trimmedData) return;
+
+    setDetectedQR(true);
+
+    setTimeout(() => {
+      setDetectedQR(false);
+      processScannedData(trimmedData);
+    }, 850);
   }
 
   async function handleConfirm(approve: boolean) {
@@ -123,7 +400,7 @@ export default function LinkDeviceScreen() {
 
   if (isScanning && permission && !permission.granted) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background, padding: 24 }]}>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom, paddingHorizontal: 24 }]}>
         <Camera size={48} color={colors.textSecondary} style={{ marginBottom: 16 }} />
         <Text style={[styles.title, { color: colors.text }]}>Permissão de Câmera</Text>
         <Text style={[styles.description, { color: colors.textSecondary }]}>
@@ -153,60 +430,254 @@ export default function LinkDeviceScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={colors.text} />
+      <View style={[
+        isScanning ? styles.headerAbsolute : styles.header,
+        { borderBottomColor: isScanning ? "transparent" : colors.border, paddingTop: insets.top, height: 60 + insets.top }
+      ]}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[
+            isScanning ? styles.iconButton : styles.backButton,
+            isScanning && { backgroundColor: "rgba(0,0,0,0.5)" }
+          ]}
+        >
+          <ArrowLeft size={isScanning ? 22 : 24} color={isScanning ? "#fff" : colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Conectar Aparelho
-        </Text>
-        <View style={{ width: 40 }} />
+
+        {!isScanning && (
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            {isLinkModeOnly ? "Conectar Aparelho" : "Câmera"}
+          </Text>
+        )}
+
+        {isScanning && !isLinkModeOnly ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <TouchableOpacity
+              style={[styles.iconButton, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+              onPress={() => setFlash(f => f === "off" ? "on" : f === "on" ? "auto" : "off")}
+            >
+              {flash === "off" ? (
+                <ZapOff size={20} color="#fff" />
+              ) : (
+                <Zap size={20} color={flash === "on" ? colors.badge : "#fff"} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setIsScanning(false)}
+              style={[styles.iconButton, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+            >
+              <Keyboard size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ width: 42 }} />
+        )}
       </View>
 
       {isScanning && (
         /* Camera Scanner View */
         <View style={styles.scannerContainer}>
           <CameraView
+            ref={cameraRef}
             style={StyleSheet.absoluteFillObject}
-            facing="back"
+            facing={facing}
+            flash={flash}
+            mode={cameraMode}
             onBarcodeScanned={handleBarcodeScanned}
           />
-          {/* Scanning Reticle overlay */}
-          <View style={styles.overlayContainer}>
-            <View style={styles.unfocusedArea} />
-            <View style={styles.middleRow}>
-              <View style={styles.unfocusedArea} />
-              <View style={[styles.focusedTarget, { borderColor: colors.badge }]}>
-                <View style={[styles.corner, styles.topLeft, { borderColor: colors.badge }]} />
-                <View style={[styles.corner, styles.topRight, { borderColor: colors.badge }]} />
-                <View style={[styles.corner, styles.bottomLeft, { borderColor: colors.badge }]} />
-                <View style={[styles.corner, styles.bottomRight, { borderColor: colors.badge }]} />
-              </View>
-              <View style={styles.unfocusedArea} />
-            </View>
-            <View style={styles.unfocusedArea} />
-          </View>
 
-          <View style={styles.scannerInstructions}>
-            <Text style={styles.scannerInstructionsText}>
-              Aponte a câmera para o QR Code na tela do Zapi Web
-            </Text>
-            <TouchableOpacity
-              style={[styles.switchModeButton, { backgroundColor: colors.surface }]}
-              onPress={() => setIsScanning(false)}
-            >
-              <Keyboard size={18} color={colors.text} style={{ marginRight: 8 }} />
-              <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14 }}>
-                Digitar código manualmente
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {isLinkModeOnly ? (
+            <>
+              {/* Scanning Reticle overlay */}
+              <View style={styles.overlayContainer}>
+                <View style={styles.unfocusedArea} />
+                <View style={styles.middleRow}>
+                  <View style={styles.unfocusedArea} />
+                  <View style={[styles.focusedTarget, { borderColor: colors.badge }]}>
+                    <View style={[styles.corner, styles.topLeft, { borderColor: colors.badge }]} />
+                    <View style={[styles.corner, styles.topRight, { borderColor: colors.badge }]} />
+                    <View style={[styles.corner, styles.bottomLeft, { borderColor: colors.badge }]} />
+                    <View style={[styles.corner, styles.bottomRight, { borderColor: colors.badge }]} />
+                  </View>
+                  <View style={styles.unfocusedArea} />
+                </View>
+                <View style={styles.unfocusedArea} />
+              </View>
+
+              <View style={[styles.scannerInstructions, { bottom: 40 + insets.bottom }]}>
+                <Text style={styles.scannerInstructionsText}>
+                  Aponte a câmera para o QR Code na tela do Zapi Web
+                </Text>
+                <TouchableOpacity
+                  style={[styles.switchModeButton, { backgroundColor: colors.surface }]}
+                  onPress={() => setIsScanning(false)}
+                >
+                  <Keyboard size={18} color={colors.text} style={{ marginRight: 8 }} />
+                  <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14 }}>
+                    Digitar código manualmente
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <>
+              {/* QR Guide Overlay (appears automatically when a QR code is detected) */}
+              {detectedQR && (
+                <View style={styles.overlayContainer}>
+                  <View style={styles.unfocusedArea} />
+                  <View style={styles.middleRow}>
+                    <View style={styles.unfocusedArea} />
+                    <View style={[styles.focusedTarget, { borderColor: "#4CD964" }]}>
+                      <View style={[styles.corner, styles.topLeft, { borderColor: "#4CD964" }]} />
+                      <View style={[styles.corner, styles.topRight, { borderColor: "#4CD964" }]} />
+                      <View style={[styles.corner, styles.bottomLeft, { borderColor: "#4CD964" }]} />
+                      <View style={[styles.corner, styles.bottomRight, { borderColor: "#4CD964" }]} />
+                      <View style={styles.qrGuideTextContainer}>
+                        <Text style={[styles.qrGuideText, { color: "#4CD964" }]}>QR DETECTADO</Text>
+                      </View>
+                    </View>
+                    <View style={styles.unfocusedArea} />
+                  </View>
+                  <View style={styles.unfocusedArea} />
+                </View>
+              )}
+
+              {/* Camera Shutter / Controls Panel Container */}
+              <View style={[styles.bottomControlsContainer, { paddingBottom: insets.bottom + 10 }]}>
+                {/* Horizontal Carousel of Recent Media */}
+                {recentMedia.length > 0 && (
+                  <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={recentMedia}
+                    keyExtractor={item => item.id}
+                    style={styles.recentMediaCarousel}
+                    contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.carouselItem}
+                        onPress={async () => {
+                          try {
+                            const info = await MediaLibrary.getAssetInfoAsync(item);
+                            const localUri = info.localUri || info.uri;
+                            if (localUri) {
+                              Linking.openURL(localUri);
+                            }
+                          } catch (e) {
+                            Alert.alert("Erro", "Não foi possível abrir a mídia.");
+                          }
+                        }}
+                      >
+                        <Image source={{ uri: item.uri }} style={styles.carouselImage} />
+                        {item.mediaType === "video" && (
+                          <View style={styles.videoIndicator}>
+                            <Text style={styles.videoIndicatorText}>▶</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  />
+                )}
+
+                {/* Mode selector: Foto / Vídeo */}
+                <View style={styles.modeSelector}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (!isRecording) setCameraMode("picture");
+                    }}
+                    style={[
+                      styles.modeButton,
+                      cameraMode === "picture" && styles.modeButtonActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.modeText,
+                        cameraMode === "picture" && styles.modeTextActive,
+                      ]}
+                    >
+                      Foto
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (!isRecording) setCameraMode("video");
+                    }}
+                    style={[
+                      styles.modeButton,
+                      cameraMode === "video" && styles.modeButtonActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.modeText,
+                        cameraMode === "video" && styles.modeTextActive,
+                      ]}
+                    >
+                      Vídeo
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Shutter / Controls Row */}
+                <View style={styles.cameraControlsRow}>
+                  {/* Last media thumbnail / Gallery button */}
+                  <TouchableOpacity
+                    style={styles.galleryButton}
+                    onPress={handleOpenGallery}
+                  >
+                    {lastMediaUri ? (
+                      <Image source={{ uri: lastMediaUri }} style={styles.thumbnailImage} />
+                    ) : (
+                      <View style={styles.galleryPlaceholder}>
+                        <ImageIcon size={22} color="#fff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Capture Photo / Record Video Shutter */}
+                  <TouchableOpacity
+                    onPress={cameraMode === "video" ? handleRecordVideo : handleTakePicture}
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                    activeOpacity={1}
+                    disabled={loading}
+                  >
+                    <Animated.View
+                      style={[
+                        styles.shutterButtonOuter,
+                        cameraMode === "video" && { borderColor: colors.danger },
+                        { transform: [{ scale: shutterScale }] }
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.shutterButtonInner,
+                          { backgroundColor: cameraMode === "video" ? colors.danger : colors.tint },
+                          isRecording && { borderRadius: 8, transform: [{ scale: 0.65 }] },
+                        ]}
+                      />
+                    </Animated.View>
+                  </TouchableOpacity>
+
+                  {/* Flip camera */}
+                  <TouchableOpacity
+                    style={styles.controlButton}
+                    onPress={() => setFacing(f => f === "back" ? "front" : "back")}
+                    disabled={isRecording}
+                  >
+                    <RefreshCw size={22} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
+          )}
         </View>
       )}
 
       {!isScanning && !sessionInfo && (
         /* Manual Code Entry */
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
           <View style={styles.iconContainer}>
             <Monitor size={64} color={colors.textSecondary} />
           </View>
@@ -257,7 +728,7 @@ export default function LinkDeviceScreen() {
 
       {sessionInfo && (
         /* Confirmation Screen */
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
           <View style={styles.confirmationBox}>
             <ShieldAlert size={64} color={colors.badge} style={{ marginBottom: 16 }} />
             
@@ -330,6 +801,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     borderBottomWidth: 1,
+  },
+  headerAbsolute: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    borderBottomWidth: 0,
+    backgroundColor: "transparent",
+  },
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: "center",
+    alignItems: "center",
   },
   backButton: {
     padding: 8,
@@ -515,5 +1006,169 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 15,
     fontWeight: "bold",
+  },
+  bottomControlsContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 20,
+    backgroundColor: "transparent",
+  },
+  recentMediaCarousel: {
+    maxHeight: 90,
+    marginBottom: 20,
+  },
+  carouselItem: {
+    width: 60,
+    height: 80,
+    borderRadius: 8,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#fff",
+    backgroundColor: "#000",
+    position: "relative",
+  },
+  carouselImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  videoIndicator: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -10 }, { translateY: -10 }],
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoIndicatorText: {
+    color: "#fff",
+    fontSize: 9,
+  },
+  modeSelector: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    gap: 24,
+  },
+  modeButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: "transparent",
+  },
+  modeButtonActive: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  modeText: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 13,
+    fontWeight: "bold",
+    letterSpacing: 1,
+  },
+  modeTextActive: {
+    color: "#fff",
+  },
+  cameraControlsRow: {
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  controlButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  controlText: {
+    color: "#fff",
+    fontSize: 9,
+    marginTop: 2,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  shutterButtonOuter: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 6,
+    borderColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  shutterButtonInner: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+  },
+  cameraTipContainer: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignSelf: "center",
+    alignItems: "center",
+  },
+  cameraTipText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  keyboardButton: {
+    padding: 8,
+  },
+  galleryButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: "#fff",
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  galleryPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  qrGuideTextContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  qrGuideText: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 28,
+    fontWeight: "bold",
+    letterSpacing: 2,
   },
 });

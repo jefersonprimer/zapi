@@ -988,9 +988,7 @@ export default function ChatListScreen() {
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.headerIcon}
-              onPress={() =>
-                Alert.alert("Câmera", "Câmera em desenvolvimento.")
-              }
+              onPress={() => router.push("/link-device")}
             >
               <Camera color={colors.headerText} size={22} />
             </TouchableOpacity>
