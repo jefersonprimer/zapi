@@ -126,15 +126,28 @@ export default function CreateStoryScreen() {
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images", "videos"],
-        quality: 0.85,
-        videoMaxDuration: 30,
-      });
+      const launch = async (type: "images" | "videos") => {
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: [type],
+          quality: 0.85,
+          videoMaxDuration: 30,
+        });
 
-      if (!result.canceled && result.assets[0]) {
-        applyAsset(result.assets[0]);
-      }
+        if (!result.canceled && result.assets[0]) {
+          applyAsset(result.assets[0]);
+        }
+      };
+
+      Alert.alert(
+        "Câmera",
+        "Como deseja usar a câmera?",
+        [
+          { text: "Tirar Foto", onPress: () => launch("images") },
+          { text: "Gravar Vídeo", onPress: () => launch("videos") },
+          { text: "Cancelar", style: "cancel" },
+        ],
+        { cancelable: true }
+      );
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível abrir a câmera.");
     }

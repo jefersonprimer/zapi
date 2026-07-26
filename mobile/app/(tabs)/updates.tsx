@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -13,12 +13,14 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useUpdates } from "@/hooks/useUpdates";
 import StoryBar from "@/components/StoryBar";
 import FeedPost from "@/components/FeedPost";
+import ReelsFeed from "@/components/ReelsFeed";
 import type { StoryGroup } from "@/services/updatesApi";
 
 export default function UpdatesScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const skipNextFocusRefresh = useRef(true);
+  const [activeTab, setActiveTab] = useState<"feed" | "reels">("feed");
   const {
     storyGroups,
     feed,
@@ -66,20 +68,69 @@ export default function UpdatesScreen() {
 
   const renderScreenHeader = useCallback(
     () => (
-      <View style={styles.headerRow}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Atualizações
-        </Text>
+      <View
+        style={[styles.headerRow, activeTab === "reels" && styles.reelsHeader]}
+      >
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            onPress={() => setActiveTab("feed")}
+            style={[
+              styles.tabButton,
+              activeTab === "feed" && styles.activeTabButton,
+            ]}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    activeTab === "feed" ? colors.text : colors.textSecondary,
+                },
+                activeTab === "feed" && styles.activeTabText,
+              ]}
+            >
+              Atualizações
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setActiveTab("reels")}
+            style={[
+              styles.tabButton,
+              activeTab === "reels" && styles.activeTabButton,
+            ]}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color: activeTab === "reels" ? "white" : colors.textSecondary,
+                },
+                activeTab === "reels" && styles.activeTabText,
+              ]}
+            >
+              Clips
+            </Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
           onPress={handleCreatePost}
           hitSlop={12}
           accessibilityLabel="Criar post"
         >
-          <Plus size={28} color={colors.tint} />
+          <Plus
+            size={28}
+            color={activeTab === "reels" ? "white" : colors.tint}
+          />
         </TouchableOpacity>
       </View>
     ),
-    [colors.text, colors.tint, handleCreatePost],
+    [
+      colors.text,
+      colors.textSecondary,
+      colors.tint,
+      handleCreatePost,
+      activeTab,
+    ],
   );
 
   const renderHeader = useCallback(
@@ -144,50 +195,57 @@ export default function UpdatesScreen() {
     );
   }
 
-  if (feed.length === 0 && storyGroups.length === 0) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {renderScreenHeader()}
-        <StoryBar
-          myAvatarUrl={myAvatarUrl}
-          groups={[]}
-          onMyStoryPress={handleMyStoryPress}
-          onStoryPress={handleStoryPress}
-        />
-        <View style={styles.center}>
-          <Sparkles
-            size={56}
-            color={colors.tint}
-            style={{ marginBottom: 20 }}
-          />
-          <Text style={[styles.title, { color: colors.text }]}>
-            Fique por dentro das novidades
-          </Text>
-          <Text style={[styles.description, { color: colors.textSecondary }]}>
-            Toque em Seu status para publicar, ou siga contatos e canais para
-            ver atualizações aqui.
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: activeTab === "reels" ? "black" : colors.background,
+        },
+      ]}
+    >
       {renderScreenHeader()}
-      <FlatList
-        data={feed}
-        keyExtractor={(item) => item.id}
-        renderItem={renderPost}
-        ListHeaderComponent={renderHeader}
-        ListFooterComponent={renderFooter}
-        onRefresh={refresh}
-        refreshing={refreshing}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.list}
-      />
+
+      {activeTab === "reels" ? (
+        <ReelsFeed />
+      ) : feed.length === 0 && storyGroups.length === 0 ? (
+        <View style={styles.container}>
+          <StoryBar
+            myAvatarUrl={myAvatarUrl}
+            groups={[]}
+            onMyStoryPress={handleMyStoryPress}
+            onStoryPress={handleStoryPress}
+          />
+          <View style={styles.center}>
+            <Sparkles
+              size={56}
+              color={colors.tint}
+              style={{ marginBottom: 20 }}
+            />
+            <Text style={[styles.title, { color: colors.text }]}>
+              Fique por dentro das novidades
+            </Text>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
+              Toque em Seu status para publicar, ou siga contatos e canais para
+              ver atualizações aqui.
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <FlatList
+          data={feed}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPost}
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
+          onRefresh={refresh}
+          refreshing={refreshing}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.list}
+        />
+      )}
     </View>
   );
 }
@@ -211,8 +269,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginVertical: 16,
   },
-  headerTitle: {
-    fontSize: 28,
+  reelsHeader: {
+    borderBottomWidth: 0,
+    backgroundColor: "transparent",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 20,
+  },
+  tabButton: {
+    paddingVertical: 4,
+  },
+  activeTabButton: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#007AFF",
+  },
+  tabText: {
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  activeTabText: {
     fontWeight: "bold",
   },
   title: {

@@ -116,6 +116,86 @@ export default function CreatePostScreen() {
     }
   }, [media.length, applyAssets]);
 
+  const openCamera = useCallback(async () => {
+    try {
+      if (media.length >= MAX_ATTACHMENTS) {
+        Alert.alert("Limite", `Você pode anexar no máximo ${MAX_ATTACHMENTS} arquivos.`);
+        return;
+      }
+
+      if (Platform.OS === "web") {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*,video/*";
+        input.setAttribute("capture", "environment");
+        input.onchange = (event: Event) => {
+          const file = (event.target as HTMLInputElement).files?.[0];
+          if (!file) return;
+          const isVideo = file.type.startsWith("video/");
+          const uri = URL.createObjectURL(file);
+          applyAssets([{
+            uri,
+            width: 0,
+            height: 0,
+            type: isVideo ? "video" : "image",
+            mimeType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
+            fileName: file.name,
+            fileSize: file.size,
+          } as any]);
+        };
+        input.click();
+        return;
+      }
+
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permissão necessária",
+          "Precisamos de acesso à câmera para tirar foto ou gravar vídeo."
+        );
+        return;
+      }
+
+      const launch = async (type: "images" | "videos") => {
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: [type],
+          quality: 0.85,
+          videoMaxDuration: 60,
+        });
+
+        if (!result.canceled && result.assets.length > 0) {
+          applyAssets(result.assets);
+        }
+      };
+
+      Alert.alert(
+        "Câmera",
+        "Como deseja usar a câmera?",
+        [
+          { text: "Tirar Foto", onPress: () => launch("images") },
+          { text: "Gravar Vídeo", onPress: () => launch("videos") },
+          { text: "Cancelar", style: "cancel" },
+        ],
+        { cancelable: true }
+      );
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message || "Não foi possível abrir a câmera.");
+    }
+  }, [media.length, applyAssets]);
+
+  const handleSelectMediaOption = useCallback(() => {
+    Alert.alert(
+      "Adicionar Mídia",
+      "Como deseja adicionar foto ou vídeo?",
+      [
+        { text: "Escolher da Galeria", onPress: openGallery },
+        { text: "Usar Câmera", onPress: openCamera },
+        { text: "Cancelar", style: "cancel" },
+      ],
+      { cancelable: true }
+    );
+  }, [openGallery, openCamera]);
+
   const removeMedia = useCallback((index: number) => {
     setMedia((prev) => prev.filter((_, i) => i !== index));
   }, []);
@@ -244,7 +324,7 @@ export default function CreatePostScreen() {
             styles.mediaButton,
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
-          onPress={openGallery}
+          onPress={handleSelectMediaOption}
           disabled={media.length >= MAX_ATTACHMENTS}
         >
           <ImageIcon size={20} color={colors.icon} />
