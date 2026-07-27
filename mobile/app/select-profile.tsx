@@ -132,7 +132,7 @@ export default function SelectProfileScreen() {
           height: insets.top > 0 ? insets.top + 48 : 56,
         }}
       >
-        <Text style={[styles.appLogoText, { color: textColor }]}>Zapi</Text>
+        <Text style={[styles.appLogoText, { color: textColor }]}>ZAPI</Text>
         <TouchableOpacity
           onPress={() => bottomSheetRef.current?.present()}
           style={{ padding: 8, marginRight: -8 }}
@@ -406,11 +406,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   appLogoText: {
-    fontSize: 24,
-    fontWeight: "700",
-    letterSpacing: -1,
-    fontStyle: "italic",
+    fontSize: 14,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 4,
   },
+
   mainProfileSection: {
     alignItems: "center",
     marginVertical: 32,

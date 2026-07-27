@@ -1415,7 +1415,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  title: { fontSize: 22, fontWeight: "medium" },
+  title: {
+    fontSize: 22,
+    fontWeight: "500",
+  },
   headerLeftSelected: { flexDirection: "row", alignItems: "center", gap: 12 },
   selectedCountText: { fontSize: 20, fontWeight: "bold", marginLeft: 8 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 16 },
