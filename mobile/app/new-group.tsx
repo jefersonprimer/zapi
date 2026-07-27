@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
   StyleSheet,
   Alert,
   ActivityIndicator,
@@ -44,7 +43,7 @@ function getAvatarColor(name: string) {
 export default function NewGroupScreen() {
   const router = useRouter();
   const { token } = useAuth();
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
@@ -305,7 +304,7 @@ export default function NewGroupScreen() {
               <View style={styles.emptyState}>
                 <Users size={48} color={colors.textSecondary} style={{ opacity: 0.5, marginBottom: 12 }} />
                 <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                  Nenhum usuário encontrado para "{query}"
+                  Nenhum usuário encontrado para &quot;{query}&quot;
                 </Text>
               </View>
             ) : (

@@ -28,7 +28,7 @@ export default function ScanQrScreen() {
     if (!permission) {
       requestPermission();
     }
-  }, [permission]);
+  }, [permission, requestPermission]);
 
   if (!permission) {
     return (

@@ -12,7 +12,6 @@ import {
   Trash2 as TrashIcon,
   Pause as PauseIcon,
   Play as PlayIcon,
-  Send as SendIcon,
   SendHorizonal,
 } from "lucide-react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";

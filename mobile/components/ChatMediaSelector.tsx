@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { Image } from "expo-image";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import {
   Smile,
   Film,
@@ -36,7 +36,6 @@ interface ChatMediaSelectorProps {
 
 type TabType = "emoji" | "gif" | "sticker";
 
-const { width } = Dimensions.get("window");
 const GIPHY_API_KEY = "dc6zaTOxFJmzC"; // Public beta key
 
 export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
@@ -44,7 +43,7 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
   onSendMedia,
   height = 300,
 }) => {
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const bottomPadding = insets.bottom > 0 ? insets.bottom : 16;
   const [activeTab, setActiveTab] = useState<TabType>("emoji");
@@ -58,14 +57,7 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
   const [activePackId, setActivePackId] = useState(STICKER_PACKS[0]?.id || "");
   const [downloading, setDownloading] = useState(false);
 
-  // Load trending GIFs initially or on tab switch
-  useEffect(() => {
-    if (activeTab === "gif" && gifs.length === 0) {
-      fetchGIFs("");
-    }
-  }, [activeTab]);
-
-  const fetchGIFs = async (query: string) => {
+  const fetchGIFs = useCallback(async (query: string) => {
     setLoadingGifs(true);
     try {
       const endpoint = query
@@ -82,7 +74,14 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
     } finally {
       setLoadingGifs(false);
     }
-  };
+  }, []);
+
+  // Load trending GIFs initially or on tab switch
+  useEffect(() => {
+    if (activeTab === "gif" && gifs.length === 0) {
+      fetchGIFs("");
+    }
+  }, [activeTab, gifs.length, fetchGIFs]);
 
   const handleGifSearchSubmit = () => {
     fetchGIFs(gifSearch);

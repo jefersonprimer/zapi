@@ -4,7 +4,6 @@ import {
   View,
   FlatList,
   ActivityIndicator,
-  Text,
   ViewToken,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -23,17 +22,19 @@ const MOCK_REELS: ReelsVideo[] = [
     publisherAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop",
     likesCount: 1240,
     commentsCount: 89,
+    sharesCount: 45,
     likedByMe: false,
     savedByMe: false,
   },
   {
     id: "mock-2",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-ocean-near-a-cliff-43022-large.mp4",
-    caption: "A calmaria e a força do oceano. 🌊💙 #nature #ocean #peace",
-    publisherName: "nature_clicks",
+    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-holding-a-smartphone-showing-a-social-media-app-51787-large.mp4",
+    caption: "Conectando pessoas através de experiências digitais! 📱💡 #design #ux #mobile",
+    publisherName: "uxdesigner",
     publisherAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop",
-    likesCount: 856,
+    likesCount: 948,
     commentsCount: 42,
+    sharesCount: 12,
     likedByMe: false,
     savedByMe: false,
   },
@@ -107,8 +108,6 @@ export default function ReelsFeed() {
     // Merge backend video posts first, then fallback mocks
     // Also attach interaction functions for mock posts
     const mappedMocks: ReelsVideo[] = MOCK_REELS.map((mock) => {
-      const isLikedKey = `liked_${mock.id}`;
-      const isSavedKey = `saved_${mock.id}`;
       return {
         ...mock,
         onLike: () => {

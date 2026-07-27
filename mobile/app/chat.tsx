@@ -40,32 +40,6 @@ export default function ChatScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const { colors } = useAppTheme();
-  const flatListRef = useRef<FlatList>(null);
-  const inputRef = useRef<any>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
-  useEffect(() => {
-    if (isKeyboardVisible) {
-      setShowEmojiPicker(false);
-      setAttachSheetVisible(false);
-    }
-  }, [isKeyboardVisible]);
-
-  useEffect(() => {
-    if (attachSheetVisible) {
-      inputRef.current?.blur();
-      Keyboard.dismiss();
-      setShowEmojiPicker(false);
-    }
-  }, [attachSheetVisible]);
-
-  // Disable native header to render custom styled header bar
-  useEffect(() => {
-    navigation.setOptions({
-      headerShown: false,
-    });
-  }, [navigation]);
-
   const {
     chatId,
     participantId,
@@ -134,6 +108,31 @@ export default function ChatScreen() {
     participantStoreId,
     user,
   } = useChat();
+
+  const flatListRef = useRef<FlatList>(null);
+  const inputRef = useRef<any>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  useEffect(() => {
+    if (isKeyboardVisible) {
+      setShowEmojiPicker(false);
+      setAttachSheetVisible(false);
+    }
+  }, [isKeyboardVisible, setAttachSheetVisible, setShowEmojiPicker]);
+
+  useEffect(() => {
+    if (attachSheetVisible) {
+      inputRef.current?.blur();
+      Keyboard.dismiss();
+      setShowEmojiPicker(false);
+    }
+  }, [attachSheetVisible, setShowEmojiPicker]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
 
   const {
     listSelectorVisible,

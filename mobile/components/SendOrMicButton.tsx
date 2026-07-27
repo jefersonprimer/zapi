@@ -1,7 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
 import { Mic as MicIcon, SendHorizonal } from "lucide-react-native";
-import { useAppTheme } from "@/context/ThemeContext";
 
 interface SendOrMicButtonProps {
   hasContent: boolean;
@@ -16,7 +15,7 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
   onSend,
   onStartRecording,
 }) => {
-  const { colors } = useAppTheme();
+
 
   if (hasContent) {
     return (

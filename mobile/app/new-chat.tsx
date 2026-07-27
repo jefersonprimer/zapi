@@ -232,7 +232,7 @@ export default function NewChatScreen() {
                 <View style={styles.emptyState}>
                   <Users size={48} color={colors.textSecondary} style={{ opacity: 0.5, marginBottom: 12 }} />
                   <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                    Nenhum usuário encontrado para "{query}"
+                    Nenhum usuário encontrado para &quot;{query}&quot;
                   </Text>
                 </View>
               ) : !searching ? (

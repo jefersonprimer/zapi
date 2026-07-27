@@ -9,7 +9,6 @@ import {
   Alert,
   Modal,
   TextInput,
-  ScrollView,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -62,13 +61,6 @@ import {
   PanelTopOpen,
   PanelTopClose,
   Search,
-  Heart,
-  Star,
-  Briefcase,
-  Home,
-  Gamepad2,
-  BookOpen,
-  Folder,
   ChevronRight,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
@@ -82,6 +74,7 @@ import ChatSelectorModal from "@/components/ChatSelectorModal";
 import ListSelectorModal from "@/components/ListSelectorModal";
 import ListMenuModal from "@/components/ListMenuModal";
 import ReorderListsModal from "@/components/ReorderListsModal";
+import ListFilterCarousel from "@/components/ListFilterCarousel";
 
 if (
   Platform.OS === "android" &&
@@ -96,38 +89,6 @@ const isChatMuted = (chat: ChatListItem) => {
     return new Date(chat.notification_muted_until) > new Date();
   }
   return false;
-};
-
-const renderListIcon = (
-  iconName: string | null,
-  colorColor: string | null,
-  tintColor: string,
-  size: number = 20,
-) => {
-  let hexColor = tintColor;
-  if (colorColor === "🔴") hexColor = "#ef4444";
-  else if (colorColor === "🟠") hexColor = "#f97316";
-  else if (colorColor === "🟡") hexColor = "#eab308";
-  else if (colorColor === "🟢") hexColor = "#22c55e";
-  else if (colorColor === "🔵") hexColor = "#3b82f6";
-  else if (colorColor === "🟣") hexColor = "#a855f7";
-
-  switch (iconName) {
-    case "❤️":
-      return <Heart size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "⭐":
-      return <Star size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "💼":
-      return <Briefcase size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "🏠":
-      return <Home size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "🎮":
-      return <Gamepad2 size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "📚":
-      return <BookOpen size={size} color={hexColor} fill={hexColor + "22"} />;
-    default:
-      return <Folder size={size} color={hexColor} fill={hexColor + "22"} />;
-  }
 };
 
 export default function ChatListScreen() {
@@ -173,6 +134,33 @@ export default function ChatListScreen() {
       },
     });
     setActiveFilterId(filterId);
+  };
+
+  const handleLongPressFilter = (item: any) => {
+    const isCustom = !item.isSystem;
+    if (isCustom) {
+      const list = userLists.find((l) => l.id === item.id);
+      if (list) {
+        setActiveMenuList(list);
+      }
+    } else {
+      const virtualList: any = {
+        id: item.id,
+        name: item.name,
+        isSystem: true,
+        chat_ids:
+          item.id === "all"
+            ? chats.map((c) => c.id)
+            : item.id === "unread"
+              ? chats.filter((c) => c.unread_count > 0).map((c) => c.id)
+              : item.id === "favorites"
+                ? chats.filter((c) => c.is_favorite).map((c) => c.id)
+                : item.id === "groups"
+                  ? chats.filter((c) => c.is_group).map((c) => c.id)
+                  : [],
+      };
+      setActiveMenuList(virtualList);
+    }
   };
 
   const [isFabVisible, setIsFabVisible] = useState(true);
@@ -1198,115 +1186,14 @@ export default function ChatListScreen() {
                 />
               </View>
 
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
-              >
-                {orderedFilters.map((item) => {
-                  const isActive = activeFilterId === item.id;
-                  const isCustom = !item.isSystem;
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={[
-                        styles.filterChip,
-                        {
-                          backgroundColor: "transparent",
-                          borderColor: colors.border,
-                          borderWidth: 1,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 6,
-                        },
-                        isActive && {
-                          backgroundColor: colors.brandGreen,
-                          borderColor: colors.brandGreen,
-                          elevation: 2,
-                          shadowColor: "#000",
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.15,
-                          shadowRadius: 2,
-                        },
-                      ]}
-                      onPress={() => selectFilter(item.id)}
-                      onLongPress={() => {
-                        if (isCustom) {
-                          const list = userLists.find((l) => l.id === item.id);
-                          if (list) {
-                            setActiveMenuList(list);
-                          }
-                        } else {
-                          const virtualList: any = {
-                            id: item.id,
-                            name: item.name,
-                            isSystem: true,
-                            chat_ids:
-                              item.id === "all"
-                                ? chats.map((c) => c.id)
-                                : item.id === "unread"
-                                  ? chats
-                                      .filter((c) => c.unread_count > 0)
-                                      .map((c) => c.id)
-                                  : item.id === "favorites"
-                                    ? chats
-                                        .filter((c) => c.is_favorite)
-                                        .map((c) => c.id)
-                                    : item.id === "groups"
-                                      ? chats
-                                          .filter((c) => c.is_group)
-                                          .map((c) => c.id)
-                                      : [],
-                          };
-                          setActiveMenuList(virtualList);
-                        }
-                      }}
-                      delayLongPress={600}
-                    >
-                      {item.icon &&
-                        renderListIcon(
-                          item.icon,
-                          item.color,
-                          isActive ? "#fff" : colors.textSecondary,
-                          14,
-                        )}
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          { color: colors.textSecondary, fontSize: 14 },
-                          isActive && {
-                            color: "#fff",
-                            fontWeight: "600",
-                          },
-                        ]}
-                      >
-                        {item.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-
-                <TouchableOpacity
-                  style={[
-                    styles.filterChip,
-                    {
-                      backgroundColor: "transparent",
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  onPress={() => setCreateListModalVisible(true)}
-                >
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      { color: colors.textSecondary, fontWeight: "bold" },
-                    ]}
-                  >
-                    ＋
-                  </Text>
-                </TouchableOpacity>
-              </ScrollView>
+              <ListFilterCarousel
+                orderedFilters={orderedFilters}
+                activeFilterId={activeFilterId}
+                onSelectFilter={selectFilter}
+                onLongPressFilter={handleLongPressFilter}
+                onCreateListPress={() => setCreateListModalVisible(true)}
+                colors={colors}
+              />
             </View>
           )}
 
@@ -1634,11 +1521,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
-  dialogOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+
   menuContainer: {
     position: "absolute",
     top: 60,
@@ -1663,66 +1546,6 @@ const styles = StyleSheet.create({
   menuDivider: {
     height: StyleSheet.hairlineWidth,
     marginHorizontal: 12,
-  },
-  themeDialog: {
-    width: "80%",
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  dialogTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  dialogOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-  },
-  dialogOptionLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  dialogOptionText: {
-    fontSize: 16,
-  },
-  dialogCloseButton: {
-    alignItems: "flex-end",
-    paddingTop: 8,
-    paddingRight: 4,
-  },
-  dialogCloseText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  reorderListLeading: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingRight: 8,
-  },
-  reorderListIconSlot: {
-    width: 28,
-    height: 28,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  reorderListName: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "500",
-    lineHeight: 20,
-    includeFontPadding: false,
   },
   archivedRow: {
     flexDirection: "row",
@@ -1763,15 +1586,5 @@ const styles = StyleSheet.create({
   },
   archivedCountText: {
     fontSize: 12,
-  },
-  filterChip: {
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  filterChipText: {
-    fontSize: 14,
   },
 });

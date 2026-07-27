@@ -103,7 +103,7 @@ export default function LinkDeviceScreen() {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         Alert.alert("Mídia Selecionada", `Você selecionou: ${result.assets[0].uri.split("/").pop()}`);
       }
-    } catch (err: any) {
+    } catch {
       Alert.alert("Erro", "Não foi possível abrir a galeria.");
     }
   }
@@ -566,7 +566,7 @@ export default function LinkDeviceScreen() {
                             if (localUri) {
                               Linking.openURL(localUri);
                             }
-                          } catch (e) {
+                          } catch {
                             Alert.alert("Erro", "Não foi possível abrir a mídia.");
                           }
                         }}
