@@ -198,8 +198,8 @@ function InitialLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="register" options={{ headerShown: true, title: "Register", headerStyle: { backgroundColor: colors.headerBackground }, headerTintColor: colors.headerText }} />
+      <Stack.Screen name="login" options={{ headerShown: true, title: "", headerShadowVisible: false, headerStyle: { backgroundColor: colors.headerBackground, elevation: 0, shadowOpacity: 0, borderBottomWidth: 0 }, headerTintColor: colors.headerText }} />
+      <Stack.Screen name="register" options={{ headerShown: true, title: "", headerShadowVisible: false, headerStyle: { backgroundColor: colors.headerBackground, elevation: 0, shadowOpacity: 0, borderBottomWidth: 0 }, headerTintColor: colors.headerText }} />
       <Stack.Screen name="chat" options={{ headerShown: false }} />
       <Stack.Screen name="contact-detail" options={{ headerShown: false }} />
       <Stack.Screen name="share-contact" options={{ headerShown: false }} />

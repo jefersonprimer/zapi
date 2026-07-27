@@ -9,15 +9,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   View,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
+import { useAppTheme } from "@/context/ThemeContext";
 import { register } from "@/services/api";
 import { Eye, EyeOff } from "lucide-react-native";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
+  const { theme, colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
+
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,17 +31,21 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [usernameFocused, setUsernameFocused] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+
   async function handleRegister() {
     if (!username.trim() || !email.trim() || !password) {
-      setError("All fields are required");
-      Alert.alert("Error", "All fields are required");
+      setError("Todos os campos são obrigatórios.");
+      Alert.alert("Erro", "Todos os campos são obrigatórios.");
       return;
     }
 
     setError(null);
     setLoading(true);
     try {
-      const data = await register(username, email, password);
+      const data = await register(username.trim(), email.trim(), password);
       await signIn(data.token, {
         user_id: data.user_id,
         username: data.username,
@@ -43,78 +53,199 @@ export default function RegisterScreen() {
       });
     } catch (err: any) {
       console.error("Registration error:", err);
-      setError(err.message || "An unexpected error occurred");
-      Alert.alert("Error", err.message || "An unexpected error occurred");
+      const message = err.message || "Ocorreu um erro inesperado";
+      setError(message);
+      Alert.alert("Erro", message);
     } finally {
       setLoading(false);
     }
   }
 
+  // Theme-based colors from constants/theme.ts
+  const pageBg = colors.background;
+  const textColor = colors.text;
+  const textSecondary = colors.textSecondary;
+  const inputBg = colors.cardBackground;
+  const borderDefault = colors.border;
+  const borderFocused = colors.text;
+
+  const buttonBg = colors.text;
+  const buttonText = colors.background;
+
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: pageBg }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <Text style={styles.title}>Create Account</Text>
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        placeholderTextColor="#999"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#999"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
-      <View style={styles.passwordContainer}>
-        <TextInput
-          style={styles.passwordInput}
-          placeholder="Password"
-          placeholderTextColor="#999"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!showPassword}
-        />
-        <TouchableOpacity
-          style={styles.eyeButton}
-          onPress={() => setShowPassword(!showPassword)}
-          activeOpacity={0.7}
-        >
-          {showPassword ? (
-            <EyeOff size={20} color="#666" />
-          ) : (
-            <Eye size={20} color="#666" />
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleRegister}
-        disabled={loading}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: 10,
+            paddingBottom: insets.bottom > 0 ? insets.bottom + 16 : 24,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Register</Text>
-        )}
-      </TouchableOpacity>
+        <View style={styles.contentWrapper}>
+          <View style={styles.topSection}>
+            <Text style={[styles.title, { color: textColor }]}>
+              Criar uma conta
+            </Text>
+            <Text style={[styles.subtitle, { color: textSecondary }]}>
+              Participe do Zapi para se conectar com amigos e comunidades.
+            </Text>
+          </View>
 
-      <TouchableOpacity onPress={() => router.back()}>
-        <Text style={styles.link}>Already have an account? Login</Text>
-      </TouchableOpacity>
+          <View style={styles.formSection}>
+            {error ? (
+              <View
+                style={[
+                  styles.errorContainer,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(239, 68, 68, 0.1)"
+                      : "#FEF2F2",
+                    borderColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2",
+                  },
+                ]}
+              >
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {/* Username Input */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textSecondary }]}>
+                NOME DE USUÁRIO
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: inputBg,
+                    borderColor: usernameFocused
+                      ? borderFocused
+                      : borderDefault,
+                    color: textColor,
+                  },
+                ]}
+                placeholder="seu_usuario"
+                placeholderTextColor={isDark ? "#4B5563" : "#9CA3AF"}
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                onFocus={() => setUsernameFocused(true)}
+                onBlur={() => setUsernameFocused(false)}
+              />
+            </View>
+
+            {/* E-mail Input */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textSecondary }]}>
+                E-MAIL
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: inputBg,
+                    borderColor: emailFocused ? borderFocused : borderDefault,
+                    color: textColor,
+                  },
+                ]}
+                placeholder="nome@exemplo.com"
+                placeholderTextColor={isDark ? "#4B5563" : "#9CA3AF"}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                onFocus={() => emailFocused(true)}
+                onBlur={() => emailFocused(false)}
+              />
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textSecondary }]}>
+                SENHA
+              </Text>
+              <View
+                style={[
+                  styles.passwordContainer,
+                  {
+                    backgroundColor: inputBg,
+                    borderColor: passwordFocused
+                      ? borderFocused
+                      : borderDefault,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[styles.passwordInput, { color: textColor }]}
+                  placeholder="••••••••"
+                  placeholderTextColor={isDark ? "#4B5563" : "#9CA3AF"}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                  activeOpacity={0.7}
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} color={textSecondary} />
+                  ) : (
+                    <Eye size={18} color={textSecondary} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Register Button */}
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: buttonBg }]}
+              onPress={handleRegister}
+              disabled={loading}
+              activeOpacity={0.9}
+            >
+              {loading ? (
+                <ActivityIndicator color={buttonText} size="small" />
+              ) : (
+                <Text style={[styles.buttonText, { color: buttonText }]}>
+                  Cadastrar
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Footer Section */}
+        <View style={styles.footerSection}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            style={styles.linkContainer}
+          >
+            <Text style={[styles.linkText, { color: textSecondary }]}>
+              Já tem uma conta?{" "}
+              <Text
+                style={[
+                  styles.linkHighlight,
+                  { color: colors.brandGreen },
+                ]}
+              >
+                Entrar
+              </Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -122,67 +253,108 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#fff",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "flex-start",
+    paddingHorizontal: 28,
+  },
+  contentWrapper: {
+    width: "100%",
+    alignItems: "stretch",
+  },
+  topSection: {
+    alignItems: "flex-start",
+    marginTop: 8,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.8,
+    textAlign: "left",
+  },
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "left",
+    marginTop: 6,
+  },
+  formSection: {
+    marginTop: 8,
+  },
+  errorContainer: {
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 13,
+    fontWeight: "600",
     textAlign: "center",
-    marginBottom: 40,
-    color: "#333",
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 16,
-    color: "#333",
+    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
   },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    marginBottom: 16,
-    backgroundColor: "#fff",
+    borderRadius: 6,
   },
   passwordInput: {
     flex: 1,
-    padding: 14,
-    fontSize: 16,
-    color: "#333",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
   },
   eyeButton: {
-    paddingRight: 14,
-    paddingLeft: 10,
+    paddingHorizontal: 16,
   },
   button: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 50,
+    paddingVertical: 16,
     alignItems: "center",
-    marginBottom: 16,
+    justifyContent: "center",
+    marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   buttonText: {
-    color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
-  },
-  link: {
-    color: "#007AFF",
-    textAlign: "center",
-    fontSize: 14,
-  },
-  errorText: {
-    color: "#ff3b30",
-    textAlign: "center",
-    marginBottom: 16,
-    fontSize: 14,
     fontWeight: "500",
+  },
+  footerSection: {
+    paddingTop: 24,
+    alignItems: "center",
+    marginTop: "auto",
+  },
+  linkContainer: {
+    paddingVertical: 8,
+  },
+  linkText: {
+    fontSize: 14,
+  },
+  linkHighlight: {
+    fontWeight: "700",
   },
 });
