@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Plus, Sparkles } from "lucide-react-native";
+import { Plus, Sparkles, Film, Camera, FileText, X } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useUpdates } from "@/hooks/useUpdates";
 import StoryBar from "@/components/StoryBar";
@@ -21,6 +21,7 @@ export default function UpdatesScreen() {
   const router = useRouter();
   const skipNextFocusRefresh = useRef(true);
   const [activeTab, setActiveTab] = useState<"feed" | "reels">("feed");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const {
     storyGroups,
     feed,
@@ -112,16 +113,18 @@ export default function UpdatesScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          onPress={handleCreatePost}
-          hitSlop={12}
-          accessibilityLabel="Criar post"
-        >
-          <Plus
-            size={28}
-            color={activeTab === "reels" ? "white" : colors.tint}
-          />
-        </TouchableOpacity>
+        {activeTab === "reels" && (
+          <TouchableOpacity
+            onPress={handleCreatePost}
+            hitSlop={12}
+            accessibilityLabel="Criar post"
+          >
+            <Plus
+              size={28}
+              color="white"
+            />
+          </TouchableOpacity>
+        )}
       </View>
     ),
     [
@@ -195,6 +198,8 @@ export default function UpdatesScreen() {
     );
   }
 
+  const feedPostsOnly = feed.filter((post) => post.type !== "clip");
+
   return (
     <View
       style={[
@@ -208,7 +213,7 @@ export default function UpdatesScreen() {
 
       {activeTab === "reels" ? (
         <ReelsFeed />
-      ) : feed.length === 0 && storyGroups.length === 0 ? (
+      ) : feedPostsOnly.length === 0 && storyGroups.length === 0 ? (
         <View style={styles.container}>
           <StoryBar
             myAvatarUrl={myAvatarUrl}
@@ -233,7 +238,7 @@ export default function UpdatesScreen() {
         </View>
       ) : (
         <FlatList
-          data={feed}
+          data={feedPostsOnly}
           keyExtractor={(item) => item.id}
           renderItem={renderPost}
           ListHeaderComponent={renderHeader}
@@ -245,6 +250,89 @@ export default function UpdatesScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.list}
         />
+      )}
+
+      {activeTab === "feed" && isMenuOpen && (
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={() => setIsMenuOpen(false)}
+        />
+      )}
+
+      {activeTab === "feed" && (
+        <>
+          {isMenuOpen && (
+            <>
+              {/* Clip Option */}
+              <View style={[styles.menuRow, { bottom: 224, zIndex: 100 }]}>
+                <View style={styles.menuLabelContainer}>
+                  <Text style={styles.menuLabel}>Novo Clip</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.menuButton, { backgroundColor: "#FF9500" }]}
+                  onPress={() => {
+                    setIsMenuOpen(false);
+                    router.push({
+                      pathname: "/create-post",
+                      params: { mode: "clip" },
+                    });
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Film size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Status Option */}
+              <View style={[styles.menuRow, { bottom: 160, zIndex: 100 }]}>
+                <View style={styles.menuLabelContainer}>
+                  <Text style={styles.menuLabel}>Novo Status</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.menuButton, { backgroundColor: "#007AFF" }]}
+                  onPress={() => {
+                    setIsMenuOpen(false);
+                    router.push("/create-story");
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Camera size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Post Option */}
+              <View style={[styles.menuRow, { bottom: 96, zIndex: 100 }]}>
+                <View style={styles.menuLabelContainer}>
+                  <Text style={styles.menuLabel}>Novo Post</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.menuButton, { backgroundColor: "#34C759" }]}
+                  onPress={() => {
+                    setIsMenuOpen(false);
+                    router.push("/create-post");
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <FileText size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          <TouchableOpacity
+            style={[styles.fab, { backgroundColor: colors.fab, zIndex: 100 }]}
+            onPress={() => setIsMenuOpen(!isMenuOpen)}
+            activeOpacity={0.8}
+            accessibilityLabel={isMenuOpen ? "Fechar menu de criação" : "Criar..."}
+          >
+            {isMenuOpen ? (
+              <X size={24} color="white" />
+            ) : (
+              <Plus size={24} color="white" />
+            )}
+          </TouchableOpacity>
+        </>
       )}
     </View>
   );
@@ -283,11 +371,11 @@ const styles = StyleSheet.create({
   },
   activeTabButton: {
     borderBottomWidth: 2,
-    borderBottomColor: "#007AFF",
+    borderBottomColor: "#07C160",
   },
   tabText: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   activeTabText: {
     fontWeight: "bold",
@@ -308,5 +396,56 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingVertical: 16,
+  },
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    zIndex: 99,
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    position: "absolute",
+    right: 28,
+    gap: 12,
+  },
+  menuLabelContainer: {
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  menuLabel: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  menuButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });

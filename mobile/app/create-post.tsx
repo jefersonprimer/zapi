@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
   Send,
@@ -45,6 +45,7 @@ export default function CreatePostScreen() {
   const { colors } = useAppTheme();
   const { token } = useAuth();
   const router = useRouter();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
   const insets = useSafeAreaInsets();
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState("contacts");
@@ -100,11 +101,12 @@ export default function CreatePostScreen() {
         return;
       }
 
+      const isClipMode = mode === "clip";
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images", "videos"],
+        mediaTypes: isClipMode ? ["videos"] : ["images", "videos"],
         quality: 0.85,
-        allowsMultipleSelection: true,
-        selectionLimit: MAX_ATTACHMENTS - media.length,
+        allowsMultipleSelection: !isClipMode,
+        selectionLimit: isClipMode ? 1 : MAX_ATTACHMENTS - media.length,
         videoMaxDuration: 60,
       });
 
@@ -114,7 +116,13 @@ export default function CreatePostScreen() {
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível abrir a galeria.");
     }
-  }, [media.length, applyAssets]);
+  }, [media.length, applyAssets, mode]);
+
+  useEffect(() => {
+    if (mode === "clip") {
+      openGallery();
+    }
+  }, [mode, openGallery]);
 
   const openCamera = useCallback(async () => {
     try {
@@ -229,7 +237,9 @@ export default function CreatePostScreen() {
       }
 
       let type = "text";
-      if (isPoll && validOptions.length >= 2) {
+      if (mode === "clip") {
+        type = "clip";
+      } else if (isPoll && validOptions.length >= 2) {
         type = "poll";
       } else if (attachments.length > 0) {
         const allVideo = attachments.every((a) => a.type === "video");

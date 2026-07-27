@@ -59,17 +59,11 @@ export default function ReelsFeed() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
 
-  // Sync real videos from backend and merge with mock videos
   useEffect(() => {
     // Extract feed posts containing videos
     const videoPosts: ReelsVideo[] = feed
       .filter((post) => {
-        const hasVideoAttachment = post.attachments?.some(
-          (att) =>
-            att.type === "video" ||
-            att.mime_type?.startsWith("video/") === true
-        );
-        return post.type === "video" || hasVideoAttachment;
+        return post.type === "clip";
       })
       .map((post) => {
         const videoAttachment = post.attachments?.find(

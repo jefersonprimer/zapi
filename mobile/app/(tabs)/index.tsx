@@ -1416,7 +1416,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "500",
   },
   headerLeftSelected: { flexDirection: "row", alignItems: "center", gap: 12 },
