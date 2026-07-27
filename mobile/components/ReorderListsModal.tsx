@@ -240,16 +240,9 @@ export default function ReorderListsModal({
             <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
           </View>
 
-          <View style={styles.header}>
-            <Text style={[styles.dialogTitle, { color: colors.text }]}>
-              Reorganizar Listas
-            </Text>
-            <TouchableOpacity onPress={handleClose}>
-              <Text style={{ color: colors.tint, fontWeight: "bold", fontSize: 16 }}>
-                Concluir
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={[styles.dialogTitle, { color: colors.text }]}>
+            Reorganizar Listas
+          </Text>
 
           <Text style={{ color: colors.textSecondary, marginBottom: 12, fontSize: 13 }}>
             Arrastar o ícone no lado direito para cima ou para baixo para reordenar.
@@ -267,8 +260,6 @@ export default function ReorderListsModal({
                     alignItems: "center",
                     justifyContent: "space-between",
                     paddingHorizontal: 8,
-                    borderBottomWidth: StyleSheet.hairlineWidth,
-                    borderBottomColor: colors.border,
                     height: 60,
                     backgroundColor: isItemDragging
                       ? colors.border + "66"
@@ -342,15 +333,11 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
   dialogTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 16,
   },
   reorderListLeading: {
     flex: 1,

@@ -27,14 +27,31 @@ import {
   Laptop,
   CreditCard,
 } from "lucide-react-native";
-import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import {
+  BottomSheetModal,
+  BottomSheetView,
+  BottomSheetBackdrop,
+} from "@gorhom/bottom-sheet";
 import { API_URL, uploadImage, updateProfile } from "@/services/api";
 import ImagePickerModal from "@/components/ImagePickerModal";
 const ACTIVE_GREEN = "#34C759";
 
-const RadioButton = ({ selected, isDark }: { selected: boolean; isDark: boolean }) => (
-  <View style={[styles.radioOuter, { borderColor: selected ? ACTIVE_GREEN : (isDark ? "#48484A" : "#C7C7CC") }]}>
-    {selected && <View style={[styles.radioInner, { backgroundColor: ACTIVE_GREEN }]} />}
+const RadioButton = ({
+  selected,
+  isDark,
+}: {
+  selected: boolean;
+  isDark: boolean;
+}) => (
+  <View
+    style={[
+      styles.radioOuter,
+      { borderColor: selected ? ACTIVE_GREEN : isDark ? "#48484A" : "#C7C7CC" },
+    ]}
+  >
+    {selected && (
+      <View style={[styles.radioInner, { backgroundColor: ACTIVE_GREEN }]} />
+    )}
   </View>
 );
 
@@ -45,7 +62,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
 
   const langBottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const avatarBottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
 
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -55,12 +72,13 @@ export default function SettingsScreen() {
         appearsOnIndex={0}
       />
     ),
-    []
+    [],
   );
 
   // Modals visibility states
   const [themeModalVisible, setThemeModalVisible] = useState(false);
-  const [tempThemePreference, setTempThemePreference] = useState(themePreference);
+  const [tempThemePreference, setTempThemePreference] =
+    useState(themePreference);
 
   // Theme modal animation
   const themeDialogAnimation = useRef(new Animated.Value(0)).current;
@@ -115,7 +133,6 @@ export default function SettingsScreen() {
     }
   };
 
-
   const handleRemovePhoto = async () => {
     Alert.alert(
       "Remover Foto",
@@ -126,7 +143,7 @@ export default function SettingsScreen() {
           text: "Remover",
           style: "destructive",
           onPress: async () => {
-            avatarBottomSheetModalRef.current?.dismiss();
+            setAvatarModalVisible(false);
             setIsUpdating(true);
             try {
               if (token) {
@@ -134,19 +151,18 @@ export default function SettingsScreen() {
                 await updateUser({ avatar_url: null });
               }
             } catch (err: any) {
-              Alert.alert("Erro", err.message || "Falha ao remover foto de perfil");
+              Alert.alert(
+                "Erro",
+                err.message || "Falha ao remover foto de perfil",
+              );
             } finally {
               setIsUpdating(false);
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
-
-
-
-
 
   const getThemeLabel = (pref: string) => {
     switch (pref) {
@@ -162,20 +178,16 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      "Sair da Conta",
-      "Tem certeza que deseja sair do aplicativo?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Sair",
-          style: "destructive",
-          onPress: async () => {
-            await signOut();
-          },
+    Alert.alert("Sair da Conta", "Tem certeza que deseja sair do aplicativo?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Sair",
+        style: "destructive",
+        onPress: async () => {
+          await signOut();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const displayName = user?.name || user?.username || "Carregando...";
@@ -221,9 +233,17 @@ export default function SettingsScreen() {
                 ]}
               >
                 {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.miniAvatarImage} />
+                  <Image
+                    source={{ uri: avatarUri }}
+                    style={styles.miniAvatarImage}
+                  />
                 ) : (
-                  <Text style={[styles.miniAvatarText, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.miniAvatarText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     {nameInitial}
                   </Text>
                 )}
@@ -237,7 +257,10 @@ export default function SettingsScreen() {
             </View>
           ) : (
             <Text
-              style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
+              style={[
+                styles.headerTitle,
+                { color: colors.headerText, flex: 1 },
+              ]}
             >
               Configurações
             </Text>
@@ -274,7 +297,7 @@ export default function SettingsScreen() {
         <View style={styles.profileHeader}>
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => avatarBottomSheetModalRef.current?.present()}
+            onPress={() => setAvatarModalVisible(true)}
             style={styles.avatarContainer}
             disabled={isUpdating}
           >
@@ -290,32 +313,54 @@ export default function SettingsScreen() {
               {avatarUri ? (
                 <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
               ) : (
-                <Text style={[styles.avatarText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.avatarText, { color: colors.textSecondary }]}
+                >
                   {nameInitial}
                 </Text>
               )}
             </View>
-            <View style={[styles.editBadge, { backgroundColor: colors.tint, borderColor: colors.background }]}>
+            <View
+              style={[
+                styles.editBadge,
+                {
+                  backgroundColor: colors.tint,
+                  borderColor: colors.background,
+                },
+              ]}
+            >
               <Camera size={12} color="#FFF" />
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.push("/edit-profile?field=name")} activeOpacity={0.7} disabled={isUpdating}>
+          <TouchableOpacity
+            onPress={() => router.push("/edit-profile?field=name")}
+            activeOpacity={0.7}
+            disabled={isUpdating}
+          >
             <Text style={[styles.displayName, { color: colors.text }]}>
               {displayName}
             </Text>
           </TouchableOpacity>
 
           {!!user?.username && (
-            <TouchableOpacity onPress={() => router.push("/edit-profile?field=username")} activeOpacity={0.7} disabled={isUpdating}>
-              <Text style={[styles.usernameText, { color: colors.textSecondary }]}>
+            <TouchableOpacity
+              onPress={() => router.push("/edit-profile?field=username")}
+              activeOpacity={0.7}
+              disabled={isUpdating}
+            >
+              <Text
+                style={[styles.usernameText, { color: colors.textSecondary }]}
+              >
                 @{user?.username}
               </Text>
             </TouchableOpacity>
           )}
         </View>
 
-        <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+        <View
+          style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+        />
 
         {/* Informações Section (Telegram style: value-first, label-second, copy/edit on press) */}
         <View style={styles.infoSection}>
@@ -329,12 +374,16 @@ export default function SettingsScreen() {
             <Text style={[styles.infoValueText, { color: colors.text }]}>
               {user?.about || "Toque para adicionar um recado"}
             </Text>
-            <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.infoLabelText, { color: colors.textSecondary }]}
+            >
               Recado
             </Text>
           </TouchableOpacity>
 
-          <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
+          <View
+            style={[styles.innerDivider, { backgroundColor: colors.border }]}
+          />
 
           {/* Nome Item */}
           <TouchableOpacity
@@ -346,12 +395,16 @@ export default function SettingsScreen() {
             <Text style={[styles.infoValueText, { color: colors.text }]}>
               {user?.name || user?.username || "Sem nome"}
             </Text>
-            <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.infoLabelText, { color: colors.textSecondary }]}
+            >
               Nome
             </Text>
           </TouchableOpacity>
 
-          <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
+          <View
+            style={[styles.innerDivider, { backgroundColor: colors.border }]}
+          />
 
           {/* Username Item */}
           <TouchableOpacity
@@ -363,12 +416,16 @@ export default function SettingsScreen() {
             <Text style={[styles.infoValueText, { color: colors.text }]}>
               @{user?.username || "Sem username"}
             </Text>
-            <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.infoLabelText, { color: colors.textSecondary }]}
+            >
               Nome de usuário
             </Text>
           </TouchableOpacity>
 
-          <View style={[styles.innerDivider, { backgroundColor: colors.border }]} />
+          <View
+            style={[styles.innerDivider, { backgroundColor: colors.border }]}
+          />
 
           {/* Email Item */}
           <TouchableOpacity
@@ -383,13 +440,17 @@ export default function SettingsScreen() {
             <Text style={[styles.infoValueText, { color: colors.text }]}>
               {user?.email || "E-mail indisponível"}
             </Text>
-            <Text style={[styles.infoLabelText, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.infoLabelText, { color: colors.textSecondary }]}
+            >
               E-mail
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+        <View
+          style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+        />
 
         {/* Options Section */}
         <View style={styles.optionsSection}>
@@ -404,7 +465,9 @@ export default function SettingsScreen() {
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Privacidade
                 </Text>
-                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.optionSub, { color: colors.textSecondary }]}
+                >
                   Segurança, bloqueios, confirmações
                 </Text>
               </View>
@@ -423,7 +486,9 @@ export default function SettingsScreen() {
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Pagamentos
                 </Text>
-                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.optionSub, { color: colors.textSecondary }]}
+                >
                   Gerenciar sua chave Pix
                 </Text>
               </View>
@@ -442,7 +507,9 @@ export default function SettingsScreen() {
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Idioma do app
                 </Text>
-                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.optionSub, { color: colors.textSecondary }]}
+                >
                   Português (Brasil)
                 </Text>
               </View>
@@ -464,7 +531,9 @@ export default function SettingsScreen() {
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Tema
                 </Text>
-                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.optionSub, { color: colors.textSecondary }]}
+                >
                   {getThemeLabel(themePreference)}
                 </Text>
               </View>
@@ -483,7 +552,9 @@ export default function SettingsScreen() {
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Aparelhos conectados
                 </Text>
-                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.optionSub, { color: colors.textSecondary }]}
+                >
                   Zapi Web / Conectar novo navegador
                 </Text>
               </View>
@@ -492,7 +563,9 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+        <View
+          style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+        />
 
         {/* Danger Zone Options */}
         <View style={styles.optionsSection}>
@@ -503,10 +576,17 @@ export default function SettingsScreen() {
             <View style={styles.optionLeft}>
               <LogOut size={20} color={colors.danger} />
               <View style={styles.optionTextContainer}>
-                <Text style={[styles.optionTitle, { color: colors.danger, fontWeight: "500" }]}>
+                <Text
+                  style={[
+                    styles.optionTitle,
+                    { color: colors.danger, fontWeight: "500" },
+                  ]}
+                >
                   Sair da conta
                 </Text>
-                <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.optionSub, { color: colors.textSecondary }]}
+                >
                   Desconectar deste dispositivo
                 </Text>
               </View>
@@ -515,10 +595,14 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.infoFooter}>
-          <Text style={[styles.infoFooterText, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.infoFooterText, { color: colors.textSecondary }]}
+          >
             Zapi v1.0.0
           </Text>
-          <Text style={[styles.infoFooterSubtext, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.infoFooterSubtext, { color: colors.textSecondary }]}
+          >
             Criptografado ponta a ponta
           </Text>
         </View>
@@ -526,14 +610,13 @@ export default function SettingsScreen() {
 
       {/* Avatar Selection Modal */}
       <ImagePickerModal
-        ref={avatarBottomSheetModalRef}
+        visible={avatarModalVisible}
+        onClose={() => setAvatarModalVisible(false)}
         onImageSelected={uploadAndSaveAvatar}
         onRemoveImage={handleRemovePhoto}
         hasImage={!!user?.avatar_url}
         title="Foto do perfil"
       />
-
-
 
       {/* Language Selection Modal */}
       <BottomSheetModal
@@ -544,23 +627,47 @@ export default function SettingsScreen() {
         handleIndicatorStyle={{ backgroundColor: colors.border }}
       >
         <BottomSheetView style={{ padding: 24, paddingBottom: 40 }}>
-          <Text style={[styles.sheetTitle, { color: colors.text, marginBottom: 16 }]}>
+          <Text
+            style={[
+              styles.sheetTitle,
+              { color: colors.text, marginBottom: 16 },
+            ]}
+          >
             Idioma do app
           </Text>
-          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginBottom: 12 }} />
+          <View
+            style={{
+              height: StyleSheet.hairlineWidth,
+              backgroundColor: colors.border,
+              marginBottom: 12,
+            }}
+          />
 
           <TouchableOpacity
-            style={[styles.sheetOption, { backgroundColor: "transparent", paddingHorizontal: 0, paddingVertical: 12 }]}
+            style={[
+              styles.sheetOption,
+              {
+                backgroundColor: "transparent",
+                paddingHorizontal: 0,
+                paddingVertical: 12,
+              },
+            ]}
             activeOpacity={0.8}
           >
-            <Text style={[styles.sheetOptionText, { color: colors.text, fontWeight: "600" }]}>
+            <Text
+              style={[
+                styles.sheetOptionText,
+                { color: colors.text, fontWeight: "600" },
+              ]}
+            >
               Português (Brasil)
             </Text>
             <RadioButton selected={true} isDark={isDark} />
           </TouchableOpacity>
 
           <Text style={[styles.sheetInfoText, { color: colors.textSecondary }]}>
-            Por enquanto o Zapi está disponível somente em Português (Brasil). Novos idiomas serão adicionados em breve.
+            Por enquanto o Zapi está disponível somente em Português (Brasil).
+            Novos idiomas serão adicionados em breve.
           </Text>
 
           <TouchableOpacity
@@ -571,8 +678,6 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </BottomSheetView>
       </BottomSheetModal>
-
-
 
       {/* Theme Choice Dialog Modal */}
       {themeShouldRender && (
@@ -630,7 +735,7 @@ export default function SettingsScreen() {
               ]}
             >
               <Text style={[styles.dialogTitle, { color: colors.text }]}>
-                Escolher tema
+                Escolher Tema
               </Text>
 
               <TouchableOpacity
@@ -649,7 +754,10 @@ export default function SettingsScreen() {
                 >
                   Claro
                 </Text>
-                <RadioButton selected={tempThemePreference === "light"} isDark={isDark} />
+                <RadioButton
+                  selected={tempThemePreference === "light"}
+                  isDark={isDark}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -668,7 +776,10 @@ export default function SettingsScreen() {
                 >
                   Escuro
                 </Text>
-                <RadioButton selected={tempThemePreference === "dark"} isDark={isDark} />
+                <RadioButton
+                  selected={tempThemePreference === "dark"}
+                  isDark={isDark}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -685,9 +796,12 @@ export default function SettingsScreen() {
                     },
                   ]}
                 >
-                  Padrão do sistema
+                  Padrão do Sistema
                 </Text>
-                <RadioButton selected={tempThemePreference === "system"} isDark={isDark} />
+                <RadioButton
+                  selected={tempThemePreference === "system"}
+                  isDark={isDark}
+                />
               </TouchableOpacity>
 
               <View
@@ -698,8 +812,17 @@ export default function SettingsScreen() {
               />
 
               <View style={styles.footerButtons}>
-                <TouchableOpacity onPress={() => handleThemeClose()} style={styles.footerBtn}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500" }}>
+                <TouchableOpacity
+                  onPress={() => handleThemeClose()}
+                  style={styles.footerBtn}
+                >
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: 16,
+                      fontWeight: "500",
+                    }}
+                  >
                     Cancelar
                   </Text>
                 </TouchableOpacity>
@@ -711,7 +834,13 @@ export default function SettingsScreen() {
                   }}
                   style={styles.footerBtn}
                 >
-                  <Text style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}>
+                  <Text
+                    style={{
+                      color: colors.tint,
+                      fontSize: 16,
+                      fontWeight: "600",
+                    }}
+                  >
                     OK
                   </Text>
                 </TouchableOpacity>
