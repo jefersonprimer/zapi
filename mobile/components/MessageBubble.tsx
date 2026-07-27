@@ -24,7 +24,6 @@ import {
   AlertCircle,
   Ban,
   ArrowLeft,
-  Forward,
 } from "lucide-react-native";
 import { PIX_TYPE_LABELS } from "@/services/pixApi";
 import { type Message, API_URL, createChat } from "../services/api";
@@ -38,6 +37,7 @@ import {
   extractForwardData,
 } from "@/utils/forwardMessage";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface MessageBubbleProps {
   item: Message;
@@ -760,8 +760,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ) : null}
           {isForwarded && forwarded && (
             <View style={styles.forwardHeaderRow}>
-              <Forward
-                size={12}
+              <MaterialCommunityIcons
+                name="share"
+                size={14}
                 color={isMine ? "rgba(255,255,255,0.7)" : colors.textSecondary}
                 style={{ marginRight: 4 }}
               />
@@ -909,7 +910,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           }}
           activeOpacity={0.7}
         >
-          <Forward size={18} color={colors.textSecondary} />
+          <MaterialCommunityIcons name="share" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
       )}
       <View
@@ -919,6 +920,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             ? [styles.myMessage, { backgroundColor: colors.tint }]
             : [styles.theirMessage, { backgroundColor: colors.surface }],
           { marginBottom: 0, flexShrink: 1 },
+          isAudio && { padding: 4 },
+          (isImage || isVideo || (!!fullUrl && !isAudio)) && !messageContent && !commentText && { padding: 4 },
         ]}
       >
         {isGroup && !isMine && item.sender_username ? (
@@ -929,8 +932,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
         {isForwarded && forwarded && (
           <View style={styles.forwardHeaderRow}>
-            <Forward
-              size={12}
+            <MaterialCommunityIcons
+              name="share"
+              size={14}
               color={isMine ? "rgba(255,255,255,0.7)" : colors.textSecondary}
               style={{ marginRight: 4 }}
             />

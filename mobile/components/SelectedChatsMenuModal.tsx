@@ -6,21 +6,40 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 
-interface MainMenuModalProps {
-  visible: boolean;
-  onClose: () => void;
+interface Chat {
+  id: string;
+  is_favorite?: boolean;
+  is_group: boolean;
+  is_blocked_by_me?: boolean;
 }
 
-export default function MainMenuModal({
+interface SelectedChatsMenuModalProps {
+  visible: boolean;
+  onClose: () => void;
+  selectedChatIds: string[];
+  chats: Chat[];
+  onViewContact: () => void;
+  onSelectAll: () => void;
+  onToggleFavorite: () => void;
+  onAddToList: () => void;
+  onClearChats: () => void;
+  onBlockChats: () => void;
+}
+
+export function SelectedChatsMenuModal({
   visible,
   onClose,
-}: MainMenuModalProps) {
-  const router = useRouter();
-  const { signOut } = useAuth();
+  selectedChatIds,
+  chats,
+  onViewContact,
+  onSelectAll,
+  onToggleFavorite,
+  onAddToList,
+  onClearChats,
+  onBlockChats,
+}: SelectedChatsMenuModalProps) {
   const { colors, isDark } = useAppTheme();
   const menuAnimation = useRef(new Animated.Value(0)).current;
   const [shouldRender, setShouldRender] = useState(visible);
@@ -74,6 +93,13 @@ export default function MainMenuModal({
     outputRange: [0, 1],
   });
 
+  const selectedChats = chats.filter((c) => selectedChatIds.includes(c.id));
+  const allFavorited =
+    selectedChats.length > 0 && selectedChats.every((c) => c.is_favorite);
+  const nonGroupChats = selectedChats.filter((c) => !c.is_group);
+  const allBlocked =
+    nonGroupChats.length > 0 && nonGroupChats.every((c) => c.is_blocked_by_me);
+
   return (
     <TouchableOpacity
       style={[StyleSheet.absoluteFillObject, { zIndex: 1000 }]}
@@ -102,36 +128,28 @@ export default function MainMenuModal({
           },
         ]}
       >
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => {
-            hideMenu(() => router.push("/new-group"));
-          }}
-        >
-          <Text style={[styles.menuItemText, { color: colors.text }]}>
-            Conversas em grupo
-          </Text>
-        </TouchableOpacity>
+        {selectedChatIds.length === 1 && (
+          <>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => hideMenu(onViewContact)}
+            >
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                Ver contato
+              </Text>
+            </TouchableOpacity>
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+          </>
+        )}
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => {
-            hideMenu(() => router.push("/payments"));
-          }}
+          onPress={() => hideMenu(onSelectAll)}
         >
           <Text style={[styles.menuItemText, { color: colors.text }]}>
-            Pagamentos
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => {
-            hideMenu(() => router.push("/settings"));
-          }}
-        >
-          <Text style={[styles.menuItemText, { color: colors.text }]}>
-            Configurações
+            Selecionar tudo
           </Text>
         </TouchableOpacity>
 
@@ -141,14 +159,54 @@ export default function MainMenuModal({
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => {
-            hideMenu(() => signOut());
-          }}
+          onPress={() => hideMenu(onToggleFavorite)}
         >
-          <Text style={[styles.menuItemText, { color: colors.danger }]}>
-            Sair
+          <Text style={[styles.menuItemText, { color: colors.text }]}>
+            {allFavorited ? "Remover dos favoritos" : "Favoritar"}
           </Text>
         </TouchableOpacity>
+
+        <View
+          style={[styles.menuDivider, { backgroundColor: colors.border }]}
+        />
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => hideMenu(onAddToList)}
+        >
+          <Text style={[styles.menuItemText, { color: colors.text }]}>
+            Adicionar à lista
+          </Text>
+        </TouchableOpacity>
+
+        <View
+          style={[styles.menuDivider, { backgroundColor: colors.border }]}
+        />
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => hideMenu(onClearChats)}
+        >
+          <Text style={[styles.menuItemText, { color: colors.text }]}>
+            Limpar conversa
+          </Text>
+        </TouchableOpacity>
+
+        {nonGroupChats.length > 0 && (
+          <>
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => hideMenu(onBlockChats)}
+            >
+              <Text style={[styles.menuItemText, { color: colors.danger }]}>
+                {allBlocked ? "Desbloquear" : "Bloquear"}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
       </Animated.View>
     </TouchableOpacity>
   );

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Modal,
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Animated,
+  Modal,
 } from "react-native";
 import {
   GripVertical,
@@ -101,7 +102,7 @@ export default function ReorderListsModal({
   orderedFilters,
   onReorderEnd,
 }: ReorderListsModalProps) {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const [reorderLists, setReorderLists] = useState<any[]>(orderedFilters);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -109,11 +110,44 @@ export default function ReorderListsModal({
   const startTouchY = useRef<number>(0);
   const currentTouchY = useRef<number>(0);
 
+  const bottomSheetAnimation = useRef(new Animated.Value(0)).current;
+  const [shouldRender, setShouldRender] = useState(visible);
+
+  useEffect(() => {
+    setReorderLists(orderedFilters);
+  }, [orderedFilters]);
+
   useEffect(() => {
     if (visible) {
-      setReorderLists([...orderedFilters]);
+      setReorderLists(orderedFilters);
+      setShouldRender(true);
+      bottomSheetAnimation.setValue(0);
+      Animated.spring(bottomSheetAnimation, {
+        toValue: 1,
+        tension: 80,
+        friction: 10,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(bottomSheetAnimation, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => {
+        setShouldRender(false);
+      });
     }
-  }, [visible, orderedFilters]);
+  }, [visible, orderedFilters, bottomSheetAnimation]);
+
+  const handleClose = () => {
+    Animated.timing(bottomSheetAnimation, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+    });
+  };
 
   const handleTouchStart = (index: number, pageY: number) => {
     activeDragIndex.current = index;
@@ -152,72 +186,76 @@ export default function ReorderListsModal({
     await onReorderEnd(reorderLists);
   };
 
+  if (!shouldRender) return null;
+
+  const translateY = bottomSheetAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [600, 0],
+  });
+
+  const overlayOpacity = bottomSheetAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
   return (
     <Modal
-      visible={visible}
+      visible={shouldRender}
       transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
+      animationType="none"
+      statusBarTranslucent={true}
+      onRequestClose={handleClose}
     >
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.modalOverlay,
-          justifyContent: "flex-end",
-        }}
+      <TouchableOpacity
+        style={[
+          StyleSheet.absoluteFillObject,
+          { zIndex: 1000 },
+        ]}
+        activeOpacity={1}
+        onPress={handleClose}
       >
-        <View
-          style={{
-            backgroundColor: colors.menuBackground,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            height: "60%",
-            padding: 20,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: colors.modalOverlay,
+              opacity: overlayOpacity,
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.bottomSheetContainer,
+            {
+              backgroundColor: isDark
+                ? "rgba(30, 30, 30, 0.85)"
+                : "rgba(255, 255, 255, 0.85)",
+              borderColor: colors.border,
+              transform: [{ translateY }],
+            },
+          ]}
+          onStartShouldSetResponder={() => true}
         >
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <Text
-              style={[
-                styles.dialogTitle,
-                { color: colors.text, marginBottom: 0 },
-              ]}
-            >
+          <View style={styles.dragHandleContainer}>
+            <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+          </View>
+
+          <View style={styles.header}>
+            <Text style={[styles.dialogTitle, { color: colors.text }]}>
               Reorganizar Listas
             </Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text
-                style={{
-                  color: colors.tint,
-                  fontWeight: "bold",
-                  fontSize: 16,
-                }}
-              >
+            <TouchableOpacity onPress={handleClose}>
+              <Text style={{ color: colors.tint, fontWeight: "bold", fontSize: 16 }}>
                 Concluir
               </Text>
             </TouchableOpacity>
           </View>
 
-          <Text
-            style={{
-              color: colors.textSecondary,
-              marginBottom: 12,
-              fontSize: 13,
-            }}
-          >
-            Arrastar o ícone no lado direito para cima ou para baixo para
-            reordenar.
+          <Text style={{ color: colors.textSecondary, marginBottom: 12, fontSize: 13 }}>
+            Arrastar o ícone no lado direito para cima ou para baixo para reordenar.
           </Text>
 
-          <ScrollView scrollEnabled={!isDragging}>
+          <ScrollView scrollEnabled={!isDragging} showsVerticalScrollIndicator={false}>
             {reorderLists.map((item, index) => {
               const isItemDragging =
                 isDragging && activeDragIndex.current === index;
@@ -271,13 +309,45 @@ export default function ReorderListsModal({
               );
             })}
           </ScrollView>
-        </View>
-      </View>
+        </Animated.View>
+      </TouchableOpacity>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  bottomSheetContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: "60%",
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 24,
+  },
+  dragHandleContainer: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  dragHandle: {
+    width: 36,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   dialogTitle: {
     fontSize: 18,
     fontWeight: "bold",

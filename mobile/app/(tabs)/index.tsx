@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Modal,
   TextInput,
   LayoutAnimation,
   Platform,
@@ -75,6 +74,7 @@ import ListSelectorModal from "@/components/ListSelectorModal";
 import ListMenuModal from "@/components/ListMenuModal";
 import ReorderListsModal from "@/components/ReorderListsModal";
 import ListFilterCarousel from "@/components/ListFilterCarousel";
+import { SelectedChatsMenuModal } from "@/components/SelectedChatsMenuModal";
 
 if (
   Platform.OS === "android" &&
@@ -991,137 +991,21 @@ export default function ChatListScreen() {
       )}
 
       {/* Selected Chats Options Menu Dropdown */}
-      <Modal
+      <SelectedChatsMenuModal
         visible={moreMenuVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setMoreMenuVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setMoreMenuVisible(false)}
-        >
-          <View
-            style={[
-              styles.menuContainer,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            {selectedChatIds.length === 1 && (
-              <>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={handleViewContact}
-                >
-                  <Text style={[styles.menuItemText, { color: colors.text }]}>
-                    Ver contato
-                  </Text>
-                </TouchableOpacity>
-                <View
-                  style={[
-                    styles.menuDivider,
-                    { backgroundColor: colors.border },
-                  ]}
-                />
-              </>
-            )}
-
-            <TouchableOpacity style={styles.menuItem} onPress={handleSelectAll}>
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Selecionar tudo
-              </Text>
-            </TouchableOpacity>
-
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={handleToggleFavoriteSelectedChats}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                {(() => {
-                  const selectedChats = chats.filter((c) =>
-                    selectedChatIds.includes(c.id),
-                  );
-                  const allFavorited = selectedChats.every(
-                    (c) => c.is_favorite,
-                  );
-                  return allFavorited ? "Remover dos favoritos" : "Favoritar";
-                })()}
-              </Text>
-            </TouchableOpacity>
-
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMoreMenuVisible(false);
-                setSelectorChatIds([]);
-                setListSelectorVisible(true);
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Adicionar à lista
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={handleClearSelectedChats}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Limpar conversa
-              </Text>
-            </TouchableOpacity>
-
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
-
-            {(() => {
-              const selectedChats = chats.filter((c) =>
-                selectedChatIds.includes(c.id),
-              );
-              const nonGroupChats = selectedChats.filter((c) => !c.is_group);
-              if (nonGroupChats.length > 0) {
-                const allBlocked = nonGroupChats.every(
-                  (c) => c.is_blocked_by_me,
-                );
-                return (
-                  <>
-                    <View
-                      style={[
-                        styles.menuDivider,
-                        { backgroundColor: colors.border },
-                      ]}
-                    />
-                    <TouchableOpacity
-                      style={styles.menuItem}
-                      onPress={handleBlockSelectedChats}
-                    >
-                      <Text
-                        style={[styles.menuItemText, { color: colors.danger }]}
-                      >
-                        {allBlocked ? "Desbloquear" : "Bloquear"}
-                      </Text>
-                    </TouchableOpacity>
-                  </>
-                );
-              }
-              return null;
-            })()}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setMoreMenuVisible(false)}
+        selectedChatIds={selectedChatIds}
+        chats={chats}
+        onViewContact={handleViewContact}
+        onSelectAll={handleSelectAll}
+        onToggleFavorite={handleToggleFavoriteSelectedChats}
+        onAddToList={() => {
+          setSelectorChatIds([]);
+          setListSelectorVisible(true);
+        }}
+        onClearChats={handleClearSelectedChats}
+        onBlockChats={handleBlockSelectedChats}
+      />
 
       {/* Main Options Menu Dropdown */}
       <MainMenuModal

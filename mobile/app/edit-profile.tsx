@@ -24,7 +24,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { field } = useLocalSearchParams<{ field: "name" | "about" | "username" }>();
   const { user, token, updateUser } = useAuth();
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   const [value, setValue] = useState("");

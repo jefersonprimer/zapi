@@ -130,7 +130,6 @@ export default function UpdatesScreen() {
     [
       colors.text,
       colors.textSecondary,
-      colors.tint,
       handleCreatePost,
       activeTab,
     ],

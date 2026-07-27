@@ -1,18 +1,12 @@
-import React from "react";
-import { Modal, TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  Bell,
-  Pencil,
-  GripVertical,
-  Trash2,
-  Heart,
-  Star,
-  Briefcase,
-  Home,
-  Gamepad2,
-  BookOpen,
-  Folder,
-} from "lucide-react-native";
+  TouchableOpacity,
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+} from "react-native";
+import { Bell, Pencil, GripVertical, Trash2 } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ListMenuModalProps {
@@ -31,38 +25,6 @@ interface ListMenuModalProps {
   onDeleteList: () => void;
 }
 
-const renderListIcon = (
-  iconName: string | null,
-  colorColor: string | null,
-  tintColor: string,
-  size: number = 20,
-) => {
-  let hexColor = tintColor;
-  if (colorColor === "🔴") hexColor = "#ef4444";
-  else if (colorColor === "🟠") hexColor = "#f97316";
-  else if (colorColor === "🟡") hexColor = "#eab308";
-  else if (colorColor === "🟢") hexColor = "#22c55e";
-  else if (colorColor === "🔵") hexColor = "#3b82f6";
-  else if (colorColor === "🟣") hexColor = "#a855f7";
-
-  switch (iconName) {
-    case "❤️":
-      return <Heart size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "⭐":
-      return <Star size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "💼":
-      return <Briefcase size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "🏠":
-      return <Home size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "🎮":
-      return <Gamepad2 size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "📚":
-      return <BookOpen size={size} color={hexColor} fill={hexColor + "22"} />;
-    default:
-      return <Folder size={size} color={hexColor} fill={hexColor + "22"} />;
-  }
-};
-
 export default function ListMenuModal({
   visible,
   onClose,
@@ -72,166 +34,186 @@ export default function ListMenuModal({
   onReorderLists,
   onDeleteList,
 }: ListMenuModalProps) {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
+  const dialogAnimation = useRef(new Animated.Value(0)).current;
+  const [shouldRender, setShouldRender] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setShouldRender(true);
+      dialogAnimation.setValue(0);
+      Animated.spring(dialogAnimation, {
+        toValue: 1,
+        tension: 90,
+        friction: 9,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(dialogAnimation, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setShouldRender(false);
+      });
+    }
+  }, [visible, dialogAnimation]);
+
+  const handleClose = (callback?: () => void) => {
+    Animated.timing(dialogAnimation, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+      if (callback) callback();
+    });
+  };
+
+  if (!shouldRender) return null;
+
+  const dialogScale = dialogAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.93, 1],
+  });
+
+  const dialogTranslateY = dialogAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-10, 0],
+  });
+
+  const dialogOpacity = dialogAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
+    <TouchableOpacity
+      style={[
+        StyleSheet.absoluteFillObject,
+        styles.dialogOverlay,
+        { zIndex: 1000 },
+      ]}
+      activeOpacity={1}
+      onPress={() => handleClose()}
     >
-      <TouchableOpacity
+      <Animated.View
         style={[
-          styles.dialogOverlay,
-          { backgroundColor: colors.modalOverlay },
+          StyleSheet.absoluteFillObject,
+          {
+            backgroundColor: colors.modalOverlay,
+            opacity: dialogOpacity,
+          },
         ]}
-        activeOpacity={1}
-        onPress={onClose}
+      />
+      <Animated.View
+        style={[
+          styles.menuContainer,
+          {
+            backgroundColor: isDark
+              ? "rgba(30, 30, 30, 0.85)"
+              : "rgba(255, 255, 255, 0.85)",
+            borderColor: colors.border,
+            opacity: dialogOpacity,
+            transform: [
+              { scale: dialogScale },
+              { translateY: dialogTranslateY },
+            ],
+          },
+        ]}
+        onStartShouldSetResponder={() => true}
       >
-        <View
-          style={[
-            styles.themeDialog,
-            {
-              backgroundColor: colors.menuBackground,
-              borderColor: colors.border,
-            },
-          ]}
-          onStartShouldSetResponder={() => true}
+        <TouchableOpacity
+          style={styles.dialogOption}
+          onPress={() => handleClose(onMuteChats)}
         >
-          <View style={[styles.dialogOptionLabel, { marginBottom: 4 }]}>
-            {list?.icon &&
-              renderListIcon(list.icon, list.color, colors.tint, 22)}
-            <Text
-              style={[
-                styles.dialogTitle,
-                { color: colors.text, marginBottom: 0, flex: 1 },
-              ]}
-              numberOfLines={1}
-            >
-              {list?.name ?? "Lista"}
+          <View style={styles.dialogOptionLabel}>
+            <Bell size={20} color={colors.textSecondary} />
+            <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+              Silenciar conversas
             </Text>
           </View>
-          <Text
-            style={{
-              color: colors.textSecondary,
-              fontSize: 13,
-              marginBottom: 12,
-            }}
+        </TouchableOpacity>
+
+        {!list?.isSystem && (
+          <TouchableOpacity
+            style={styles.dialogOption}
+            onPress={() => handleClose(onEditList)}
           >
-            Opções da lista
-          </Text>
-
-          <View
-            style={[
-              styles.menuDivider,
-              { backgroundColor: colors.border, marginBottom: 4 },
-            ]}
-          />
-
-          <TouchableOpacity style={styles.dialogOption} onPress={onMuteChats}>
             <View style={styles.dialogOptionLabel}>
-              <Bell size={20} color={colors.textSecondary} />
+              <Pencil size={20} color={colors.textSecondary} />
               <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                Silenciar conversas
+                Editar lista
               </Text>
             </View>
           </TouchableOpacity>
+        )}
 
-          {!list?.isSystem && (
-            <TouchableOpacity style={styles.dialogOption} onPress={onEditList}>
+        <TouchableOpacity
+          style={styles.dialogOption}
+          onPress={() => handleClose(onReorderLists)}
+        >
+          <View style={styles.dialogOptionLabel}>
+            <GripVertical size={20} color={colors.textSecondary} />
+            <Text style={[styles.dialogOptionText, { color: colors.text }]}>
+              Reorganizar listas
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {!list?.isSystem && (
+          <>
+            <View
+              style={[
+                styles.menuDivider,
+                { backgroundColor: colors.border, marginVertical: 4 },
+              ]}
+            />
+            <TouchableOpacity
+              style={styles.dialogOption}
+              onPress={() => handleClose(onDeleteList)}
+            >
               <View style={styles.dialogOptionLabel}>
-                <Pencil size={20} color={colors.textSecondary} />
-                <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                  Editar lista
+                <Trash2 size={20} color={colors.danger} />
+                <Text
+                  style={[styles.dialogOptionText, { color: colors.danger }]}
+                >
+                  Apagar lista
                 </Text>
               </View>
             </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={styles.dialogOption}
-            onPress={onReorderLists}
-          >
-            <View style={styles.dialogOptionLabel}>
-              <GripVertical size={20} color={colors.textSecondary} />
-              <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                Reorganizar listas
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          {!list?.isSystem && (
-            <>
-              <View
-                style={[
-                  styles.menuDivider,
-                  { backgroundColor: colors.border, marginVertical: 4 },
-                ]}
-              />
-              <TouchableOpacity
-                style={styles.dialogOption}
-                onPress={onDeleteList}
-              >
-                <View style={styles.dialogOptionLabel}>
-                  <Trash2 size={20} color={colors.danger} />
-                  <Text
-                    style={[styles.dialogOptionText, { color: colors.danger }]}
-                  >
-                    Apagar lista
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </>
-          )}
-
-          <View
-            style={[
-              styles.menuDivider,
-              { backgroundColor: colors.border, marginVertical: 8 },
-            ]}
-          />
-
-          <TouchableOpacity style={styles.dialogCloseButton} onPress={onClose}>
-            <Text
-              style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}
-            >
-              Fechar
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Modal>
+          </>
+        )}
+      </Animated.View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   dialogOverlay: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  themeDialog: {
-    width: "80%",
+  menuContainer: {
+    position: "absolute",
+    top: 200,
+    left: "50%",
+    marginLeft: -110,
     borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
+    paddingVertical: 6,
+    width: 220,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  dialogTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   dialogOption: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 14,
-    paddingHorizontal: 4,
+    paddingHorizontal: 16,
   },
   dialogOptionLabel: {
     flexDirection: "row",
@@ -240,13 +222,9 @@ const styles = StyleSheet.create({
   },
   dialogOptionText: {
     fontSize: 16,
+    fontWeight: "500",
   },
   menuDivider: {
     height: StyleSheet.hairlineWidth,
-  },
-  dialogCloseButton: {
-    alignItems: "flex-end",
-    paddingTop: 8,
-    paddingRight: 4,
   },
 });

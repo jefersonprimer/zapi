@@ -9,7 +9,6 @@ import {
   Alert,
   Image,
   ActivityIndicator,
-  TextInput,
   Clipboard,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -22,7 +21,6 @@ import {
   Lock,
   Globe,
   LogOut,
-  Check,
   Palette,
   Camera,
   Laptop,
@@ -31,7 +29,6 @@ import {
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { API_URL, uploadImage, updateProfile } from "@/services/api";
 import ImagePickerModal from "@/components/ImagePickerModal";
-const ABOUT_MAX_LEN = 139;
 const ACTIVE_GREEN = "#34C759";
 
 const RadioButton = ({ selected, isDark }: { selected: boolean; isDark: boolean }) => (

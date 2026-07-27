@@ -11,7 +11,9 @@ import {
   ActivityIndicator,
   Keyboard,
   Image,
+  Alert,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { voiceCallManager } from "@/services/voiceCallManager";
@@ -20,10 +22,7 @@ import { ChatMediaSelector } from "@/components/ChatMediaSelector";
 import { ChatBlockedBar } from "@/components/ChatBlockedBar";
 import { ChatDeleteModal } from "@/components/ChatDeleteModal";
 import { ChatItemRow } from "@/components/ChatItemRow";
-import { ChatEmojiPicker } from "@/components/ChatEmojiPicker";
 import { ChatInput } from "@/components/ChatInput";
-import { AttachDocumentButton } from "@/components/AttachDocumentButton";
-import { AttachCameraButton } from "@/components/AttachCameraButton";
 import { AttachMediaSheet } from "@/components/AttachMediaSheet";
 import { SendOrMicButton } from "@/components/SendOrMicButton";
 import { ChatMenuModal } from "@/components/ChatMenuModal";
@@ -33,6 +32,7 @@ import ListSelectorModal from "@/components/ListSelectorModal";
 import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
 import { ForwardPreviewBar } from "@/components/ForwardPreviewBar";
+import { ChatActionsModal } from "@/components/ChatActionsModal";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useChat } from "@/hooks/useChat";
@@ -97,7 +97,6 @@ export default function ChatScreen() {
     handleClearChatPress,
     handlePickFromGallery,
     handlePickFile,
-    handlePickDocument,
     startRecording,
     handlePauseResumeRecording,
     handleSend,
@@ -115,6 +114,43 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<any>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [actionsModalVisible, setActionsModalVisible] = useState(false);
+
+  const handleTakePhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (permission.status !== "granted") {
+        Alert.alert(
+          "Permissão Negada",
+          "O acesso à câmera é necessário para tirar fotos.",
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images", "videos"],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0)
+        return;
+      const asset = result.assets[0];
+
+      const isVideo =
+        asset.type === "video" ||
+        (asset as any).mediaType === "video" ||
+        asset.mimeType?.startsWith("video/");
+      setSelectedAttachment({
+        uri: asset.uri,
+        name: isVideo ? `video_${Date.now()}.mp4` : `photo_${Date.now()}.jpg`,
+        type: isVideo ? "video" : "image",
+        mimeType: asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg"),
+        size: asset.fileSize,
+      });
+    } catch (err: any) {
+      Alert.alert("Erro ao tirar foto", err.message);
+    }
+  };
 
   useEffect(() => {
     if (isKeyboardVisible) {
@@ -451,7 +487,7 @@ export default function ChatScreen() {
               isKeyboardVisible || showEmojiPicker || attachSheetVisible
                 ? 6
                 : insets.bottom,
-            backgroundColor: colors.background,
+            backgroundColor: "transparent",
           },
         ]}
       >
@@ -479,31 +515,22 @@ export default function ChatScreen() {
             <View
               style={[
                 styles.inputContainerMessage,
-                { backgroundColor: colors.surface, borderColor: colors.border },
+                { backgroundColor: "transparent", borderColor: colors.border },
               ]}
             >
-              <ChatEmojiPicker
-                isEmojiOpen={showEmojiPicker}
+              <TouchableOpacity
+                style={styles.actionMenuButton}
                 onPress={() => {
-                  setAttachSheetVisible(false);
-                  if (showEmojiPicker) {
-                    setShowEmojiPicker(false);
-                    // Force focus back to text input to show device keyboard
-                    setTimeout(() => {
-                      inputRef.current?.focus();
-                    }, 50);
-                  } else {
-                    if (isKeyboardVisible) {
-                      Keyboard.dismiss();
-                      setTimeout(() => {
-                        setShowEmojiPicker(true);
-                      }, 200);
-                    } else {
-                      setShowEmojiPicker(true);
-                    }
-                  }
+                  setShowEmojiPicker(false);
+                  setActionsModalVisible(true);
                 }}
-              />
+              >
+                <MaterialCommunityIcons
+                  name="plus"
+                  size={24}
+                  color={colors.icon}
+                />
+              </TouchableOpacity>
 
               <ChatInput
                 ref={inputRef}
@@ -512,25 +539,6 @@ export default function ChatScreen() {
                 onFocus={() => {
                   setShowEmojiPicker(false);
                   setAttachSheetVisible(false);
-                }}
-              />
-
-              <AttachDocumentButton
-                onPress={() => {
-                  inputRef.current?.blur();
-                  Keyboard.dismiss();
-                  setShowEmojiPicker(false);
-                  setTimeout(() => {
-                    handlePickDocument();
-                  }, 100);
-                }}
-              />
-
-              <AttachCameraButton
-                onTakePhoto={(attachment) => {
-                  setShowEmojiPicker(false);
-                  setAttachSheetVisible(false);
-                  setSelectedAttachment(attachment);
                 }}
               />
             </View>
@@ -680,6 +688,18 @@ export default function ChatScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <ChatActionsModal
+        visible={actionsModalVisible}
+        onClose={() => setActionsModalVisible(false)}
+        onEmojiPress={() => {
+          inputRef.current?.blur();
+          setShowEmojiPicker(true);
+        }}
+        onFotosPress={handlePickFromGallery}
+        onCameraPress={handleTakePhoto}
+        onDocumentosPress={handlePickFile}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -806,5 +826,12 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 14,
     fontWeight: "bold",
+  },
+  actionMenuButton: {
+    width: 36,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 4,
   },
 });

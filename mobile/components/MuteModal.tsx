@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Modal, TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Modal, TouchableOpacity, View, Text, StyleSheet, Animated } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 const ACTIVE_GREEN = "#34C759";
@@ -31,9 +31,63 @@ export default function MuteModal({
   const { colors, isDark } = useAppTheme();
   const [selectedOption, setSelectedOption] = useState<MuteOptionValue>(8); // Default to 8 hours
 
-  const handleConfirm = () => {
-    onMute(selectedOption);
+  const dialogAnimation = useRef(new Animated.Value(0)).current;
+  const [shouldRender, setShouldRender] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setShouldRender(true);
+      dialogAnimation.setValue(0);
+      Animated.spring(dialogAnimation, {
+        toValue: 1,
+        tension: 90,
+        friction: 9,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(dialogAnimation, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setShouldRender(false);
+      });
+    }
+  }, [visible, dialogAnimation]);
+
+  const handleClose = (callback?: () => void) => {
+    Animated.timing(dialogAnimation, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+      if (callback) callback();
+    });
   };
+
+  const handleConfirm = () => {
+    handleClose(() => {
+      onMute(selectedOption);
+    });
+  };
+
+  if (!shouldRender) return null;
+
+  const dialogScale = dialogAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.93, 1],
+  });
+
+  const dialogTranslateY = dialogAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, 0],
+  });
+
+  const dialogOpacity = dialogAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
 
   const options: { value: MuteOptionValue; label: string }[] = [
     { value: 1, label: "1 hora" },
@@ -46,22 +100,36 @@ export default function MuteModal({
 
   return (
     <Modal
-      visible={visible}
+      visible={shouldRender}
       transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
+      animationType="none"
+      statusBarTranslucent={true}
+      onRequestClose={() => handleClose()}
     >
       <TouchableOpacity
-        style={[styles.dialogOverlay, { backgroundColor: colors.modalOverlay }]}
+        style={[styles.dialogOverlay, { zIndex: 1000 }]}
         activeOpacity={1}
-        onPress={onClose}
+        onPress={() => handleClose()}
       >
-        <View
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: colors.modalOverlay,
+              opacity: dialogOpacity,
+            },
+          ]}
+        />
+        <Animated.View
           style={[
             styles.themeDialog,
             {
-              backgroundColor: colors.menuBackground,
+              backgroundColor: isDark
+                ? "rgba(30, 30, 30, 0.85)"
+                : "rgba(255, 255, 255, 0.85)",
               borderColor: colors.border,
+              opacity: dialogOpacity,
+              transform: [{ scale: dialogScale }, { translateY: dialogTranslateY }],
             },
           ]}
         >
@@ -104,7 +172,7 @@ export default function MuteModal({
           />
 
           <View style={styles.footerButtons}>
-            <TouchableOpacity onPress={onClose} style={styles.footerBtn}>
+            <TouchableOpacity onPress={() => handleClose()} style={styles.footerBtn}>
               <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500" }}>
                 Cancelar
               </Text>
@@ -115,7 +183,7 @@ export default function MuteModal({
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </TouchableOpacity>
     </Modal>
   );
@@ -131,7 +199,7 @@ const styles = StyleSheet.create({
     width: "80%",
     borderRadius: 16,
     padding: 20,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,

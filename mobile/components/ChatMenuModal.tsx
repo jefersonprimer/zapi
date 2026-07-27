@@ -1,5 +1,5 @@
-import React from "react";
-import { Modal, TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { TouchableOpacity, Animated, Text, StyleSheet } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ChatMenuModalProps {
@@ -29,149 +29,196 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
   onClearChatPress,
   onAddToListPress,
 }) => {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
+  const menuAnimation = useRef(new Animated.Value(0)).current;
+  const [shouldRender, setShouldRender] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setShouldRender(true);
+      menuAnimation.setValue(0);
+      Animated.spring(menuAnimation, {
+        toValue: 1,
+        tension: 90,
+        friction: 9,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(menuAnimation, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setShouldRender(false);
+      });
+    }
+  }, [visible, menuAnimation]);
+
+  const hideMenu = (callback?: () => void) => {
+    Animated.timing(menuAnimation, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+      if (callback) callback();
+    });
+  };
+
+  if (!shouldRender) return null;
+
+  const menuScale = menuAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.93, 1],
+  });
+
+  const menuTranslateY = menuAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-10, 0],
+  });
+
+  const menuOpacity = menuAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
+    <TouchableOpacity
+      style={[StyleSheet.absoluteFillObject, { zIndex: 1000 }]}
+      activeOpacity={1}
+      onPress={() => hideMenu()}
     >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            backgroundColor: colors.modalOverlay,
+            opacity: menuOpacity,
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.menuContainer,
+          {
+            backgroundColor: isDark
+              ? "rgba(30, 30, 30, 0.85)"
+              : "rgba(255, 255, 255, 0.85)",
+            borderColor: colors.border,
+            opacity: menuOpacity,
+            transform: [{ scale: menuScale }, { translateY: menuTranslateY }],
+          },
+        ]}
       >
-        <View
-          style={[
-            styles.menuContainer,
-            {
-              backgroundColor: colors.menuBackground,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          {onViewContact && (
-            <TouchableOpacity
-              style={[
-                styles.menuItem,
-                {
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: colors.border,
-                },
-              ]}
-              onPress={() => {
-                onViewContact();
-                onClose();
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                {isGroup ? "Dados do Grupo" : "Ver Contato"}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {onMutePress && (
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                onMutePress();
-                onClose();
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Silenciar Notificações
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {onAddToListPress && (
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                onAddToListPress();
-                onClose();
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Adicionar à Lista
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {onClearChatPress && (
-            <TouchableOpacity
-              style={[
-                styles.menuItem,
-                onViewContact && {
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: colors.border,
-                },
-              ]}
-              onPress={() => {
-                onClearChatPress();
-                onClose();
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                Limpar Conversa
-              </Text>
-            </TouchableOpacity>
-          )}
-
+        {onViewContact && (
           <TouchableOpacity
             style={[
               styles.menuItem,
               {
-                borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: colors.border,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.border,
               },
             ]}
             onPress={() => {
-              onToggleContact();
-              onClose();
+              hideMenu(onViewContact);
             }}
           >
-            <Text
-              style={[
-                styles.menuItemText,
-                !isContact
-                  ? [styles.addText, { color: colors.tint }]
-                  : { color: colors.text },
-              ]}
-            >
-              {isContact ? "Remover dos Contatos" : "Adicionar aos Contatos"}
+            <Text style={[styles.menuItemText, { color: colors.text }]}>
+              {isGroup ? "Dados do Grupo" : "Ver Contato"}
             </Text>
           </TouchableOpacity>
+        )}
 
-          {!isGroup && onBlockPress && (
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                onBlockPress();
-                onClose();
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: colors.text }]}>
-                {isBlocked ? "Desbloquear" : "Bloquear"}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </TouchableOpacity>
-    </Modal>
+        {onMutePress && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              hideMenu(onMutePress);
+            }}
+          >
+            <Text style={[styles.menuItemText, { color: colors.text }]}>
+              Silenciar Notificações
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {onAddToListPress && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              hideMenu(onAddToListPress);
+            }}
+          >
+            <Text style={[styles.menuItemText, { color: colors.text }]}>
+              Adicionar à Lista
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {onClearChatPress && (
+          <TouchableOpacity
+            style={[
+              styles.menuItem,
+              onViewContact && {
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.border,
+              },
+            ]}
+            onPress={() => {
+              hideMenu(onClearChatPress);
+            }}
+          >
+            <Text style={[styles.menuItemText, { color: colors.text }]}>
+              Limpar Conversa
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[
+            styles.menuItem,
+            {
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.border,
+            },
+          ]}
+          onPress={() => {
+            hideMenu(onToggleContact);
+          }}
+        >
+          <Text
+            style={[
+              styles.menuItemText,
+              !isContact
+                ? [styles.addText, { color: colors.tint }]
+                : { color: colors.text },
+            ]}
+          >
+            {isContact ? "Remover dos Contatos" : "Adicionar aos Contatos"}
+          </Text>
+        </TouchableOpacity>
+
+        {!isGroup && onBlockPress && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              hideMenu(onBlockPress);
+            }}
+          >
+            <Text style={[styles.menuItemText, { color: colors.text }]}>
+              {isBlocked ? "Desbloquear" : "Bloquear"}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </Animated.View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
   menuContainer: {
     position: "absolute",
-    top: 60,
+    top: 90,
     right: 6,
     borderRadius: 16,
     paddingVertical: 6,
@@ -181,7 +228,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   menuItem: {
     padding: 14,
