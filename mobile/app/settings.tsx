@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
   Clipboard,
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
@@ -60,6 +61,42 @@ export default function SettingsScreen() {
   // Modals visibility states
   const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [tempThemePreference, setTempThemePreference] = useState(themePreference);
+
+  // Theme modal animation
+  const themeDialogAnimation = useRef(new Animated.Value(0)).current;
+  const [themeShouldRender, setThemeShouldRender] = useState(false);
+
+  useEffect(() => {
+    if (themeModalVisible) {
+      setThemeShouldRender(true);
+      themeDialogAnimation.setValue(0);
+      Animated.spring(themeDialogAnimation, {
+        toValue: 1,
+        tension: 90,
+        friction: 9,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(themeDialogAnimation, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setThemeShouldRender(false);
+      });
+    }
+  }, [themeModalVisible, themeDialogAnimation]);
+
+  const handleThemeClose = (callback?: () => void) => {
+    Animated.timing(themeDialogAnimation, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setThemeModalVisible(false);
+      if (callback) callback();
+    });
+  };
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [showHeaderProfile, setShowHeaderProfile] = useState(false);
@@ -538,118 +575,151 @@ export default function SettingsScreen() {
 
 
       {/* Theme Choice Dialog Modal */}
-      <Modal
-        visible={themeModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setThemeModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={[styles.dialogOverlay, { backgroundColor: colors.modalOverlay }]}
-          activeOpacity={1}
-          onPress={() => setThemeModalVisible(false)}
+      {themeShouldRender && (
+        <Modal
+          visible={themeShouldRender}
+          transparent={true}
+          animationType="none"
+          statusBarTranslucent={true}
+          onRequestClose={() => handleThemeClose()}
         >
-          <View
-            style={[
-              styles.themeDialog,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
-            ]}
+          <TouchableOpacity
+            style={[styles.dialogOverlay, { zIndex: 1000 }]}
+            activeOpacity={1}
+            onPress={() => handleThemeClose()}
           >
-            <Text style={[styles.dialogTitle, { color: colors.text }]}>
-              Escolher tema
-            </Text>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => setTempThemePreference("light")}
-            >
-              <Text
-                style={[
-                  styles.dialogOptionText,
-                  { color: colors.text },
-                  tempThemePreference === "light" && {
-                    color: colors.tint,
-                    fontWeight: "600",
-                  },
-                ]}
-              >
-                Claro
-              </Text>
-              <RadioButton selected={tempThemePreference === "light"} isDark={isDark} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => setTempThemePreference("dark")}
-            >
-              <Text
-                style={[
-                  styles.dialogOptionText,
-                  { color: colors.text },
-                  tempThemePreference === "dark" && {
-                    color: colors.tint,
-                    fontWeight: "600",
-                  },
-                ]}
-              >
-                Escuro
-              </Text>
-              <RadioButton selected={tempThemePreference === "dark"} isDark={isDark} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dialogOption}
-              onPress={() => setTempThemePreference("system")}
-            >
-              <Text
-                style={[
-                  styles.dialogOptionText,
-                  { color: colors.text },
-                  tempThemePreference === "system" && {
-                    color: colors.tint,
-                    fontWeight: "600",
-                  },
-                ]}
-              >
-                Padrão do sistema
-              </Text>
-              <RadioButton selected={tempThemePreference === "system"} isDark={isDark} />
-            </TouchableOpacity>
-
-            <View
+            <Animated.View
               style={[
-                styles.menuDivider,
-                { backgroundColor: colors.border, marginVertical: 8 },
+                StyleSheet.absoluteFillObject,
+                {
+                  backgroundColor: colors.modalOverlay,
+                  opacity: themeDialogAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 1],
+                  }),
+                },
               ]}
             />
+            <Animated.View
+              style={[
+                styles.themeDialog,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(30, 30, 30, 0.85)"
+                    : "rgba(255, 255, 255, 0.85)",
+                  borderColor: colors.border,
+                  opacity: themeDialogAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 1],
+                  }),
+                  transform: [
+                    {
+                      scale: themeDialogAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.93, 1],
+                      }),
+                    },
+                    {
+                      translateY: themeDialogAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [20, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Text style={[styles.dialogTitle, { color: colors.text }]}>
+                Escolher tema
+              </Text>
 
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 16, marginTop: 4 }}>
               <TouchableOpacity
-                onPress={() => setThemeModalVisible(false)}
-                style={{ paddingVertical: 8, paddingHorizontal: 12 }}
+                style={styles.dialogOption}
+                onPress={() => setTempThemePreference("light")}
               >
-                <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500" }}>
-                  Cancelar
+                <Text
+                  style={[
+                    styles.dialogOptionText,
+                    { color: colors.text },
+                    tempThemePreference === "light" && {
+                      color: colors.tint,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  Claro
                 </Text>
+                <RadioButton selected={tempThemePreference === "light"} isDark={isDark} />
               </TouchableOpacity>
+
               <TouchableOpacity
-                onPress={async () => {
-                  await setThemePreference(tempThemePreference);
-                  setThemeModalVisible(false);
-                }}
-                style={{ paddingVertical: 8, paddingHorizontal: 12 }}
+                style={styles.dialogOption}
+                onPress={() => setTempThemePreference("dark")}
               >
-                <Text style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}>
-                  OK
+                <Text
+                  style={[
+                    styles.dialogOptionText,
+                    { color: colors.text },
+                    tempThemePreference === "dark" && {
+                      color: colors.tint,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  Escuro
                 </Text>
+                <RadioButton selected={tempThemePreference === "dark"} isDark={isDark} />
               </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+
+              <TouchableOpacity
+                style={styles.dialogOption}
+                onPress={() => setTempThemePreference("system")}
+              >
+                <Text
+                  style={[
+                    styles.dialogOptionText,
+                    { color: colors.text },
+                    tempThemePreference === "system" && {
+                      color: colors.tint,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  Padrão do sistema
+                </Text>
+                <RadioButton selected={tempThemePreference === "system"} isDark={isDark} />
+              </TouchableOpacity>
+
+              <View
+                style={[
+                  styles.menuDivider,
+                  { backgroundColor: colors.border, marginVertical: 8 },
+                ]}
+              />
+
+              <View style={styles.footerButtons}>
+                <TouchableOpacity onPress={() => handleThemeClose()} style={styles.footerBtn}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500" }}>
+                    Cancelar
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    handleThemeClose(async () => {
+                      await setThemePreference(tempThemePreference);
+                    });
+                  }}
+                  style={styles.footerBtn}
+                >
+                  <Text style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}>
+                    OK
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -941,7 +1011,7 @@ const styles = StyleSheet.create({
     width: "80%",
     borderRadius: 16,
     padding: 20,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
@@ -1018,5 +1088,15 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
+  },
+  footerButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 16,
+    marginTop: 4,
+  },
+  footerBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
 });
