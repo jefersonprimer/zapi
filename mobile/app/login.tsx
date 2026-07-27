@@ -16,12 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { login } from "@/services/api";
-import { Eye, EyeOff } from "lucide-react-native";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react-native";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
-  const { theme, colors, isDark } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
@@ -48,6 +48,8 @@ export default function LoginScreen() {
         user_id: data.user_id,
         username: data.username,
         email: data.email,
+        name: data.name,
+        avatar_url: data.avatar_url,
       });
     } catch (err: any) {
       console.error("Login error:", err);
@@ -59,7 +61,7 @@ export default function LoginScreen() {
     }
   }
 
-  // Theme-based colors from constants/theme.ts
+  // Theme-based colors
   const pageBg = colors.background;
   const textColor = colors.text;
   const textSecondary = colors.textSecondary;
@@ -76,6 +78,26 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
+      {/* Header */}
+      <View
+        style={{
+          paddingTop: insets.top > 0 ? insets.top : 12,
+          paddingHorizontal: 16,
+          backgroundColor: pageBg,
+          flexDirection: "row",
+          alignItems: "center",
+          height: insets.top > 0 ? insets.top + 48 : 56,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => router.push("/select-profile")}
+          style={{ padding: 8, marginLeft: 4 }}
+          activeOpacity={0.7}
+        >
+          <ArrowLeft color={textColor} size={24} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -209,7 +231,7 @@ export default function LoginScreen() {
               <Text
                 style={[
                   styles.linkHighlight,
-                  { color: colors.brandGreen },
+                  { color: colors.brandGreen || "#10B981" },
                 ]}
               >
                 Cadastre-se
@@ -327,6 +349,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   linkHighlight: {
+    fontWeight: "700",
+  },
+  switchProfilesLink: {
+    alignItems: "center",
+    marginTop: 20,
+    paddingVertical: 8,
+  },
+  switchProfilesLinkText: {
+    fontSize: 14,
     fontWeight: "700",
   },
 });

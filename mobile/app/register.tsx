@@ -16,12 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { register } from "@/services/api";
-import { Eye, EyeOff } from "lucide-react-native";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react-native";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
-  const { theme, colors, isDark } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   const [username, setUsername] = useState("");
@@ -78,6 +78,26 @@ export default function RegisterScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
+      {/* Header */}
+      <View
+        style={{
+          paddingTop: insets.top > 0 ? insets.top : 12,
+          paddingHorizontal: 16,
+          backgroundColor: pageBg,
+          flexDirection: "row",
+          alignItems: "center",
+          height: insets.top > 0 ? insets.top + 48 : 56,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => router.push("/login")}
+          style={{ padding: 8, marginLeft: 4 }}
+          activeOpacity={0.7}
+        >
+          <ArrowLeft color={textColor} size={24} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -162,8 +182,8 @@ export default function RegisterScreen() {
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                onFocus={() => emailFocused(true)}
-                onBlur={() => emailFocused(false)}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
               />
             </View>
 

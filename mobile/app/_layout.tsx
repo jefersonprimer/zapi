@@ -21,7 +21,7 @@ import CallOverlay from "@/components/CallOverlay";
 import { useCallStore } from "@/store/useCallStore";
 
 function InitialLayout() {
-  const { token, user, isLoading } = useAuth();
+  const { token, user, isLoading, savedProfiles } = useAuth();
   const { colors } = useAppTheme();
   const segments = useSegments();
   const router = useRouter();
@@ -176,16 +176,20 @@ function InitialLayout() {
   useEffect(() => {
     if (isLoading || !dbReady) return;
 
-    const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
+    const inAuthGroup = segments[0] === 'login' || segments[0] === 'register' || segments[0] === 'select-profile';
 
     if (!token && !inAuthGroup) {
-      // Redirect to login if not authenticated
-      router.replace('/login');
+      // Redirect to select-profile if saved profiles exist, otherwise login
+      if (savedProfiles && savedProfiles.length > 0) {
+        router.replace('/select-profile');
+      } else {
+        router.replace('/login');
+      }
     } else if (token && inAuthGroup) {
       // Redirect to index (conversas) if authenticated
       router.replace('/(tabs)');
     }
-  }, [token, isLoading, dbReady, segments, router]);
+  }, [token, isLoading, dbReady, segments, router, savedProfiles]);
 
   if (isLoading || !dbReady) {
     return (
@@ -198,8 +202,9 @@ function InitialLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: true, title: "", headerShadowVisible: false, headerStyle: { backgroundColor: colors.headerBackground, elevation: 0, shadowOpacity: 0, borderBottomWidth: 0 }, headerTintColor: colors.headerText }} />
-      <Stack.Screen name="register" options={{ headerShown: true, title: "", headerShadowVisible: false, headerStyle: { backgroundColor: colors.headerBackground, elevation: 0, shadowOpacity: 0, borderBottomWidth: 0 }, headerTintColor: colors.headerText }} />
+      <Stack.Screen name="select-profile" options={{ headerShown: false }} />
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="register" options={{ headerShown: false }} />
       <Stack.Screen name="chat" options={{ headerShown: false }} />
       <Stack.Screen name="contact-detail" options={{ headerShown: false }} />
       <Stack.Screen name="share-contact" options={{ headerShown: false }} />
