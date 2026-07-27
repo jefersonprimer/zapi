@@ -121,7 +121,13 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
           )}
 
           <TouchableOpacity
-            style={styles.menuItem}
+            style={[
+              styles.menuItem,
+              {
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.border,
+              },
+            ]}
             onPress={() => {
               onToggleContact();
               onClose();
@@ -132,7 +138,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
                 styles.menuItemText,
                 !isContact
                   ? [styles.addText, { color: colors.tint }]
-                  : [styles.removeText, { color: colors.danger }],
+                  : { color: colors.text },
               ]}
             >
               {isContact ? "Remover dos Contatos" : "Adicionar aos Contatos"}
@@ -147,7 +153,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
                 onClose();
               }}
             >
-              <Text style={[styles.menuItemText, { color: colors.danger }]}>
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
                 {isBlocked ? "Desbloquear" : "Bloquear"}
               </Text>
             </TouchableOpacity>

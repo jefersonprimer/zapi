@@ -31,6 +31,7 @@ export interface ReelsVideo {
   publisherAvatar?: string | null;
   likesCount: number;
   commentsCount: number;
+  sharesCount?: number;
   likedByMe?: boolean;
   savedByMe?: boolean;
   onLike?: () => void;

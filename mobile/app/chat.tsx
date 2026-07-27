@@ -10,10 +10,13 @@ import {
   Modal,
   ActivityIndicator,
   Keyboard,
+  Image,
 } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { voiceCallManager } from "@/services/voiceCallManager";
+import { API_URL } from "@/services/api";
 import { ChatMediaSelector } from "@/components/ChatMediaSelector";
-import { ChatHeader } from "@/components/ChatHeader";
 import { ChatBlockedBar } from "@/components/ChatBlockedBar";
 import { ChatDeleteModal } from "@/components/ChatDeleteModal";
 import { ChatItemRow } from "@/components/ChatItemRow";
@@ -158,27 +161,231 @@ export default function ChatScreen() {
       }
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 0}
     >
-      {/* Custom Header */}
-      <ChatHeader
-        insets={insets}
-        chatId={chatId}
-        participantId={participantId}
-        participantUsername={participantUsername}
-        participantAvatarUrl={participantAvatarUrl}
-        displayTitle={displayTitle}
-        isGroup={isGroup}
-        isSelectionMode={isSelectionMode}
-        selectedCount={selectedCount}
-        hasOnlyMessagesSelected={hasOnlyMessagesSelected}
-        selectedMessageIds={selectedMessageIds}
-        clearSelection={clearSelection}
-        onReencaminhar={handleReencaminhar}
-        onEncaminhar={handleEncaminhar}
-        onDeletePress={() => setDeleteModalVisible(true)}
-        onOptionsPress={() => setOptionsModalVisible(true)}
-        onMenuPress={() => setMenuVisible(true)}
-        participantStoreId={participantStoreId}
-      />
+      <View
+        style={[
+          styles.customHeader,
+          {
+            paddingTop: insets.top,
+            height: insets.top + 60,
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <View style={styles.headerLeftContainer}>
+          <TouchableOpacity
+            onPress={() => (isSelectionMode ? clearSelection() : router.back())}
+            style={styles.headerBackBtn}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.text}
+            />
+          </TouchableOpacity>
+          {isSelectionMode ? (
+            <Text
+              style={[
+                styles.headerTitleText,
+                { color: colors.text, marginLeft: 4 },
+              ]}
+            >
+              {selectedCount}
+            </Text>
+          ) : null}
+          {!isSelectionMode && (
+            <TouchableOpacity
+              onPress={() => {
+                if (isGroup) {
+                  router.push({
+                    pathname: "/group-detail",
+                    params: {
+                      chatId,
+                      participantUsername: displayTitle,
+                    },
+                  });
+                } else if (participantId) {
+                  router.push({
+                    pathname: "/contact-detail",
+                    params: {
+                      participantId,
+                      participantUsername: participantUsername || "Unknown",
+                      chatId,
+                      avatarUrl: participantAvatarUrl || undefined,
+                    },
+                  });
+                }
+              }}
+              style={styles.avatarTitleContainer}
+            >
+              <View
+                style={[
+                  styles.avatarContainer,
+                  {
+                    backgroundColor: isGroup ? "#34C759" : colors.tint,
+                  },
+                ]}
+              >
+                {participantAvatarUrl ? (
+                  <Image
+                    source={{
+                      uri: participantAvatarUrl.startsWith("http")
+                        ? participantAvatarUrl
+                        : `${API_URL}${participantAvatarUrl}`,
+                    }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <Text style={styles.avatarPlaceholderText}>
+                    {displayTitle[0]?.toUpperCase()}
+                  </Text>
+                )}
+              </View>
+              <View style={{ flex: 1, justifyContent: "center" }}>
+                <Text
+                  style={[
+                    styles.headerTitleText,
+                    { color: colors.text, flex: 0 },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {displayTitle}
+                </Text>
+                {participantStoreId ? (
+                  <Text
+                    style={[
+                      styles.subTitleText,
+                      { color: colors.textSecondary },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Conta comercial
+                  </Text>
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.headerRightContainer}>
+          {isSelectionMode ? (
+            <>
+              {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
+                <TouchableOpacity
+                  onPress={() => handleReencaminhar()}
+                  style={styles.headerActionBtn}
+                >
+                  <MaterialCommunityIcons
+                    name="reply"
+                    size={22}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              )}
+              {hasOnlyMessagesSelected && (
+                <TouchableOpacity
+                  onPress={handleEncaminhar}
+                  style={styles.headerActionBtn}
+                >
+                  <MaterialCommunityIcons
+                    name="share"
+                    size={22}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => setDeleteModalVisible(true)}
+                style={styles.headerActionBtn}
+              >
+                <MaterialCommunityIcons
+                  name="trash-can-outline"
+                  size={22}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+              {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
+                <TouchableOpacity
+                  onPress={() => setOptionsModalVisible(true)}
+                  style={styles.headerActionBtn}
+                >
+                  <MaterialCommunityIcons
+                    name="dots-vertical"
+                    size={22}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            <>
+              {participantStoreId && (
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/delivery/[storeId]",
+                      params: { storeId: participantStoreId },
+                    })
+                  }
+                  style={styles.headerActionBtn}
+                >
+                  <MaterialCommunityIcons
+                    name="shopping"
+                    size={22}
+                    color={colors.tint}
+                  />
+                </TouchableOpacity>
+              )}
+              {!participantStoreId && (
+                <TouchableOpacity
+                  onPress={() =>
+                    voiceCallManager.startCall(
+                      participantId,
+                      participantUsername || "Unknown",
+                      true,
+                      participantAvatarUrl,
+                    )
+                  }
+                  style={styles.headerActionBtn}
+                >
+                  <MaterialCommunityIcons
+                    name="video-outline"
+                    size={22}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() =>
+                  voiceCallManager.startCall(
+                    participantId,
+                    participantUsername || "Unknown",
+                    false,
+                    participantAvatarUrl,
+                  )
+                }
+                style={styles.headerActionBtn}
+              >
+                <MaterialCommunityIcons
+                  name="phone-outline"
+                  size={22}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setMenuVisible(true)}
+                style={styles.headerActionBtn}
+              >
+                <MaterialCommunityIcons
+                  name="dots-vertical"
+                  size={22}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
 
       <FlatList
         ref={flatListRef}
@@ -240,7 +447,10 @@ export default function ChatScreen() {
         style={[
           styles.inputContainer,
           {
-            paddingBottom: (isKeyboardVisible || showEmojiPicker || attachSheetVisible) ? 6 : insets.bottom,
+            paddingBottom:
+              isKeyboardVisible || showEmojiPicker || attachSheetVisible
+                ? 6
+                : insets.bottom,
             backgroundColor: colors.background,
           },
         ]}
@@ -341,7 +551,9 @@ export default function ChatScreen() {
 
       {showEmojiPicker && (
         <ChatMediaSelector
-          onEmojiSelected={(emojiObject) => setContent((prev) => prev + emojiObject.emoji)}
+          onEmojiSelected={(emojiObject) =>
+            setContent((prev) => prev + emojiObject.emoji)
+          }
           onSendMedia={(media) => {
             handleSend(media);
             setShowEmojiPicker(false);
@@ -536,31 +748,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  storeBar: {
+  customHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    backgroundColor: "#ffffff",
+    borderBottomWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
   },
-  storeBarText: {
+  headerLeftContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  headerBackBtn: {
+    padding: 8,
+    marginRight: 4,
+  },
+  headerTitleText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#272727",
+    flex: 1,
+  },
+  subTitleText: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  headerRightContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerActionBtn: {
+    padding: 8,
+    marginLeft: 12,
+  },
+  avatarTitleContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  avatarContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarPlaceholderText: {
+    color: "#FFF",
     fontSize: 14,
-    fontWeight: "500",
-  },
-  storeBarBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  storeBarBtnText: {
-    color: "#fff",
-    fontSize: 13,
     fontWeight: "bold",
   },
 });

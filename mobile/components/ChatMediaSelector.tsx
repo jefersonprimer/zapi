@@ -7,7 +7,6 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
-  Dimensions,
   Alert,
 } from "react-native";
 import { Image } from "expo-image";

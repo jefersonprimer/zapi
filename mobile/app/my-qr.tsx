@@ -28,15 +28,20 @@ export default function MyQrScreen() {
 
       <Text style={[styles.title, { color: colors.text }]}>Meu QR Code</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Peça para outro usuário escanear para te adicionar aos contatos instantaneamente
+        Peça para outro usuário escanear para te adicionar aos contatos
+        instantaneamente
       </Text>
 
       <View style={styles.qrContainer}>
         <Image source={{ uri: qrCodeUrl }} style={styles.qrImage} />
       </View>
 
-      <Text style={[styles.username, { color: colors.text }]}>@{user.username}</Text>
-      <Text style={[styles.email, { color: colors.textSecondary }]}>{user.email}</Text>
+      <Text style={[styles.username, { color: colors.text }]}>
+        @{user.username}
+      </Text>
+      <Text style={[styles.email, { color: colors.textSecondary }]}>
+        {user.email}
+      </Text>
     </View>
   );
 }
@@ -70,7 +75,7 @@ const styles = StyleSheet.create({
   qrContainer: {
     padding: 20,
     backgroundColor: "#ffffff",
-    borderRadius: 24,
+    borderRadius: 16,
     elevation: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },

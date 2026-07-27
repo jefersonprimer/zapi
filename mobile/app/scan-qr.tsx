@@ -188,8 +188,8 @@ const styles = StyleSheet.create({
     width: 240,
     height: 240,
     borderWidth: 3,
-    borderColor: "#007AFF",
-    borderRadius: 24,
+    borderColor: "#34C759",
+    borderRadius: 16,
     backgroundColor: "transparent",
   },
   scanText: {

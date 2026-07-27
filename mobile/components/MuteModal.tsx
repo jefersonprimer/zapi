@@ -39,6 +39,10 @@ export default function MuteModal({
             Silenciar Notificações
           </Text>
 
+          <Text style={[styles.dialogDescription, { color: colors.textSecondary }]}>
+            Seus contatos não saberão que você silenciou a conversa.
+          </Text>
+
           <TouchableOpacity
             style={styles.dialogOption}
             onPress={() => onMute(1)}
@@ -143,7 +147,12 @@ const styles = StyleSheet.create({
   dialogTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 8,
+  },
+  dialogDescription: {
+    fontSize: 14,
     marginBottom: 16,
+    lineHeight: 20,
   },
   dialogOption: {
     flexDirection: "row",

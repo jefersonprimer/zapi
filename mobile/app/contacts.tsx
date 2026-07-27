@@ -14,10 +14,10 @@ import {
   Users as GroupIcon,
   UserPlus as UserIcon,
   Trash2 as TrashIcon,
-  MessageCircle,
   ArrowLeft,
   QrCode,
   Scan,
+  MessageCircleMore,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -266,7 +266,7 @@ export default function ContactsScreen() {
                   ]}
                   onPress={() => handleStartChat(item)}
                 >
-                  <MessageCircle size={20} color={colors.tint} />
+                  <MessageCircleMore size={20} color={colors.tint} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -429,12 +429,12 @@ const styles = StyleSheet.create({
   },
   chatIconBtn: {
     padding: 8,
-    borderRadius: 18,
+    borderRadius: 12,
     marginRight: 8,
   },
   removeBtn: {
     padding: 8,
-    borderRadius: 18,
+    borderRadius: 12,
   },
   emptyContainer: {
     alignItems: "center",
