@@ -1,5 +1,8 @@
+import React, { useState } from "react";
 import { Modal, TouchableOpacity, View, Text, StyleSheet } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
+
+const ACTIVE_GREEN = "#34C759";
 
 interface MuteModalProps {
   visible: boolean;
@@ -7,12 +10,39 @@ interface MuteModalProps {
   onMute: (durationHours: number | "always") => void;
 }
 
+type MuteOptionValue = number | "always";
+
+interface RadioButtonProps {
+  selected: boolean;
+  isDark: boolean;
+}
+
+const RadioButton = ({ selected, isDark }: RadioButtonProps) => (
+  <View style={[styles.radioOuter, { borderColor: selected ? ACTIVE_GREEN : (isDark ? "#48484A" : "#C7C7CC") }]}>
+    {selected && <View style={[styles.radioInner, { backgroundColor: ACTIVE_GREEN }]} />}
+  </View>
+);
+
 export default function MuteModal({
   visible,
   onClose,
   onMute,
 }: MuteModalProps) {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
+  const [selectedOption, setSelectedOption] = useState<MuteOptionValue>(8); // Default to 8 hours
+
+  const handleConfirm = () => {
+    onMute(selectedOption);
+  };
+
+  const options: { value: MuteOptionValue; label: string }[] = [
+    { value: 1, label: "1 hora" },
+    { value: 8, label: "8 horas" },
+    { value: 24, label: "24 horas" },
+    { value: 7 * 24, label: "1 semana" },
+    { value: 30 * 24, label: "1 mês" },
+    { value: "always", label: "Sempre" },
+  ];
 
   return (
     <Modal
@@ -43,71 +73,28 @@ export default function MuteModal({
             Seus contatos não saberão que você silenciou a conversa.
           </Text>
 
-          <TouchableOpacity
-            style={styles.dialogOption}
-            onPress={() => onMute(1)}
-          >
-            <View style={styles.dialogOptionLabel}>
-              <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                1 hora
+          {options.map((opt) => (
+            <TouchableOpacity
+              key={opt.value.toString()}
+              style={styles.dialogOption}
+              onPress={() => setSelectedOption(opt.value)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.dialogOptionText,
+                  { color: colors.text },
+                  selectedOption === opt.value && {
+                    color: colors.tint,
+                    fontWeight: "600",
+                  },
+                ]}
+              >
+                {opt.label}
               </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.dialogOption}
-            onPress={() => onMute(8)}
-          >
-            <View style={styles.dialogOptionLabel}>
-              <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                8 horas
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.dialogOption}
-            onPress={() => onMute(24)}
-          >
-            <View style={styles.dialogOptionLabel}>
-              <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                24 horas
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.dialogOption}
-            onPress={() => onMute(7 * 24)}
-          >
-            <View style={styles.dialogOptionLabel}>
-              <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                1 semana
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.dialogOption}
-            onPress={() => onMute(30 * 24)}
-          >
-            <View style={styles.dialogOptionLabel}>
-              <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                1 mês
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.dialogOption}
-            onPress={() => onMute("always")}
-          >
-            <View style={styles.dialogOptionLabel}>
-              <Text style={[styles.dialogOptionText, { color: colors.text }]}>
-                Sempre
-              </Text>
-            </View>
-          </TouchableOpacity>
+              <RadioButton selected={selectedOption === opt.value} isDark={isDark} />
+            </TouchableOpacity>
+          ))}
 
           <View
             style={[
@@ -116,11 +103,18 @@ export default function MuteModal({
             ]}
           />
 
-          <TouchableOpacity style={styles.dialogCloseButton} onPress={onClose}>
-            <Text style={[styles.dialogCloseText, { color: colors.tint }]}>
-              Cancelar
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.footerButtons}>
+            <TouchableOpacity onPress={onClose} style={styles.footerBtn}>
+              <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500" }}>
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleConfirm} style={styles.footerBtn}>
+              <Text style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}>
+                OK
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     </Modal>
@@ -158,28 +152,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 4,
-  },
-  dialogOptionLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
   },
   dialogOptionText: {
     fontSize: 16,
   },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
   menuDivider: {
     height: StyleSheet.hairlineWidth,
-    marginHorizontal: 12,
+    marginVertical: 12,
   },
-  dialogCloseButton: {
-    alignItems: "flex-end",
-    paddingTop: 8,
-    paddingRight: 4,
+  footerButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 16,
+    marginTop: 4,
   },
-  dialogCloseText: {
-    fontSize: 16,
-    fontWeight: "600",
+  footerBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
 });

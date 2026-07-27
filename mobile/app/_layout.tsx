@@ -7,6 +7,7 @@ import * as SystemUI from 'expo-system-ui';
 import { ActivityIndicator, View, Platform, AppState, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import 'react-native-reanimated';
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider as AppThemeProvider, useAppTheme } from "@/context/ThemeContext";
@@ -208,6 +209,8 @@ function InitialLayout() {
       <Stack.Screen name="my-qr" options={{ headerShown: false }} />
       <Stack.Screen name="scan-qr" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+      <Stack.Screen name="privacy" options={{ headerShown: false }} />
       <Stack.Screen name="archived" options={{ headerShown: false }} />
       <Stack.Screen name="notes" options={{ headerShown: false }} />
       <Stack.Screen name="note-editor" options={{ headerShown: false }} />
@@ -232,6 +235,8 @@ function InitialLayout() {
   );
 }
 
+
+
 function RootLayoutInner() {
   const { theme, colors } = useAppTheme();
 
@@ -246,9 +251,11 @@ function RootLayoutInner() {
 
   return (
     <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
-      <InitialLayout />
-      <CallOverlay />
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.headerBackground} />
+      <BottomSheetModalProvider>
+        <InitialLayout />
+        <CallOverlay />
+        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.headerBackground} />
+      </BottomSheetModalProvider>
     </ThemeProvider>
   );
 }

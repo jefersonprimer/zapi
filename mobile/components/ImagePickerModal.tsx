@@ -1,19 +1,19 @@
-import React from "react";
+import React, { forwardRef, useRef, useEffect, useCallback } from "react";
 import {
-  Modal,
   TouchableOpacity,
   View,
   Text,
   StyleSheet,
   Alert,
 } from "react-native";
-import { Camera, Image as ImageIcon, Trash2 } from "lucide-react-native";
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 
 interface ImagePickerModalProps {
-  visible: boolean;
-  onClose: () => void;
+  visible?: boolean;
+  onClose?: () => void;
   onImageSelected: (uri: string) => void;
   onRemoveImage?: () => void;
   hasImage?: boolean;
@@ -21,201 +21,197 @@ interface ImagePickerModalProps {
   aspect?: [number, number];
 }
 
-export default function ImagePickerModal({
-  visible,
-  onClose,
-  onImageSelected,
-  onRemoveImage,
-  hasImage = false,
-  title = "Foto do perfil",
-  aspect = [1, 1],
-}: ImagePickerModalProps) {
-  const { colors } = useAppTheme();
+const ImagePickerModal = forwardRef<BottomSheetModal, ImagePickerModalProps>(
+  (
+    {
+      visible,
+      onClose,
+      onImageSelected,
+      onRemoveImage,
+      hasImage = false,
+      title = "Foto do perfil",
+      aspect = [1, 1],
+    },
+    ref
+  ) => {
+    const { colors } = useAppTheme();
+    const insets = useSafeAreaInsets();
+    
+    // Internal ref to support legacy visibility prop if ref is not passed
+    const localRef = useRef<BottomSheetModal>(null);
+    const bottomSheetRef = (ref || localRef) as React.RefObject<BottomSheetModal>;
 
-  const handleCamera = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permissão necessária", "Precisamos de permissão para usar a câmera.");
-        return;
+    // Support legacy "visible" prop
+    useEffect(() => {
+      if (visible !== undefined) {
+        if (visible) {
+          const timer = setTimeout(() => {
+            bottomSheetRef.current?.present();
+          }, 50);
+          return () => clearTimeout(timer);
+        } else {
+          bottomSheetRef.current?.dismiss();
+        }
       }
+    }, [visible, bottomSheetRef]);
 
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect,
-        quality: 0.8,
-      });
+    const handleCamera = async () => {
+      try {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permissão necessária", "Precisamos de permissão para usar a câmera.");
+          return;
+        }
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const result = await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect,
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          bottomSheetRef.current?.dismiss();
+          onImageSelected(result.assets[0].uri);
+        }
+      } catch (e) {
+        console.error(e);
+        Alert.alert("Erro", "Ocorreu um erro ao abrir a câmera.");
+      }
+    };
+
+    const handleGallery = async () => {
+      try {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permissão necessária", "Precisamos de permissão para acessar a galeria.");
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          aspect,
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          bottomSheetRef.current?.dismiss();
+          onImageSelected(result.assets[0].uri);
+        }
+      } catch (e) {
+        console.error(e);
+        Alert.alert("Erro", "Ocorreu um erro ao abrir a galeria.");
+      }
+    };
+
+    const renderBackdrop = useCallback(
+      (props: any) => (
+        <BottomSheetBackdrop
+          {...props}
+          disappearsOnIndex={-1}
+          appearsOnIndex={0}
+        />
+      ),
+      []
+    );
+
+    const handleClose = () => {
+      bottomSheetRef.current?.dismiss();
+      if (onClose) {
         onClose();
-        onImageSelected(result.assets[0].uri);
       }
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Erro", "Ocorreu um erro ao abrir a câmera.");
-    }
-  };
+    };
 
-  const handleGallery = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permissão necessária", "Precisamos de permissão para acessar a galeria.");
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: true,
-        aspect,
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        onClose();
-        onImageSelected(result.assets[0].uri);
-      }
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Erro", "Ocorreu um erro ao abrir a galeria.");
-    }
-  };
-
-  return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
-        activeOpacity={1}
-        onPress={onClose}
+    return (
+      <BottomSheetModal
+        ref={bottomSheetRef}
+        snapPoints={["40%"]}
+        backdropComponent={renderBackdrop}
+        onDismiss={onClose}
+        backgroundStyle={{ backgroundColor: colors.menuBackground }}
+        handleIndicatorStyle={{ backgroundColor: colors.border }}
       >
-        <View
-          style={[
-            styles.bottomSheet,
-            {
-              backgroundColor: colors.menuBackground,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={[styles.sheetIndicator, { backgroundColor: colors.border }]} />
+        <BottomSheetView style={{ padding: 24, paddingBottom: insets.bottom + 24 }}>
           <Text style={[styles.sheetTitle, { color: colors.text }]}>
             {title}
           </Text>
+          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginBottom: 12 }} />
 
+          {/* Camera Option */}
           <TouchableOpacity
-            style={[styles.sheetOption, { backgroundColor: colors.background }]}
+            style={styles.sheetOption}
             onPress={handleCamera}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <View style={styles.sheetOptionLeft}>
-              <Camera size={20} color={colors.tint} />
-              <Text style={[styles.sheetOptionText, { color: colors.text, fontWeight: "600" }]}>
-                Câmera
-              </Text>
-            </View>
+            <Text style={[styles.sheetOptionText, { color: colors.text }]}>
+              Câmera
+            </Text>
           </TouchableOpacity>
 
+          {/* Gallery Option */}
           <TouchableOpacity
-            style={[styles.sheetOption, { backgroundColor: colors.background }]}
+            style={styles.sheetOption}
             onPress={handleGallery}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <View style={styles.sheetOptionLeft}>
-              <ImageIcon size={20} color={colors.tint} />
-              <Text style={[styles.sheetOptionText, { color: colors.text, fontWeight: "600" }]}>
-                Galeria
-              </Text>
-            </View>
+            <Text style={[styles.sheetOptionText, { color: colors.text }]}>
+              Galeria
+            </Text>
           </TouchableOpacity>
 
+          {/* Remove Option */}
           {hasImage && onRemoveImage && (
             <TouchableOpacity
-              style={[styles.sheetOption, { backgroundColor: colors.background }]}
+              style={styles.sheetOption}
               onPress={() => {
-                onClose();
+                bottomSheetRef.current?.dismiss();
                 onRemoveImage();
               }}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
             >
-              <View style={styles.sheetOptionLeft}>
-                <Trash2 size={20} color={colors.danger} />
-                <Text style={[styles.sheetOptionText, { color: colors.danger, fontWeight: "600" }]}>
-                  Remover Foto
-                </Text>
-              </View>
+              <Text style={[styles.sheetOptionText, { color: colors.danger }]}>
+                Remover foto
+              </Text>
             </TouchableOpacity>
           )}
 
+          {/* Close/Cancel Button */}
           <TouchableOpacity
-            style={[styles.sheetCloseButton, { backgroundColor: colors.tint, marginTop: 8 }]}
-            onPress={onClose}
+            style={[styles.sheetCloseButton, { backgroundColor: colors.tint, marginTop: 12 }]}
+            onPress={handleClose}
+            activeOpacity={0.8}
           >
             <Text style={styles.sheetCloseButtonText}>Cancelar</Text>
           </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
-}
+        </BottomSheetView>
+      </BottomSheetModal>
+    );
+  }
+);
+
+ImagePickerModal.displayName = "ImagePickerModal";
+
+export default ImagePickerModal;
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  bottomSheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    borderTopWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 16,
-  },
-  sheetIndicator: {
-    width: 40,
-    height: 5,
-    borderRadius: 2.5,
-    alignSelf: "center",
-    marginBottom: 20,
-  },
   sheetTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 12,
   },
   sheetOption: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  sheetOptionLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    paddingVertical: 14,
   },
   sheetOptionText: {
     fontSize: 16,
+    fontWeight: "500",
   },
   sheetCloseButton: {
     height: 50,
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   sheetCloseButtonText: {
     color: "#FFF",

@@ -41,15 +41,15 @@ export function getForwardPreviewText(data: ForwardedMessageData): string {
 
   switch (data.attachment_type) {
     case "image":
-      return "📷 Foto";
+      return "Foto";
     case "video":
-      return "🎥 Vídeo";
+      return "Vídeo";
     case "audio":
-      return "🎵 Áudio";
+      return "Áudio";
     case "document":
-      return "📁 Arquivo";
+      return "Arquivo";
     default:
-      if (data.image_url || data.local_file_path) return "📎 Mídia";
+      if (data.image_url || data.local_file_path) return "Mídia";
       return "Mensagem";
   }
 }
