@@ -153,11 +153,59 @@ export interface CreateEventPayload {
   max_attendees?: number;
 }
 
+function toApiVisibility(visibility?: CommunityVisibility): string | undefined {
+  if (!visibility) return undefined;
+  if (visibility === "public") return "PUBLIC";
+  return "PRIVATE";
+}
+
+function fromApiVisibility(visibility: string): CommunityVisibility {
+  const normalized = visibility.toLowerCase();
+  if (normalized === "public" || normalized === "private") return normalized;
+  if (normalized === "invite_only") return "private";
+  return "public";
+}
+
+function normalizeCommunity(community: Community): Community {
+  return {
+    ...community,
+    visibility: fromApiVisibility(community.visibility),
+  };
+}
+
+function toApiChannelType(type?: ChannelType): string | undefined {
+  if (!type) return undefined;
+  const map: Record<ChannelType, string> = {
+    text: "CHAT",
+    forum: "FORUM",
+    event: "EVENT",
+  };
+  return map[type];
+}
+
+function fromApiChannelType(type: string): ChannelType {
+  const normalized = type.toUpperCase();
+  if (normalized === "CHAT" || normalized === "ANNOUNCEMENTS") return "text";
+  if (normalized === "FORUM") return "forum";
+  if (normalized === "EVENT") return "event";
+  return "text";
+}
+
+function normalizeChannel(channel: CommunityChannel): CommunityChannel {
+  return {
+    ...channel,
+    type: fromApiChannelType(channel.type),
+  };
+}
+
 export const communityApi = {
   async listCommunities(token: string): Promise<Community[]> {
     try {
       const data = await authFetch(`${API_URL}/communities`, token);
-      if (Array.isArray(data)) return data;
+      const communities = Array.isArray(data) ? data : data.communities;
+      if (Array.isArray(communities)) {
+        return communities.map(normalizeCommunity);
+      }
     } catch (err) {
       console.warn("Backend /communities call failed:", err);
     }
@@ -166,7 +214,9 @@ export const communityApi = {
 
   async getCommunity(token: string, id: string): Promise<Community | null> {
     try {
-      return await authFetch(`${API_URL}/communities/${id}`, token);
+      const data = await authFetch(`${API_URL}/communities/${id}`, token);
+      const community = data.community ?? data;
+      return community ? normalizeCommunity(community) : null;
     } catch (err) {
       console.warn(`Backend /communities/${id} failed:`, err);
     }
@@ -174,17 +224,27 @@ export const communityApi = {
   },
 
   async createCommunity(token: string, payload: CreateCommunityPayload): Promise<Community> {
-    return await authFetch(`${API_URL}/communities`, token, {
+    const data = await authFetch(`${API_URL}/communities`, token, {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        visibility: toApiVisibility(payload.visibility),
+      }),
     });
+    const community = data.community ?? data;
+    return normalizeCommunity(community);
   },
 
   async updateCommunity(token: string, id: string, payload: Partial<CreateCommunityPayload>): Promise<Community> {
-    return await authFetch(`${API_URL}/communities/${id}`, token, {
+    const data = await authFetch(`${API_URL}/communities/${id}`, token, {
       method: "PATCH",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        visibility: payload.visibility ? toApiVisibility(payload.visibility) : undefined,
+      }),
     });
+    const community = data.community ?? data;
+    return normalizeCommunity(community);
   },
 
   async deleteCommunity(token: string, id: string): Promise<boolean> {
@@ -212,20 +272,25 @@ export const communityApi = {
 
   async joinByCode(token: string, code: string): Promise<Community | null> {
     try {
-      return await authFetch(`${API_URL}/communities/join`, token, {
+      const data = await authFetch(`${API_URL}/communities/join`, token, {
         method: "POST",
         body: JSON.stringify({ code }),
       });
+      if (data.community) return normalizeCommunity(data.community);
+      if (data.community_id) return this.getCommunity(token, data.community_id);
     } catch (err) {
       console.warn("Backend join by code failed:", err);
-      return null;
     }
+    return null;
   },
 
   async listChannels(token: string, communityId: string): Promise<CommunityChannel[]> {
     try {
       const data = await authFetch(`${API_URL}/communities/${communityId}/channels`, token);
-      if (Array.isArray(data)) return data;
+      const channels = Array.isArray(data) ? data : data.channels;
+      if (Array.isArray(channels)) {
+        return channels.map(normalizeChannel);
+      }
     } catch (err) {
       console.warn("Backend list channels failed:", err);
     }
@@ -233,16 +298,22 @@ export const communityApi = {
   },
 
   async createChannel(token: string, communityId: string, payload: CreateChannelPayload): Promise<CommunityChannel> {
-    return await authFetch(`${API_URL}/communities/${communityId}/channels`, token, {
+    const data = await authFetch(`${API_URL}/communities/${communityId}/channels`, token, {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        type: toApiChannelType(payload.type),
+      }),
     });
+    const channel = data.channel ?? data;
+    return normalizeChannel(channel);
   },
 
   async listMessages(token: string, communityId: string, channelId: string): Promise<CommunityMessage[]> {
     try {
       const data = await authFetch(`${API_URL}/communities/${communityId}/channels/${channelId}/messages`, token);
-      if (Array.isArray(data)) return data;
+      const messages = Array.isArray(data) ? data : data.messages;
+      if (Array.isArray(messages)) return messages;
     } catch (err) {
       console.warn("Backend list messages failed:", err);
     }
@@ -256,10 +327,11 @@ export const communityApi = {
     content: string,
     imageUrl?: string
   ): Promise<CommunityMessage> {
-    return await authFetch(`${API_URL}/communities/${communityId}/channels/${channelId}/messages`, token, {
+    const data = await authFetch(`${API_URL}/communities/${communityId}/channels/${channelId}/messages`, token, {
       method: "POST",
       body: JSON.stringify({ content, image_url: imageUrl }),
     });
+    return data.message ?? data;
   },
 
   async listPosts(token: string, communityId: string, channelId?: string): Promise<CommunityPost[]> {
@@ -268,7 +340,8 @@ export const communityApi = {
         ? `${API_URL}/communities/${communityId}/posts?channel_id=${channelId}`
         : `${API_URL}/communities/${communityId}/posts`;
       const data = await authFetch(url, token);
-      if (Array.isArray(data)) return data;
+      const posts = Array.isArray(data) ? data : data.posts;
+      if (Array.isArray(posts)) return posts;
     } catch (err) {
       console.warn("Backend list posts failed:", err);
     }
@@ -276,16 +349,18 @@ export const communityApi = {
   },
 
   async createPost(token: string, communityId: string, payload: CreatePostPayload): Promise<CommunityPost> {
-    return await authFetch(`${API_URL}/communities/${communityId}/posts`, token, {
+    const data = await authFetch(`${API_URL}/communities/${communityId}/posts`, token, {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    return data.post ?? data;
   },
 
   async listComments(token: string, communityId: string, postId: string): Promise<CommunityComment[]> {
     try {
       const data = await authFetch(`${API_URL}/communities/${communityId}/posts/${postId}/comments`, token);
-      if (Array.isArray(data)) return data;
+      const comments = Array.isArray(data) ? data : data.comments;
+      if (Array.isArray(comments)) return comments;
     } catch (err) {
       console.warn("Backend list comments failed:", err);
     }
@@ -293,16 +368,18 @@ export const communityApi = {
   },
 
   async createComment(token: string, communityId: string, postId: string, content: string): Promise<CommunityComment> {
-    return await authFetch(`${API_URL}/communities/${communityId}/posts/${postId}/comments`, token, {
+    const data = await authFetch(`${API_URL}/communities/${communityId}/posts/${postId}/comments`, token, {
       method: "POST",
       body: JSON.stringify({ content }),
     });
+    return data.comment ?? data;
   },
 
   async listEvents(token: string, communityId: string): Promise<CommunityEvent[]> {
     try {
       const data = await authFetch(`${API_URL}/communities/${communityId}/events`, token);
-      if (Array.isArray(data)) return data;
+      const events = Array.isArray(data) ? data : data.events;
+      if (Array.isArray(events)) return events;
     } catch (err) {
       console.warn("Backend list events failed:", err);
     }
@@ -310,10 +387,11 @@ export const communityApi = {
   },
 
   async createEvent(token: string, communityId: string, payload: CreateEventPayload): Promise<CommunityEvent> {
-    return await authFetch(`${API_URL}/communities/${communityId}/events`, token, {
+    const data = await authFetch(`${API_URL}/communities/${communityId}/events`, token, {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    return data.event ?? data;
   },
 
   async rsvpEvent(token: string, communityId: string, eventId: string, status: EventRsvpStatus): Promise<boolean> {
@@ -332,7 +410,8 @@ export const communityApi = {
   async listMembers(token: string, communityId: string): Promise<CommunityMember[]> {
     try {
       const data = await authFetch(`${API_URL}/communities/${communityId}/members`, token);
-      if (Array.isArray(data)) return data;
+      const members = Array.isArray(data) ? data : data.members;
+      if (Array.isArray(members)) return members;
     } catch (err) {
       console.warn("Backend list members failed:", err);
     }
@@ -342,7 +421,8 @@ export const communityApi = {
   async listInvites(token: string, communityId: string): Promise<CommunityInvite[]> {
     try {
       const data = await authFetch(`${API_URL}/communities/${communityId}/invites`, token);
-      if (Array.isArray(data)) return data;
+      const invites = Array.isArray(data) ? data : data.invites;
+      if (Array.isArray(invites)) return invites;
     } catch (err) {
       console.warn("Backend list invites failed:", err);
     }
@@ -350,9 +430,10 @@ export const communityApi = {
   },
 
   async createInvite(token: string, communityId: string): Promise<CommunityInvite> {
-    return await authFetch(`${API_URL}/communities/${communityId}/invites`, token, {
+    const data = await authFetch(`${API_URL}/communities/${communityId}/invites`, token, {
       method: "POST",
       body: JSON.stringify({ expires_in_days: 7 }),
     });
+    return data.invite ?? data;
   },
 };

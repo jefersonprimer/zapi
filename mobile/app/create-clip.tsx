@@ -8,7 +8,6 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  Platform,
   Dimensions,
   FlatList,
 } from "react-native";
@@ -29,7 +28,6 @@ import {
   ZapOff,
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
-import { useAppTheme } from "@/context/ThemeContext";
 import { uploadFile } from "@/services/api";
 import * as updatesApi from "@/services/updatesApi";
 
@@ -50,7 +48,6 @@ interface SelectedMedia {
 }
 
 export default function CreateClipScreen() {
-  const { colors } = useAppTheme();
   const { token } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -158,6 +155,11 @@ export default function CreateClipScreen() {
     }
   }, []);
 
+  const stopRecording = useCallback(() => {
+    if (!cameraRef.current || !isRecording) return;
+    cameraRef.current.stopRecording();
+  }, [isRecording]);
+
   const startRecording = useCallback(async () => {
     if (!cameraRef.current || isRecording) return;
     try {
@@ -202,12 +204,7 @@ export default function CreateClipScreen() {
     } finally {
       setIsRecording(false);
     }
-  }, [isRecording, recordingDuration]);
-
-  const stopRecording = useCallback(() => {
-    if (!cameraRef.current || !isRecording) return;
-    cameraRef.current.stopRecording();
-  }, [isRecording]);
+  }, [isRecording, recordingDuration, stopRecording]);
 
   const handleCapturePress = useCallback(() => {
     if (captureType === "photo") {

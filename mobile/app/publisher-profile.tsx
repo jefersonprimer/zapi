@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -39,6 +39,11 @@ function formatFollowers(count: number): string {
 function formatFollowing(count: number): string {
   if (count === 1) return "1 seguindo";
   return `${count.toLocaleString("pt-BR")} seguindo`;
+}
+
+function formatPostsCount(count: number): string {
+  if (count === 1) return "1 publicação";
+  return `${count} publicações`;
 }
 
 function getPreviewAttachment(post: FeedPostType) {
@@ -140,6 +145,7 @@ export default function PublisherProfileScreen() {
   const [toggling, setToggling] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [activeTab, setActiveTab] = useState<"posts" | "clips">("posts");
 
   const loadPosts = useCallback(
     async (pageNum: number, replace: boolean) => {
@@ -263,6 +269,15 @@ export default function PublisherProfileScreen() {
     }
   };
 
+  const displayedPosts = useMemo(() => {
+    return posts.filter((p) => {
+      if (activeTab === "clips") {
+        return p.type === "clip";
+      }
+      return p.type !== "clip";
+    });
+  }, [posts, activeTab]);
+
   if (loading) {
     return (
       <View
@@ -327,6 +342,7 @@ export default function PublisherProfileScreen() {
             : ""}
       </Text>
       <Text style={[styles.followersCount, { color: colors.text }]}>
+        {formatPostsCount(posts.length)} ·{" "}
         {formatFollowers(publisher.followers_count ?? 0)} ·{" "}
         {formatFollowing(publisher.following_count ?? 0)}
       </Text>
@@ -352,15 +368,24 @@ export default function PublisherProfileScreen() {
           </Text>
         </TouchableOpacity>
       )}
-      {posts.length > 0 && (
-        <View
-          style={[styles.postsDivider, { borderBottomColor: colors.border }]}
+      <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === "posts" && styles.activeTabItem]}
+          onPress={() => setActiveTab("posts")}
         >
-          <Text style={[styles.postsTitle, { color: colors.text }]}>
+          <Text style={[styles.tabText, { color: activeTab === "posts" ? colors.text : colors.textSecondary }]}>
             Publicações
           </Text>
-        </View>
-      )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === "clips" && styles.activeTabItem]}
+          onPress={() => setActiveTab("clips")}
+        >
+          <Text style={[styles.tabText, { color: activeTab === "clips" ? colors.text : colors.textSecondary }]}>
+            Clips
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -383,10 +408,10 @@ export default function PublisherProfileScreen() {
       </View>
 
       <FlatList
-        data={posts}
+        data={displayedPosts}
         keyExtractor={(item) => item.id}
         numColumns={COLS}
-        columnWrapperStyle={posts.length > 0 ? styles.gridRow : undefined}
+        columnWrapperStyle={displayedPosts.length > 0 ? styles.gridRow : undefined}
         renderItem={({ item }) => (
           <PostGridItem
             post={item}
@@ -397,7 +422,7 @@ export default function PublisherProfileScreen() {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           <Text style={[styles.emptyPosts, { color: colors.textSecondary }]}>
-            Nenhuma publicação ainda
+            {activeTab === "posts" ? "Nenhuma publicação ainda" : "Nenhum clip ainda"}
           </Text>
         }
         ListFooterComponent={
@@ -492,14 +517,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   followText: { fontSize: 15, fontWeight: "600" },
-  postsDivider: {
+  tabBar: {
+    flexDirection: "row",
     width: "100%",
     borderBottomWidth: StyleSheet.hairlineWidth,
     marginTop: 20,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
   },
-  postsTitle: { fontSize: 15, fontWeight: "600" },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  activeTabItem: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#07C160",
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
   gridRow: {
     flexDirection: "row",
     justifyContent: "flex-start",
@@ -526,7 +562,7 @@ const styles = StyleSheet.create({
   multiBadge: {
     position: "absolute",
     top: 8,
-    left: 8,
+    right: 32,
     backgroundColor: "rgba(0,0,0,0.55)",
     borderRadius: 10,
     paddingHorizontal: 6,

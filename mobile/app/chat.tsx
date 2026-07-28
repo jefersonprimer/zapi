@@ -130,7 +130,7 @@ export default function ChatScreen() {
       shouldStickToBottomRef.current = true;
       const frame = requestAnimationFrame(() => scrollToBottom(false));
       return () => cancelAnimationFrame(frame);
-    }, [chatId, scrollToBottom]),
+    }, [scrollToBottom]),
   );
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export default function ChatScreen() {
       const frame = requestAnimationFrame(() => scrollToBottom(false));
       return () => cancelAnimationFrame(frame);
     }
-  }, [isLoading, chatId, chatItems.length, scrollToBottom]);
+  }, [isLoading, chatItems.length, scrollToBottom]);
 
   const handleContentSizeChange = useCallback(() => {
     if (shouldStickToBottomRef.current) {

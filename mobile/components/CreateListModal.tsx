@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   TouchableOpacity,
   View,
@@ -64,7 +64,7 @@ export default function CreateListModal({
 
   const isEditMode = mode === "edit";
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     if (isEditMode) {
       setName(initialName);
       setColor(initialColor || COLOR_OPTIONS[0].emoji);
@@ -75,9 +75,9 @@ export default function CreateListModal({
       setIcon("");
     }
     setShowEmojiPicker(false);
-  };
+  }, [isEditMode, initialName, initialColor, initialIcon]);
 
-  const openSheet = () => {
+  const openSheet = useCallback(() => {
     overlayAnim.setValue(0);
     sheetAnim.setValue(SCREEN_HEIGHT);
     Animated.parallel([
@@ -93,7 +93,7 @@ export default function CreateListModal({
         useNativeDriver: true,
       }),
     ]).start();
-  };
+  }, [overlayAnim, sheetAnim]);
 
   const closeSheet = (callback?: () => void) => {
     Animated.parallel([
@@ -146,7 +146,7 @@ export default function CreateListModal({
       resetForm();
       openSheet();
     }
-  }, [visible, mode, initialName, initialColor, initialIcon]);
+  }, [visible, mode, initialName, initialColor, initialIcon, openSheet, resetForm]);
 
   const handleEmojiSelected = (emojiObject: { emoji: string }) => {
     setIcon(emojiObject.emoji);

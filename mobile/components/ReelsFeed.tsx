@@ -11,6 +11,8 @@ import { useUpdates } from "@/hooks/useUpdates";
 import ReelsItem, { ReelsVideo } from "./ReelsItem";
 import { getFullRemoteUrl } from "@/services/mediaCache";
 import { useAppTheme } from "@/context/ThemeContext";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { ShareBottomSheet } from "./ShareBottomSheet";
 
 export default function ReelsFeed() {
   const { colors } = useAppTheme();
@@ -19,22 +21,32 @@ export default function ReelsFeed() {
   const [reelsList, setReelsList] = useState<ReelsVideo[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [activeClipId, setActiveClipId] = useState<string | null>(null);
+
+  const shareSheetRef = useRef<BottomSheetModal>(null);
 
   useEffect(() => {
-    // Extract feed posts containing videos
-    const videoPosts: ReelsVideo[] = feed
-      .filter((post) => {
-        return post.type === "clip";
-      })
+    const clipPosts: ReelsVideo[] = feed
+      .filter((post) => post.type === "clip")
       .map((post) => {
         const videoAttachment = post.attachments?.find(
           (att) =>
             att.type === "video" ||
             att.mime_type?.startsWith("video/") === true
         );
+        const imageAttachment = post.attachments?.find(
+          (att) =>
+            att.type === "image" ||
+            att.type === "gif" ||
+            att.mime_type?.startsWith("image/") === true
+        );
+        const mediaAttachment = videoAttachment ?? imageAttachment;
+        const mediaType: "video" | "image" = videoAttachment ? "video" : "image";
+
         return {
           id: post.id,
-          videoUrl: videoAttachment ? getFullRemoteUrl(videoAttachment.url) : "",
+          mediaUrl: mediaAttachment ? getFullRemoteUrl(mediaAttachment.url) : "",
+          mediaType,
           caption: post.content || undefined,
           publisherId: post.publisher_id,
           publisherName: post.publisher_name,
@@ -52,15 +64,20 @@ export default function ReelsFeed() {
               pathname: "/comments-modal",
               params: { postId: post.id },
             }),
+          onShare: () => {
+            setActiveClipId(post.id);
+            shareSheetRef.current?.present();
+          },
           onProfilePress: () =>
             router.push({
               pathname: "/publisher-profile",
               params: { publisherId: post.publisher_id },
             }),
         };
-      });
+      })
+      .filter((item) => !!item.mediaUrl);
 
-    setReelsList(videoPosts);
+    setReelsList(clipPosts);
   }, [feed, toggleLike, toggleSave, router]);
 
   const onViewableItemsChanged = useRef(
@@ -115,6 +132,7 @@ export default function ReelsFeed() {
         windowSize={5}
         removeClippedSubviews={true}
       />
+      <ShareBottomSheet ref={shareSheetRef} clipId={activeClipId || ""} />
     </View>
   );
 }

@@ -15,7 +15,6 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
-  Send,
   BarChart3,
   Image as ImageIcon,
   Camera,

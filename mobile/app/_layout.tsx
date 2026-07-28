@@ -227,7 +227,10 @@ function InitialLayout() {
       <Stack.Screen name="create-post" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="saved-posts" options={{ headerShown: false }} />
       <Stack.Screen name="publisher-profile" options={{ headerShown: false }} />
-      <Stack.Screen name="comments-modal" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen
+        name="comments-modal"
+        options={{ headerShown: false, presentation: "transparentModal", animation: "fade" }}
+      />
       <Stack.Screen name="delivery/index" options={{ headerShown: false }} />
       <Stack.Screen name="delivery/[storeId]" options={{ headerShown: false }} />
       <Stack.Screen name="delivery/cart" options={{ headerShown: false }} />

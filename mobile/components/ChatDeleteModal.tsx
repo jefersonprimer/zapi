@@ -60,9 +60,7 @@ export const ChatDeleteModal: React.FC<ChatDeleteModalProps> = ({
                   ]}
                   onPress={onDeleteForEveryone}
                 >
-                  <Text style={styles.deleteButtonText}>
-                    Apagar para todos
-                  </Text>
+                  <Text style={styles.deleteButtonText}>Apagar para todos</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -73,10 +71,7 @@ export const ChatDeleteModal: React.FC<ChatDeleteModalProps> = ({
                   onPress={onDeleteForMe}
                 >
                   <Text
-                    style={[
-                      styles.deleteMeButtonText,
-                      { color: colors.tint },
-                    ]}
+                    style={[styles.deleteMeButtonText, { color: colors.tint }]}
                   >
                     Apagar para mim
                   </Text>
@@ -102,11 +97,7 @@ export const ChatDeleteModal: React.FC<ChatDeleteModalProps> = ({
             ) : (
               <>
                 <TouchableOpacity
-                  style={[
-                    styles.alertButton,
-                    styles.cancelButton,
-                    { backgroundColor: isDark ? "#2C2C2E" : "#f5f5f5" },
-                  ]}
+                  style={[styles.alertButton, styles.cancelButton]}
                   onPress={onClose}
                 >
                   <Text
@@ -119,11 +110,7 @@ export const ChatDeleteModal: React.FC<ChatDeleteModalProps> = ({
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[
-                    styles.alertButton,
-                    styles.deleteButton,
-                    { backgroundColor: colors.danger },
-                  ]}
+                  style={[styles.alertButton, styles.deleteButton]}
                   onPress={onDeleteForMe}
                 >
                   <Text style={styles.deleteButtonText}>Apagar para mim</Text>
@@ -175,11 +162,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: "#f5f5f5",
+    fontSize: 16,
     marginRight: 8,
   },
   deleteButton: {
-    backgroundColor: "#ff3b30",
+    fontSize: 16,
     marginLeft: 8,
   },
   cancelButtonText: {

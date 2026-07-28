@@ -18,7 +18,6 @@ import {
   VolumeX,
   Music,
   Play,
-  Pause,
 } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -26,7 +25,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export interface ReelsVideo {
   id: string;
-  videoUrl: string;
+  mediaUrl: string;
+  mediaType: "video" | "image";
   caption?: string;
   publisherId?: string;
   publisherName: string;
@@ -50,52 +50,51 @@ interface ReelsItemProps {
   onToggleMute: () => void;
 }
 
-export default function ReelsItem({
-  video,
+function ReelsVideoPlayer({
+  uri,
   isActive,
   isMuted,
-  onToggleMute,
-}: ReelsItemProps) {
-  const { colors } = useAppTheme();
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const player = useVideoPlayer(video.videoUrl, (p) => {
+  onPlayingChange,
+}: {
+  uri: string;
+  isActive: boolean;
+  isMuted: boolean;
+  onPlayingChange: (playing: boolean) => void;
+}) {
+  const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.muted = isMuted;
     if (isActive) {
       p.play();
-      setIsPlaying(true);
     }
   });
 
-  // Sync active state
   useEffect(() => {
     if (isActive) {
       player.play();
-      setIsPlaying(true);
+      onPlayingChange(true);
     } else {
       player.pause();
-      setIsPlaying(false);
+      onPlayingChange(false);
     }
-  }, [isActive, player]);
+  }, [isActive, player, onPlayingChange]);
 
-  // Sync mute state
   useEffect(() => {
     player.muted = isMuted;
   }, [isMuted, player]);
 
-  const handlePressVideo = useCallback(() => {
+  const handlePress = useCallback(() => {
     if (player.playing) {
       player.pause();
-      setIsPlaying(false);
+      onPlayingChange(false);
     } else {
       player.play();
-      setIsPlaying(true);
+      onPlayingChange(true);
     }
-  }, [player]);
+  }, [player, onPlayingChange]);
 
   return (
-    <Pressable style={styles.container} onPress={handlePressVideo}>
+    <Pressable style={StyleSheet.absoluteFill} onPress={handlePress}>
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
@@ -103,24 +102,58 @@ export default function ReelsItem({
         nativeControls={false}
         pointerEvents="none"
       />
+    </Pressable>
+  );
+}
 
-      {/* Mute status overlay indicator (briefly shown or absolute icon) */}
-      <TouchableOpacity
-        style={styles.muteButton}
-        onPress={(e) => {
-          e.stopPropagation();
-          onToggleMute();
-        }}
-      >
-        {isMuted ? (
-          <VolumeX size={20} color="white" />
-        ) : (
-          <Volume2 size={20} color="white" />
-        )}
-      </TouchableOpacity>
+export default function ReelsItem({
+  video,
+  isActive,
+  isMuted,
+  onToggleMute,
+}: ReelsItemProps) {
+  const { colors } = useAppTheme();
+  const isImage = video.mediaType === "image";
+  const [isPlaying, setIsPlaying] = useState(false);
 
-      {/* Pause/Play overlay indicator */}
-      {!isPlaying ? (
+  const handlePlayingChange = useCallback((playing: boolean) => {
+    setIsPlaying(playing);
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      {isImage ? (
+        <Image
+          source={{ uri: video.mediaUrl }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        />
+      ) : (
+        <ReelsVideoPlayer
+          uri={video.mediaUrl}
+          isActive={isActive}
+          isMuted={isMuted}
+          onPlayingChange={handlePlayingChange}
+        />
+      )}
+
+      {!isImage ? (
+        <TouchableOpacity
+          style={styles.muteButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            onToggleMute();
+          }}
+        >
+          {isMuted ? (
+            <VolumeX size={20} color="white" />
+          ) : (
+            <Volume2 size={20} color="white" />
+          )}
+        </TouchableOpacity>
+      ) : null}
+
+      {!isImage && !isPlaying ? (
         <View style={styles.playPauseOverlay} pointerEvents="none">
           <View style={styles.playPauseCircle}>
             <Play size={28} color="white" fill="white" />
@@ -130,7 +163,6 @@ export default function ReelsItem({
 
       {/* Side Interactions (Like, Comment, Share, Save) */}
       <View style={styles.rightContainer}>
-        {/* Publisher Avatar */}
         <TouchableOpacity
           style={styles.avatarContainer}
           onPress={(e) => {
@@ -152,7 +184,6 @@ export default function ReelsItem({
           )}
         </TouchableOpacity>
 
-        {/* Like */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={(e) => {
@@ -168,7 +199,6 @@ export default function ReelsItem({
           <Text style={styles.actionText}>{video.likesCount}</Text>
         </TouchableOpacity>
 
-        {/* Comment */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={(e) => {
@@ -180,7 +210,6 @@ export default function ReelsItem({
           <Text style={styles.actionText}>{video.commentsCount}</Text>
         </TouchableOpacity>
 
-        {/* Save */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={(e) => {
@@ -195,7 +224,6 @@ export default function ReelsItem({
           />
         </TouchableOpacity>
 
-        {/* Share */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={(e) => {
@@ -207,7 +235,6 @@ export default function ReelsItem({
         </TouchableOpacity>
       </View>
 
-      {/* Bottom Info Overlay */}
       <View style={styles.bottomContainer} pointerEvents="box-none">
         <TouchableOpacity
           onPress={(e) => {
@@ -217,21 +244,23 @@ export default function ReelsItem({
         >
           <Text style={styles.publisherName}>@{video.publisherName}</Text>
         </TouchableOpacity>
-        
+
         {video.caption ? (
           <Text style={styles.caption} numberOfLines={3}>
             {video.caption}
           </Text>
         ) : null}
 
-        <View style={styles.musicContainer}>
-          <Music size={14} color="white" style={styles.musicIcon} />
-          <Text style={styles.musicText} numberOfLines={1}>
-            Áudio original • {video.publisherName}
-          </Text>
-        </View>
+        {!isImage ? (
+          <View style={styles.musicContainer}>
+            <Music size={14} color="white" style={styles.musicIcon} />
+            <Text style={styles.musicText} numberOfLines={1}>
+              Áudio original • {video.publisherName}
+            </Text>
+          </View>
+        ) : null}
       </View>
-    </Pressable>
+    </View>
   );
 }
 
