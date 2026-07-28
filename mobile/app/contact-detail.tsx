@@ -1108,7 +1108,7 @@ export default function ContactDetailScreen() {
           setCreateListModalVisible(false);
           setListSelectorVisible(true);
         }}
-        onCreate={handleCreateList}
+        onSubmit={handleCreateList}
       />
     </View>
   );

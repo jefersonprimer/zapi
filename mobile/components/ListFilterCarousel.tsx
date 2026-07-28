@@ -11,19 +11,23 @@ import {
 } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
+const getListColorHex = (colorEmoji: string | null | undefined): string | null => {
+  if (colorEmoji === "🔴") return "#ef4444";
+  if (colorEmoji === "🟠") return "#f97316";
+  if (colorEmoji === "🟡") return "#eab308";
+  if (colorEmoji === "🟢") return "#22c55e";
+  if (colorEmoji === "🔵") return "#3b82f6";
+  if (colorEmoji === "🟣") return "#a855f7";
+  return null;
+};
+
 const renderListIcon = (
   iconName: string | null,
   colorColor: string | null,
   tintColor: string,
   size: number = 20,
 ) => {
-  let hexColor = tintColor;
-  if (colorColor === "🔴") hexColor = "#ef4444";
-  else if (colorColor === "🟠") hexColor = "#f97316";
-  else if (colorColor === "🟡") hexColor = "#eab308";
-  else if (colorColor === "🟢") hexColor = "#22c55e";
-  else if (colorColor === "🔵") hexColor = "#3b82f6";
-  else if (colorColor === "🟣") hexColor = "#a855f7";
+  const hexColor = getListColorHex(colorColor) ?? tintColor;
 
   switch (iconName) {
     case "❤️":
@@ -39,6 +43,9 @@ const renderListIcon = (
     case "📚":
       return <BookOpen size={size} color={hexColor} fill={hexColor + "22"} />;
     default:
+      if (iconName) {
+        return <Text style={{ fontSize: size }}>{iconName}</Text>;
+      }
       return <Folder size={size} color={hexColor} fill={hexColor + "22"} />;
   }
 };
@@ -70,28 +77,44 @@ export default function ListFilterCarousel({
     >
       {orderedFilters.map((item) => {
         const isActive = activeFilterId === item.id;
+        const listColorHex = getListColorHex(item.color);
+        const hasCustomColor = !!listColorHex && !item.isSystem;
+
         return (
           <TouchableOpacity
             key={item.id}
             style={[
               styles.filterChip,
               {
-                backgroundColor: "transparent",
-                borderColor: colors.border,
-                borderWidth: 1,
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
+                borderWidth: 1,
+                backgroundColor: hasCustomColor
+                  ? listColorHex + (isActive ? "55" : "30")
+                  : "transparent",
+                borderColor: hasCustomColor
+                  ? listColorHex
+                  : colors.border,
               },
-              isActive && {
-                backgroundColor: colors.brandGreen + "46",
-                borderColor: colors.brandGreen,
-                elevation: 2,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.15,
-                shadowRadius: 2,
-              },
+              isActive &&
+                !hasCustomColor && {
+                  backgroundColor: colors.brandGreen + "46",
+                  borderColor: colors.brandGreen,
+                  elevation: 2,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 2,
+                },
+              isActive &&
+                hasCustomColor && {
+                  elevation: 2,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 2,
+                },
             ]}
             onPress={() => onSelectFilter(item.id)}
             onLongPress={() => onLongPressFilter(item)}

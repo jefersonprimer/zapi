@@ -32,6 +32,7 @@ export default function FeedPost({
   return (
     <View style={[styles.card, { borderBottomColor: colors.border }]}>
       <PostHeader
+        publisherId={post.publisher_id}
         publisherName={post.publisher_name}
         publisherAvatar={post.publisher_avatar}
         publisherType={post.publisher_type}

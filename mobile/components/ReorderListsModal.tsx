@@ -10,15 +10,7 @@ import {
 } from "react-native";
 import {
   GripVertical,
-  Folder,
-  Bell,
-  Star,
-  Users,
-  Heart,
-  Briefcase,
-  Home,
-  Gamepad2,
-  BookOpen,
+  Trash2,
 } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -27,80 +19,15 @@ interface ReorderListsModalProps {
   onClose: () => void;
   orderedFilters: any[];
   onReorderEnd: (updatedLists: any[]) => Promise<void>;
+  onDeleteList?: (listId: string) => void;
 }
-
-const renderListIcon = (
-  iconName: string | null,
-  colorColor: string | null,
-  tintColor: string,
-  size: number = 20,
-) => {
-  let hexColor = tintColor;
-  if (colorColor === "🔴") hexColor = "#ef4444";
-  else if (colorColor === "🟠") hexColor = "#f97316";
-  else if (colorColor === "🟡") hexColor = "#eab308";
-  else if (colorColor === "🟢") hexColor = "#22c55e";
-  else if (colorColor === "🔵") hexColor = "#3b82f6";
-  else if (colorColor === "🟣") hexColor = "#a855f7";
-
-  switch (iconName) {
-    case "❤️":
-      return <Heart size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "⭐":
-      return <Star size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "💼":
-      return <Briefcase size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "🏠":
-      return <Home size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "🎮":
-      return <Gamepad2 size={size} color={hexColor} fill={hexColor + "22"} />;
-    case "📚":
-      return <BookOpen size={size} color={hexColor} fill={hexColor + "22"} />;
-    default:
-      return <Folder size={size} color={hexColor} fill={hexColor + "22"} />;
-  }
-};
-
-const renderReorderListLeading = (
-  item: {
-    id: string;
-    icon: string | null;
-    color: string | null;
-    isSystem: boolean;
-  },
-  tintColor: string,
-  secondaryColor: string,
-) => {
-  const size = 20;
-  let icon = null;
-
-  if (item.isSystem) {
-    switch (item.id) {
-      case "all":
-        icon = <Folder size={size} color={secondaryColor} />;
-        break;
-      case "unread":
-        icon = <Bell size={size} color={secondaryColor} />;
-        break;
-      case "favorites":
-        icon = <Star size={size} color={secondaryColor} />;
-        break;
-      case "groups":
-        icon = <Users size={size} color={secondaryColor} />;
-        break;
-    }
-  } else {
-    icon = renderListIcon(item.icon, item.color, tintColor, size);
-  }
-
-  return <View style={styles.reorderListIconSlot}>{icon}</View>;
-};
 
 export default function ReorderListsModal({
   visible,
   onClose,
   orderedFilters,
   onReorderEnd,
+  onDeleteList,
 }: ReorderListsModalProps) {
   const { colors, isDark } = useAppTheme();
   const [reorderLists, setReorderLists] = useState<any[]>(orderedFilters);
@@ -207,10 +134,7 @@ export default function ReorderListsModal({
       onRequestClose={handleClose}
     >
       <TouchableOpacity
-        style={[
-          StyleSheet.absoluteFillObject,
-          { zIndex: 1000 },
-        ]}
+        style={[StyleSheet.absoluteFillObject, { zIndex: 1000 }]}
         activeOpacity={1}
         onPress={handleClose}
       >
@@ -237,18 +161,26 @@ export default function ReorderListsModal({
           onStartShouldSetResponder={() => true}
         >
           <View style={styles.dragHandleContainer}>
-            <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.dragHandle, { backgroundColor: colors.border }]}
+            />
           </View>
 
           <Text style={[styles.dialogTitle, { color: colors.text }]}>
-            Reorganizar Listas
+            Reorganizar Tags
           </Text>
 
-          <Text style={{ color: colors.textSecondary, marginBottom: 12, fontSize: 13 }}>
-            Arrastar o ícone no lado direito para cima ou para baixo para reordenar.
+          <Text
+            style={[styles.dialogDescription, { color: colors.textSecondary }]}
+          >
+            Arrastar o ícone no lado direito para cima ou para baixo para
+            reordenar.
           </Text>
 
-          <ScrollView scrollEnabled={!isDragging} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            scrollEnabled={!isDragging}
+            showsVerticalScrollIndicator={false}
+          >
             {reorderLists.map((item, index) => {
               const isItemDragging =
                 isDragging && activeDragIndex.current === index;
@@ -267,34 +199,38 @@ export default function ReorderListsModal({
                   }}
                 >
                   <View style={styles.reorderListLeading}>
-                    {renderReorderListLeading(
-                      item,
-                      colors.tint,
-                      colors.textSecondary,
-                    )}
                     <Text
-                      style={[
-                        styles.reorderListName,
-                        { color: colors.text },
-                      ]}
+                      style={[styles.reorderListName, { color: colors.text }]}
                       numberOfLines={1}
                     >
                       {item.name}
                     </Text>
                   </View>
 
-                  <View
-                    style={{ padding: 12 }}
-                    onStartShouldSetResponder={() => true}
-                    onResponderGrant={(e) =>
-                      handleTouchStart(index, e.nativeEvent.pageY)
-                    }
-                    onResponderMove={(e) =>
-                      handleTouchMove(e.nativeEvent.pageY)
-                    }
-                    onResponderRelease={handleTouchEnd}
-                  >
-                    <GripVertical size={20} color={colors.textSecondary} />
+                  <View style={styles.reorderListActions}>
+                    {!item.isSystem && onDeleteList ? (
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => onDeleteList(item.id)}
+                        hitSlop={8}
+                      >
+                        <Trash2 size={18} color={colors.danger} />
+                      </TouchableOpacity>
+                    ) : null}
+
+                    <View
+                      style={styles.reorderDragHandle}
+                      onStartShouldSetResponder={() => true}
+                      onResponderGrant={(e) =>
+                        handleTouchStart(index, e.nativeEvent.pageY)
+                      }
+                      onResponderMove={(e) =>
+                        handleTouchMove(e.nativeEvent.pageY)
+                      }
+                      onResponderRelease={handleTouchEnd}
+                    >
+                      <GripVertical size={20} color={colors.textSecondary} />
+                    </View>
                   </View>
                 </View>
               );
@@ -334,29 +270,34 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
   },
   dialogTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "500",
     textAlign: "center",
     marginBottom: 16,
   },
+  dialogDescription: {
+    textAlign: "center",
+    marginBottom: 12,
+    fontSize: 14,
+  },
   reorderListLeading: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
     paddingRight: 8,
   },
-  reorderListIconSlot: {
-    width: 28,
-    height: 28,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   reorderListName: {
-    flex: 1,
     fontSize: 16,
     fontWeight: "500",
     lineHeight: 20,
     includeFontPadding: false,
+  },
+  reorderListActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  reorderDragHandle: {
+    padding: 12,
   },
 });

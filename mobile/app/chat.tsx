@@ -640,7 +640,7 @@ export default function ChatScreen() {
           setCreateListModalVisible(false);
           setListSelectorVisible(true);
         }}
-        onCreate={handleCreateList}
+        onSubmit={handleCreateList}
       />
 
       {/* Delete Confirmation Modal */}

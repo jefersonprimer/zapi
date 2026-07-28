@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, TouchableOpacity, View, Text, StyleSheet, Animated } from "react-native";
+import {
+  Modal,
+  TouchableOpacity,
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+} from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 const ACTIVE_GREEN = "#34C759";
@@ -18,8 +25,15 @@ interface RadioButtonProps {
 }
 
 const RadioButton = ({ selected, isDark }: RadioButtonProps) => (
-  <View style={[styles.radioOuter, { borderColor: selected ? ACTIVE_GREEN : (isDark ? "#48484A" : "#C7C7CC") }]}>
-    {selected && <View style={[styles.radioInner, { backgroundColor: ACTIVE_GREEN }]} />}
+  <View
+    style={[
+      styles.radioOuter,
+      { borderColor: selected ? ACTIVE_GREEN : isDark ? "#48484A" : "#C7C7CC" },
+    ]}
+  >
+    {selected && (
+      <View style={[styles.radioInner, { backgroundColor: ACTIVE_GREEN }]} />
+    )}
   </View>
 );
 
@@ -129,7 +143,10 @@ export default function MuteModal({
                 : "rgba(255, 255, 255, 0.85)",
               borderColor: colors.border,
               opacity: dialogOpacity,
-              transform: [{ scale: dialogScale }, { translateY: dialogTranslateY }],
+              transform: [
+                { scale: dialogScale },
+                { translateY: dialogTranslateY },
+              ],
             },
           ]}
         >
@@ -137,7 +154,9 @@ export default function MuteModal({
             Silenciar Notificações
           </Text>
 
-          <Text style={[styles.dialogDescription, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.dialogDescription, { color: colors.textSecondary }]}
+          >
             Seus contatos não saberão que você silenciou a conversa.
           </Text>
 
@@ -160,7 +179,10 @@ export default function MuteModal({
               >
                 {opt.label}
               </Text>
-              <RadioButton selected={selectedOption === opt.value} isDark={isDark} />
+              <RadioButton
+                selected={selectedOption === opt.value}
+                isDark={isDark}
+              />
             </TouchableOpacity>
           ))}
 
@@ -172,15 +194,21 @@ export default function MuteModal({
           />
 
           <View style={styles.footerButtons}>
-            <TouchableOpacity onPress={() => handleClose()} style={styles.footerBtn}>
-              <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500" }}>
+            <TouchableOpacity
+              onPress={() => handleClose()}
+              style={styles.footerBtn}
+            >
+              <Text
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: 16,
+                }}
+              >
                 Cancelar
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleConfirm} style={styles.footerBtn}>
-              <Text style={{ color: colors.tint, fontSize: 16, fontWeight: "600" }}>
-                OK
-              </Text>
+              <Text style={{ color: colors.tint, fontSize: 16 }}>OK</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -207,12 +235,14 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   dialogTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: "500",
+    textAlign: "center",
+    marginBottom: 16,
   },
   dialogDescription: {
     fontSize: 14,
+    textAlign: "center",
     marginBottom: 16,
     lineHeight: 20,
   },

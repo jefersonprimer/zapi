@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -18,9 +18,16 @@ import {
   Send,
   BarChart3,
   Image as ImageIcon,
+  Camera,
   X,
   Video,
+  SendHorizonal,
 } from "lucide-react-native";
+import {
+  BottomSheetModal,
+  BottomSheetView,
+  BottomSheetBackdrop,
+} from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/context/AuthContext";
@@ -53,11 +60,23 @@ export default function CreatePostScreen() {
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [media, setMedia] = useState<SelectedMedia[]>([]);
   const [sending, setSending] = useState(false);
+  const cameraBottomSheetRef = useRef<BottomSheetModal>(null);
 
   const canSend =
     content.trim().length > 0 ||
     media.length > 0 ||
     (isPoll && pollOptions.filter((o) => o.trim()).length >= 2);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+      />
+    ),
+    [],
+  );
 
   const applyAssets = useCallback((assets: ImagePicker.ImagePickerAsset[]) => {
     setMedia((prev) => {
@@ -66,17 +85,18 @@ export default function CreatePostScreen() {
 
       const next = assets.slice(0, remaining).map((asset) => {
         const isVideo =
-          asset.type === "video" || asset.mimeType?.startsWith("video/") === true;
+          asset.type === "video" ||
+          asset.mimeType?.startsWith("video/") === true;
         return {
           uri: asset.uri,
           type: (isVideo ? "video" : "image") as "image" | "video",
           mimeType: asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg"),
-          name: isVideo
-            ? `post_${Date.now()}.mp4`
-            : `post_${Date.now()}.jpg`,
+          name: isVideo ? `post_${Date.now()}.mp4` : `post_${Date.now()}.jpg`,
           width: asset.width,
           height: asset.height,
-          duration: asset.duration ? Math.round(asset.duration / 1000) : undefined,
+          duration: asset.duration
+            ? Math.round(asset.duration / 1000)
+            : undefined,
           size: asset.fileSize,
         };
       });
@@ -88,15 +108,19 @@ export default function CreatePostScreen() {
   const openGallery = useCallback(async () => {
     try {
       if (media.length >= MAX_ATTACHMENTS) {
-        Alert.alert("Limite", `Você pode anexar no máximo ${MAX_ATTACHMENTS} arquivos.`);
+        Alert.alert(
+          "Limite",
+          `Você pode anexar no máximo ${MAX_ATTACHMENTS} arquivos.`,
+        );
         return;
       }
 
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
           "Permissão necessária",
-          "Precisamos de acesso à galeria para escolher foto ou vídeo."
+          "Precisamos de acesso à galeria para escolher foto ou vídeo.",
         );
         return;
       }
@@ -127,29 +151,33 @@ export default function CreatePostScreen() {
   const openCamera = useCallback(async () => {
     try {
       if (media.length >= MAX_ATTACHMENTS) {
-        Alert.alert("Limite", `Você pode anexar no máximo ${MAX_ATTACHMENTS} arquivos.`);
+        Alert.alert(
+          "Limite",
+          `Você pode anexar no máximo ${MAX_ATTACHMENTS} arquivos.`,
+        );
         return;
       }
 
       if (Platform.OS === "web") {
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = "image/*,video/*";
+        input.accept = "image/*";
         input.setAttribute("capture", "environment");
         input.onchange = (event: Event) => {
           const file = (event.target as HTMLInputElement).files?.[0];
           if (!file) return;
-          const isVideo = file.type.startsWith("video/");
           const uri = URL.createObjectURL(file);
-          applyAssets([{
-            uri,
-            width: 0,
-            height: 0,
-            type: isVideo ? "video" : "image",
-            mimeType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
-            fileName: file.name,
-            fileSize: file.size,
-          } as any]);
+          applyAssets([
+            {
+              uri,
+              width: 0,
+              height: 0,
+              type: "image",
+              mimeType: file.type || "image/jpeg",
+              fileName: file.name,
+              fileSize: file.size,
+            } as any,
+          ]);
         };
         input.click();
         return;
@@ -159,50 +187,27 @@ export default function CreatePostScreen() {
       if (status !== "granted") {
         Alert.alert(
           "Permissão necessária",
-          "Precisamos de acesso à câmera para tirar foto ou gravar vídeo."
+          "Precisamos de acesso à câmera para tirar foto.",
         );
         return;
       }
 
-      const launch = async (type: "images" | "videos") => {
-        const result = await ImagePicker.launchCameraAsync({
-          mediaTypes: [type],
-          quality: 0.85,
-          videoMaxDuration: 60,
-        });
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        quality: 0.85,
+      });
 
-        if (!result.canceled && result.assets.length > 0) {
-          applyAssets(result.assets);
-        }
-      };
-
-      Alert.alert(
-        "Câmera",
-        "Como deseja usar a câmera?",
-        [
-          { text: "Tirar Foto", onPress: () => launch("images") },
-          { text: "Gravar Vídeo", onPress: () => launch("videos") },
-          { text: "Cancelar", style: "cancel" },
-        ],
-        { cancelable: true }
-      );
+      if (!result.canceled && result.assets.length > 0) {
+        applyAssets(result.assets);
+      }
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível abrir a câmera.");
     }
   }, [media.length, applyAssets]);
 
   const handleSelectMediaOption = useCallback(() => {
-    Alert.alert(
-      "Adicionar Mídia",
-      "Como deseja adicionar foto ou vídeo?",
-      [
-        { text: "Escolher da Galeria", onPress: openGallery },
-        { text: "Usar Câmera", onPress: openCamera },
-        { text: "Cancelar", style: "cancel" },
-      ],
-      { cancelable: true }
-    );
-  }, [openGallery, openCamera]);
+    cameraBottomSheetRef.current?.present();
+  }, []);
 
   const removeMedia = useCallback((index: number) => {
     setMedia((prev) => prev.filter((_, i) => i !== index));
@@ -224,7 +229,12 @@ export default function CreatePostScreen() {
       }[] = [];
 
       for (const item of media) {
-        const uploaded = await uploadFile(token, item.uri, item.name, item.mimeType);
+        const uploaded = await uploadFile(
+          token,
+          item.uri,
+          item.name,
+          item.mimeType,
+        );
         attachments.push({
           url: uploaded.url,
           type: item.type,
@@ -281,23 +291,32 @@ export default function CreatePostScreen() {
       <View
         style={[
           styles.header,
-          { paddingTop: insets.top + 8, backgroundColor: colors.headerBackground },
+          {
+            paddingTop: insets.top + 8,
+            backgroundColor: colors.headerBackground,
+          },
         ]}
       >
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Criar post</Text>
+        <View style={{ flex: 1 }} />
         <TouchableOpacity onPress={handleSend} disabled={sending || !canSend}>
           {sending ? (
             <ActivityIndicator size="small" color={colors.tint} />
           ) : (
-            <Send size={22} color={canSend ? colors.tint : colors.textSecondary} />
+            <SendHorizonal
+              size={22}
+              color={canSend ? colors.tint : colors.textSecondary}
+            />
           )}
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
         <TextInput
           style={[styles.input, { color: colors.text }]}
           placeholder="O que está acontecendo?"
@@ -329,21 +348,40 @@ export default function CreatePostScreen() {
           </View>
         )}
 
-        <TouchableOpacity
-          style={[
-            styles.mediaButton,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-          onPress={handleSelectMediaOption}
-          disabled={media.length >= MAX_ATTACHMENTS}
-        >
-          <ImageIcon size={20} color={colors.icon} />
-          <Text style={[styles.mediaButtonText, { color: colors.text }]}>
-            {media.length >= MAX_ATTACHMENTS
-              ? "Limite de anexos atingido"
-              : "Adicionar foto ou vídeo"}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.mediaButtonsRow}>
+          <TouchableOpacity
+            style={[
+              styles.mediaIconButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+            onPress={openGallery}
+            disabled={media.length >= MAX_ATTACHMENTS}
+          >
+            <ImageIcon size={20} color={colors.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.mediaIconButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+            onPress={handleSelectMediaOption}
+            disabled={media.length >= MAX_ATTACHMENTS}
+          >
+            <Camera size={20} color={colors.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.mediaIconButton,
+              {
+                backgroundColor: isPoll ? colors.tint : colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={() => setIsPoll(!isPoll)}
+          >
+            <BarChart3 size={20} color={isPoll ? "white" : colors.icon} />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.optionsRow}>
           {["contacts", "followers", "public"].map((v) => (
@@ -352,7 +390,8 @@ export default function CreatePostScreen() {
               style={[
                 styles.optionChip,
                 {
-                  backgroundColor: visibility === v ? colors.tint : colors.surface,
+                  backgroundColor:
+                    visibility === v ? colors.tint : colors.surface,
                   borderColor: colors.border,
                 },
               ]}
@@ -364,34 +403,25 @@ export default function CreatePostScreen() {
                   { color: visibility === v ? "white" : colors.text },
                 ]}
               >
-                {v === "contacts" ? "Contatos" : v === "followers" ? "Seguidores" : "Público"}
+                {v === "contacts"
+                  ? "Contatos"
+                  : v === "followers"
+                    ? "Seguidores"
+                    : "Público"}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-
-        <TouchableOpacity
-          style={[
-            styles.pollToggle,
-            {
-              backgroundColor: isPoll ? colors.tint : colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-          onPress={() => setIsPoll(!isPoll)}
-        >
-          <BarChart3 size={20} color={isPoll ? "white" : colors.icon} />
-          <Text style={[styles.pollToggleText, { color: isPoll ? "white" : colors.text }]}>
-            {isPoll ? "Remover enquete" : "Adicionar enquete"}
-          </Text>
-        </TouchableOpacity>
 
         {isPoll && (
           <View style={styles.pollSection}>
             {pollOptions.map((opt, i) => (
               <TextInput
                 key={i}
-                style={[styles.pollInput, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.pollInput,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
                 placeholder={`Opção ${i + 1}`}
                 placeholderTextColor={colors.textSecondary}
                 value={opt}
@@ -403,7 +433,10 @@ export default function CreatePostScreen() {
               />
             ))}
             {pollOptions.length < 5 && (
-              <TouchableOpacity style={styles.addOption} onPress={addPollOption}>
+              <TouchableOpacity
+                style={styles.addOption}
+                onPress={addPollOption}
+              >
                 <Text style={[styles.addOptionText, { color: colors.tint }]}>
                   + Adicionar opção
                 </Text>
@@ -412,6 +445,77 @@ export default function CreatePostScreen() {
           </View>
         )}
       </ScrollView>
+
+      <BottomSheetModal
+        ref={cameraBottomSheetRef}
+        snapPoints={["25%"]}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{ backgroundColor: colors.menuBackground }}
+        handleIndicatorStyle={{ backgroundColor: colors.border }}
+      >
+        <BottomSheetView style={{ padding: 24, paddingBottom: 40 }}>
+          <TouchableOpacity
+            style={[
+              styles.bottomSheetOption,
+              { borderBottomColor: colors.border },
+            ]}
+            onPress={() => {
+              cameraBottomSheetRef.current?.dismiss();
+              openCamera();
+            }}
+          >
+            <Camera size={20} color={colors.text} style={styles.optionIcon} />
+            <Text style={[styles.optionText, { color: colors.text }]}>
+              Câmera
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.bottomSheetOption}
+            onPress={() => {
+              cameraBottomSheetRef.current?.dismiss();
+              // Launch camera in video mode
+              (async () => {
+                try {
+                  if (media.length >= MAX_ATTACHMENTS) {
+                    Alert.alert(
+                      "Limite",
+                      `Você pode anexar no máximo ${MAX_ATTACHMENTS} arquivos.`,
+                    );
+                    return;
+                  }
+                  const { status } =
+                    await ImagePicker.requestCameraPermissionsAsync();
+                  if (status !== "granted") {
+                    Alert.alert(
+                      "Permissão necessária",
+                      "Precisamos de acesso à câmera para gravar vídeo.",
+                    );
+                    return;
+                  }
+                  const result = await ImagePicker.launchCameraAsync({
+                    mediaTypes: ["videos"],
+                    quality: 0.85,
+                    videoMaxDuration: 60,
+                  });
+                  if (!result.canceled && result.assets.length > 0) {
+                    applyAssets(result.assets);
+                  }
+                } catch (e: any) {
+                  Alert.alert(
+                    "Erro",
+                    e?.message || "Não foi possível abrir a câmera.",
+                  );
+                }
+              })();
+            }}
+          >
+            <Video size={20} color={colors.text} style={styles.optionIcon} />
+            <Text style={[styles.optionText, { color: colors.text }]}>
+              Vídeo
+            </Text>
+          </TouchableOpacity>
+        </BottomSheetView>
+      </BottomSheetModal>
     </KeyboardAvoidingView>
   );
 }
@@ -425,7 +529,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
-  headerTitle: { fontSize: 18, fontWeight: "600" },
   body: { flex: 1, padding: 16 },
   input: {
     fontSize: 16,
@@ -465,16 +568,28 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 3,
   },
-  mediaButton: {
+  mediaButtonsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    gap: 12,
     marginTop: 16,
   },
-  mediaButtonText: { fontSize: 14, fontWeight: "500" },
+  mediaIconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bottomSheetOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  optionIcon: {
+    marginRight: 14,
+  },
   optionsRow: { flexDirection: "row", gap: 8, marginTop: 16 },
   optionChip: {
     paddingHorizontal: 16,
@@ -483,16 +598,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   optionText: { fontSize: 14, fontWeight: "500" },
-  pollToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 16,
-  },
-  pollToggleText: { fontSize: 14, fontWeight: "500" },
   pollSection: { marginTop: 12, gap: 8 },
   pollInput: {
     borderWidth: 1,

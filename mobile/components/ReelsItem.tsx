@@ -17,6 +17,8 @@ import {
   Volume2,
   VolumeX,
   Music,
+  Play,
+  Pause,
 } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -117,14 +119,14 @@ export default function ReelsItem({
         )}
       </TouchableOpacity>
 
-      {/* Pause/Play overlay indicator when paused */}
-      {!isPlaying && (
+      {/* Pause/Play overlay indicator */}
+      {!isPlaying ? (
         <View style={styles.playPauseOverlay} pointerEvents="none">
           <View style={styles.playPauseCircle}>
-            <Text style={styles.playIcon}>▶</Text>
+            <Play size={28} color="white" fill="white" />
           </View>
         </View>
-      )}
+      ) : null}
 
       {/* Side Interactions (Like, Comment, Share, Save) */}
       <View style={styles.rightContainer}>
@@ -262,11 +264,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  playIcon: {
-    color: "white",
-    fontSize: 24,
-    marginLeft: 4,
   },
   rightContainer: {
     position: "absolute",

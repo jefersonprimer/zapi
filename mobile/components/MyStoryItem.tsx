@@ -13,8 +13,8 @@ export default function MyStoryItem({ avatarUrl, onPress }: MyStoryItemProps) {
   const avatarUri = avatarUrl ? getFullRemoteUrl(avatarUrl) : null;
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <View style={styles.avatarWrapper}>
+    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
+      <View style={[styles.ring, { borderColor: colors.tint }]}>
         <Image
           source={
             avatarUri ? { uri: avatarUri } : require("@/assets/images/icon.png")
@@ -22,7 +22,7 @@ export default function MyStoryItem({ avatarUrl, onPress }: MyStoryItemProps) {
           style={styles.avatar}
         />
         <View style={[styles.plusBadge, { backgroundColor: colors.tint }]}>
-          <Plus size={16} color="white" />
+          <Plus size={14} color="white" strokeWidth={2.5} />
         </View>
       </View>
       <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
@@ -35,37 +35,48 @@ export default function MyStoryItem({ avatarUrl, onPress }: MyStoryItemProps) {
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    marginRight: 16,
-    width: 90,
+    marginRight: 18,
+    width: 80,
   },
-  avatarWrapper: {
-    width: 90,
-    height: 90,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: "#D1D5DB",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  avatar: {
+  ring: {
     width: 80,
     height: 80,
-    borderRadius: 50,
+    borderRadius: 40,
+    borderWidth: 3,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
   },
   plusBadge: {
     position: "absolute",
-    bottom: -2,
-    right: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    bottom: -1,
+    right: -1,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "white",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 2,
   },
   name: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: "center",
-    maxWidth: 68,
+    maxWidth: 76,
   },
 });

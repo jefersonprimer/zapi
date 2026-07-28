@@ -19,20 +19,17 @@ export default function StoryItem({
   onPress,
 }: StoryItemProps) {
   const { colors, isDark } = useAppTheme();
-
-  const borderColor = viewed
-    ? isDark
-      ? "#4B5563"
-      : "#D1D5DB"
-    : isDark
-      ? "#0A84FF"
-      : "#007AFF";
-
   const avatarUri = avatarUrl ? getFullRemoteUrl(avatarUrl) : null;
 
+  const ringColor = viewed
+    ? isDark
+      ? "#3A3A3C"
+      : "#E5E5EA"
+    : "#07C160";
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <View style={[styles.avatarWrapper, { borderColor }]}>
+    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
+      <View style={[styles.ring, { borderColor: ringColor }]}>
         <Image
           source={
             avatarUri ? { uri: avatarUri } : require("@/assets/images/icon.png")
@@ -41,13 +38,16 @@ export default function StoryItem({
         />
         {isVerified && (
           <CheckCircle
-            size={16}
+            size={15}
             color={isDark ? "#60A5FA" : "#3B82F6"}
             style={styles.verifiedBadge}
           />
         )}
       </View>
-      <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+      <Text
+        style={[styles.name, { color: viewed ? colors.textSecondary : colors.text }]}
+        numberOfLines={1}
+      >
         {name}
       </Text>
     </TouchableOpacity>
@@ -57,31 +57,36 @@ export default function StoryItem({
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    marginRight: 16,
-    width: 90,
+    marginRight: 18,
+    width: 80,
   },
-  avatarWrapper: {
-    width: 90,
-    height: 90,
-    borderRadius: 50,
+  ring: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     borderWidth: 3,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 50,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
   },
   verifiedBadge: {
     position: "absolute",
-    bottom: -2,
-    right: -2,
+    bottom: -1,
+    right: -1,
   },
   name: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: "center",
-    maxWidth: 68,
+    maxWidth: 76,
   },
 });

@@ -1,5 +1,4 @@
 import { FlatList, View, StyleSheet } from "react-native";
-import { useAppTheme } from "@/context/ThemeContext";
 import MyStoryItem from "./MyStoryItem";
 import StoryItem from "./StoryItem";
 import type { StoryGroup } from "@/services/updatesApi";
@@ -12,10 +11,8 @@ interface StoryBarProps {
 }
 
 export default function StoryBar({ myAvatarUrl, groups, onMyStoryPress, onStoryPress }: StoryBarProps) {
-  const { colors } = useAppTheme();
-
   return (
-    <View style={[styles.container, { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+    <View style={styles.container}>
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -39,9 +36,10 @@ export default function StoryBar({ myAvatarUrl, groups, onMyStoryPress, onStoryP
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingBottom: 16,
   },
   content: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
 });

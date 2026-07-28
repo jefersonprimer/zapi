@@ -67,7 +67,6 @@ import { useAppTheme } from "@/context/ThemeContext";
 import MuteModal from "@/components/MuteModal";
 import MainMenuModal from "@/components/MainMenuModal";
 import CreateListModal from "@/components/CreateListModal";
-import EditListModal from "@/components/EditListModal";
 import ChatListItemComponent from "@/components/ChatListItem";
 import ChatSelectorModal from "@/components/ChatSelectorModal";
 import ListSelectorModal from "@/components/ListSelectorModal";
@@ -1200,7 +1199,7 @@ export default function ChatListScreen() {
       <CreateListModal
         visible={createListModalVisible}
         onClose={() => setCreateListModalVisible(false)}
-        onCreate={handleCreateList}
+        onSubmit={handleCreateList}
       />
 
       {/* Choose Chats Selector Modal */}
@@ -1260,17 +1259,17 @@ export default function ChatListScreen() {
         }}
       />
 
-      {/* Edit List Modal */}
-      <EditListModal
+      <CreateListModal
         visible={editListModalVisible}
+        mode="edit"
         initialName={listToEdit?.name ?? ""}
         initialColor={listToEdit?.color ?? "🔴"}
-        initialIcon={listToEdit?.icon ?? "❤️"}
+        initialIcon={listToEdit?.icon ?? ""}
         onClose={() => {
           setEditListModalVisible(false);
           setListToEdit(null);
         }}
-        onSave={handleEditList}
+        onSubmit={handleEditList}
       />
 
       {/* Bottom Sheet Reorganizar Listas Modal */}
@@ -1279,6 +1278,7 @@ export default function ChatListScreen() {
         onClose={() => setReorderModalVisible(false)}
         orderedFilters={orderedFilters}
         onReorderEnd={handleReorderEnd}
+        onDeleteList={handleDeleteList}
       />
     </View>
   );
