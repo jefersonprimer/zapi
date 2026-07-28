@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
   Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { API_URL } from "@/services/api";
@@ -113,8 +113,55 @@ export default function ChatScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<any>(null);
+  const shouldStickToBottomRef = useRef(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
+
+  const scrollToBottom = useCallback((animated = false) => {
+    flatListRef.current?.scrollToEnd({ animated });
+  }, []);
+
+  useEffect(() => {
+    shouldStickToBottomRef.current = true;
+  }, [chatId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      shouldStickToBottomRef.current = true;
+      const frame = requestAnimationFrame(() => scrollToBottom(false));
+      return () => cancelAnimationFrame(frame);
+    }, [chatId, scrollToBottom]),
+  );
+
+  useEffect(() => {
+    if (!isLoading && chatItems.length > 0) {
+      const frame = requestAnimationFrame(() => scrollToBottom(false));
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [isLoading, chatId, chatItems.length, scrollToBottom]);
+
+  const handleContentSizeChange = useCallback(() => {
+    if (shouldStickToBottomRef.current) {
+      scrollToBottom(false);
+    }
+  }, [scrollToBottom]);
+
+  const handleScroll = useCallback(
+    (event: {
+      nativeEvent: {
+        layoutMeasurement: { height: number };
+        contentOffset: { y: number };
+        contentSize: { height: number };
+      };
+    }) => {
+      const { layoutMeasurement, contentOffset, contentSize } =
+        event.nativeEvent;
+      const distanceFromBottom =
+        contentSize.height - layoutMeasurement.height - contentOffset.y;
+      shouldStickToBottomRef.current = distanceFromBottom < 80;
+    },
+    [],
+  );
 
   const handleTakePhoto = async () => {
     try {
@@ -424,14 +471,15 @@ export default function ChatScreen() {
       </View>
 
       <FlatList
+        key={chatId}
         ref={flatListRef}
         data={chatItems}
         keyExtractor={(item) =>
           item.type === "message" ? item.data.id : `call_${item.data.id}`
         }
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: true })
-        }
+        onContentSizeChange={handleContentSizeChange}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         style={styles.messageList}
         contentContainerStyle={{ padding: 16 }}
         renderItem={({ item, index }) => (
