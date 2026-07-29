@@ -43,13 +43,18 @@ export default function CommunitiesScreen() {
   const { token, user } = useAuth();
 
   const [communities, setCommunities] = useState<Community[]>([]);
-  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(
+    null,
+  );
   const [channels, setChannels] = useState<CommunityChannel[]>([]);
-  const [selectedChannel, setSelectedChannel] = useState<CommunityChannel | null>(null);
+  const [selectedChannel, setSelectedChannel] =
+    useState<CommunityChannel | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Active view states
-  const [activeChannelView, setActiveChannelView] = useState<"list" | "chat" | "posts" | "events">("list");
+  const [activeChannelView, setActiveChannelView] = useState<
+    "list" | "chat" | "posts" | "events"
+  >("list");
 
   // Modals state
   const [showCreateCommunity, setShowCreateCommunity] = useState(false);
@@ -57,7 +62,7 @@ export default function CommunitiesScreen() {
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
-  
+
   // Post detail modal state
   const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
 
@@ -94,7 +99,10 @@ export default function CommunitiesScreen() {
 
     const loadChannels = async () => {
       try {
-        const chans = await communityApi.listChannels(token, selectedCommunity.id);
+        const chans = await communityApi.listChannels(
+          token,
+          selectedCommunity.id,
+        );
         setChannels(chans);
         setSelectedChannel(null);
         setActiveChannelView("list");
@@ -118,7 +126,9 @@ export default function CommunitiesScreen() {
   };
 
   // Create/Join handlers
-  const handleCreateCommunitySubmit = async (payload: CreateCommunityPayload) => {
+  const handleCreateCommunitySubmit = async (
+    payload: CreateCommunityPayload,
+  ) => {
     if (!token) return;
     try {
       const newComm = await communityApi.createCommunity(token, payload);
@@ -152,7 +162,11 @@ export default function CommunitiesScreen() {
   const handleCreateChannelSubmit = async (payload: CreateChannelPayload) => {
     if (!token || !selectedCommunity) return;
     try {
-      const newChan = await communityApi.createChannel(token, selectedCommunity.id, payload);
+      const newChan = await communityApi.createChannel(
+        token,
+        selectedCommunity.id,
+        payload,
+      );
       setChannels((prev) => [...prev, newChan]);
       Alert.alert("Sucesso", `Canal #${newChan.name} criado!`);
     } catch {
@@ -160,7 +174,10 @@ export default function CommunitiesScreen() {
     }
   };
 
-  const handleCreatePostSubmit = async (payload: { title: string; content: string }) => {
+  const handleCreatePostSubmit = async (payload: {
+    title: string;
+    content: string;
+  }) => {
     if (!token || !selectedCommunity || !selectedChannel) return;
     try {
       await communityApi.createPost(token, selectedCommunity.id, {
@@ -189,7 +206,10 @@ export default function CommunitiesScreen() {
   const handleShareInvite = async () => {
     if (!token || !selectedCommunity) return;
     try {
-      const invite = await communityApi.createInvite(token, selectedCommunity.id);
+      const invite = await communityApi.createInvite(
+        token,
+        selectedCommunity.id,
+      );
       const inviteUrl = `https://zapi.app/join/${invite.code}`;
       await Share.share({
         message: `Entre na minha comunidade "${selectedCommunity.name}" no Zapi! Use o código de convite: ${invite.code} ou acesse: ${inviteUrl}`,
@@ -274,15 +294,28 @@ export default function CommunitiesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.appHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Text style={[styles.appTitle, { color: colors.text }]}>Comunidades</Text>
+      <View
+        style={[
+          styles.appHeader,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.appTitle, { color: colors.text }]}>
+          Comunidades
+        </Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: colors.background }]}
             onPress={() => setShowJoinCommunity(true)}
           >
-            <MaterialCommunityIcons name="compass" size={20} color={colors.brandGreen} />
-            <Text style={[styles.headerBtnText, { color: colors.text }]}>Entrar</Text>
+            <MaterialCommunityIcons
+              name="compass"
+              size={20}
+              color={colors.brandGreen}
+            />
+            <Text style={[styles.headerBtnText, { color: colors.text }]}>
+              Entrar
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -296,8 +329,17 @@ export default function CommunitiesScreen() {
       </View>
 
       {/* Communities Horizontal List */}
-      <View style={[styles.commBar, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+      <View
+        style={[
+          styles.commBar,
+          { borderBottomColor: colors.border, backgroundColor: colors.surface },
+        ]}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+        >
           {communities.map((comm) => {
             const isSelected = selectedCommunity?.id === comm.id;
             return (
@@ -306,23 +348,45 @@ export default function CommunitiesScreen() {
                 onPress={() => setSelectedCommunity(comm)}
                 style={[
                   styles.commCircle,
-                  { borderColor: isSelected ? colors.brandGreen : colors.border, backgroundColor: colors.background },
+                  {
+                    borderColor: isSelected ? colors.brandGreen : colors.border,
+                    backgroundColor: colors.background,
+                  },
                 ]}
               >
                 {comm.icon_url ? (
-                  <Image source={{ uri: comm.icon_url }} style={styles.commIcon} />
+                  <Image
+                    source={{ uri: comm.icon_url }}
+                    style={styles.commIcon}
+                  />
                 ) : (
-                  <Text style={[styles.commInitial, { color: isSelected ? colors.brandGreen : colors.text }]}>
+                  <Text
+                    style={[
+                      styles.commInitial,
+                      { color: isSelected ? colors.brandGreen : colors.text },
+                    ]}
+                  >
                     {comm.name.substring(0, 2).toUpperCase()}
                   </Text>
                 )}
-                {isSelected && <View style={[styles.dotIndicator, { backgroundColor: colors.brandGreen }]} />}
+                {isSelected && (
+                  <View
+                    style={[
+                      styles.dotIndicator,
+                      { backgroundColor: colors.brandGreen },
+                    ]}
+                  />
+                )}
               </TouchableOpacity>
             );
           })}
           {communities.length === 0 && !loading && (
             <View style={styles.emptyBar}>
-              <Text style={[styles.emptyBarText, { color: colors.textSecondary }]}>Crie ou entre em uma comunidade para começar!</Text>
+              <Text
+                style={[styles.emptyBarText, { color: colors.textSecondary }]}
+              >
+                Crie ou entre em uma comunidade para começar!
+              </Text>
             </View>
           )}
         </ScrollView>
@@ -334,14 +398,32 @@ export default function CommunitiesScreen() {
           <ActivityIndicator size="large" color={colors.brandGreen} />
         </View>
       ) : selectedCommunity ? (
-        <ScrollView style={styles.workspace} contentContainerStyle={{ paddingBottom: 32 }}>
+        <ScrollView
+          style={styles.workspace}
+          contentContainerStyle={{ paddingBottom: 32 }}
+        >
           {/* Banner & Name */}
-          <View style={[styles.bannerContainer, { backgroundColor: colors.border }]}>
+          <View
+            style={[styles.bannerContainer, { backgroundColor: colors.border }]}
+          >
             {selectedCommunity.banner_url ? (
-              <Image source={{ uri: selectedCommunity.banner_url }} style={styles.bannerImg} />
+              <Image
+                source={{ uri: selectedCommunity.banner_url }}
+                style={styles.bannerImg}
+              />
             ) : (
-              <View style={[styles.bannerDefault, { backgroundColor: colors.brandGreen + "15" }]}>
-                <MaterialCommunityIcons name="account-group" size={48} color={colors.brandGreen} style={{ opacity: 0.3 }} />
+              <View
+                style={[
+                  styles.bannerDefault,
+                  { backgroundColor: colors.brandGreen + "15" },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="account-group"
+                  size={48}
+                  color={colors.brandGreen}
+                  style={{ opacity: 0.3 }}
+                />
               </View>
             )}
             <View style={styles.bannerOverlay}>
@@ -351,11 +433,14 @@ export default function CommunitiesScreen() {
                 ) : (
                   <MaterialCommunityIcons name="earth" size={12} color="#fff" />
                 )}
-                <Text style={styles.bannerMetaText}>{selectedCommunity.category || "Geral"}</Text>
+                <Text style={styles.bannerMetaText}>
+                  {selectedCommunity.category || "Geral"}
+                </Text>
               </View>
               <Text style={styles.bannerName}>{selectedCommunity.name}</Text>
               <Text style={styles.bannerStats}>
-                {selectedCommunity.member_count} {selectedCommunity.member_count === 1 ? "membro" : "membros"}
+                {selectedCommunity.member_count}{" "}
+                {selectedCommunity.member_count === 1 ? "membro" : "membros"}
               </Text>
             </View>
           </View>
@@ -371,19 +456,43 @@ export default function CommunitiesScreen() {
             <View style={styles.actionRow}>
               <TouchableOpacity
                 onPress={handleShareInvite}
-                style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[
+                  styles.actionCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
               >
-                <MaterialCommunityIcons name="share-variant" size={20} color={colors.brandGreen} />
-                <Text style={[styles.actionCardText, { color: colors.text }]}>Convidar Amigos</Text>
+                <MaterialCommunityIcons
+                  name="share-variant"
+                  size={20}
+                  color={colors.brandGreen}
+                />
+                <Text style={[styles.actionCardText, { color: colors.text }]}>
+                  Convidar Amigos
+                </Text>
               </TouchableOpacity>
 
               {selectedCommunity.owner_id === user?.user_id && (
                 <TouchableOpacity
                   onPress={() => setShowCreateChannel(true)}
-                  style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  style={[
+                    styles.actionCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
                 >
-                  <MaterialCommunityIcons name="plus-circle" size={20} color={colors.brandGreen} />
-                  <Text style={[styles.actionCardText, { color: colors.text }]}>Criar Canal</Text>
+                  <MaterialCommunityIcons
+                    name="plus-circle"
+                    size={20}
+                    color={colors.brandGreen}
+                  />
+                  <Text style={[styles.actionCardText, { color: colors.text }]}>
+                    Criar Canal
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -394,23 +503,52 @@ export default function CommunitiesScreen() {
             {/* TEXT CHANNELS */}
             {textChans.length > 0 && (
               <View style={styles.categoryBlock}>
-                <Text style={[styles.categoryHeader, { color: colors.textSecondary }]}>CANAIS DE TEXTO</Text>
+                <Text
+                  style={[
+                    styles.categoryHeader,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  CANAIS DE TEXTO
+                </Text>
                 {textChans.map((chan) => (
                   <TouchableOpacity
                     key={chan.id}
                     onPress={() => handleSelectChannel(chan)}
-                    style={[styles.channelRow, { borderBottomColor: colors.border }]}
+                    style={[
+                      styles.channelRow,
+                      { borderBottomColor: colors.border },
+                    ]}
                   >
-                    <MaterialCommunityIcons name="pound" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+                    <MaterialCommunityIcons
+                      name="pound"
+                      size={18}
+                      color={colors.textSecondary}
+                      style={{ marginRight: 10 }}
+                    />
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.channelLabel, { color: colors.text }]}>{chan.name}</Text>
+                      <Text
+                        style={[styles.channelLabel, { color: colors.text }]}
+                      >
+                        {chan.name}
+                      </Text>
                       {chan.description ? (
-                        <Text style={[styles.channelSubLabel, { color: colors.textSecondary }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.channelSubLabel,
+                            { color: colors.textSecondary },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {chan.description}
                         </Text>
                       ) : null}
                     </View>
-                    <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textSecondary} />
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -419,23 +557,52 @@ export default function CommunitiesScreen() {
             {/* FORUM CHANNELS */}
             {forumChans.length > 0 && (
               <View style={styles.categoryBlock}>
-                <Text style={[styles.categoryHeader, { color: colors.textSecondary }]}>FÓRUNS DE DISCUSSÃO</Text>
+                <Text
+                  style={[
+                    styles.categoryHeader,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  FÓRUNS DE DISCUSSÃO
+                </Text>
                 {forumChans.map((chan) => (
                   <TouchableOpacity
                     key={chan.id}
                     onPress={() => handleSelectChannel(chan)}
-                    style={[styles.channelRow, { borderBottomColor: colors.border }]}
+                    style={[
+                      styles.channelRow,
+                      { borderBottomColor: colors.border },
+                    ]}
                   >
-                    <MaterialCommunityIcons name="forum-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+                    <MaterialCommunityIcons
+                      name="forum-outline"
+                      size={18}
+                      color={colors.textSecondary}
+                      style={{ marginRight: 10 }}
+                    />
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.channelLabel, { color: colors.text }]}>{chan.name}</Text>
+                      <Text
+                        style={[styles.channelLabel, { color: colors.text }]}
+                      >
+                        {chan.name}
+                      </Text>
                       {chan.description ? (
-                        <Text style={[styles.channelSubLabel, { color: colors.textSecondary }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.channelSubLabel,
+                            { color: colors.textSecondary },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {chan.description}
                         </Text>
                       ) : null}
                     </View>
-                    <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textSecondary} />
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -444,23 +611,52 @@ export default function CommunitiesScreen() {
             {/* EVENT CHANNELS */}
             {eventChans.length > 0 && (
               <View style={styles.categoryBlock}>
-                <Text style={[styles.categoryHeader, { color: colors.textSecondary }]}>CANAIS DE EVENTOS</Text>
+                <Text
+                  style={[
+                    styles.categoryHeader,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  CANAIS DE EVENTOS
+                </Text>
                 {eventChans.map((chan) => (
                   <TouchableOpacity
                     key={chan.id}
                     onPress={() => handleSelectChannel(chan)}
-                    style={[styles.channelRow, { borderBottomColor: colors.border }]}
+                    style={[
+                      styles.channelRow,
+                      { borderBottomColor: colors.border },
+                    ]}
                   >
-                    <MaterialCommunityIcons name="calendar" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+                    <MaterialCommunityIcons
+                      name="calendar"
+                      size={18}
+                      color={colors.textSecondary}
+                      style={{ marginRight: 10 }}
+                    />
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.channelLabel, { color: colors.text }]}>{chan.name}</Text>
+                      <Text
+                        style={[styles.channelLabel, { color: colors.text }]}
+                      >
+                        {chan.name}
+                      </Text>
                       {chan.description ? (
-                        <Text style={[styles.channelSubLabel, { color: colors.textSecondary }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.channelSubLabel,
+                            { color: colors.textSecondary },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {chan.description}
                         </Text>
                       ) : null}
                     </View>
-                    <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textSecondary} />
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -468,17 +664,36 @@ export default function CommunitiesScreen() {
 
             {channels.length === 0 && (
               <View style={[styles.noChannels, { borderColor: colors.border }]}>
-                <MaterialCommunityIcons name="pound" size={36} color={colors.textSecondary} style={{ marginBottom: 8 }} />
-                <Text style={[styles.noChannelsTitle, { color: colors.text }]}>Nenhum canal neste workspace</Text>
+                <MaterialCommunityIcons
+                  name="pound"
+                  size={36}
+                  color={colors.textSecondary}
+                  style={{ marginBottom: 8 }}
+                />
+                <Text style={[styles.noChannelsTitle, { color: colors.text }]}>
+                  Nenhum canal neste workspace
+                </Text>
                 {selectedCommunity.owner_id === user?.user_id ? (
                   <TouchableOpacity
                     onPress={() => setShowCreateChannel(true)}
-                    style={[styles.noChannelsBtn, { backgroundColor: colors.brandGreen }]}
+                    style={[
+                      styles.noChannelsBtn,
+                      { backgroundColor: colors.brandGreen },
+                    ]}
                   >
-                    <Text style={{ color: "#fff", fontWeight: "bold" }}>Criar Canal</Text>
+                    <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                      Criar Canal
+                    </Text>
                   </TouchableOpacity>
                 ) : (
-                  <Text style={[styles.noChannelsDesc, { color: colors.textSecondary }]}>Aguarde o administrador criar os canais.</Text>
+                  <Text
+                    style={[
+                      styles.noChannelsDesc,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Aguarde o administrador criar os canais.
+                  </Text>
                 )}
               </View>
             )}
@@ -486,24 +701,39 @@ export default function CommunitiesScreen() {
         </ScrollView>
       ) : (
         <View style={styles.center}>
-          <MaterialCommunityIcons name="account-group" size={64} color={colors.textSecondary} style={{ marginBottom: 16 }} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Você não faz parte de nenhuma comunidade</Text>
+          <MaterialCommunityIcons
+            name="account-group"
+            size={64}
+            color={colors.textSecondary}
+            style={{ marginBottom: 16 }}
+          />
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            Você não faz parte de nenhuma comunidade
+          </Text>
           <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-            Participe de comunidades do Zapi para debater assuntos, participar de eventos ou crie a sua própria comunidade!
+            Participe de comunidades do Zapi para debater assuntos, participar
+            de eventos ou crie a sua própria comunidade!
           </Text>
           <View style={styles.emptyButtons}>
             <TouchableOpacity
               onPress={() => setShowJoinCommunity(true)}
-              style={[styles.emptyBtn, { borderColor: colors.brandGreen, borderWidth: 1 }]}
+              style={[
+                styles.emptyBtn,
+                { borderColor: colors.brandGreen, borderWidth: 1 },
+              ]}
             >
-              <Text style={{ color: colors.brandGreen, fontWeight: "bold" }}>Entrar com Código</Text>
+              <Text style={{ color: colors.brandGreen, fontWeight: "bold" }}>
+                Entrar com Código
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setShowCreateCommunity(true)}
               style={[styles.emptyBtn, { backgroundColor: colors.brandGreen }]}
             >
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>Criar Nova Comunidade</Text>
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                Criar Nova Comunidade
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -544,13 +774,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 16,
+    paddingTop: 45,
+    paddingBottom: 8,
     borderBottomWidth: 1,
   },
   appTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "400",
   },
   headerButtons: {
     flexDirection: "row",

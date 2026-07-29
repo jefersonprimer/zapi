@@ -261,185 +261,223 @@ export default function ChatScreen() {
             paddingHorizontal: 16,
           }}
         >
-        <View style={styles.headerLeftContainer}>
-          <TouchableOpacity
-            onPress={() => (isSelectionMode ? clearSelection() : router.back())}
-            style={styles.headerBackBtn}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
-          </TouchableOpacity>
-          {isSelectionMode ? (
-            <Text
-              style={[
-                styles.headerTitleText,
-                { color: colors.text, marginLeft: 4 },
-              ]}
-            >
-              {selectedCount}
-            </Text>
-          ) : null}
-          {!isSelectionMode && (
+          <View style={styles.headerLeftContainer}>
             <TouchableOpacity
-              onPress={() => {
-                if (isGroup) {
-                  router.push({
-                    pathname: "/group-detail",
-                    params: {
-                      chatId,
-                      participantUsername: displayTitle,
-                    },
-                  });
-                } else if (participantId) {
-                  router.push({
-                    pathname: "/contact-detail",
-                    params: {
-                      participantId,
-                      participantUsername: participantUsername || "Unknown",
-                      chatId,
-                      avatarUrl: participantAvatarUrl || undefined,
-                    },
-                  });
-                }
-              }}
-              style={styles.avatarTitleContainer}
+              onPress={() =>
+                isSelectionMode ? clearSelection() : router.back()
+              }
+              style={styles.headerBackBtn}
             >
-              <View
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={colors.text}
+              />
+            </TouchableOpacity>
+            {isSelectionMode ? (
+              <Text
                 style={[
-                  styles.avatarContainer,
-                  {
-                    backgroundColor: isGroup ? "#34C759" : colors.tint,
-                  },
+                  styles.headerTitleText,
+                  { color: colors.text, marginLeft: 4 },
                 ]}
               >
-                {participantAvatarUrl ? (
-                  <Image
-                    source={{
-                      uri: participantAvatarUrl.startsWith("http")
-                        ? participantAvatarUrl
-                        : `${API_URL}${participantAvatarUrl}`,
-                    }}
-                    style={styles.avatarImage}
-                  />
-                ) : (
-                  <Text style={styles.avatarPlaceholderText}>
-                    {displayTitle[0]?.toUpperCase()}
-                  </Text>
-                )}
-              </View>
-              <View style={{ flex: 1, justifyContent: "center" }}>
-                <Text
+                {selectedCount}
+              </Text>
+            ) : null}
+            {!isSelectionMode && (
+              <TouchableOpacity
+                onPress={() => {
+                  if (isGroup) {
+                    router.push({
+                      pathname: "/group-detail",
+                      params: {
+                        chatId,
+                        participantUsername: displayTitle,
+                      },
+                    });
+                  } else if (participantId) {
+                    router.push({
+                      pathname: "/contact-detail",
+                      params: {
+                        participantId,
+                        participantUsername: participantUsername || "Unknown",
+                        chatId,
+                        avatarUrl: participantAvatarUrl || undefined,
+                      },
+                    });
+                  }
+                }}
+                style={styles.avatarTitleContainer}
+              >
+                <View
                   style={[
-                    styles.headerTitleText,
-                    { color: colors.text, flex: 0 },
+                    styles.avatarContainer,
+                    {
+                      backgroundColor: isGroup ? "#34C759" : colors.tint,
+                    },
                   ]}
-                  numberOfLines={1}
                 >
-                  {displayTitle}
-                </Text>
-                {participantStoreId ? (
+                  {participantAvatarUrl ? (
+                    <Image
+                      source={{
+                        uri: participantAvatarUrl.startsWith("http")
+                          ? participantAvatarUrl
+                          : `${API_URL}${participantAvatarUrl}`,
+                      }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <Text style={styles.avatarPlaceholderText}>
+                      {displayTitle[0]?.toUpperCase()}
+                    </Text>
+                  )}
+                </View>
+                <View style={{ flex: 1, justifyContent: "center" }}>
                   <Text
                     style={[
-                      styles.subTitleText,
-                      { color: colors.textSecondary },
+                      styles.headerTitleText,
+                      { color: colors.text, flex: 0 },
                     ]}
                     numberOfLines={1}
                   >
-                    Conta Comercial
+                    {displayTitle}
                   </Text>
-                ) : null}
-              </View>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={styles.headerRightContainer}>
-          {isSelectionMode ? (
-            <>
-              {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
-                <TouchableOpacity
-                  onPress={() => handleReencaminhar()}
-                  style={styles.headerActionBtn}
-                >
-                  <MaterialCommunityIcons name="reply" size={22} color={colors.text} />
-                </TouchableOpacity>
-              )}
-              {hasOnlyMessagesSelected && (
-                <TouchableOpacity
-                  onPress={handleEncaminhar}
-                  style={styles.headerActionBtn}
-                >
-                  <MaterialCommunityIcons name="share-all" size={24} color={colors.text} />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                onPress={() => setDeleteModalVisible(true)}
-                style={styles.headerActionBtn}
-              >
-                <MaterialCommunityIcons name="delete-outline" size={22} color={colors.text} />
+                  {participantStoreId ? (
+                    <Text
+                      style={[
+                        styles.subTitleText,
+                        { color: colors.textSecondary },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      Conta Comercial
+                    </Text>
+                  ) : null}
+                </View>
               </TouchableOpacity>
-              {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
+            )}
+          </View>
+
+          <View style={styles.headerRightContainer}>
+            {isSelectionMode ? (
+              <>
+                {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
+                  <TouchableOpacity
+                    onPress={() => handleReencaminhar()}
+                    style={styles.headerActionBtn}
+                  >
+                    <MaterialCommunityIcons
+                      name="reply"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                )}
+                {hasOnlyMessagesSelected && (
+                  <TouchableOpacity
+                    onPress={handleEncaminhar}
+                    style={styles.headerActionBtn}
+                  >
+                    <MaterialCommunityIcons
+                      name="share-all"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
-                  onPress={() => setOptionsModalVisible(true)}
+                  onPress={() => setDeleteModalVisible(true)}
                   style={styles.headerActionBtn}
                 >
-                  <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.text} />
+                  <MaterialCommunityIcons
+                    name="delete-outline"
+                    size={24}
+                    color={colors.text}
+                  />
                 </TouchableOpacity>
-              )}
-            </>
-          ) : (
-            <>
-              {participantStoreId && (
-                <TouchableOpacity
-                  onPress={() =>
-                    router.push({
-                      pathname: "/delivery/[storeId]",
-                      params: { storeId: participantStoreId },
-                    })
-                  }
-                  style={styles.headerActionBtn}
-                >
-                  <MaterialCommunityIcons name="shopping-outline" size={22} color={colors.tint} />
-                </TouchableOpacity>
-              )}
-              {!participantStoreId && (
+                {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
+                  <TouchableOpacity
+                    onPress={() => setOptionsModalVisible(true)}
+                    style={styles.headerActionBtn}
+                  >
+                    <MaterialCommunityIcons
+                      name="dots-vertical"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              <>
+                {participantStoreId && (
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({
+                        pathname: "/delivery/[storeId]",
+                        params: { storeId: participantStoreId },
+                      })
+                    }
+                    style={styles.headerActionBtn}
+                  >
+                    <MaterialCommunityIcons
+                      name="shopping-outline"
+                      size={24}
+                      color={colors.tint}
+                    />
+                  </TouchableOpacity>
+                )}
+                {!participantStoreId && (
+                  <TouchableOpacity
+                    onPress={() =>
+                      voiceCallManager.startCall(
+                        participantId,
+                        participantUsername || "Unknown",
+                        true,
+                        participantAvatarUrl,
+                      )
+                    }
+                    style={styles.headerActionBtn}
+                  >
+                    <MaterialCommunityIcons
+                      name="video-outline"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   onPress={() =>
                     voiceCallManager.startCall(
                       participantId,
                       participantUsername || "Unknown",
-                      true,
+                      false,
                       participantAvatarUrl,
                     )
                   }
                   style={styles.headerActionBtn}
                 >
-                  <MaterialCommunityIcons name="video-outline" size={22} color={colors.text} />
+                  <MaterialCommunityIcons
+                    name="phone-outline"
+                    size={24}
+                    color={colors.text}
+                  />
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                onPress={() =>
-                  voiceCallManager.startCall(
-                    participantId,
-                    participantUsername || "Unknown",
-                    false,
-                    participantAvatarUrl,
-                  )
-                }
-                style={styles.headerActionBtn}
-              >
-                <MaterialCommunityIcons name="phone-outline" size={22} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setMenuVisible(true)}
-                style={styles.headerActionBtn}
-              >
-                <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.text} />
-              </TouchableOpacity>
-            </>
-          )}
+                <TouchableOpacity
+                  onPress={() => setMenuVisible(true)}
+                  style={styles.headerActionBtn}
+                >
+                  <MaterialCommunityIcons
+                    name="dots-vertical"
+                    size={24}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </View>
       </View>
-    </View>
 
       <FlatList
         key={chatId}
@@ -544,7 +582,11 @@ export default function ChatScreen() {
                   setActionsModalVisible(true);
                 }}
               >
-                <MaterialCommunityIcons name="plus" size={24} color={colors.icon} />
+                <MaterialCommunityIcons
+                  name="plus"
+                  size={24}
+                  color={colors.icon}
+                />
               </TouchableOpacity>
 
               <ChatInput
@@ -799,14 +841,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  customHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#ffffff",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
-  },
+
   headerLeftContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -818,7 +853,7 @@ const styles = StyleSheet.create({
   },
   headerTitleText: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "400",
     color: "#272727",
     flex: 1,
   },

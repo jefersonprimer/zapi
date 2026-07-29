@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    marginVertical: 16,
+    marginVertical: 6,
   },
   reelsHeader: {
     borderBottomWidth: 0,
@@ -278,11 +278,11 @@ const styles = StyleSheet.create({
     borderBottomColor: "#07C160",
   },
   tabText: {
-    fontSize: 20,
-    fontWeight: "500",
+    fontSize: 22,
+    fontWeight: "400",
   },
   activeTabText: {
-    fontWeight: "bold",
+    fontWeight: "500",
   },
   title: {
     fontSize: 20,

@@ -12,7 +12,11 @@ import {
 import { useFocusEffect } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
-import { getCallHistory, deleteCallHistoryItem, type CallHistoryItem } from "@/services/callApi";
+import {
+  getCallHistory,
+  deleteCallHistoryItem,
+  type CallHistoryItem,
+} from "@/services/callApi";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { useAppTheme } from "@/context/ThemeContext";
 import { API_URL } from "@/services/api";
@@ -41,7 +45,7 @@ export default function CallsScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchCalls();
-    }, [fetchCalls])
+    }, [fetchCalls]),
   );
 
   const toggleSelection = (id: string) => {
@@ -57,8 +61,12 @@ export default function CallsScreen() {
   const deleteSelectedCalls = async () => {
     if (!token || selectedCallIds.length === 0) return;
     try {
-      await Promise.all(selectedCallIds.map((id) => deleteCallHistoryItem(token, id)));
-      setCalls((prevCalls) => prevCalls.filter((c) => !selectedCallIds.includes(c.id)));
+      await Promise.all(
+        selectedCallIds.map((id) => deleteCallHistoryItem(token, id)),
+      );
+      setCalls((prevCalls) =>
+        prevCalls.filter((c) => !selectedCallIds.includes(c.id)),
+      );
       setSelectedCallIds([]);
     } catch (err: any) {
       console.error("Failed to delete selected calls:", err);
@@ -78,7 +86,7 @@ export default function CallsScreen() {
           onPress: deleteSelectedCalls,
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
@@ -125,7 +133,11 @@ export default function CallsScreen() {
       statusIconName = "phone-outgoing";
     }
 
-    if (item.status === "missed" || item.status === "rejected" || item.status === "busy") {
+    if (
+      item.status === "missed" ||
+      item.status === "rejected" ||
+      item.status === "busy"
+    ) {
       statusIconName = "phone-missed";
       iconColor = "#FF3B30"; // Red
     } else if (item.status === "failed") {
@@ -159,13 +171,13 @@ export default function CallsScreen() {
         onLongPress={() => handleLongPress(item)}
         delayLongPress={500}
         style={[
-          styles.callItem, 
+          styles.callItem,
           { borderBottomColor: colors.border },
           isSelected && {
             backgroundColor: isDark
               ? "rgba(10, 132, 255, 0.15)"
               : "rgba(0, 122, 255, 0.1)",
-          }
+          },
         ]}
       >
         <View style={styles.leftContainer}>
@@ -176,7 +188,10 @@ export default function CallsScreen() {
             ]}
           >
             {peerAvatarUri ? (
-              <Image source={{ uri: peerAvatarUri }} style={styles.avatarImage} />
+              <Image
+                source={{ uri: peerAvatarUri }}
+                style={styles.avatarImage}
+              />
             ) : (
               <Text style={styles.avatarText}>
                 {peerName[0]?.toUpperCase() ?? "?"}
@@ -184,10 +199,19 @@ export default function CallsScreen() {
             )}
           </View>
           <View style={styles.info}>
-            <Text style={[styles.peerName, { color: colors.text }]}>{peerName}</Text>
+            <Text style={[styles.peerName, { color: colors.text }]}>
+              {peerName}
+            </Text>
             <View style={styles.statusRow}>
-              <MaterialCommunityIcons name={statusIconName} size={14} color={iconColor} style={{ marginRight: 6 }} />
-              <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+              <MaterialCommunityIcons
+                name={statusIconName}
+                size={14}
+                color={iconColor}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[styles.statusText, { color: colors.textSecondary }]}
+              >
                 {isOutgoing ? "Efetuada" : "Recebida"} • {formattedDate}
                 {item.duration > 0 && ` • ${formatDuration(item.duration)}`}
               </Text>
@@ -197,11 +221,21 @@ export default function CallsScreen() {
         {isSelectionMode ? (
           <View style={styles.selectionIndicator}>
             {isSelected ? (
-              <View style={[styles.selectedCircle, { backgroundColor: colors.tint }]}>
+              <View
+                style={[
+                  styles.selectedCircle,
+                  { backgroundColor: colors.tint },
+                ]}
+              >
                 <View style={styles.selectedCircleInner} />
               </View>
             ) : (
-              <View style={[styles.unselectedCircle, { borderColor: colors.textSecondary }]} />
+              <View
+                style={[
+                  styles.unselectedCircle,
+                  { borderColor: colors.textSecondary },
+                ]}
+              />
             )}
           </View>
         ) : (
@@ -209,7 +243,11 @@ export default function CallsScreen() {
             style={[styles.callButton, { backgroundColor: colors.surface }]}
             onPress={() => handleCallBack(peerId, peerName, peerAvatarUrl)}
           >
-            <MaterialCommunityIcons name="phone" size={18} color={colors.tint} />
+            <MaterialCommunityIcons
+              name="phone"
+              size={18}
+              color={colors.tint}
+            />
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -227,23 +265,43 @@ export default function CallsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {isSelectionMode ? (
-        <View style={[styles.headerContainer, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={() => setSelectedCallIds([])} style={styles.headerButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+        <View
+          style={[styles.headerContainer, { borderBottomColor: colors.border }]}
+        >
+          <TouchableOpacity
+            onPress={() => setSelectedCallIds([])}
+            style={styles.headerButton}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.text}
+            />
           </TouchableOpacity>
           <Text style={[styles.headerTitleSelection, { color: colors.text }]}>
             {selectedCallIds.length} selecionadas
           </Text>
-          <TouchableOpacity onPress={handleDeleteSelectedPrompt} style={styles.headerButton}>
-            <MaterialCommunityIcons name="delete-outline" size={24} color={colors.headerText} />
+          <TouchableOpacity
+            onPress={handleDeleteSelectedPrompt}
+            style={styles.headerButton}
+          >
+            <MaterialCommunityIcons
+              name="delete-outline"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
         </View>
       ) : (
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Ligações</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Ligações
+        </Text>
       )}
       {calls.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhuma ligação recente</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            Nenhuma ligação recente
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -263,10 +321,10 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "400",
     paddingHorizontal: 20,
-    marginVertical: 16,
+    marginVertical: 10,
   },
   loading: {
     flex: 1,

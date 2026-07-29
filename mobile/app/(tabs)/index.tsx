@@ -904,7 +904,11 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={() => setSelectedChatIds([])}
             >
-              <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="arrow-left"
+                color={colors.headerText}
+                size={22}
+              />
             </TouchableOpacity>
             <Text
               style={[styles.selectedCountText, { color: colors.headerText }]}
@@ -923,9 +927,17 @@ export default function ChatListScreen() {
                 );
                 const isAllPinned = selectedChats.every((c) => c.is_pinned);
                 return isAllPinned ? (
-                  <MaterialCommunityIcons name="pin-off" color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons
+                    name="pin-off"
+                    color={colors.headerText}
+                    size={24}
+                  />
                 ) : (
-                  <MaterialCommunityIcons name="pin" color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons
+                    name="pin"
+                    color={colors.headerText}
+                    size={24}
+                  />
                 );
               })()}
             </TouchableOpacity>
@@ -939,9 +951,17 @@ export default function ChatListScreen() {
                 );
                 const allSelectedAreMuted = selectedChats.every(isChatMuted);
                 return allSelectedAreMuted ? (
-                  <MaterialCommunityIcons name="bell" color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons
+                    name="bell"
+                    color={colors.headerText}
+                    size={24}
+                  />
                 ) : (
-                  <MaterialCommunityIcons name="bell-off" color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons
+                    name="bell-off"
+                    color={colors.headerText}
+                    size={24}
+                  />
                 );
               })()}
             </TouchableOpacity>
@@ -957,9 +977,17 @@ export default function ChatListScreen() {
                   (c) => c.is_archived,
                 );
                 return shouldArchive ? (
-                  <MaterialCommunityIcons name="archive-arrow-down-outline" color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons
+                    name="archive-arrow-down-outline"
+                    color={colors.headerText}
+                    size={24}
+                  />
                 ) : (
-                  <MaterialCommunityIcons name="archive-arrow-up-outline" color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons
+                    name="archive-arrow-up-outline"
+                    color={colors.headerText}
+                    size={24}
+                  />
                 );
               })()}
             </TouchableOpacity>
@@ -967,13 +995,21 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={handleDeleteSelectedChats}
             >
-              <MaterialCommunityIcons name="delete-outline" color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="delete-outline"
+                color={colors.headerText}
+                size={24}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
               onPress={() => setMoreMenuVisible(true)}
             >
-              <MaterialCommunityIcons name="dots-vertical" color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="dots-vertical"
+                color={colors.headerText}
+                size={24}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -994,19 +1030,31 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={() => router.push("/search")}
             >
-              <MaterialCommunityIcons name="magnify" color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="magnify"
+                color={colors.headerText}
+                size={24}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
               onPress={() => router.push("/link-device")}
             >
-              <MaterialCommunityIcons name="camera-outline" color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="camera-outline"
+                color={colors.headerText}
+                size={24}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
               onPress={() => setMenuVisible(true)}
             >
-              <MaterialCommunityIcons name="dots-vertical" color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="dots-vertical"
+                color={colors.headerText}
+                size={24}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -1113,13 +1161,12 @@ export default function ChatListScreen() {
                     onPress={() => router.push("/archived" as any)}
                   >
                     <View style={styles.archivedLeft}>
-                      <View
-                        style={[
-                          styles.archivedIconContainer,
-                          { backgroundColor: isDark ? "#222222" : "#F1F5F9" },
-                        ]}
-                      >
-                        <MaterialCommunityIcons name="archive-outline" color={colors.textSecondary} size={20} />
+                      <View style={[styles.archivedIconContainer]}>
+                        <MaterialCommunityIcons
+                          name="archive-arrow-down-outline"
+                          color={colors.textSecondary}
+                          size={24}
+                        />
                       </View>
                       <Text
                         style={[
@@ -1127,7 +1174,7 @@ export default function ChatListScreen() {
                           { color: colors.textSecondary },
                         ]}
                       >
-                        Conversas arquivadas
+                        Conversas Arquivadas
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -1136,7 +1183,11 @@ export default function ChatListScreen() {
               ListFooterComponent={
                 <View>
                   <View style={styles.footerContainer}>
-                    <MaterialCommunityIcons name="lock" color={colors.textSecondary} size={13} />
+                    <MaterialCommunityIcons
+                      name="lock"
+                      color={colors.textSecondary}
+                      size={13}
+                    />
                     <Text
                       style={[
                         styles.footerText,
@@ -1166,7 +1217,11 @@ export default function ChatListScreen() {
           style={[styles.fab, { backgroundColor: colors.fab }]}
           onPress={() => router.push("/contacts")}
         >
-          <MaterialCommunityIcons name="message-plus" color="#FFFFFF" size={24} />
+          <MaterialCommunityIcons
+            name="message-plus"
+            color="#FFFFFF"
+            size={24}
+          />
         </TouchableOpacity>
       )}
 
@@ -1287,7 +1342,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "500",
   },
   headerLeftSelected: { flexDirection: "row", alignItems: "center", gap: 12 },
@@ -1343,7 +1398,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 28,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   archivedLeft: {
@@ -1351,27 +1406,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   archivedIconContainer: {
-    width: 48,
     height: 48,
-    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   archivedText: {
     fontSize: 16,
-  },
-  archivedRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  archivedBadge: {
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 6,
   },
 });

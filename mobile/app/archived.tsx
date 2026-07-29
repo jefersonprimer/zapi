@@ -21,14 +21,7 @@ import {
   setChatPinnedLocal,
   setChatArchivedLocal,
 } from "@/services/database";
-import {
-  ArrowLeft,
-  Trash2,
-  Pin,
-  PinOff,
-  Archive,
-  PanelTopClose,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
 import ChatListItem from "@/components/ChatListItem";
@@ -182,7 +175,11 @@ export default function ArchivedScreen() {
               style={styles.headerIcon}
               onPress={() => setSelectedChatIds([])}
             >
-              <ArrowLeft color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="arrow-left"
+                color={colors.headerText}
+                size={22}
+              />
             </TouchableOpacity>
             <Text
               style={[styles.selectedCountText, { color: colors.headerText }]}
@@ -201,9 +198,17 @@ export default function ArchivedScreen() {
                 );
                 const isAllPinned = selectedChats.every((c) => c.is_pinned);
                 return isAllPinned ? (
-                  <PinOff color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons
+                    name="pin-off"
+                    color={colors.headerText}
+                    size={22}
+                  />
                 ) : (
-                  <Pin color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons
+                    name="pin"
+                    color={colors.headerText}
+                    size={22}
+                  />
                 );
               })()}
             </TouchableOpacity>
@@ -211,13 +216,21 @@ export default function ArchivedScreen() {
               style={styles.headerIcon}
               onPress={handleUnarchiveSelectedChats}
             >
-              <PanelTopClose color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="archive-arrow-up-outline"
+                color={colors.headerText}
+                size={22}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
               onPress={handleDeleteSelectedChats}
             >
-              <Trash2 color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="trash-can-outline"
+                color={colors.headerText}
+                size={22}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -230,7 +243,11 @@ export default function ArchivedScreen() {
               style={styles.headerIcon}
               onPress={() => router.back()}
             >
-              <ArrowLeft color={colors.headerText} size={22} />
+              <MaterialCommunityIcons
+                name="arrow-left"
+                color={colors.headerText}
+                size={22}
+              />
             </TouchableOpacity>
             <Text style={[styles.title, { color: colors.headerText }]}>
               Arquivadas
@@ -248,7 +265,8 @@ export default function ArchivedScreen() {
       ) : archivedChats.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyContent}>
-            <Archive
+            <MaterialCommunityIcons
+              name="archive-outline"
               color={colors.textSecondary}
               size={48}
               style={{ marginBottom: 16 }}
