@@ -116,8 +116,7 @@ export default function ChatListScreen() {
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
   const [moreMenuVisible, setMoreMenuVisible] = useState(false);
 
-  // Custom states for Lists and Search
-  const [searchQuery, setSearchQuery] = useState("");
+  // Custom states for Lists
   const [userLists, setUserLists] = useState<LocalChatList[]>([]);
   const [activeFilterId, setActiveFilterId] = useState<string>("all");
 
@@ -235,19 +234,7 @@ export default function ChatListScreen() {
   const activeChats = chats.filter((c) => !c.is_archived);
 
   const filteredChats = activeChats.filter((c) => {
-    // 1. Filter by Search Query
-    if (searchQuery.trim().length > 0) {
-      const query = searchQuery.toLowerCase();
-      const chatName = (
-        c.name ??
-        c.participant_name ??
-        c.participant_username ??
-        ""
-      ).toLowerCase();
-      if (!chatName.includes(query)) return false;
-    }
-
-    // 2. Filter by Active List Chip
+    // Filter by Active List Chip
     if (activeFilterId === "all") {
       return true;
     } else if (activeFilterId === "unread") {
@@ -975,6 +962,12 @@ export default function ChatListScreen() {
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.headerIcon}
+              onPress={() => router.push("/search")}
+            >
+              <Search color={colors.headerText} size={22} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerIcon}
               onPress={() => router.push("/link-device")}
             >
               <Camera color={colors.headerText} size={22} />
@@ -1030,45 +1023,15 @@ export default function ChatListScreen() {
         />
       ) : (
         <>
-          {/* SEARCH BAR & FILTER CHIPS CONTAINER */}
+          {/* FILTER CHIPS CONTAINER */}
           {selectedChatIds.length === 0 && (
             <View
               style={{
                 paddingHorizontal: 16,
-                paddingTop: 8,
-                paddingBottom: 6,
+                paddingTop: 12,
+                paddingBottom: 8,
               }}
             >
-              <View
-                style={{
-                  backgroundColor: isDark ? "#1C1C1E" : "#F1F5F9",
-                  borderRadius: 24,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 14,
-                  height: 44,
-                  marginBottom: 10,
-                }}
-              >
-                <Search
-                  size={18}
-                  color={colors.textSecondary}
-                  style={{ marginRight: 8 }}
-                />
-                <TextInput
-                  placeholder="Buscar conversas..."
-                  placeholderTextColor={colors.textSecondary}
-                  style={{
-                    flex: 1,
-                    color: colors.text,
-                    fontSize: 15,
-                    padding: 0,
-                  }}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-              </View>
-
               <ListFilterCarousel
                 orderedFilters={orderedFilters}
                 activeFilterId={activeFilterId}
@@ -1104,7 +1067,6 @@ export default function ChatListScreen() {
               scrollEventThrottle={16}
               ListHeaderComponent={
                 archivedChatsCount > 0 &&
-                searchQuery.trim().length === 0 &&
                 activeFilterId === "all" ? (
                   <TouchableOpacity
                     style={[

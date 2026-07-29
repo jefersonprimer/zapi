@@ -214,6 +214,8 @@ function InitialLayout() {
       <Stack.Screen name="my-qr" options={{ headerShown: false }} />
       <Stack.Screen name="scan-qr" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Screen name="browser" options={{ headerShown: false }} />
+      <Stack.Screen name="search" options={{ headerShown: false }} />
       <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
       <Stack.Screen name="privacy" options={{ headerShown: false }} />
       <Stack.Screen name="archived" options={{ headerShown: false }} />

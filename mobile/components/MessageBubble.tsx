@@ -986,7 +986,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   styles.docBubble,
                   isMine ? styles.docBubbleMine : styles.docBubbleTheir,
                 ]}
-                onPress={() => Linking.openURL(fullUrl)}
+                onPress={() => {
+                  if (fullUrl.startsWith("http://") || fullUrl.startsWith("https://")) {
+                    router.push({
+                      pathname: "/browser",
+                      params: { url: fullUrl }
+                    });
+                  } else {
+                    Linking.openURL(fullUrl);
+                  }
+                }}
               >
                 <FileIcon
                   size={18}
