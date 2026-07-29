@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  TextInput,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -60,7 +59,6 @@ import {
   PanelTopOpen,
   PanelTopClose,
   Search,
-  ChevronRight,
 } from "lucide-react-native";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -230,6 +228,53 @@ export default function ChatListScreen() {
   // Drag-and-drop sortable lists states
   const [reorderModalVisible, setReorderModalVisible] = useState(false);
   const [orderedFilters, setOrderedFilters] = useState<any[]>([]);
+
+  // Lazy mount trackers for modals to optimize start-up/render performance without breaking exit animations
+  const [hasOpenedMenu, setHasOpenedMenu] = useState(false);
+  const [hasOpenedMoreMenu, setHasOpenedMoreMenu] = useState(false);
+  const [hasOpenedMute, setHasOpenedMute] = useState(false);
+  const [hasOpenedCreateList, setHasOpenedCreateList] = useState(false);
+  const [hasOpenedChatSelector, setHasOpenedChatSelector] = useState(false);
+  const [hasOpenedListSelector, setHasOpenedListSelector] = useState(false);
+  const [hasOpenedListMenu, setHasOpenedListMenu] = useState(false);
+  const [hasOpenedEditList, setHasOpenedEditList] = useState(false);
+  const [hasOpenedReorder, setHasOpenedReorder] = useState(false);
+
+  useEffect(() => {
+    if (menuVisible) setHasOpenedMenu(true);
+  }, [menuVisible]);
+
+  useEffect(() => {
+    if (moreMenuVisible) setHasOpenedMoreMenu(true);
+  }, [moreMenuVisible]);
+
+  useEffect(() => {
+    if (muteModalVisible) setHasOpenedMute(true);
+  }, [muteModalVisible]);
+
+  useEffect(() => {
+    if (createListModalVisible) setHasOpenedCreateList(true);
+  }, [createListModalVisible]);
+
+  useEffect(() => {
+    if (chatSelectorVisible) setHasOpenedChatSelector(true);
+  }, [chatSelectorVisible]);
+
+  useEffect(() => {
+    if (listSelectorVisible) setHasOpenedListSelector(true);
+  }, [listSelectorVisible]);
+
+  useEffect(() => {
+    if (activeMenuList) setHasOpenedListMenu(true);
+  }, [activeMenuList]);
+
+  useEffect(() => {
+    if (editListModalVisible) setHasOpenedEditList(true);
+  }, [editListModalVisible]);
+
+  useEffect(() => {
+    if (reorderModalVisible) setHasOpenedReorder(true);
+  }, [reorderModalVisible]);
 
   const activeChats = chats.filter((c) => !c.is_archived);
 
@@ -983,37 +1028,43 @@ export default function ChatListScreen() {
       )}
 
       {/* Selected Chats Options Menu Dropdown */}
-      <SelectedChatsMenuModal
-        visible={moreMenuVisible}
-        onClose={() => setMoreMenuVisible(false)}
-        selectedChatIds={selectedChatIds}
-        chats={chats}
-        onViewContact={handleViewContact}
-        onSelectAll={handleSelectAll}
-        onToggleFavorite={handleToggleFavoriteSelectedChats}
-        onAddToList={() => {
-          setSelectorChatIds([]);
-          setListSelectorVisible(true);
-        }}
-        onClearChats={handleClearSelectedChats}
-        onBlockChats={handleBlockSelectedChats}
-      />
+      {(moreMenuVisible || hasOpenedMoreMenu) && (
+        <SelectedChatsMenuModal
+          visible={moreMenuVisible}
+          onClose={() => setMoreMenuVisible(false)}
+          selectedChatIds={selectedChatIds}
+          chats={chats}
+          onViewContact={handleViewContact}
+          onSelectAll={handleSelectAll}
+          onToggleFavorite={handleToggleFavoriteSelectedChats}
+          onAddToList={() => {
+            setSelectorChatIds([]);
+            setListSelectorVisible(true);
+          }}
+          onClearChats={handleClearSelectedChats}
+          onBlockChats={handleBlockSelectedChats}
+        />
+      )}
 
       {/* Main Options Menu Dropdown */}
-      <MainMenuModal
-        visible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
+      {(menuVisible || hasOpenedMenu) && (
+        <MainMenuModal
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+        />
+      )}
 
       {/* Mute Chat Dialog Modal */}
-      <MuteModal
-        visible={muteModalVisible}
-        onClose={() => {
-          setMuteModalVisible(false);
-          setMuteSelectorList(null);
-        }}
-        onMute={handleMuteChats}
-      />
+      {(muteModalVisible || hasOpenedMute) && (
+        <MuteModal
+          visible={muteModalVisible}
+          onClose={() => {
+            setMuteModalVisible(false);
+            setMuteSelectorList(null);
+          }}
+          onMute={handleMuteChats}
+        />
+      )}
 
       {loading ? (
         <ActivityIndicator
@@ -1066,8 +1117,7 @@ export default function ChatListScreen() {
               onScroll={handleScroll}
               scrollEventThrottle={16}
               ListHeaderComponent={
-                archivedChatsCount > 0 &&
-                activeFilterId === "all" ? (
+                archivedChatsCount > 0 && activeFilterId === "all" ? (
                   <TouchableOpacity
                     style={[
                       styles.archivedRow,
@@ -1094,28 +1144,6 @@ export default function ChatListScreen() {
                       >
                         Conversas arquivadas
                       </Text>
-                    </View>
-                    <View style={styles.archivedRight}>
-                      <View
-                        style={[
-                          styles.archivedBadge,
-                          { backgroundColor: isDark ? "#2C2C2E" : "#E5E7EB" },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.archivedCountText,
-                            { color: colors.textSecondary, fontWeight: "600" },
-                          ]}
-                        >
-                          {archivedChatsCount}
-                        </Text>
-                      </View>
-                      <ChevronRight
-                        color={colors.textSecondary}
-                        size={16}
-                        style={{ opacity: 0.5 }}
-                      />
                     </View>
                   </TouchableOpacity>
                 ) : null
@@ -1158,90 +1186,102 @@ export default function ChatListScreen() {
       )}
 
       {/* Create List Modal */}
-      <CreateListModal
-        visible={createListModalVisible}
-        onClose={() => setCreateListModalVisible(false)}
-        onSubmit={handleCreateList}
-      />
+      {(createListModalVisible || hasOpenedCreateList) && (
+        <CreateListModal
+          visible={createListModalVisible}
+          onClose={() => setCreateListModalVisible(false)}
+          onSubmit={handleCreateList}
+        />
+      )}
 
       {/* Choose Chats Selector Modal */}
-      <ChatSelectorModal
-        visible={chatSelectorVisible}
-        onClose={() => {
-          setChatSelectorVisible(false);
-          setSelectorListId(null);
-          setSelectorChatIds([]);
-        }}
-        activeChats={activeChats}
-        initialSelectedChatIds={selectorChatIds}
-        onSave={handleSaveListChats}
-      />
+      {(chatSelectorVisible || hasOpenedChatSelector) && (
+        <ChatSelectorModal
+          visible={chatSelectorVisible}
+          onClose={() => {
+            setChatSelectorVisible(false);
+            setSelectorListId(null);
+            setSelectorChatIds([]);
+          }}
+          activeChats={activeChats}
+          initialSelectedChatIds={selectorChatIds}
+          onSave={handleSaveListChats}
+        />
+      )}
 
       {/* Add/Remove Chat lists Membership Modal */}
-      <ListSelectorModal
-        visible={listSelectorVisible}
-        onClose={() => setListSelectorVisible(false)}
-        userLists={userLists}
-        initialSelectedListIds={selectorChatIds}
-        onSave={handleSaveChatLists}
-        onCreateNewList={() => {
-          setListSelectorVisible(false);
-          setCreateListModalVisible(true);
-        }}
-      />
+      {(listSelectorVisible || hasOpenedListSelector) && (
+        <ListSelectorModal
+          visible={listSelectorVisible}
+          onClose={() => setListSelectorVisible(false)}
+          userLists={userLists}
+          initialSelectedListIds={selectorChatIds}
+          onSave={handleSaveChatLists}
+          onCreateNewList={() => {
+            setListSelectorVisible(false);
+            setCreateListModalVisible(true);
+          }}
+        />
+      )}
 
       {/* Custom List Options Menu Modal */}
-      <ListMenuModal
-        visible={!!activeMenuList}
-        onClose={() => setActiveMenuList(null)}
-        list={activeMenuList}
-        onMuteChats={() => {
-          if (activeMenuList) {
-            setMuteSelectorList(activeMenuList);
-            setMuteModalVisible(true);
+      {(!!activeMenuList || hasOpenedListMenu) && (
+        <ListMenuModal
+          visible={!!activeMenuList}
+          onClose={() => setActiveMenuList(null)}
+          list={activeMenuList}
+          onMuteChats={() => {
+            if (activeMenuList) {
+              setMuteSelectorList(activeMenuList);
+              setMuteModalVisible(true);
+              setActiveMenuList(null);
+            }
+          }}
+          onEditList={() => {
+            if (activeMenuList) {
+              setListToEdit(activeMenuList);
+              setEditListModalVisible(true);
+              setActiveMenuList(null);
+            }
+          }}
+          onReorderLists={() => {
             setActiveMenuList(null);
-          }
-        }}
-        onEditList={() => {
-          if (activeMenuList) {
-            setListToEdit(activeMenuList);
-            setEditListModalVisible(true);
-            setActiveMenuList(null);
-          }
-        }}
-        onReorderLists={() => {
-          setActiveMenuList(null);
-          setReorderModalVisible(true);
-        }}
-        onDeleteList={() => {
-          if (activeMenuList) {
-            handleDeleteList(activeMenuList.id);
-            setActiveMenuList(null);
-          }
-        }}
-      />
+            setReorderModalVisible(true);
+          }}
+          onDeleteList={() => {
+            if (activeMenuList) {
+              handleDeleteList(activeMenuList.id);
+              setActiveMenuList(null);
+            }
+          }}
+        />
+      )}
 
-      <CreateListModal
-        visible={editListModalVisible}
-        mode="edit"
-        initialName={listToEdit?.name ?? ""}
-        initialColor={listToEdit?.color ?? "🔴"}
-        initialIcon={listToEdit?.icon ?? ""}
-        onClose={() => {
-          setEditListModalVisible(false);
-          setListToEdit(null);
-        }}
-        onSubmit={handleEditList}
-      />
+      {(editListModalVisible || hasOpenedEditList) && (
+        <CreateListModal
+          visible={editListModalVisible}
+          mode="edit"
+          initialName={listToEdit?.name ?? ""}
+          initialColor={listToEdit?.color ?? "🔴"}
+          initialIcon={listToEdit?.icon ?? ""}
+          onClose={() => {
+            setEditListModalVisible(false);
+            setListToEdit(null);
+          }}
+          onSubmit={handleEditList}
+        />
+      )}
 
       {/* Bottom Sheet Reorganizar Listas Modal */}
-      <ReorderListsModal
-        visible={reorderModalVisible}
-        onClose={() => setReorderModalVisible(false)}
-        orderedFilters={orderedFilters}
-        onReorderEnd={handleReorderEnd}
-        onDeleteList={handleDeleteList}
-      />
+      {(reorderModalVisible || hasOpenedReorder) && (
+        <ReorderListsModal
+          visible={reorderModalVisible}
+          onClose={() => setReorderModalVisible(false)}
+          orderedFilters={orderedFilters}
+          onReorderEnd={handleReorderEnd}
+          onDeleteList={handleDeleteList}
+        />
+      )}
     </View>
   );
 }
@@ -1270,59 +1310,6 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: "row", alignItems: "center", gap: 16 },
   headerIcon: {
     padding: 4,
-  },
-  groupAvatar: { backgroundColor: "#34C759" },
-  chatItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  avatarText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  chatInfo: { flex: 1 },
-  chatName: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
-  lastMessage: { fontSize: 14 },
-  lastMessageAudioContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
-  },
-  lastMessageUnread: { fontWeight: "700" },
-  time: { fontSize: 12 },
-  timeUnread: { fontWeight: "700" },
-  rightContainer: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-    marginLeft: 8,
-  },
-  badge: {
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 6,
-  },
-  rightIconsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 6,
-  },
-  pinIcon: {
-    marginRight: 2,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: "bold",
   },
   empty: {
     flex: 1,
@@ -1366,36 +1353,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 3,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-
-  menuContainer: {
-    position: "absolute",
-    top: 60,
-    right: 6,
-    borderRadius: 12,
-    paddingVertical: 6,
-    width: 220,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 1,
-  },
-  menuItem: {
-    padding: 14,
-  },
-  menuItemText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  menuDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: 12,
-  },
   archivedRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1418,7 +1375,6 @@ const styles = StyleSheet.create({
   },
   archivedText: {
     fontSize: 16,
-    fontWeight: "500",
   },
   archivedRight: {
     flexDirection: "row",
@@ -1432,8 +1388,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 6,
-  },
-  archivedCountText: {
-    fontSize: 12,
   },
 });

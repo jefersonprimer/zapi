@@ -1,8 +1,14 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Tabs } from "expo-router";
+import React from "react";
+import {
+  CircleDot,
+  Users,
+  Phone,
+  Compass,
+  MessageSquareText,
+} from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAppTheme } from '@/context/ThemeContext';
+import { useAppTheme } from "@/context/ThemeContext";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -22,16 +28,17 @@ export default function TabLayout() {
           paddingTop: 4,
           paddingBottom: insets.bottom,
         },
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Conversas',
+          title: "Conversas",
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialCommunityIcons 
-              name={focused ? 'message-text' : 'message-text-outline'} 
-              color={color} 
-              size={size ?? 24} 
+            <MessageSquareText
+              color={color}
+              size={size ?? 24}
+              fill={focused ? color : "none"}
             />
           ),
         }}
@@ -39,12 +46,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="updates"
         options={{
-          title: 'Atualizações',
+          title: "Atualizações",
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialCommunityIcons 
-              name={focused ? 'circle-slice-8' : 'circle-double'} 
-              color={color} 
-              size={size ?? 24} 
+            <CircleDot
+              color={color}
+              size={size ?? 24}
+              fill={focused ? color : "none"}
             />
           ),
         }}
@@ -52,12 +59,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="communities"
         options={{
-          title: 'Comunidades',
+          title: "Comunidades",
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialCommunityIcons 
-              name={focused ? 'account-group' : 'account-group-outline'} 
-              color={color} 
-              size={size ?? 24} 
+            <Users
+              color={color}
+              size={size ?? 24}
+              fill={focused ? color : "none"}
             />
           ),
         }}
@@ -65,12 +72,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="calls"
         options={{
-          title: 'Ligações',
+          title: "Ligações",
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialCommunityIcons 
-              name={focused ? 'phone' : 'phone-outline'} 
-              color={color} 
-              size={size ?? 24} 
+            <Phone
+              color={color}
+              size={size ?? 24}
+              fill={focused ? color : "none"}
             />
           ),
         }}
@@ -78,12 +85,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explorar',
+          title: "Explorar",
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialCommunityIcons 
-              name={focused ? 'compass' : 'compass-outline'} 
-              color={color} 
-              size={size ?? 24} 
+            <Compass
+              color={color}
+              size={size ?? 24}
+              fill={focused ? color : "none"}
             />
           ),
         }}
