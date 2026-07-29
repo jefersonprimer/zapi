@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useMemo, useState } from "react";
+import React, { forwardRef, useCallback, useMemo, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -309,6 +309,8 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
     );
   }
 );
+
+ShareBottomSheet.displayName = "ShareBottomSheet";
 
 const styles = StyleSheet.create({
   sheetContainer: {

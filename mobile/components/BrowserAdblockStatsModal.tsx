@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native";
-import { Shield, ShieldAlert, X } from "lucide-react-native";
+import { ShieldAlert, X } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface BrowserAdblockStatsModalProps {

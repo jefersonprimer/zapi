@@ -7,9 +7,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Share,
-  Modal,
-  ScrollView,
-  SafeAreaView,
   Keyboard,
   BackHandler,
   Platform,
@@ -17,19 +14,9 @@ import {
 import { WebView } from "react-native-webview";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  ArrowLeft,
-  ArrowRight,
-  RotateCw,
-  Share2,
   Shield,
   ShieldAlert,
   Lock,
-  Globe,
-  Home,
-  X,
-  Plus,
-  Star,
-  ExternalLink,
   ChevronLeft,
   MoreVertical,
 } from "lucide-react-native";
@@ -72,7 +59,6 @@ export default function BrowserScreen() {
     currentUrl,
     setCurrentUrl,
     addToHistory,
-    favorites,
     addFavorite,
     removeFavorite,
     isFavorite,
@@ -104,7 +90,7 @@ export default function BrowserScreen() {
 
     setActiveUrl(targetUrl);
     setInputUrl(targetUrl);
-  }, [params.url, params.search]);
+  }, [params.url, params.search, currentUrl]);
 
   // Handle hardware back button on Android
   useEffect(() => {
@@ -123,7 +109,7 @@ export default function BrowserScreen() {
       onBackPress,
     );
     return () => subscription.remove();
-  }, [canGoBack]);
+  }, [canGoBack, router]);
 
   const handleNavigate = (urlText: string) => {
     Keyboard.dismiss();
@@ -190,7 +176,7 @@ export default function BrowserScreen() {
           src: data.src,
         });
       }
-    } catch (e) {
+    } catch {
       // Not a json or not standard message
     }
   };

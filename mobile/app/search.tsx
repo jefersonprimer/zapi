@@ -283,9 +283,9 @@ export default function SearchScreen() {
                       <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={1}>
                         {chat.name ?? chat.participant_name ?? chat.participant_username ?? "Grupo"}
                       </Text>
-                      {chat.last_message_preview && (
+                      {chat.last_message && (
                         <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
-                          {chat.last_message_preview}
+                          {chat.last_message}
                         </Text>
                       )}
                     </View>
@@ -370,9 +370,9 @@ export default function SearchScreen() {
                       <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={1}>
                         {chat.name ?? chat.participant_name ?? chat.participant_username ?? "Grupo"}
                       </Text>
-                      {chat.last_message_preview && (
+                      {chat.last_message && (
                         <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
-                          {chat.last_message_preview}
+                          {chat.last_message}
                         </Text>
                       )}
                     </View>
@@ -465,7 +465,7 @@ export default function SearchScreen() {
               >
                 <Globe size={20} color="#07C160" style={{ marginRight: 10 }} />
                 <Text style={[styles.webSearchPromptText, { color: colors.brandGreen || "#07C160" }]}>
-                  Pesquisar na Web por "{searchQuery}"
+                  {`Pesquisar na Web por "${searchQuery}"`}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -476,7 +476,7 @@ export default function SearchScreen() {
               !loadingGlobal && (
                 <View style={[styles.centerContainer, { marginVertical: 40 }]}>
                   <Text style={[styles.introText, { color: colors.textSecondary, marginBottom: 20 }]}>
-                    Nenhum resultado local ou global encontrado para "{searchQuery}"
+                    {`Nenhum resultado local ou global encontrado para "${searchQuery}"`}
                   </Text>
                 </View>
               )}

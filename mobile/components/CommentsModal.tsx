@@ -49,7 +49,7 @@ import Animated, {
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import * as updatesApi from "@/services/updatesApi";
-import { API_URL, uploadFile } from "@/services/api";
+import { uploadFile } from "@/services/api";
 import type { Comment, FeedPost, PostAttachment } from "@/services/updatesApi";
 import { getFullRemoteUrl } from "@/services/mediaCache";
 import { ChatMediaSelector } from "@/components/ChatMediaSelector";

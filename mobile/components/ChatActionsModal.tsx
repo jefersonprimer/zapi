@@ -7,7 +7,7 @@ import {
   Keyboard,
   Animated,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Smile, Image, Camera, FileText } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ChatActionsModalProps {
@@ -112,13 +112,12 @@ export function ChatActionsModal({
           <View
             style={[
               styles.modalRowIconContainer,
-              { backgroundColor: "#FF9500" },
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
-            <MaterialCommunityIcons
-              name="emoticon-outline"
+            <Smile
               size={20}
-              color="#FFFFFF"
+              color={colors.text}
             />
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
@@ -135,13 +134,12 @@ export function ChatActionsModal({
           <View
             style={[
               styles.modalRowIconContainer,
-              { backgroundColor: "#AF52DE" },
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
-            <MaterialCommunityIcons
-              name="image-outline"
+            <Image
               size={20}
-              color="#FFFFFF"
+              color={colors.text}
             />
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
@@ -158,13 +156,12 @@ export function ChatActionsModal({
           <View
             style={[
               styles.modalRowIconContainer,
-              { backgroundColor: "#FF3B30" },
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
-            <MaterialCommunityIcons
-              name="camera-outline"
+            <Camera
               size={20}
-              color="#FFFFFF"
+              color={colors.text}
             />
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
@@ -181,13 +178,12 @@ export function ChatActionsModal({
           <View
             style={[
               styles.modalRowIconContainer,
-              { backgroundColor: "#007AFF" },
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
-            <MaterialCommunityIcons
-              name="file-document-outline"
+            <FileText
               size={20}
-              color="#FFFFFF"
+              color={colors.text}
             />
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>

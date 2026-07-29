@@ -15,7 +15,17 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  ArrowLeft,
+  Reply,
+  Share2,
+  Trash2,
+  MoreVertical,
+  ShoppingBag,
+  Video,
+  Phone,
+  Plus,
+} from "lucide-react-native";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { API_URL } from "@/services/api";
 import { ChatMediaSelector } from "@/components/ChatMediaSelector";
@@ -260,11 +270,7 @@ export default function ChatScreen() {
             onPress={() => (isSelectionMode ? clearSelection() : router.back())}
             style={styles.headerBackBtn}
           >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={24}
-              color={colors.text}
-            />
+            <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           {isSelectionMode ? (
             <Text
@@ -342,7 +348,7 @@ export default function ChatScreen() {
                     ]}
                     numberOfLines={1}
                   >
-                    Conta comercial
+                    Conta Comercial
                   </Text>
                 ) : null}
               </View>
@@ -358,11 +364,7 @@ export default function ChatScreen() {
                   onPress={() => handleReencaminhar()}
                   style={styles.headerActionBtn}
                 >
-                  <MaterialCommunityIcons
-                    name="reply"
-                    size={22}
-                    color={colors.text}
-                  />
+                  <Reply size={22} color={colors.text} />
                 </TouchableOpacity>
               )}
               {hasOnlyMessagesSelected && (
@@ -370,33 +372,21 @@ export default function ChatScreen() {
                   onPress={handleEncaminhar}
                   style={styles.headerActionBtn}
                 >
-                  <MaterialCommunityIcons
-                    name="share"
-                    size={22}
-                    color={colors.text}
-                  />
+                  <Share2 size={22} color={colors.text} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 onPress={() => setDeleteModalVisible(true)}
                 style={styles.headerActionBtn}
               >
-                <MaterialCommunityIcons
-                  name="trash-can-outline"
-                  size={22}
-                  color={colors.text}
-                />
+                <Trash2 size={22} color={colors.text} />
               </TouchableOpacity>
               {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
                 <TouchableOpacity
                   onPress={() => setOptionsModalVisible(true)}
                   style={styles.headerActionBtn}
                 >
-                  <MaterialCommunityIcons
-                    name="dots-vertical"
-                    size={22}
-                    color={colors.text}
-                  />
+                  <MoreVertical size={22} color={colors.text} />
                 </TouchableOpacity>
               )}
             </>
@@ -412,11 +402,7 @@ export default function ChatScreen() {
                   }
                   style={styles.headerActionBtn}
                 >
-                  <MaterialCommunityIcons
-                    name="shopping"
-                    size={22}
-                    color={colors.tint}
-                  />
+                  <ShoppingBag size={22} color={colors.tint} />
                 </TouchableOpacity>
               )}
               {!participantStoreId && (
@@ -431,11 +417,7 @@ export default function ChatScreen() {
                   }
                   style={styles.headerActionBtn}
                 >
-                  <MaterialCommunityIcons
-                    name="video-outline"
-                    size={22}
-                    color={colors.text}
-                  />
+                  <Video size={22} color={colors.text} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -449,21 +431,13 @@ export default function ChatScreen() {
                 }
                 style={styles.headerActionBtn}
               >
-                <MaterialCommunityIcons
-                  name="phone-outline"
-                  size={22}
-                  color={colors.text}
-                />
+                <Phone size={22} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setMenuVisible(true)}
                 style={styles.headerActionBtn}
               >
-                <MaterialCommunityIcons
-                  name="dots-vertical"
-                  size={22}
-                  color={colors.text}
-                />
+                <MoreVertical size={22} color={colors.text} />
               </TouchableOpacity>
             </>
           )}
@@ -573,11 +547,7 @@ export default function ChatScreen() {
                   setActionsModalVisible(true);
                 }}
               >
-                <MaterialCommunityIcons
-                  name="plus"
-                  size={24}
-                  color={colors.icon}
-                />
+                <Plus size={24} color={colors.icon} />
               </TouchableOpacity>
 
               <ChatInput
@@ -618,136 +588,152 @@ export default function ChatScreen() {
         />
       )}
 
-      <AttachMediaSheet
-        visible={attachSheetVisible}
-        onClose={() => setAttachSheetVisible(false)}
-        onPickGallery={handlePickFromGallery}
-        onPickDocument={handlePickFile}
-        onSelectMedia={setSelectedAttachment}
-      />
+      {attachSheetVisible && (
+        <AttachMediaSheet
+          visible={attachSheetVisible}
+          onClose={() => setAttachSheetVisible(false)}
+          onPickGallery={handlePickFromGallery}
+          onPickDocument={handlePickFile}
+          onSelectMedia={setSelectedAttachment}
+        />
+      )}
 
-      <ChatMenuModal
-        visible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-        isContact={isContact}
-        isGroup={isGroup}
-        isBlocked={isBlockedByMe}
-        onToggleContact={handleToggleContact}
-        onMutePress={() => setMuteModalVisible(true)}
-        onBlockPress={handleBlockPress}
-        onClearChatPress={handleClearChatPress}
-        onAddToListPress={handleOpenListSelector}
-        onViewContact={
-          isGroup
-            ? () => {
-                router.push({
-                  pathname: "/group-detail",
-                  params: {
-                    chatId,
-                    participantUsername: displayTitle,
-                  },
-                });
-              }
-            : participantId
+      {menuVisible && (
+        <ChatMenuModal
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+          isContact={isContact}
+          isGroup={isGroup}
+          isBlocked={isBlockedByMe}
+          onToggleContact={handleToggleContact}
+          onMutePress={() => setMuteModalVisible(true)}
+          onBlockPress={handleBlockPress}
+          onClearChatPress={handleClearChatPress}
+          onAddToListPress={handleOpenListSelector}
+          onViewContact={
+            isGroup
               ? () => {
                   router.push({
-                    pathname: "/contact-detail",
+                    pathname: "/group-detail",
                     params: {
-                      participantId,
-                      participantUsername,
                       chatId,
-                      avatarUrl: participantAvatarUrl || undefined,
+                      participantUsername: displayTitle,
                     },
                   });
                 }
-              : undefined
-        }
-      />
+              : participantId
+                ? () => {
+                    router.push({
+                      pathname: "/contact-detail",
+                      params: {
+                        participantId,
+                        participantUsername,
+                        chatId,
+                        avatarUrl: participantAvatarUrl || undefined,
+                      },
+                    });
+                  }
+                : undefined
+          }
+        />
+      )}
 
-      <MuteModal
-        visible={muteModalVisible}
-        onClose={() => setMuteModalVisible(false)}
-        onMute={handleMuteChats}
-      />
+      {muteModalVisible && (
+        <MuteModal
+          visible={muteModalVisible}
+          onClose={() => setMuteModalVisible(false)}
+          onMute={handleMuteChats}
+        />
+      )}
 
-      <ListSelectorModal
-        visible={listSelectorVisible}
-        onClose={() => setListSelectorVisible(false)}
-        userLists={allLists}
-        initialSelectedListIds={selectedListIds}
-        onSave={handleSaveLists}
-        onCreateNewList={() => {
-          setListSelectorVisible(false);
-          setCreateListModalVisible(true);
-        }}
-      />
+      {listSelectorVisible && (
+        <ListSelectorModal
+          visible={listSelectorVisible}
+          onClose={() => setListSelectorVisible(false)}
+          userLists={allLists}
+          initialSelectedListIds={selectedListIds}
+          onSave={handleSaveLists}
+          onCreateNewList={() => {
+            setListSelectorVisible(false);
+            setCreateListModalVisible(true);
+          }}
+        />
+      )}
 
-      <CreateListModal
-        visible={createListModalVisible}
-        onClose={() => {
-          setCreateListModalVisible(false);
-          setListSelectorVisible(true);
-        }}
-        onSubmit={handleCreateList}
-      />
+      {createListModalVisible && (
+        <CreateListModal
+          visible={createListModalVisible}
+          onClose={() => {
+            setCreateListModalVisible(false);
+            setListSelectorVisible(true);
+          }}
+          onSubmit={handleCreateList}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
-      <ChatDeleteModal
-        visible={deleteModalVisible}
-        onClose={() => setDeleteModalVisible(false)}
-        deleteModalTitle={deleteModalTitle}
-        isDeleteForEveryoneAvailable={isDeleteForEveryoneAvailable}
-        onDeleteForEveryone={handleDeleteForEveryone}
-        onDeleteForMe={handleDeleteForMe}
-      />
+      {deleteModalVisible && (
+        <ChatDeleteModal
+          visible={deleteModalVisible}
+          onClose={() => setDeleteModalVisible(false)}
+          deleteModalTitle={deleteModalTitle}
+          isDeleteForEveryoneAvailable={isDeleteForEveryoneAvailable}
+          onDeleteForEveryone={handleDeleteForEveryone}
+          onDeleteForMe={handleDeleteForMe}
+        />
+      )}
 
       {/* Options/Ellipsis Dropdown Modal */}
-      <Modal
-        transparent={true}
-        visible={optionsModalVisible}
-        animationType="fade"
-        onRequestClose={() => setOptionsModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={[
-            styles.dropdownOverlay,
-            { backgroundColor: colors.modalOverlay },
-          ]}
-          activeOpacity={1}
-          onPress={() => setOptionsModalVisible(false)}
+      {optionsModalVisible && (
+        <Modal
+          transparent={true}
+          visible={optionsModalVisible}
+          animationType="fade"
+          onRequestClose={() => setOptionsModalVisible(false)}
         >
-          <View
+          <TouchableOpacity
             style={[
-              styles.dropdownContainer,
-              {
-                backgroundColor: colors.menuBackground,
-                borderColor: colors.border,
-              },
+              styles.dropdownOverlay,
+              { backgroundColor: colors.modalOverlay },
             ]}
+            activeOpacity={1}
+            onPress={() => setOptionsModalVisible(false)}
           >
-            <TouchableOpacity
-              style={styles.dropdownOption}
-              onPress={handleCopy}
+            <View
+              style={[
+                styles.dropdownContainer,
+                {
+                  backgroundColor: colors.menuBackground,
+                  borderColor: colors.border,
+                },
+              ]}
             >
-              <Text style={[styles.dropdownOptionText, { color: colors.text }]}>
-                Copiar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+              <TouchableOpacity
+                style={styles.dropdownOption}
+                onPress={handleCopy}
+              >
+                <Text style={[styles.dropdownOptionText, { color: colors.text }]}>
+                  Copiar
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
 
-      <ChatActionsModal
-        visible={actionsModalVisible}
-        onClose={() => setActionsModalVisible(false)}
-        onEmojiPress={() => {
-          inputRef.current?.blur();
-          setShowEmojiPicker(true);
-        }}
-        onFotosPress={handlePickFromGallery}
-        onCameraPress={handleTakePhoto}
-        onDocumentosPress={handlePickFile}
-      />
+      {actionsModalVisible && (
+        <ChatActionsModal
+          visible={actionsModalVisible}
+          onClose={() => setActionsModalVisible(false)}
+          onEmojiPress={() => {
+            inputRef.current?.blur();
+            setShowEmojiPicker(true);
+          }}
+          onFotosPress={handlePickFromGallery}
+          onCameraPress={handleTakePhoto}
+          onDocumentosPress={handlePickFile}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -755,7 +741,6 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   messageList: { flex: 1 },
-
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -793,7 +778,6 @@ const styles = StyleSheet.create({
     color: "#272727",
     fontWeight: "500",
   },
-
   inputContainerMessage: {
     flex: 1,
     flexDirection: "row",
