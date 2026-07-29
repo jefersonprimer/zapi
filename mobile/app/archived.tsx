@@ -10,7 +10,11 @@ import {
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { type ChatListItem as ChatListItemType, deleteChat, archiveChat } from "@/services/api";
+import {
+  type ChatListItem as ChatListItemType,
+  deleteChat,
+  archiveChat,
+} from "@/services/api";
 import {
   getChatsFromLocal,
   deleteChatLocal,
@@ -88,8 +92,13 @@ export default function ArchivedScreen() {
           chatId: item.id,
           participantId: item.participant_id || "",
           participantUsername:
-            item.name ?? item.participant_name ?? item.participant_username ?? "Unknown",
-          participantAvatarUrl: (item.is_group ? item.avatar_url : item.participant_avatar_url) || "",
+            item.name ??
+            item.participant_name ??
+            item.participant_username ??
+            "Unknown",
+          participantAvatarUrl:
+            (item.is_group ? item.avatar_url : item.participant_avatar_url) ||
+            "",
         },
       });
     }
@@ -165,19 +174,31 @@ export default function ArchivedScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       {selectedChatIds.length > 0 ? (
-        <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
+        <View
+          style={[styles.header, { backgroundColor: colors.headerBackground }]}
+        >
           <View style={styles.headerLeftSelected}>
-            <TouchableOpacity style={styles.headerIcon} onPress={() => setSelectedChatIds([])}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={() => setSelectedChatIds([])}
+            >
               <ArrowLeft color={colors.headerText} size={22} />
             </TouchableOpacity>
-            <Text style={[styles.selectedCountText, { color: colors.headerText }]}>
+            <Text
+              style={[styles.selectedCountText, { color: colors.headerText }]}
+            >
               {selectedChatIds.length}
             </Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.headerIcon} onPress={handlePinSelectedChats}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={handlePinSelectedChats}
+            >
               {(() => {
-                const selectedChats = chats.filter((c) => selectedChatIds.includes(c.id));
+                const selectedChats = chats.filter((c) =>
+                  selectedChatIds.includes(c.id),
+                );
                 const isAllPinned = selectedChats.every((c) => c.is_pinned);
                 return isAllPinned ? (
                   <PinOff color={colors.headerText} size={22} />
@@ -186,31 +207,52 @@ export default function ArchivedScreen() {
                 );
               })()}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIcon} onPress={handleUnarchiveSelectedChats}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={handleUnarchiveSelectedChats}
+            >
               <PanelTopClose color={colors.headerText} size={22} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIcon} onPress={handleDeleteSelectedChats}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={handleDeleteSelectedChats}
+            >
               <Trash2 color={colors.headerText} size={22} />
             </TouchableOpacity>
           </View>
         </View>
       ) : (
-        <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
+        <View
+          style={[styles.header, { backgroundColor: colors.headerBackground }]}
+        >
           <View style={styles.headerLeft}>
-            <TouchableOpacity style={styles.headerIcon} onPress={() => router.back()}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={() => router.back()}
+            >
               <ArrowLeft color={colors.headerText} size={22} />
             </TouchableOpacity>
-            <Text style={[styles.title, { color: colors.headerText }]}>Arquivadas</Text>
+            <Text style={[styles.title, { color: colors.headerText }]}>
+              Arquivadas
+            </Text>
           </View>
         </View>
       )}
 
       {loading ? (
-        <ActivityIndicator size="large" color={colors.tint} style={{ marginTop: 40 }} />
+        <ActivityIndicator
+          size="large"
+          color={colors.tint}
+          style={{ marginTop: 40 }}
+        />
       ) : archivedChats.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyContent}>
-            <Archive color={colors.textSecondary} size={48} style={{ marginBottom: 16 }} />
+            <Archive
+              color={colors.textSecondary}
+              size={48}
+              style={{ marginBottom: 16 }}
+            />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               Nenhuma conversa arquivada
             </Text>
@@ -271,9 +313,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginLeft: 8,
+    fontSize: 20,
+    fontWeight: "500",
   },
   selectedCountText: {
     fontSize: 20,

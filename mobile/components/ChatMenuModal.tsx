@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "400",
   },
   addText: {},
   removeText: {},

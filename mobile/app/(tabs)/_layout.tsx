@@ -1,12 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import {
-  CircleDot,
-  Users,
-  Phone,
-  Compass,
-  MessageSquareText,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -35,10 +29,10 @@ export default function TabLayout() {
         options={{
           title: "Conversas",
           tabBarIcon: ({ color, size, focused }) => (
-            <MessageSquareText
+            <MaterialCommunityIcons
+              name={focused ? "message-text" : "message-text-outline"}
               color={color}
               size={size ?? 24}
-              fill={focused ? color : "none"}
             />
           ),
         }}
@@ -48,10 +42,10 @@ export default function TabLayout() {
         options={{
           title: "Atualizações",
           tabBarIcon: ({ color, size, focused }) => (
-            <CircleDot
+            <MaterialCommunityIcons
+              name={focused ? "circle-slice-8" : "circle-outline"}
               color={color}
               size={size ?? 24}
-              fill={focused ? color : "none"}
             />
           ),
         }}
@@ -61,10 +55,10 @@ export default function TabLayout() {
         options={{
           title: "Comunidades",
           tabBarIcon: ({ color, size, focused }) => (
-            <Users
+            <MaterialCommunityIcons
+              name={focused ? "account-group" : "account-group-outline"}
               color={color}
               size={size ?? 24}
-              fill={focused ? color : "none"}
             />
           ),
         }}
@@ -74,10 +68,10 @@ export default function TabLayout() {
         options={{
           title: "Ligações",
           tabBarIcon: ({ color, size, focused }) => (
-            <Phone
+            <MaterialCommunityIcons
+              name={focused ? "phone" : "phone-outline"}
               color={color}
               size={size ?? 24}
-              fill={focused ? color : "none"}
             />
           ),
         }}
@@ -87,10 +81,10 @@ export default function TabLayout() {
         options={{
           title: "Explorar",
           tabBarIcon: ({ color, size, focused }) => (
-            <Compass
+            <MaterialCommunityIcons
+              name={focused ? "compass" : "compass-outline"}
               color={color}
               size={size ?? 24}
-              fill={focused ? color : "none"}
             />
           ),
         }}

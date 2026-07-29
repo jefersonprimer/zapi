@@ -10,19 +10,7 @@ import {
   Alert,
   Share,
 } from "react-native";
-import {
-  Users2,
-  Plus,
-  Compass,
-  Hash,
-  MessageSquare,
-  Calendar,
-  ChevronRight,
-  Share2,
-  Lock,
-  Globe,
-  PlusCircle,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -293,7 +281,7 @@ export default function CommunitiesScreen() {
             style={[styles.headerBtn, { backgroundColor: colors.background }]}
             onPress={() => setShowJoinCommunity(true)}
           >
-            <Compass size={20} color={colors.brandGreen} />
+            <MaterialCommunityIcons name="compass" size={20} color={colors.brandGreen} />
             <Text style={[styles.headerBtnText, { color: colors.text }]}>Entrar</Text>
           </TouchableOpacity>
 
@@ -301,7 +289,7 @@ export default function CommunitiesScreen() {
             style={[styles.headerBtn, { backgroundColor: colors.brandGreen }]}
             onPress={() => setShowCreateCommunity(true)}
           >
-            <Plus size={20} color="#fff" />
+            <MaterialCommunityIcons name="plus" size={20} color="#fff" />
             <Text style={[styles.headerBtnText, { color: "#fff" }]}>Criar</Text>
           </TouchableOpacity>
         </View>
@@ -353,15 +341,15 @@ export default function CommunitiesScreen() {
               <Image source={{ uri: selectedCommunity.banner_url }} style={styles.bannerImg} />
             ) : (
               <View style={[styles.bannerDefault, { backgroundColor: colors.brandGreen + "15" }]}>
-                <Users2 size={48} color={colors.brandGreen} opacity={0.3} />
+                <MaterialCommunityIcons name="account-group" size={48} color={colors.brandGreen} style={{ opacity: 0.3 }} />
               </View>
             )}
             <View style={styles.bannerOverlay}>
               <View style={styles.bannerMeta}>
                 {selectedCommunity.visibility === "private" ? (
-                  <Lock size={12} color="#fff" />
+                  <MaterialCommunityIcons name="lock" size={12} color="#fff" />
                 ) : (
-                  <Globe size={12} color="#fff" />
+                  <MaterialCommunityIcons name="earth" size={12} color="#fff" />
                 )}
                 <Text style={styles.bannerMetaText}>{selectedCommunity.category || "Geral"}</Text>
               </View>
@@ -385,7 +373,7 @@ export default function CommunitiesScreen() {
                 onPress={handleShareInvite}
                 style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               >
-                <Share2 size={20} color={colors.brandGreen} />
+                <MaterialCommunityIcons name="share-variant" size={20} color={colors.brandGreen} />
                 <Text style={[styles.actionCardText, { color: colors.text }]}>Convidar Amigos</Text>
               </TouchableOpacity>
 
@@ -394,7 +382,7 @@ export default function CommunitiesScreen() {
                   onPress={() => setShowCreateChannel(true)}
                   style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 >
-                  <PlusCircle size={20} color={colors.brandGreen} />
+                  <MaterialCommunityIcons name="plus-circle" size={20} color={colors.brandGreen} />
                   <Text style={[styles.actionCardText, { color: colors.text }]}>Criar Canal</Text>
                 </TouchableOpacity>
               )}
@@ -413,7 +401,7 @@ export default function CommunitiesScreen() {
                     onPress={() => handleSelectChannel(chan)}
                     style={[styles.channelRow, { borderBottomColor: colors.border }]}
                   >
-                    <Hash size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+                    <MaterialCommunityIcons name="pound" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.channelLabel, { color: colors.text }]}>{chan.name}</Text>
                       {chan.description ? (
@@ -422,7 +410,7 @@ export default function CommunitiesScreen() {
                         </Text>
                       ) : null}
                     </View>
-                    <ChevronRight size={16} color={colors.textSecondary} />
+                    <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -438,7 +426,7 @@ export default function CommunitiesScreen() {
                     onPress={() => handleSelectChannel(chan)}
                     style={[styles.channelRow, { borderBottomColor: colors.border }]}
                   >
-                    <MessageSquare size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+                    <MaterialCommunityIcons name="forum-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.channelLabel, { color: colors.text }]}>{chan.name}</Text>
                       {chan.description ? (
@@ -447,7 +435,7 @@ export default function CommunitiesScreen() {
                         </Text>
                       ) : null}
                     </View>
-                    <ChevronRight size={16} color={colors.textSecondary} />
+                    <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -463,7 +451,7 @@ export default function CommunitiesScreen() {
                     onPress={() => handleSelectChannel(chan)}
                     style={[styles.channelRow, { borderBottomColor: colors.border }]}
                   >
-                    <Calendar size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+                    <MaterialCommunityIcons name="calendar" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.channelLabel, { color: colors.text }]}>{chan.name}</Text>
                       {chan.description ? (
@@ -472,7 +460,7 @@ export default function CommunitiesScreen() {
                         </Text>
                       ) : null}
                     </View>
-                    <ChevronRight size={16} color={colors.textSecondary} />
+                    <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -480,7 +468,7 @@ export default function CommunitiesScreen() {
 
             {channels.length === 0 && (
               <View style={[styles.noChannels, { borderColor: colors.border }]}>
-                <Hash size={36} color={colors.textSecondary} style={{ marginBottom: 8 }} />
+                <MaterialCommunityIcons name="pound" size={36} color={colors.textSecondary} style={{ marginBottom: 8 }} />
                 <Text style={[styles.noChannelsTitle, { color: colors.text }]}>Nenhum canal neste workspace</Text>
                 {selectedCommunity.owner_id === user?.user_id ? (
                   <TouchableOpacity
@@ -498,7 +486,7 @@ export default function CommunitiesScreen() {
         </ScrollView>
       ) : (
         <View style={styles.center}>
-          <Users2 size={64} color={colors.textSecondary} style={{ marginBottom: 16 }} />
+          <MaterialCommunityIcons name="account-group" size={64} color={colors.textSecondary} style={{ marginBottom: 16 }} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Você não faz parte de nenhuma comunidade</Text>
           <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
             Participe de comunidades do Zapi para debater assuntos, participar de eventos ou crie a sua própria comunidade!

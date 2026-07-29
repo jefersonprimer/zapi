@@ -173,7 +173,7 @@ export default function MuteModal({
                   { color: colors.text },
                   selectedOption === opt.value && {
                     color: colors.tint,
-                    fontWeight: "600",
+                    fontWeight: "500",
                   },
                 ]}
               >

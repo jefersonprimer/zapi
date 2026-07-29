@@ -8,10 +8,7 @@ import {
   Animated,
   Modal,
 } from "react-native";
-import {
-  GripVertical,
-  Trash2,
-} from "lucide-react-native";
+import { GripVertical, Trash2 } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ReorderListsModalProps {
@@ -286,7 +283,7 @@ const styles = StyleSheet.create({
   },
   reorderListName: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "400",
     lineHeight: 20,
     includeFontPadding: false,
   },

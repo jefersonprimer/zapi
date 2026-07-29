@@ -22,15 +22,33 @@ import {
   API_URL,
 } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Search, X, Users, MessageSquare } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Search,
+  X,
+  Users,
+  MessageSquare,
+} from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Helper to get consistent background color for avatars based on user's name
 function getAvatarColor(name: string) {
   const colors = [
-    "#FF5733", "#33FF57", "#3357FF", "#F3FF33", "#FF33F3",
-    "#33FFF0", "#FFA833", "#AF33FF", "#33FFA8", "#FF3383",
-    "#07C160", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899"
+    "#FF5733",
+    "#33FF57",
+    "#3357FF",
+    "#F3FF33",
+    "#FF33F3",
+    "#33FFF0",
+    "#FFA833",
+    "#AF33FF",
+    "#33FFA8",
+    "#FF3383",
+    "#07C160",
+    "#10B981",
+    "#3B82F6",
+    "#8B5CF6",
+    "#EC4899",
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -54,11 +72,11 @@ export default function NewChatScreen() {
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
-      () => setKeyboardVisible(true)
+      () => setKeyboardVisible(true),
     );
     const keyboardDidHideListener = Keyboard.addListener(
       "keyboardDidHide",
-      () => setKeyboardVisible(false)
+      () => setKeyboardVisible(false),
     );
 
     return () => {
@@ -101,7 +119,7 @@ export default function NewChatScreen() {
         err?.code === "privacy_messages_contacts";
       Alert.alert(
         isPrivacy ? "Privacidade" : "Erro",
-        err.message || "Não foi possível iniciar a conversa."
+        err.message || "Não foi possível iniciar a conversa.",
       );
     } finally {
       setLoading(false);
@@ -122,14 +140,30 @@ export default function NewChatScreen() {
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Custom Header */}
-        <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View
+          style={[
+            styles.customHeader,
+            {
+              paddingTop: insets.top,
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backBtn}
+            >
               <ArrowLeft size={24} color={colors.text} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>Nova Conversa</Text>
-              <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                Nova Conversa
+              </Text>
+              <Text
+                style={[styles.headerSubtitle, { color: colors.textSecondary }]}
+              >
                 Inicie um chat privado
               </Text>
             </View>
@@ -138,8 +172,17 @@ export default function NewChatScreen() {
 
         <View style={styles.content}>
           {/* Search Section */}
-          <View style={[styles.searchBarContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Search size={20} color={colors.textSecondary} style={styles.searchIcon} />
+          <View
+            style={[
+              styles.searchBarContainer,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Search
+              size={20}
+              color={colors.textSecondary}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
               placeholder="Buscar por nome, usuário ou email..."
@@ -151,12 +194,18 @@ export default function NewChatScreen() {
               returnKeyType="search"
             />
             {query.length > 0 && (
-              <TouchableOpacity onPress={() => setQuery("")} style={styles.clearBtn}>
+              <TouchableOpacity
+                onPress={() => setQuery("")}
+                style={styles.clearBtn}
+              >
                 <X size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity 
-              style={[styles.searchBtn, { backgroundColor: colors.brandGreen || "#07C160" }]} 
+            <TouchableOpacity
+              style={[
+                styles.searchBtn,
+                { backgroundColor: colors.brandGreen || "#07C160" },
+              ]}
               onPress={handleSearch}
               disabled={searching}
             >
@@ -170,7 +219,10 @@ export default function NewChatScreen() {
 
           {loading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.brandGreen || "#07C160"} />
+              <ActivityIndicator
+                size="large"
+                color={colors.brandGreen || "#07C160"}
+              />
             </View>
           )}
 
@@ -184,21 +236,26 @@ export default function NewChatScreen() {
               const avatarBg = getAvatarColor(displayName);
               return (
                 <TouchableOpacity
-                  style={[styles.userItem, { borderBottomColor: colors.border }]}
+                  style={[
+                    styles.userItem,
+                    { borderBottomColor: colors.border },
+                  ]}
                   onPress={() => handleSelectUser(item.id)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.userRowLeft}>
                     {/* Avatar */}
-                    <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
+                    <View
+                      style={[styles.avatar, { backgroundColor: avatarBg }]}
+                    >
                       {item.avatar_url ? (
-                        <Image 
-                          source={{ 
-                            uri: item.avatar_url.startsWith("http") 
-                              ? item.avatar_url 
-                              : `${API_URL}${item.avatar_url}` 
-                          }} 
-                          style={styles.avatarImage} 
+                        <Image
+                          source={{
+                            uri: item.avatar_url.startsWith("http")
+                              ? item.avatar_url
+                              : `${API_URL}${item.avatar_url}`,
+                          }}
+                          style={styles.avatarImage}
                         />
                       ) : (
                         <Text style={styles.avatarText}>
@@ -209,20 +266,34 @@ export default function NewChatScreen() {
 
                     {/* User Info */}
                     <View style={styles.userInfo}>
-                      <Text style={[styles.username, { color: colors.text }]} numberOfLines={1}>
+                      <Text
+                        style={[styles.username, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
                         {displayName}
                       </Text>
-                      <Text style={[styles.usernameHandle, { color: colors.textSecondary }]}>
+                      <Text
+                        style={[
+                          styles.usernameHandle,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         @{item.username}
                       </Text>
-                      <Text style={[styles.email, { color: colors.textSecondary }]} numberOfLines={1}>
+                      <Text
+                        style={[styles.email, { color: colors.textSecondary }]}
+                        numberOfLines={1}
+                      >
                         {item.email}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.userRowRight}>
-                    <MessageSquare size={20} color={colors.brandGreen || "#07C160"} />
+                    <MessageSquare
+                      size={20}
+                      color={colors.brandGreen || "#07C160"}
+                    />
                   </View>
                 </TouchableOpacity>
               );
@@ -230,15 +301,27 @@ export default function NewChatScreen() {
             ListEmptyComponent={
               query.trim() && !searching ? (
                 <View style={styles.emptyState}>
-                  <Users size={48} color={colors.textSecondary} style={{ opacity: 0.5, marginBottom: 12 }} />
-                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  <Users
+                    size={48}
+                    color={colors.textSecondary}
+                    style={{ opacity: 0.5, marginBottom: 12 }}
+                  />
+                  <Text
+                    style={[styles.emptyText, { color: colors.textSecondary }]}
+                  >
                     Nenhum usuário encontrado para &quot;{query}&quot;
                   </Text>
                 </View>
               ) : !searching ? (
                 <View style={styles.emptyState}>
-                  <Users size={48} color={colors.textSecondary} style={{ opacity: 0.3, marginBottom: 12 }} />
-                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  <Users
+                    size={48}
+                    color={colors.textSecondary}
+                    style={{ opacity: 0.3, marginBottom: 12 }}
+                  />
+                  <Text
+                    style={[styles.emptyText, { color: colors.textSecondary }]}
+                  >
                     Busque contatos para iniciar um bate-papo
                   </Text>
                 </View>
@@ -252,11 +335,11 @@ export default function NewChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1 
+  container: {
+    flex: 1,
   },
   customHeader: {
-    paddingBottom: 16,
+    paddingBottom: 6,
     borderBottomWidth: 1,
     elevation: 2,
     shadowColor: "#000",
@@ -279,16 +362,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "500",
   },
   headerSubtitle: {
     fontSize: 13,
     marginTop: 2,
   },
-  content: { 
-    flex: 1, 
-    padding: 16 
+  content: {
+    flex: 1,
+    padding: 16,
   },
   searchBarContainer: {
     flexDirection: "row",

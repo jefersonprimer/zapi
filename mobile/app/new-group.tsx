@@ -23,14 +23,33 @@ import {
 } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, Search, X, Check, Users, Camera } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Search,
+  X,
+  Check,
+  Users,
+  Camera,
+} from "lucide-react-native";
 
 // Helper to get consistent background color for avatars based on user's name
 function getAvatarColor(name: string) {
   const colors = [
-    "#FF5733", "#33FF57", "#3357FF", "#F3FF33", "#FF33F3",
-    "#33FFF0", "#FFA833", "#AF33FF", "#33FFA8", "#FF3383",
-    "#07C160", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899"
+    "#FF5733",
+    "#33FF57",
+    "#3357FF",
+    "#F3FF33",
+    "#FF33F3",
+    "#33FFF0",
+    "#FFA833",
+    "#AF33FF",
+    "#33FFA8",
+    "#FF3383",
+    "#07C160",
+    "#10B981",
+    "#3B82F6",
+    "#8B5CF6",
+    "#EC4899",
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -48,7 +67,9 @@ export default function NewGroupScreen() {
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<UserSearchResult[]>([]);
-  const [selected, setSelected] = useState<Map<string, UserSearchResult>>(new Map());
+  const [selected, setSelected] = useState<Map<string, UserSearchResult>>(
+    new Map(),
+  );
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
@@ -56,11 +77,11 @@ export default function NewGroupScreen() {
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
-      () => setKeyboardVisible(true)
+      () => setKeyboardVisible(true),
     );
     const keyboardDidHideListener = Keyboard.addListener(
       "keyboardDidHide",
-      () => setKeyboardVisible(false)
+      () => setKeyboardVisible(false),
     );
 
     return () => {
@@ -138,27 +159,63 @@ export default function NewGroupScreen() {
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
-        <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View
+          style={[
+            styles.customHeader,
+            {
+              paddingTop: insets.top,
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backBtn}
+            >
               <ArrowLeft size={24} color={colors.text} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>Novo Grupo</Text>
-              <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-                {selected.size === 0 ? "Adicione participantes" : `${selected.size} selecionado(s)`}
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                Novo Grupo
+              </Text>
+              <Text
+                style={[styles.headerSubtitle, { color: colors.textSecondary }]}
+              >
+                {selected.size === 0
+                  ? "Adicione participantes"
+                  : `${selected.size} selecionado(s)`}
               </Text>
             </View>
           </View>
         </View>
 
-        <ScrollView style={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Group Meta Info Section */}
-          <View style={[styles.metaCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.metaCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.avatarPickerContainer}>
-              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.avatarPlaceholder,
+                  { backgroundColor: colors.border },
+                ]}
+              >
                 <Users size={32} color={colors.textSecondary} />
-                <View style={[styles.cameraIconContainer, { backgroundColor: colors.brandGreen || "#07C160" }]}>
+                <View
+                  style={[
+                    styles.cameraIconContainer,
+                    { backgroundColor: colors.brandGreen || "#07C160" },
+                  ]}
+                >
                   <Camera size={14} color="#FFF" />
                 </View>
               </View>
@@ -172,34 +229,62 @@ export default function NewGroupScreen() {
                 onChangeText={setName}
                 maxLength={50}
               />
-              <View style={[styles.inputUnderline, { backgroundColor: name ? (colors.brandGreen || "#07C160") : colors.border }]} />
+              <View
+                style={[
+                  styles.inputUnderline,
+                  {
+                    backgroundColor: name
+                      ? colors.brandGreen || "#07C160"
+                      : colors.border,
+                  },
+                ]}
+              />
             </View>
           </View>
 
           {/* Selected Members Horizontal Chips */}
           {selected.size > 0 && (
             <View style={styles.selectedContainer}>
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Membros Selecionados</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+              <Text
+                style={[styles.sectionTitle, { color: colors.textSecondary }]}
+              >
+                Membros Selecionados
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsScroll}
+              >
                 {selectedList.map((user) => {
                   const displayName = user.name || user.username;
                   const avatarBg = getAvatarColor(displayName);
                   return (
                     <View key={user.id} style={styles.chipWrapper}>
                       <View style={styles.chipAvatarContainer}>
-                        <View style={[styles.chipAvatar, { backgroundColor: avatarBg }]}>
+                        <View
+                          style={[
+                            styles.chipAvatar,
+                            { backgroundColor: avatarBg },
+                          ]}
+                        >
                           <Text style={styles.chipAvatarText}>
                             {displayName[0].toUpperCase()}
                           </Text>
                         </View>
-                        <TouchableOpacity 
-                          style={[styles.removeChipBtn, { backgroundColor: colors.textSecondary }]}
+                        <TouchableOpacity
+                          style={[
+                            styles.removeChipBtn,
+                            { backgroundColor: colors.textSecondary },
+                          ]}
                           onPress={() => removeUser(user.id)}
                         >
                           <X size={10} color="#FFF" />
                         </TouchableOpacity>
                       </View>
-                      <Text numberOfLines={1} style={[styles.chipName, { color: colors.text }]}>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.chipName, { color: colors.text }]}
+                      >
                         {displayName.split(" ")[0]}
                       </Text>
                     </View>
@@ -211,9 +296,22 @@ export default function NewGroupScreen() {
 
           {/* Search Bar Section */}
           <View style={styles.searchSection}>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Adicionar participantes</Text>
-            <View style={[styles.searchBarContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Search size={20} color={colors.textSecondary} style={styles.searchIcon} />
+            <Text
+              style={[styles.sectionTitle, { color: colors.textSecondary }]}
+            >
+              Adicionar participantes
+            </Text>
+            <View
+              style={[
+                styles.searchBarContainer,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Search
+                size={20}
+                color={colors.textSecondary}
+                style={styles.searchIcon}
+              />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
                 placeholder="Buscar por nome ou username..."
@@ -224,12 +322,18 @@ export default function NewGroupScreen() {
                 returnKeyType="search"
               />
               {query.length > 0 && (
-                <TouchableOpacity onPress={() => setQuery("")} style={styles.clearBtn}>
+                <TouchableOpacity
+                  onPress={() => setQuery("")}
+                  style={styles.clearBtn}
+                >
                   <X size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity 
-                style={[styles.searchBtn, { backgroundColor: colors.brandGreen || "#07C160" }]} 
+              <TouchableOpacity
+                style={[
+                  styles.searchBtn,
+                  { backgroundColor: colors.brandGreen || "#07C160" },
+                ]}
                 onPress={handleSearch}
                 disabled={searching}
               >
@@ -252,30 +356,45 @@ export default function NewGroupScreen() {
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={[styles.userItem, { borderBottomColor: colors.border }]}
+                    style={[
+                      styles.userItem,
+                      { borderBottomColor: colors.border },
+                    ]}
                     onPress={() => toggleUser(item)}
                     activeOpacity={0.7}
                   >
                     <View style={styles.userRowLeft}>
                       {/* Checkbox */}
-                      <View style={[
-                        styles.checkbox, 
-                        { borderColor: colors.border }, 
-                        isSelected && [styles.checked, { backgroundColor: colors.brandGreen || "#07C160", borderColor: colors.brandGreen || "#07C160" }]
-                      ]}>
-                        {isSelected && <Check size={12} color="#FFF" strokeWidth={3} />}
+                      <View
+                        style={[
+                          styles.checkbox,
+                          { borderColor: colors.border },
+                          isSelected && [
+                            styles.checked,
+                            {
+                              backgroundColor: colors.brandGreen || "#07C160",
+                              borderColor: colors.brandGreen || "#07C160",
+                            },
+                          ],
+                        ]}
+                      >
+                        {isSelected && (
+                          <Check size={12} color="#FFF" strokeWidth={3} />
+                        )}
                       </View>
 
                       {/* Avatar */}
-                      <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
+                      <View
+                        style={[styles.avatar, { backgroundColor: avatarBg }]}
+                      >
                         {item.avatar_url ? (
-                          <Image 
-                            source={{ 
-                              uri: item.avatar_url.startsWith("http") 
-                                ? item.avatar_url 
-                                : `${API_URL}${item.avatar_url}` 
-                            }} 
-                            style={styles.avatarImage} 
+                          <Image
+                            source={{
+                              uri: item.avatar_url.startsWith("http")
+                                ? item.avatar_url
+                                : `${API_URL}${item.avatar_url}`,
+                            }}
+                            style={styles.avatarImage}
                           />
                         ) : (
                           <Text style={styles.avatarText}>
@@ -286,13 +405,27 @@ export default function NewGroupScreen() {
 
                       {/* User Info */}
                       <View style={styles.userInfo}>
-                        <Text style={[styles.username, { color: colors.text }]} numberOfLines={1}>
+                        <Text
+                          style={[styles.username, { color: colors.text }]}
+                          numberOfLines={1}
+                        >
                           {displayName}
                         </Text>
-                        <Text style={[styles.usernameHandle, { color: colors.textSecondary }]}>
+                        <Text
+                          style={[
+                            styles.usernameHandle,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
                           @{item.username}
                         </Text>
-                        <Text style={[styles.email, { color: colors.textSecondary }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.email,
+                            { color: colors.textSecondary },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {item.email}
                         </Text>
                       </View>
@@ -302,15 +435,27 @@ export default function NewGroupScreen() {
               })
             ) : query.trim() !== "" && !searching ? (
               <View style={styles.emptyState}>
-                <Users size={48} color={colors.textSecondary} style={{ opacity: 0.5, marginBottom: 12 }} />
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                <Users
+                  size={48}
+                  color={colors.textSecondary}
+                  style={{ opacity: 0.5, marginBottom: 12 }}
+                />
+                <Text
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
                   Nenhum usuário encontrado para &quot;{query}&quot;
                 </Text>
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <Users size={48} color={colors.textSecondary} style={{ opacity: 0.3, marginBottom: 12 }} />
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                <Users
+                  size={48}
+                  color={colors.textSecondary}
+                  style={{ opacity: 0.3, marginBottom: 12 }}
+                />
+                <Text
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
                   Busque usuários para adicioná-los ao grupo
                 </Text>
               </View>
@@ -319,7 +464,16 @@ export default function NewGroupScreen() {
         </ScrollView>
 
         {/* Floating Create Button */}
-        <View style={[styles.footer, { paddingBottom: isKeyboardVisible ? 6 : Math.max(insets.bottom, 16) }]}>
+        <View
+          style={[
+            styles.footer,
+            {
+              paddingBottom: isKeyboardVisible
+                ? 6
+                : Math.max(insets.bottom, 16),
+            },
+          ]}
+        >
           <TouchableOpacity
             style={[
               styles.createBtn,
@@ -332,7 +486,9 @@ export default function NewGroupScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.createBtnText}>Criar Grupo ({selected.size})</Text>
+              <Text style={styles.createBtnText}>
+                Criar Grupo ({selected.size})
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -342,11 +498,11 @@ export default function NewGroupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1 
+  container: {
+    flex: 1,
   },
   customHeader: {
-    paddingBottom: 16,
+    paddingBottom: 6,
     borderBottomWidth: 1,
     elevation: 2,
     shadowColor: "#000",
@@ -369,8 +525,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "500",
   },
   headerSubtitle: {
     fontSize: 13,
@@ -434,9 +590,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
   },
-  sectionTitle: { 
-    fontSize: 14, 
-    fontWeight: "600", 
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
     marginBottom: 10,
     textTransform: "uppercase",
     letterSpacing: 0.5,

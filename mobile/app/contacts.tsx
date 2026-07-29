@@ -340,8 +340,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "500",
   },
   headerSubtitle: {
     fontSize: 12,

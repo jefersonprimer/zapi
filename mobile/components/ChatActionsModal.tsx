@@ -7,7 +7,7 @@ import {
   Keyboard,
   Animated,
 } from "react-native";
-import { Smile, Image, Camera, FileText } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ChatActionsModalProps {
@@ -115,7 +115,8 @@ export function ChatActionsModal({
               { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
-            <Smile
+            <MaterialCommunityIcons
+              name="emoticon-happy-outline"
               size={20}
               color={colors.text}
             />
@@ -137,7 +138,8 @@ export function ChatActionsModal({
               { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
-            <Image
+            <MaterialCommunityIcons
+              name="image-outline"
               size={20}
               color={colors.text}
             />
@@ -159,7 +161,8 @@ export function ChatActionsModal({
               { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
-            <Camera
+            <MaterialCommunityIcons
+              name="camera-outline"
               size={20}
               color={colors.text}
             />
@@ -181,7 +184,8 @@ export function ChatActionsModal({
               { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
-            <FileText
+            <MaterialCommunityIcons
+              name="file-document-outline"
               size={20}
               color={colors.text}
             />

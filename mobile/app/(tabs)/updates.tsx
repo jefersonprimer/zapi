@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Plus, Sparkles } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useUpdates } from "@/hooks/useUpdates";
 import StoryBar from "@/components/StoryBar";
@@ -117,19 +117,15 @@ export default function UpdatesScreen() {
           hitSlop={12}
           accessibilityLabel="Criar conteúdo"
         >
-          <Plus
+          <MaterialCommunityIcons
+            name="plus"
             size={28}
             color={activeTab === "reels" ? "white" : colors.text}
           />
         </TouchableOpacity>
       </View>
     ),
-    [
-      colors.text,
-      colors.textSecondary,
-      handleCreateContent,
-      activeTab,
-    ],
+    [colors.text, colors.textSecondary, handleCreateContent, activeTab],
   );
 
   const renderHeader = useCallback(
@@ -218,11 +214,6 @@ export default function UpdatesScreen() {
             onStoryPress={handleStoryPress}
           />
           <View style={styles.center}>
-            <Sparkles
-              size={56}
-              color={colors.tint}
-              style={{ marginBottom: 20 }}
-            />
             <Text style={[styles.title, { color: colors.text }]}>
               Fique por dentro das novidades
             </Text>

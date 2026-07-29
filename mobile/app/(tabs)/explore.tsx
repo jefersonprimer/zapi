@@ -7,12 +7,7 @@ import {
   Pressable,
   Platform,
 } from "react-native";
-import {
-  ShoppingBag,
-  Wallet,
-  FileText,
-  ChevronRight,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -40,7 +35,7 @@ export default function ExploreScreen() {
       title: "Delivery",
       description: "Comida, mercado e compras sem sair do chat.",
       category: "delivery",
-      icon: (props) => <ShoppingBag size={props.size ?? 24} color={props.color} />,
+      icon: (props) => <MaterialCommunityIcons name="shopping-outline" size={props.size ?? 24} color={props.color} />,
       iconBgColor: "#FFEFEF",
       iconColor: "#FF4B4B",
       fullDescription: "Peça em restaurantes, mercados e lojas direto no Zapi. Veja cardápios, monte o carrinho, escolha o endereço e pague via PIX.",
@@ -57,7 +52,7 @@ export default function ExploreScreen() {
       title: "Pagamentos",
       description: "Gerencie sua chave Pix e receba de contatos.",
       category: "finance",
-      icon: (props) => <Wallet size={props.size ?? 24} color={props.color} />,
+      icon: (props) => <MaterialCommunityIcons name="wallet-outline" size={props.size ?? 24} color={props.color} />,
       iconBgColor: "#E8F8F0",
       iconColor: "#10B981",
       fullDescription: "Cadastre sua chave Pix para que contatos possam te pagar pelo Zapi. Gerencie tipo, valor, nome na conta e quem pode ver sua chave.",
@@ -74,7 +69,7 @@ export default function ExploreScreen() {
       title: "Notas e Tarefas",
       description: "Crie e organize suas notas rapidamente.",
       category: "utilities",
-      icon: (props) => <FileText size={props.size ?? 24} color={props.color} />,
+      icon: (props) => <MaterialCommunityIcons name="file-document-outline" size={props.size ?? 24} color={props.color} />,
       iconBgColor: "#F3E8FF",
       iconColor: "#A855F7",
       fullDescription: "Anotações rápidas direto do Zapi. Crie notas simples, organize suas ideias e acesse de qualquer lugar. Uma ferramenta leve para capturar o que importa no momento.",
@@ -145,7 +140,7 @@ export default function ExploreScreen() {
               </Text>
             </View>
 
-            <ChevronRight size={20} color={colors.textSecondary} style={styles.cardArrow} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} style={styles.cardArrow} />
           </Pressable>
         ))}
       </ScrollView>

@@ -15,17 +15,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
-import {
-  ArrowLeft,
-  Reply,
-  Share2,
-  Trash2,
-  MoreVertical,
-  ShoppingBag,
-  Video,
-  Phone,
-  Plus,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { API_URL } from "@/services/api";
 import { ChatMediaSelector } from "@/components/ChatMediaSelector";
@@ -255,22 +245,28 @@ export default function ChatScreen() {
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 0}
     >
       <View
-        style={[
-          styles.customHeader,
-          {
-            paddingTop: insets.top,
-            height: insets.top + 60,
-            backgroundColor: colors.surface,
-            borderBottomColor: colors.border,
-          },
-        ]}
+        style={{
+          paddingTop: insets.top,
+          backgroundColor: colors.surface,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border,
+        }}
       >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            height: 60,
+            paddingHorizontal: 16,
+          }}
+        >
         <View style={styles.headerLeftContainer}>
           <TouchableOpacity
             onPress={() => (isSelectionMode ? clearSelection() : router.back())}
             style={styles.headerBackBtn}
           >
-            <ArrowLeft size={24} color={colors.text} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           {isSelectionMode ? (
             <Text
@@ -364,7 +360,7 @@ export default function ChatScreen() {
                   onPress={() => handleReencaminhar()}
                   style={styles.headerActionBtn}
                 >
-                  <Reply size={22} color={colors.text} />
+                  <MaterialCommunityIcons name="reply" size={22} color={colors.text} />
                 </TouchableOpacity>
               )}
               {hasOnlyMessagesSelected && (
@@ -372,21 +368,21 @@ export default function ChatScreen() {
                   onPress={handleEncaminhar}
                   style={styles.headerActionBtn}
                 >
-                  <Share2 size={22} color={colors.text} />
+                  <MaterialCommunityIcons name="share-all" size={24} color={colors.text} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 onPress={() => setDeleteModalVisible(true)}
                 style={styles.headerActionBtn}
               >
-                <Trash2 size={22} color={colors.text} />
+                <MaterialCommunityIcons name="delete-outline" size={22} color={colors.text} />
               </TouchableOpacity>
               {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
                 <TouchableOpacity
                   onPress={() => setOptionsModalVisible(true)}
                   style={styles.headerActionBtn}
                 >
-                  <MoreVertical size={22} color={colors.text} />
+                  <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.text} />
                 </TouchableOpacity>
               )}
             </>
@@ -402,7 +398,7 @@ export default function ChatScreen() {
                   }
                   style={styles.headerActionBtn}
                 >
-                  <ShoppingBag size={22} color={colors.tint} />
+                  <MaterialCommunityIcons name="shopping-outline" size={22} color={colors.tint} />
                 </TouchableOpacity>
               )}
               {!participantStoreId && (
@@ -417,7 +413,7 @@ export default function ChatScreen() {
                   }
                   style={styles.headerActionBtn}
                 >
-                  <Video size={22} color={colors.text} />
+                  <MaterialCommunityIcons name="video-outline" size={22} color={colors.text} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -431,18 +427,19 @@ export default function ChatScreen() {
                 }
                 style={styles.headerActionBtn}
               >
-                <Phone size={22} color={colors.text} />
+                <MaterialCommunityIcons name="phone-outline" size={22} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setMenuVisible(true)}
                 style={styles.headerActionBtn}
               >
-                <MoreVertical size={22} color={colors.text} />
+                <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.text} />
               </TouchableOpacity>
             </>
           )}
         </View>
       </View>
+    </View>
 
       <FlatList
         key={chatId}
@@ -547,7 +544,7 @@ export default function ChatScreen() {
                   setActionsModalVisible(true);
                 }}
               >
-                <Plus size={24} color={colors.icon} />
+                <MaterialCommunityIcons name="plus" size={24} color={colors.icon} />
               </TouchableOpacity>
 
               <ChatInput
@@ -712,7 +709,9 @@ export default function ChatScreen() {
                 style={styles.dropdownOption}
                 onPress={handleCopy}
               >
-                <Text style={[styles.dropdownOptionText, { color: colors.text }]}>
+                <Text
+                  style={[styles.dropdownOptionText, { color: colors.text }]}
+                >
                   Copiar
                 </Text>
               </TouchableOpacity>
@@ -818,8 +817,8 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   headerTitleText: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "500",
     color: "#272727",
     flex: 1,
   },

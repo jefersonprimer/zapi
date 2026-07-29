@@ -44,22 +44,7 @@ import {
   getListPositionsLocal,
   saveListPositionLocal,
 } from "@/services/database";
-import {
-  Camera,
-  MoreVertical,
-  MessageSquarePlus,
-  Lock,
-  Trash2,
-  ArrowLeft,
-  Pin,
-  PinOff,
-  Bell,
-  BellOff,
-  Archive,
-  PanelTopOpen,
-  PanelTopClose,
-  Search,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
 import MuteModal from "@/components/MuteModal";
@@ -919,7 +904,7 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={() => setSelectedChatIds([])}
             >
-              <ArrowLeft color={colors.headerText} size={22} />
+              <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={22} />
             </TouchableOpacity>
             <Text
               style={[styles.selectedCountText, { color: colors.headerText }]}
@@ -938,9 +923,9 @@ export default function ChatListScreen() {
                 );
                 const isAllPinned = selectedChats.every((c) => c.is_pinned);
                 return isAllPinned ? (
-                  <PinOff color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons name="pin-off" color={colors.headerText} size={22} />
                 ) : (
-                  <Pin color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons name="pin" color={colors.headerText} size={22} />
                 );
               })()}
             </TouchableOpacity>
@@ -954,9 +939,9 @@ export default function ChatListScreen() {
                 );
                 const allSelectedAreMuted = selectedChats.every(isChatMuted);
                 return allSelectedAreMuted ? (
-                  <Bell color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons name="bell" color={colors.headerText} size={22} />
                 ) : (
-                  <BellOff color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons name="bell-off" color={colors.headerText} size={22} />
                 );
               })()}
             </TouchableOpacity>
@@ -972,9 +957,9 @@ export default function ChatListScreen() {
                   (c) => c.is_archived,
                 );
                 return shouldArchive ? (
-                  <PanelTopOpen color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons name="archive-arrow-down-outline" color={colors.headerText} size={22} />
                 ) : (
-                  <PanelTopClose color={colors.headerText} size={22} />
+                  <MaterialCommunityIcons name="archive-arrow-up-outline" color={colors.headerText} size={22} />
                 );
               })()}
             </TouchableOpacity>
@@ -982,13 +967,13 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={handleDeleteSelectedChats}
             >
-              <Trash2 color={colors.headerText} size={22} />
+              <MaterialCommunityIcons name="delete-outline" color={colors.headerText} size={22} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
               onPress={() => setMoreMenuVisible(true)}
             >
-              <MoreVertical color={colors.headerText} size={22} />
+              <MaterialCommunityIcons name="dots-vertical" color={colors.headerText} size={22} />
             </TouchableOpacity>
           </View>
         </View>
@@ -1009,19 +994,19 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={() => router.push("/search")}
             >
-              <Search color={colors.headerText} size={22} />
+              <MaterialCommunityIcons name="magnify" color={colors.headerText} size={22} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
               onPress={() => router.push("/link-device")}
             >
-              <Camera color={colors.headerText} size={22} />
+              <MaterialCommunityIcons name="camera-outline" color={colors.headerText} size={22} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
               onPress={() => setMenuVisible(true)}
             >
-              <MoreVertical color={colors.headerText} size={22} />
+              <MaterialCommunityIcons name="dots-vertical" color={colors.headerText} size={22} />
             </TouchableOpacity>
           </View>
         </View>
@@ -1134,7 +1119,7 @@ export default function ChatListScreen() {
                           { backgroundColor: isDark ? "#222222" : "#F1F5F9" },
                         ]}
                       >
-                        <Archive color={colors.textSecondary} size={20} />
+                        <MaterialCommunityIcons name="archive-outline" color={colors.textSecondary} size={20} />
                       </View>
                       <Text
                         style={[
@@ -1151,7 +1136,7 @@ export default function ChatListScreen() {
               ListFooterComponent={
                 <View>
                   <View style={styles.footerContainer}>
-                    <Lock color={colors.textSecondary} size={13} />
+                    <MaterialCommunityIcons name="lock" color={colors.textSecondary} size={13} />
                     <Text
                       style={[
                         styles.footerText,
@@ -1181,7 +1166,7 @@ export default function ChatListScreen() {
           style={[styles.fab, { backgroundColor: colors.fab }]}
           onPress={() => router.push("/contacts")}
         >
-          <MessageSquarePlus color="#FFFFFF" size={24} />
+          <MaterialCommunityIcons name="message-plus" color="#FFFFFF" size={24} />
         </TouchableOpacity>
       )}
 

@@ -10,7 +10,7 @@ import {
   Image,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, PhoneOff, Trash2, ArrowLeft } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { getCallHistory, deleteCallHistoryItem, type CallHistoryItem } from "@/services/callApi";
 import { voiceCallManager } from "@/services/voiceCallManager";
@@ -118,18 +118,18 @@ export default function CallsScreen() {
 
     if (!peerName) return null;
 
-    let StatusIcon = PhoneIncoming;
+    let statusIconName = "phone-incoming";
     let iconColor = "#34C759"; // Green
 
     if (isOutgoing) {
-      StatusIcon = PhoneOutgoing;
+      statusIconName = "phone-outgoing";
     }
 
     if (item.status === "missed" || item.status === "rejected" || item.status === "busy") {
-      StatusIcon = PhoneMissed;
+      statusIconName = "phone-missed";
       iconColor = "#FF3B30"; // Red
     } else if (item.status === "failed") {
-      StatusIcon = PhoneOff;
+      statusIconName = "phone-off";
       iconColor = "#FF9500"; // Orange
     }
 
@@ -186,7 +186,7 @@ export default function CallsScreen() {
           <View style={styles.info}>
             <Text style={[styles.peerName, { color: colors.text }]}>{peerName}</Text>
             <View style={styles.statusRow}>
-              <StatusIcon size={14} color={iconColor} style={{ marginRight: 6 }} />
+              <MaterialCommunityIcons name={statusIconName} size={14} color={iconColor} style={{ marginRight: 6 }} />
               <Text style={[styles.statusText, { color: colors.textSecondary }]}>
                 {isOutgoing ? "Efetuada" : "Recebida"} • {formattedDate}
                 {item.duration > 0 && ` • ${formatDuration(item.duration)}`}
@@ -209,7 +209,7 @@ export default function CallsScreen() {
             style={[styles.callButton, { backgroundColor: colors.surface }]}
             onPress={() => handleCallBack(peerId, peerName, peerAvatarUrl)}
           >
-            <Phone size={18} color={colors.tint} />
+            <MaterialCommunityIcons name="phone" size={18} color={colors.tint} />
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -229,13 +229,13 @@ export default function CallsScreen() {
       {isSelectionMode ? (
         <View style={[styles.headerContainer, { borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => setSelectedCallIds([])} style={styles.headerButton}>
-            <ArrowLeft size={24} color={colors.text} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitleSelection, { color: colors.text }]}>
             {selectedCallIds.length} selecionadas
           </Text>
           <TouchableOpacity onPress={handleDeleteSelectedPrompt} style={styles.headerButton}>
-            <Trash2 size={24} color={colors.headerText} />
+            <MaterialCommunityIcons name="delete-outline" size={24} color={colors.headerText} />
           </TouchableOpacity>
         </View>
       ) : (
