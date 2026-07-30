@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { useAuth, getStorageItem, setStorageItem } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { updateProfile } from "@/services/api";
 
 const ACTIVE_GREEN = "#34C759"; // iOS Active Green
@@ -122,7 +122,7 @@ export default function PrivacyScreen() {
       >
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-            <ArrowLeft size={24} color={colors.headerText} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}>
             Privacidade

@@ -14,15 +14,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-import {
-  ArrowLeft,
-  Camera,
-  Image as ImageIcon,
-  Type,
-  Send,
-  X,
-  Video,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { uploadFile } from "@/services/api";
@@ -250,9 +242,9 @@ export default function CreateStoryScreen() {
           style={styles.headerBtn}
         >
           {mode === "choose" ? (
-            <ArrowLeft size={24} color="white" />
+            <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
           ) : (
-            <X size={24} color="white" />
+            <MaterialCommunityIcons name="close" size={24} color="white" />
           )}
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Novo status</Text>
@@ -268,7 +260,7 @@ export default function CreateStoryScreen() {
             {sending ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <Send size={22} color={canPublish ? colors.tint : "#666"} />
+              <MaterialCommunityIcons name="send" size={22} color={canPublish ? colors.tint : "#666"} />
             )}
           </TouchableOpacity>
         ) : (
@@ -288,7 +280,7 @@ export default function CreateStoryScreen() {
             onPress={openCamera}
             activeOpacity={0.85}
           >
-            <Camera size={28} color="white" />
+            <MaterialCommunityIcons name="camera" size={28} color="white" />
             <View style={styles.optionTextWrap}>
               <Text style={styles.optionTitle}>Câmera</Text>
               <Text style={styles.optionDesc}>Tirar foto ou gravar vídeo</Text>
@@ -300,7 +292,7 @@ export default function CreateStoryScreen() {
             onPress={openGallery}
             activeOpacity={0.85}
           >
-            <ImageIcon size={28} color="white" />
+            <MaterialCommunityIcons name="image-outline" size={28} color="white" />
             <View style={styles.optionTextWrap}>
               <Text style={styles.optionTitle}>Galeria</Text>
               <Text style={styles.optionDesc}>Escolher foto ou vídeo</Text>
@@ -312,7 +304,7 @@ export default function CreateStoryScreen() {
             onPress={startText}
             activeOpacity={0.85}
           >
-            <Type size={28} color="white" />
+            <MaterialCommunityIcons name="format-text" size={28} color="white" />
             <View style={styles.optionTextWrap}>
               <Text style={styles.optionTitle}>Texto</Text>
               <Text style={styles.optionDesc}>Status com cor de fundo</Text>
@@ -330,7 +322,7 @@ export default function CreateStoryScreen() {
           />
           {media.type === "video" && (
             <View style={styles.videoBadge}>
-              <Video size={16} color="white" />
+              <MaterialCommunityIcons name="video" size={16} color="white" />
               <Text style={styles.videoBadgeText}>Vídeo</Text>
             </View>
           )}

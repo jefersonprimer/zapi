@@ -16,17 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
-import {
-  ArrowLeft,
-  Camera,
-  Image as ImageIcon,
-  Send,
-  X,
-  Video,
-  FlipHorizontal,
-  Zap,
-  ZapOff,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { uploadFile } from "@/services/api";
 import * as updatesApi from "@/services/updatesApi";
@@ -315,7 +305,7 @@ export default function CreateClipScreen() {
   if (!permission.granted) {
     return (
       <View style={[styles.container, styles.center]}>
-        <Camera size={64} color="rgba(255,255,255,0.3)" />
+        <MaterialCommunityIcons name="camera" size={64} color="rgba(255,255,255,0.3)" />
         <Text style={styles.permissionText}>
           Precisamos de acesso à sua câmera
         </Text>
@@ -340,7 +330,7 @@ export default function CreateClipScreen() {
       <View style={styles.container}>
         <View style={[styles.previewHeader, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity onPress={resetToCamera} style={styles.headerBtn}>
-            <X size={24} color="white" />
+            <MaterialCommunityIcons name="close" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Preview</Text>
           <TouchableOpacity
@@ -354,7 +344,7 @@ export default function CreateClipScreen() {
             {sending ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <Send size={22} color={canPublish ? "#07C160" : "#666"} />
+              <MaterialCommunityIcons name="send" size={22} color={canPublish ? "#07C160" : "#666"} />
             )}
           </TouchableOpacity>
         </View>
@@ -367,7 +357,7 @@ export default function CreateClipScreen() {
           />
           {media.type === "video" && (
             <View style={styles.videoBadge}>
-              <Video size={14} color="white" />
+              <MaterialCommunityIcons name="video" size={14} color="white" />
               <Text style={styles.videoBadgeText}>
                 {media.duration ? `${media.duration}s` : "Vídeo"}
               </Text>
@@ -439,7 +429,7 @@ export default function CreateClipScreen() {
             onPress={() => router.back()}
             style={styles.headerBtn}
           >
-            <ArrowLeft size={24} color="white" />
+            <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Novo clip</Text>
           <TouchableOpacity
@@ -447,9 +437,9 @@ export default function CreateClipScreen() {
             onPress={() => setFlashEnabled((prev) => !prev)}
           >
             {flashEnabled ? (
-              <Zap size={20} color="#FFD700" fill="#FFD700" />
+              <MaterialCommunityIcons name="flash" size={20} color="#FFD700" />
             ) : (
-              <ZapOff size={20} color="white" />
+              <MaterialCommunityIcons name="flash-off" size={20} color="white" />
             )}
           </TouchableOpacity>
         </View>
@@ -570,9 +560,7 @@ export default function CreateClipScreen() {
                   style={styles.thumbnailImage}
                 />
               ) : (
-                <View style={styles.galleryPlaceholder}>
-                  <ImageIcon size={22} color="#fff" />
-                </View>
+                  <MaterialCommunityIcons name="image-outline" size={22} color="#fff" />
               )}
             </TouchableOpacity>
 
@@ -601,7 +589,7 @@ export default function CreateClipScreen() {
               onPress={toggleFacing}
               disabled={isRecording}
             >
-              <FlipHorizontal size={22} color="white" />
+              <MaterialCommunityIcons name="camera-flip" size={22} color="white" />
             </TouchableOpacity>
           </View>
         </View>

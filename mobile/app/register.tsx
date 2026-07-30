@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { register } from "@/services/api";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -94,7 +94,7 @@ export default function RegisterScreen() {
           style={{ padding: 8, marginLeft: 4 }}
           activeOpacity={0.7}
         >
-          <ArrowLeft color={textColor} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={textColor} size={24} />
         </TouchableOpacity>
       </View>
 
@@ -219,9 +219,9 @@ export default function RegisterScreen() {
                   activeOpacity={0.7}
                 >
                   {showPassword ? (
-                    <EyeOff size={18} color={textSecondary} />
+                    <MaterialCommunityIcons name="eye-off-outline" size={18} color={textSecondary} />
                   ) : (
-                    <Eye size={18} color={textSecondary} />
+                    <MaterialCommunityIcons name="eye-outline" size={18} color={textSecondary} />
                   )}
                 </TouchableOpacity>
               </View>

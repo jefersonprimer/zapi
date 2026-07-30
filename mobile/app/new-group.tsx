@@ -23,14 +23,7 @@ import {
 } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  ArrowLeft,
-  Search,
-  X,
-  Check,
-  Users,
-  Camera,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 // Helper to get consistent background color for avatars based on user's name
 function getAvatarColor(name: string) {
@@ -174,7 +167,7 @@ export default function NewGroupScreen() {
               onPress={() => router.back()}
               style={styles.backBtn}
             >
-              <ArrowLeft size={24} color={colors.text} />
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -209,14 +202,14 @@ export default function NewGroupScreen() {
                   { backgroundColor: colors.border },
                 ]}
               >
-                <Users size={32} color={colors.textSecondary} />
+                <MaterialCommunityIcons name="account-multiple" size={32} color={colors.textSecondary} />
                 <View
                   style={[
                     styles.cameraIconContainer,
                     { backgroundColor: colors.brandGreen || "#07C160" },
                   ]}
                 >
-                  <Camera size={14} color="#FFF" />
+                  <MaterialCommunityIcons name="camera" size={14} color="#FFF" />
                 </View>
               </View>
             </View>
@@ -278,7 +271,7 @@ export default function NewGroupScreen() {
                           ]}
                           onPress={() => removeUser(user.id)}
                         >
-                          <X size={10} color="#FFF" />
+                          <MaterialCommunityIcons name="close" size={10} color="#FFF" />
                         </TouchableOpacity>
                       </View>
                       <Text
@@ -307,7 +300,8 @@ export default function NewGroupScreen() {
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
             >
-              <Search
+              <MaterialCommunityIcons
+                name="magnify"
                 size={20}
                 color={colors.textSecondary}
                 style={styles.searchIcon}
@@ -326,7 +320,7 @@ export default function NewGroupScreen() {
                   onPress={() => setQuery("")}
                   style={styles.clearBtn}
                 >
-                  <X size={18} color={colors.textSecondary} />
+                  <MaterialCommunityIcons name="close" size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -379,7 +373,7 @@ export default function NewGroupScreen() {
                         ]}
                       >
                         {isSelected && (
-                          <Check size={12} color="#FFF" strokeWidth={3} />
+                          <MaterialCommunityIcons name="check" size={12} color="#FFF" />
                         )}
                       </View>
 
@@ -435,7 +429,8 @@ export default function NewGroupScreen() {
               })
             ) : query.trim() !== "" && !searching ? (
               <View style={styles.emptyState}>
-                <Users
+                <MaterialCommunityIcons
+                  name="account-multiple"
                   size={48}
                   color={colors.textSecondary}
                   style={{ opacity: 0.5, marginBottom: 12 }}
@@ -448,7 +443,8 @@ export default function NewGroupScreen() {
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <Users
+                <MaterialCommunityIcons
+                  name="account-multiple"
                   size={48}
                   color={colors.textSecondary}
                   style={{ opacity: 0.3, marginBottom: 12 }}

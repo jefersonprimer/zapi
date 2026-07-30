@@ -13,7 +13,7 @@ import { useRouter, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth, type SavedProfile } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import { Trash2, Plus, MoreHorizontal } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   BottomSheetModal,
   BottomSheetView,
@@ -138,7 +138,7 @@ export default function SelectProfileScreen() {
           style={{ padding: 8, marginRight: -8 }}
           activeOpacity={0.7}
         >
-          <MoreHorizontal color={textColor} size={24} />
+          <MaterialCommunityIcons name="dots-horizontal" color={textColor} size={24} />
         </TouchableOpacity>
       </View>
 
@@ -285,7 +285,7 @@ export default function SelectProfileScreen() {
                     );
                   }}
                 >
-                  <Trash2 size={16} color="#EF4444" />
+                  <MaterialCommunityIcons name="delete-outline" size={16} color="#EF4444" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -299,7 +299,7 @@ export default function SelectProfileScreen() {
             onPress={() => router.push("/login")}
             activeOpacity={0.7}
           >
-            <Plus size={16} color={textColor} style={{ marginRight: 8 }} />
+            <MaterialCommunityIcons name="plus" size={16} color={textColor} style={{ marginRight: 8 }} />
             <Text
               style={[styles.actionOutlineButtonText, { color: textColor }]}
             >
@@ -380,7 +380,7 @@ export default function SelectProfileScreen() {
               );
             }}
           >
-            <Trash2 size={20} color="#EF4444" style={{ marginRight: 12 }} />
+            <MaterialCommunityIcons name="delete-outline" size={20} color="#EF4444" style={{ marginRight: 12 }} />
             <Text style={{ color: "#EF4444", fontSize: 16, fontWeight: "600" }}>
               Remover conta atual
             </Text>

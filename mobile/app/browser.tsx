@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -13,20 +12,19 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  Shield,
-  ShieldAlert,
-  Lock,
-  ChevronLeft,
-  MoreVertical,
-} from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useBrowserStore } from "@/store/useBrowserStore";
 import { getAdblockScript } from "@/utils/adblockScript";
 import { BrowserMediaActionsModal } from "@/components/BrowserMediaActionsModal";
 import { BrowserSidebar } from "@/components/BrowserSidebar";
 import { BrowserAdblockStatsModal } from "@/components/BrowserAdblockStatsModal";
+import { BrowserTabManagerModal } from "@/components/BrowserTabManagerModal";
+import { BrowserHistoryBookmarksModal } from "@/components/BrowserHistoryBookmarksModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+
+const MAX_ACTIVE_WEBVIEWS = 3;
 
 export default function BrowserScreen() {
   const { colors, isDark } = useAppTheme();
@@ -34,30 +32,14 @@ export default function BrowserScreen() {
   const params = useLocalSearchParams<{ url?: string; search?: string }>();
   const insets = useSafeAreaInsets();
 
-  const webViewRef = useRef<WebView>(null);
-  const [inputUrl, setInputUrl] = useState("");
-  const [title, setTitle] = useState("");
-  const [canGoBack, setCanGoBack] = useState(false);
-  const [canGoForward, setCanGoForward] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isSecure, setIsSecure] = useState(true);
-  const [statsModalVisible, setStatsModalVisible] = useState(false);
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeUrl, setActiveUrl] = useState("");
-  const [mediaModalState, setMediaModalState] = useState<{
-    visible: boolean;
-    mediaType: "image" | "video" | null;
-    src: string | null;
-  }>({
-    visible: false,
-    mediaType: null,
-    src: null,
-  });
+  // Multi-tab WebView references
+  const webViewRefs = useRef<{ [tabId: string]: WebView | null }>({});
 
   const {
-    currentUrl,
-    setCurrentUrl,
+    tabs,
+    activeTabId,
+    createTab,
+    updateTabState,
     addToHistory,
     addFavorite,
     removeFavorite,
@@ -72,31 +54,72 @@ export default function BrowserScreen() {
     resetStats,
   } = useBrowserStore();
 
-  // Load initial URL
+  const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
+
+  const [inputUrl, setInputUrl] = useState("");
+  const [statsModalVisible, setStatsModalVisible] = useState(false);
+  const sidebarRef = useRef<BottomSheetModal>(null);
+  const [tabManagerVisible, setTabManagerVisible] = useState(false);
+  const [historyBookmarksVisible, setHistoryBookmarksVisible] = useState(false);
+
+  const [mediaModalState, setMediaModalState] = useState<{
+    visible: boolean;
+    mediaType: "image" | "video" | null;
+    src: string | null;
+  }>({
+    visible: false,
+    mediaType: null,
+    src: null,
+  });
+
+  const lastHandledParams = useRef<{ url?: string; search?: string }>({});
+
+  // Load initial URL if passed in parameters or fallback to active tab URL
   useEffect(() => {
-    let targetUrl = "https://www.google.com";
+    const urlChanged = params.url !== lastHandledParams.current.url;
+    const searchChanged = params.search !== lastHandledParams.current.search;
 
-    if (params.url) {
-      targetUrl = params.url;
-    } else if (params.search) {
-      targetUrl = `https://www.google.com/search?q=${encodeURIComponent(params.search)}`;
-    } else if (currentUrl) {
-      targetUrl = currentUrl;
+    if (urlChanged || searchChanged) {
+      lastHandledParams.current = { url: params.url, search: params.search };
+
+      if (params.url) {
+        let targetUrl = params.url;
+        if (
+          !targetUrl.startsWith("http://") &&
+          !targetUrl.startsWith("https://")
+        ) {
+          targetUrl = "https://" + targetUrl;
+        }
+        // Open in active tab
+        updateTabState(activeTabId, {
+          url: targetUrl,
+          navigationUrl: targetUrl,
+        });
+        setInputUrl(targetUrl);
+      } else if (params.search) {
+        const targetUrl = `https://www.google.com/search?q=${encodeURIComponent(params.search)}`;
+        updateTabState(activeTabId, {
+          url: targetUrl,
+          navigationUrl: targetUrl,
+        });
+        setInputUrl(targetUrl);
+      }
     }
+  }, [params.url, params.search, activeTabId, updateTabState]);
 
-    if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
-      targetUrl = "https://" + targetUrl;
+  // Synchronize search input when active tab changes
+  useEffect(() => {
+    if (activeTab) {
+      setInputUrl(activeTab.url);
     }
-
-    setActiveUrl(targetUrl);
-    setInputUrl(targetUrl);
-  }, [params.url, params.search, currentUrl]);
+  }, [activeTabId, activeTab]);
 
   // Handle hardware back button on Android
   useEffect(() => {
     const onBackPress = () => {
-      if (canGoBack && webViewRef.current) {
-        webViewRef.current.goBack();
+      const activeWebView = webViewRefs.current[activeTabId];
+      if (activeTab.canGoBack && activeWebView) {
+        activeWebView.goBack();
         return true;
       } else {
         router.back();
@@ -109,14 +132,13 @@ export default function BrowserScreen() {
       onBackPress,
     );
     return () => subscription.remove();
-  }, [canGoBack, router]);
+  }, [activeTab.canGoBack, activeTabId, router]);
 
   const handleNavigate = (urlText: string) => {
     Keyboard.dismiss();
     let url = urlText.trim();
     if (!url) return;
 
-    // Check if it looks like a URL
     const urlPattern =
       /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
     const ipPattern =
@@ -131,24 +153,22 @@ export default function BrowserScreen() {
         url = "https://" + url;
       }
     } else {
-      // Otherwise search Google
       url = `https://www.google.com/search?q=${encodeURIComponent(url)}`;
     }
 
-    setActiveUrl(url);
     setInputUrl(url);
-    setIsSecure(url.startsWith("https://"));
+    updateTabState(activeTabId, { url, navigationUrl: url });
   };
 
   const handleReload = () => {
-    webViewRef.current?.reload();
+    webViewRefs.current[activeTabId]?.reload();
   };
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `${title}\n${currentUrl}`,
-        url: currentUrl,
+        message: `${activeTab.title}\n${activeTab.url}`,
+        url: activeTab.url,
       });
     } catch (e) {
       console.warn("Share failed", e);
@@ -156,15 +176,14 @@ export default function BrowserScreen() {
   };
 
   const toggleFavoriteStatus = () => {
-    if (isFavorite(currentUrl)) {
-      removeFavorite(currentUrl);
+    if (isFavorite(activeTab.url)) {
+      removeFavorite(activeTab.url);
     } else {
-      addFavorite(currentUrl, title || currentUrl);
+      addFavorite(activeTab.url, activeTab.title || activeTab.url);
     }
   };
 
-  // Process message from WebView (for AdBlock statistics)
-  const handleMessage = (event: any) => {
+  const handleMessage = (event: any, tabId: string) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === "AD_BLOCKED") {
@@ -177,55 +196,68 @@ export default function BrowserScreen() {
         });
       }
     } catch {
-      // Not a json or not standard message
+      // Ignored
     }
   };
+
+  // Determine which tabs to render based on LRU to conserve memory
+  const activeTabsToRender = [...tabs]
+    .sort((a, b) => b.lastActive - a.lastActive)
+    .slice(0, MAX_ACTIVE_WEBVIEWS)
+    .map((t) => t.id);
+
+  // Styling helpers for Incognito Mode
+  const isIncognito = activeTab.isIncognito;
+  const headerBackground = isIncognito ? "#1E1B4B" : colors.surface;
+  const inputBackground = isIncognito
+    ? "#312E81"
+    : isDark
+      ? "#2A2A2F"
+      : "#F1F5F9";
+  const inputTextColor = isIncognito ? "#FFFFFF" : colors.text;
 
   return (
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.background, paddingTop: insets.top },
+        {
+          backgroundColor: isIncognito ? "#0F172A" : colors.background,
+          paddingTop: insets.top,
+        },
       ]}
     >
       {/* ADDRESS BAR */}
       <View
         style={[
           styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+          {
+            backgroundColor: headerBackground,
+            borderBottomColor: isIncognito ? "#312E81" : colors.border,
+          },
         ]}
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          style={[
-            styles.headerButton,
-            { backgroundColor: isDark ? "#2A2A2F" : "#F1F5F9" },
-          ]}
+          style={[styles.headerButton, { backgroundColor: inputBackground }]}
         >
-          <ChevronLeft size={24} color={colors.text} />
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={24}
+            color={isIncognito ? "#FFFFFF" : colors.text}
+          />
         </TouchableOpacity>
 
         <View
           style={[
             styles.addressInputContainer,
-            { backgroundColor: isDark ? "#2A2A2F" : "#F1F5F9" },
+            { backgroundColor: inputBackground },
           ]}
         >
-          {isSecure ? (
-            <Lock
-              size={14}
-              color={isDark ? "#A1A1AA" : "#71717A"}
-              style={{ marginRight: 6 }}
-            />
-          ) : (
-            <ShieldAlert
-              size={14}
-              color={colors.danger}
-              style={{ marginRight: 6 }}
-            />
+          {isIncognito && (
+            <MaterialCommunityIcons name="eye-off" size={14} color="#A5B4FC" style={{ marginRight: 6 }} />
           )}
           <TextInput
-            style={[styles.addressInput, { color: colors.text }]}
+            style={[styles.addressInput, { color: inputTextColor }]}
             value={inputUrl}
             onChangeText={setInputUrl}
             onSubmitEditing={() => handleNavigate(inputUrl)}
@@ -233,171 +265,165 @@ export default function BrowserScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             selectTextOnFocus
-            placeholder="Buscar ou digitar endereço"
-            placeholderTextColor={colors.textSecondary}
+            placeholder={
+              isIncognito ? "Guia Anônima" : "Buscar ou digitar endereço"
+            }
+            placeholderTextColor={
+              isIncognito ? "#C7D2FE" : colors.textSecondary
+            }
           />
-          {loading ? (
+          {activeTab.loading ? (
             <ActivityIndicator
               size="small"
-              color={colors.brandGreen}
+              color={isIncognito ? "#818CF8" : colors.brandGreen}
               style={{ marginRight: 6 }}
             />
           ) : (
             <TouchableOpacity
-              onPress={() => setStatsModalVisible(true)}
-              style={styles.inputShieldButton}
+              onPress={handleReload}
+              style={{ marginRight: 6, padding: 4 }}
             >
-              <Shield
+              <MaterialCommunityIcons
+                name="refresh"
                 size={16}
-                color={
-                  adblockEnabled
-                    ? isDark
-                      ? "#34D399"
-                      : "#10B981"
-                    : isDark
-                      ? "#71717A"
-                      : "#A1A1AA"
-                }
-                fill={
-                  adblockEnabled
-                    ? isDark
-                      ? "#34D399"
-                      : "#10B981"
-                    : "transparent"
-                }
+                color={isIncognito ? "#A5B4FC" : isDark ? "#A1A1AA" : "#71717A"}
               />
-              {adblockEnabled && blockedCount > 0 && (
-                <View
-                  style={[
-                    styles.inlineBadge,
-                    { backgroundColor: isDark ? "#3F3F46" : "#E4E4E7" },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.inlineBadgeText,
-                      { color: isDark ? "#F4F4F5" : "#18181B" },
-                    ]}
-                  >
-                    {blockedCount > 99 ? "99+" : blockedCount}
-                  </Text>
-                </View>
-              )}
             </TouchableOpacity>
           )}
         </View>
 
-        {/* MORE VERTICAL BUTTON */}
         <TouchableOpacity
-          onPress={() => setSidebarVisible(true)}
-          style={[
-            styles.headerButton,
-            { backgroundColor: isDark ? "#2A2A2F" : "#F1F5F9" },
-          ]}
+          onPress={() => sidebarRef.current?.present()}
+          style={[styles.headerButton, { backgroundColor: inputBackground }]}
         >
-          <MoreVertical size={22} color={colors.text} />
+          <MaterialCommunityIcons
+            name="dots-vertical"
+            size={22}
+            color={isIncognito ? "#FFFFFF" : colors.text}
+          />
         </TouchableOpacity>
       </View>
 
-      {/* PROGRESS BAR */}
-      {loading && progress < 1 && (
-        <View style={styles.progressContainer}>
-          <View
-            style={[
-              styles.progressBar,
-              { width: `${progress * 100}%`, backgroundColor: "#07C160" },
-            ]}
-          />
-        </View>
-      )}
-
-      {/* WEBVIEW */}
+      {/* WEBVIEWS */}
       <View style={styles.webContainer}>
-        {activeUrl ? (
-          <WebView
-            ref={webViewRef}
-            source={{ uri: activeUrl }}
-            style={styles.webView}
-            injectedJavaScriptBeforeContentLoaded={`
-              ${getAdblockScript(adblockEnabled)}
-              
-              (function() {
-                document.addEventListener('contextmenu', function(e) {
-                  var target = e.target;
-                  while (target && target !== document.body) {
-                    var tagName = target.tagName ? target.tagName.toUpperCase() : '';
-                    if (tagName === 'IMG' || tagName === 'VIDEO') {
-                      e.preventDefault();
-                      var src = target.src || target.currentSrc || target.getAttribute('src');
-                      if (src) {
-                        if (!src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:')) {
-                          var a = document.createElement('a');
-                          a.href = src;
-                          src = a.href;
+        {tabs.map((tab) => {
+          const shouldRender = activeTabsToRender.includes(tab.id);
+          const isCurrentlyActive = tab.id === activeTabId;
+
+          if (!shouldRender) return null;
+
+          return (
+            <View
+              key={tab.id}
+              style={[
+                styles.webViewWrapper,
+                { display: isCurrentlyActive ? "flex" : "none" },
+              ]}
+            >
+              <WebView
+                ref={(ref) => {
+                  webViewRefs.current[tab.id] = ref;
+                }}
+                source={{ uri: tab.navigationUrl }}
+                style={styles.webView}
+                injectedJavaScriptBeforeContentLoaded={`
+                  ${getAdblockScript(adblockEnabled)}
+                  
+                  (function() {
+                    document.addEventListener('contextmenu', function(e) {
+                      var target = e.target;
+                      while (target && target !== document.body) {
+                        var tagName = target.tagName ? target.tagName.toUpperCase() : '';
+                        if (tagName === 'IMG' || tagName === 'VIDEO') {
+                          e.preventDefault();
+                          var src = target.src || target.currentSrc || target.getAttribute('src');
+                          if (src) {
+                            if (!src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:')) {
+                              var a = document.createElement('a');
+                              a.href = src;
+                              src = a.href;
+                            }
+                            window.ReactNativeWebView.postMessage(JSON.stringify({
+                              type: 'MEDIA_CONTEXT_MENU',
+                              mediaType: tagName === 'IMG' ? 'image' : 'video',
+                              src: src
+                            }));
+                          }
+                          return;
                         }
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                          type: 'MEDIA_CONTEXT_MENU',
-                          mediaType: tagName === 'IMG' ? 'image' : 'video',
-                          src: src
-                        }));
+                        target = target.parentNode;
                       }
-                      return;
-                    }
-                    target = target.parentNode;
+                    }, true);
+                  })();
+                `}
+                onMessage={(e) => handleMessage(e, tab.id)}
+                onNavigationStateChange={(navState) => {
+                  // Update tab URL states dynamically
+                  updateTabState(tab.id, {
+                    url: navState.url,
+                    title: navState.title,
+                    canGoBack: navState.canGoBack,
+                    canGoForward: navState.canGoForward,
+                    loading: navState.loading,
+                  });
+
+                  if (isCurrentlyActive) {
+                    setInputUrl(navState.url);
                   }
-                }, true);
-              })();
-            `}
-            onMessage={handleMessage}
-            onNavigationStateChange={(navState) => {
-              setInputUrl(navState.url);
-              setTitle(navState.title);
-              setCanGoBack(navState.canGoBack);
-              setCanGoForward(navState.canGoForward);
-              setIsSecure(navState.url.startsWith("https://"));
 
-              // update store state silently for bookmarking/history
-              setCurrentUrl(navState.url);
-
-              if (navState.url && navState.title) {
-                addToHistory(navState.url, navState.title);
-              }
-            }}
-            onLoadStart={() => {
-              setLoading(true);
-              setProgress(0);
-            }}
-            onLoadEnd={() => setLoading(false)}
-            onLoadProgress={({ nativeEvent }) =>
-              setProgress(nativeEvent.progress)
-            }
-          />
-        ) : (
-          <View
-            style={[
-              styles.webContainer,
-              { justifyContent: "center", alignItems: "center" },
-            ]}
-          >
-            <ActivityIndicator size="large" color="#07C160" />
-          </View>
-        )}
+                  if (navState.url && navState.title) {
+                    addToHistory(navState.url, navState.title);
+                  }
+                }}
+                onLoadStart={() => {
+                  updateTabState(tab.id, { loading: true });
+                }}
+                onLoadEnd={() => {
+                  updateTabState(tab.id, { loading: false });
+                }}
+              />
+            </View>
+          );
+        })}
       </View>
 
       {/* SIDEBAR MODAL */}
       <BrowserSidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        canGoBack={canGoBack}
-        canGoForward={canGoForward}
-        onGoBack={() => webViewRef.current?.goBack()}
-        onGoForward={() => webViewRef.current?.goForward()}
+        ref={sidebarRef}
+        canGoBack={activeTab.canGoBack}
+        canGoForward={activeTab.canGoForward}
+        onGoBack={() => webViewRefs.current[activeTabId]?.goBack()}
+        onGoForward={() => webViewRefs.current[activeTabId]?.goForward()}
         onReload={handleReload}
-        isCurrentFavorite={isFavorite(currentUrl)}
+        isCurrentFavorite={isFavorite(activeTab.url)}
         onToggleFavorite={toggleFavoriteStatus}
         onShare={handleShare}
         onOpenAdblockSettings={() => setStatsModalVisible(true)}
+        onOpenHistoryBookmarks={() => setHistoryBookmarksVisible(true)}
+        onCreateTab={() => createTab("https://www.google.com", isIncognito)}
+        onOpenTabManager={() => setTabManagerVisible(true)}
+        tabsCount={tabs.length}
       />
+
+      {/* TAB MANAGER MODAL */}
+      {tabManagerVisible && (
+        <BrowserTabManagerModal
+          visible={tabManagerVisible}
+          onClose={() => setTabManagerVisible(false)}
+        />
+      )}
+
+      {/* HISTORY & BOOKMARKS MODAL */}
+      {historyBookmarksVisible && (
+        <BrowserHistoryBookmarksModal
+          visible={historyBookmarksVisible}
+          onClose={() => setHistoryBookmarksVisible(false)}
+          onNavigateToUrl={(url) => {
+            updateTabState(activeTabId, { url, navigationUrl: url });
+            setInputUrl(url);
+          }}
+        />
+      )}
 
       {/* ADBLOCK STATS MODAL */}
       {statsModalVisible && (
@@ -407,7 +433,7 @@ export default function BrowserScreen() {
           adblockEnabled={adblockEnabled}
           onToggleAdblock={() => {
             setAdblockEnabled(!adblockEnabled);
-            webViewRef.current?.reload();
+            handleReload();
           }}
           blockedCount={blockedCount}
           trackersBlockedCount={trackersBlockedCount}
@@ -425,8 +451,7 @@ export default function BrowserScreen() {
         mediaType={mediaModalState.mediaType}
         src={mediaModalState.src}
         onOpenInNewTab={(url) => {
-          setActiveUrl(url);
-          setInputUrl(url);
+          createTab(url, isIncognito);
         }}
       />
     </View>
@@ -466,33 +491,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: 0,
   },
-  inputShieldButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    borderRadius: 12,
-    marginRight: -4,
-  },
-  inlineBadge: {
-    marginLeft: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 6,
-  },
-  inlineBadgeText: {
-    fontSize: 9,
-    fontWeight: "700",
-  },
-  progressContainer: {
-    height: 2,
-    width: "100%",
-    backgroundColor: "transparent",
-  },
-  progressBar: {
-    height: "100%",
-  },
   webContainer: {
+    flex: 1,
+  },
+  webViewWrapper: {
     flex: 1,
   },
   webView: {
@@ -509,5 +511,17 @@ const styles = StyleSheet.create({
     padding: 10,
     justifyContent: "center",
     alignItems: "center",
+  },
+  tabBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
   },
 });

@@ -20,9 +20,9 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import { API_URL, addContact } from "@/services/api";
+import { API_URL, addContact, createChat } from "@/services/api";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { ArrowLeft, Monitor, ShieldAlert, CheckCircle2, XCircle, Keyboard, Camera, RefreshCw, Zap, ZapOff, Image as ImageIcon } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LinkDeviceScreen() {
@@ -32,6 +32,7 @@ export default function LinkDeviceScreen() {
   const insets = useSafeAreaInsets();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isLinkModeOnly = mode === "link";
+  const isScanMode = mode === "scan";
 
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanning, setIsScanning] = useState(true);
@@ -87,11 +88,11 @@ export default function LinkDeviceScreen() {
   }, []);
 
   useEffect(() => {
-    if (isScanning && !isLinkModeOnly) {
+    if (isScanning && !isLinkModeOnly && !isScanMode) {
       loadLastMedia();
       loadRecentMediaList();
     }
-  }, [isScanning, isLinkModeOnly, loadLastMedia, loadRecentMediaList]);
+  }, [isScanning, isLinkModeOnly, isScanMode, loadLastMedia, loadRecentMediaList]);
 
   async function handleOpenGallery() {
     try {
@@ -134,7 +135,7 @@ export default function LinkDeviceScreen() {
           quality: 0.85,
         });
         if (photo && photo.uri) {
-          const { status } = await MediaLibrary.requestPermissionsAsync(false, ["photo", "video"]);
+          const { status } = await MediaLibrary.requestPermissionsAsync(true);
           if (status === "granted") {
             await MediaLibrary.createAssetAsync(photo.uri);
             Alert.alert("Sucesso", "Foto salva na galeria!");
@@ -167,7 +168,7 @@ export default function LinkDeviceScreen() {
             maxDuration: 60,
           });
           if (video && video.uri) {
-            const { status } = await MediaLibrary.requestPermissionsAsync(false, ["photo", "video"]);
+            const { status } = await MediaLibrary.requestPermissionsAsync(true);
             if (status === "granted") {
               await MediaLibrary.createAssetAsync(video.uri);
               Alert.alert("Sucesso", "Vídeo Salvo!", [
@@ -256,42 +257,36 @@ export default function LinkDeviceScreen() {
         .replace("zapi://contact/", "")
         .replace("zapi://user/", "")
         .replace("zapi:user_id:", "");
-      Alert.alert(
-        "Contato Encontrado",
-        "Deseja adicionar o usuário aos seus contatos?",
-        [
-          { text: "Cancelar", style: "cancel", onPress: () => setIsScanning(true) },
+
+      try {
+        setLoading(true);
+        // 1. Add contact
+        await addContact(token || "", contactId);
+        // 2. Open chat
+        const chatData = await createChat(token || "", contactId);
+
+        Alert.alert("Sucesso", "Contato adicionado com sucesso!", [
           {
-            text: "Adicionar",
-            onPress: async () => {
-              try {
-                setLoading(true);
-                await addContact(token || "", contactId);
-                Alert.alert("Sucesso", "Contato adicionado com sucesso!", [
-                  {
-                    text: "Conversar",
-                    onPress: () => {
-                      router.push({
-                        pathname: "/chat",
-                        params: {
-                          participantId: contactId,
-                          participantUsername: `Usuário ${contactId.substring(0, 6)}`,
-                        },
-                      });
-                    },
-                  },
-                  { text: "Fechar", onPress: () => setIsScanning(true) },
-                ]);
-              } catch (err: any) {
-                Alert.alert("Erro", err.message || "Não foi possível adicionar o contato.");
-                setIsScanning(true);
-              } finally {
-                setLoading(false);
-              }
+            text: "Ir para Conversa",
+            onPress: () => {
+              router.replace({
+                pathname: "/chat",
+                params: {
+                  chatId: chatData.id,
+                  participantId: contactId,
+                  participantUsername: `Usuário ${contactId.substring(0, 6)}`,
+                },
+              });
             },
           },
-        ]
-      );
+          { text: "Fechar", onPress: () => setIsScanning(true) },
+        ]);
+      } catch (err: any) {
+        Alert.alert("Erro", err.message || "Não foi possível adicionar o contato.");
+        setIsScanning(true);
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -404,7 +399,7 @@ export default function LinkDeviceScreen() {
   if (isScanning && permission && !permission.granted) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom, paddingHorizontal: 24 }]}>
-        <Camera size={48} color={colors.textSecondary} style={{ marginBottom: 16 }} />
+        <MaterialCommunityIcons name="camera" size={48} color={colors.textSecondary} style={{ marginBottom: 16 }} />
         <Text style={[styles.title, { color: colors.text }]}>Permissão de Câmera</Text>
         <Text style={[styles.description, { color: colors.textSecondary }]}>
           Precisamos de acesso à câmera para escanear o QR Code no site web.
@@ -444,12 +439,12 @@ export default function LinkDeviceScreen() {
             isScanning && { backgroundColor: "rgba(0,0,0,0.5)" }
           ]}
         >
-          <ArrowLeft size={isScanning ? 22 : 24} color={isScanning ? "#fff" : colors.text} />
+          <MaterialCommunityIcons name="arrow-left" size={isScanning ? 22 : 24} color={isScanning ? "#fff" : colors.text} />
         </TouchableOpacity>
 
         {!isScanning && (
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isLinkModeOnly ? "Conectar Aparelho" : "Câmera"}
+            {isLinkModeOnly ? "Conectar Aparelho" : isScanMode ? "Escanear QR Code" : "Câmera"}
           </Text>
         )}
 
@@ -460,16 +455,16 @@ export default function LinkDeviceScreen() {
               onPress={() => setFlash(f => f === "off" ? "on" : f === "on" ? "auto" : "off")}
             >
               {flash === "off" ? (
-                <ZapOff size={20} color="#fff" />
+                <MaterialCommunityIcons name="flash-off" size={20} color="#fff" />
               ) : (
-                <Zap size={20} color={flash === "on" ? colors.badge : "#fff"} />
+                <MaterialCommunityIcons name="flash" size={20} color={flash === "on" ? colors.badge : "#fff"} />
               )}
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setIsScanning(false)}
               style={[styles.iconButton, { backgroundColor: "rgba(0,0,0,0.5)" }]}
             >
-              <Keyboard size={20} color="#fff" />
+              <MaterialCommunityIcons name="keyboard-outline" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
         ) : (
@@ -489,7 +484,7 @@ export default function LinkDeviceScreen() {
             onBarcodeScanned={handleBarcodeScanned}
           />
 
-          {isLinkModeOnly ? (
+          {isLinkModeOnly || isScanMode ? (
             <>
               {/* Scanning Reticle overlay */}
               <View style={styles.overlayContainer}>
@@ -509,13 +504,15 @@ export default function LinkDeviceScreen() {
 
               <View style={[styles.scannerInstructions, { bottom: 40 + insets.bottom }]}>
                 <Text style={styles.scannerInstructionsText}>
-                  Aponte a câmera para o QR Code na tela do Zapi Web
+                  {isScanMode
+                    ? "Aponte a câmera para o QR Code do contato ou aparelho"
+                    : "Aponte a câmera para o QR Code na tela do Zapi Web"}
                 </Text>
                 <TouchableOpacity
                   style={[styles.switchModeButton, { backgroundColor: colors.surface }]}
                   onPress={() => setIsScanning(false)}
                 >
-                  <Keyboard size={18} color={colors.text} style={{ marginRight: 8 }} />
+                  <MaterialCommunityIcons name="keyboard-outline" size={18} color={colors.text} style={{ marginRight: 8 }} />
                   <Text style={{ color: colors.text, fontWeight: "600", fontSize: 14 }}>
                     Digitar código manualmente
                   </Text>
@@ -633,7 +630,7 @@ export default function LinkDeviceScreen() {
                       <Image source={{ uri: lastMediaUri }} style={styles.thumbnailImage} />
                     ) : (
                       <View style={styles.galleryPlaceholder}>
-                        <ImageIcon size={22} color="#fff" />
+                      <MaterialCommunityIcons name="image-outline" size={22} color="#fff" />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -669,7 +666,7 @@ export default function LinkDeviceScreen() {
                     onPress={() => setFacing(f => f === "back" ? "front" : "back")}
                     disabled={isRecording}
                   >
-                    <RefreshCw size={22} color="#fff" />
+                    <MaterialCommunityIcons name="refresh" size={22} color="#fff" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -682,7 +679,7 @@ export default function LinkDeviceScreen() {
         /* Manual Code Entry */
         <View style={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
           <View style={styles.iconContainer}>
-            <Monitor size={64} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="monitor" size={64} color={colors.textSecondary} />
           </View>
           
           <Text style={[styles.title, { color: colors.text }]}>
@@ -721,7 +718,7 @@ export default function LinkDeviceScreen() {
             style={[styles.switchModeButtonOutline, { borderColor: colors.border, marginTop: 16 }]}
             onPress={() => setIsScanning(true)}
           >
-            <Camera size={18} color={colors.text} style={{ marginRight: 8 }} />
+            <MaterialCommunityIcons name="camera" size={18} color={colors.text} style={{ marginRight: 8 }} />
             <Text style={{ color: colors.text, fontWeight: "600" }}>
               Escanear QR Code
             </Text>
@@ -733,14 +730,14 @@ export default function LinkDeviceScreen() {
         /* Confirmation Screen */
         <View style={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
           <View style={styles.confirmationBox}>
-            <ShieldAlert size={64} color={colors.badge} style={{ marginBottom: 16 }} />
+            <MaterialCommunityIcons name="shield-alert-outline" size={64} color={colors.badge} style={{ marginBottom: 16 }} />
             
             <Text style={[styles.title, { color: colors.text }]}>
               Confirmar login web?
             </Text>
 
             <View style={[styles.deviceCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Monitor size={32} color={colors.text} style={{ marginRight: 16 }} />
+              <MaterialCommunityIcons name="monitor" size={32} color={colors.text} style={{ marginRight: 16 }} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.deviceInfoText, { color: colors.text, fontWeight: "bold" }]}>
                   {sessionInfo.browser || "Navegador Desconhecido"}
@@ -764,7 +761,7 @@ export default function LinkDeviceScreen() {
                 onPress={() => handleConfirm(false)}
                 disabled={loading}
               >
-                <XCircle size={18} color={colors.danger} style={{ marginRight: 6 }} />
+                <MaterialCommunityIcons name="close-circle-outline" size={18} color={colors.danger} style={{ marginRight: 6 }} />
                 <Text style={[styles.actionButtonText, { color: colors.danger }]}>
                   Cancelar
                 </Text>
@@ -775,7 +772,7 @@ export default function LinkDeviceScreen() {
                 onPress={() => handleConfirm(true)}
                 disabled={loading}
               >
-                <CheckCircle2 size={18} color={colors.background} style={{ marginRight: 6 }} />
+                <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.background} style={{ marginRight: 6 }} />
                 <Text style={[styles.actionButtonText, { color: colors.background }]}>
                   Confirmar
                 </Text>

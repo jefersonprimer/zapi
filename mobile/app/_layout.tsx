@@ -212,7 +212,7 @@ function InitialLayout() {
       <Stack.Screen name="new-group" options={{ headerShown: false }} />
       <Stack.Screen name="contacts" options={{ headerShown: false }} />
       <Stack.Screen name="my-qr" options={{ headerShown: false }} />
-      <Stack.Screen name="scan-qr" options={{ headerShown: false }} />
+      <Stack.Screen name="link-device" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="browser" options={{ headerShown: false }} />
       <Stack.Screen name="search" options={{ headerShown: false }} />

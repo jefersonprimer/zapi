@@ -39,7 +39,7 @@ import { CommunityPostsView } from "@/components/communities/CommunityPostsView"
 import { CommunityEventsView } from "@/components/communities/CommunityEventsView";
 
 export default function CommunitiesScreen() {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const { token, user } = useAuth();
 
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -98,64 +98,57 @@ export default function CommunitiesScreen() {
     }
 
     const loadChannels = async () => {
+      if (!token || !selectedCommunity) return;
       try {
-        const chans = await communityApi.listChannels(
+        const data = await communityApi.listChannels(
           token,
           selectedCommunity.id,
         );
-        setChannels(chans);
-        setSelectedChannel(null);
-        setActiveChannelView("list");
+        setChannels(data);
       } catch (err) {
         console.warn("Failed to load channels", err);
       }
     };
-
     loadChannels();
-  }, [selectedCommunity, token]);
+  }, [token, selectedCommunity]);
 
+  // View state handlers
   const handleSelectChannel = (channel: CommunityChannel) => {
     setSelectedChannel(channel);
-    if (channel.type === "text") {
-      setActiveChannelView("chat");
-    } else if (channel.type === "forum") {
-      setActiveChannelView("posts");
-    } else if (channel.type === "event") {
-      setActiveChannelView("events");
-    }
+    setActiveChannelView("chat");
   };
 
-  // Create/Join handlers
   const handleCreateCommunitySubmit = async (
     payload: CreateCommunityPayload,
   ) => {
     if (!token) return;
     try {
       const newComm = await communityApi.createCommunity(token, payload);
-      setCommunities((prev) => [newComm, ...prev]);
+      setCommunities((prev) => [...prev, newComm]);
       setSelectedCommunity(newComm);
-      Alert.alert("Sucesso", "Sua comunidade foi criada!");
-    } catch {
-      Alert.alert("Erro", "Não foi possível criar a comunidade.");
+      setShowCreateCommunity(false);
+      Alert.alert("Sucesso", "Comunidade criada com sucesso!");
+    } catch (err: any) {
+      Alert.alert(
+        "Erro",
+        err?.message || "Não foi possível criar a comunidade.",
+      );
     }
   };
 
   const handleJoinCommunitySubmit = async (code: string) => {
     if (!token) return;
     try {
-      const comm = await communityApi.joinByCode(token, code);
-      if (comm) {
-        setCommunities((prev) => {
-          if (prev.some((c) => c.id === comm.id)) return prev;
-          return [comm, ...prev];
-        });
-        setSelectedCommunity(comm);
-        Alert.alert("Sucesso", `Você entrou na comunidade ${comm.name}!`);
-      } else {
-        Alert.alert("Erro", "Código de convite inválido ou expirado.");
-      }
-    } catch {
-      Alert.alert("Erro", "Falha ao entrar na comunidade.");
+      const comm = await communityApi.joinCommunity(token, code);
+      setCommunities((prev) => {
+        if (prev.some((c) => c.id === comm.id)) return prev;
+        return [...prev, comm];
+      });
+      setSelectedCommunity(comm);
+      setShowJoinCommunity(false);
+      Alert.alert("Sucesso", "Você entrou na comunidade!");
+    } catch (err: any) {
+      Alert.alert("Erro", err?.message || "Não foi possível entrar.");
     }
   };
 
@@ -168,63 +161,47 @@ export default function CommunitiesScreen() {
         payload,
       );
       setChannels((prev) => [...prev, newChan]);
-      Alert.alert("Sucesso", `Canal #${newChan.name} criado!`);
-    } catch {
-      Alert.alert("Erro", "Não foi possível criar o canal.");
+      setShowCreateChannel(false);
+      Alert.alert("Sucesso", "Canal criado!");
+    } catch (err: any) {
+      Alert.alert("Erro", err?.message || "Erro ao criar canal.");
     }
   };
 
-  const handleCreatePostSubmit = async (payload: {
-    title: string;
-    content: string;
-  }) => {
-    if (!token || !selectedCommunity || !selectedChannel) return;
+  const handleCreatePostSubmit = async (title: string, content: string) => {
+    if (!token || !selectedCommunity) return;
     try {
       await communityApi.createPost(token, selectedCommunity.id, {
-        ...payload,
-        channel_id: selectedChannel.id,
+        title,
+        content,
       });
-      Alert.alert("Sucesso", "Post publicado com sucesso!");
-      // Reload channels to refresh posts lists
-      handleSelectChannel(selectedChannel);
-    } catch {
-      Alert.alert("Erro", "Não foi possível publicar seu post.");
+      setShowCreatePost(false);
+      Alert.alert("Sucesso", "Post criado!");
+    } catch (err: any) {
+      Alert.alert("Erro", err?.message || "Erro ao criar post.");
     }
   };
 
   const handleCreateEventSubmit = async (payload: CreateEventPayload) => {
-    if (!token || !selectedCommunity || !selectedChannel) return;
-    try {
-      await communityApi.createEvent(token, selectedCommunity.id, payload);
-      Alert.alert("Sucesso", "Evento agendado com sucesso!");
-      handleSelectChannel(selectedChannel);
-    } catch {
-      Alert.alert("Erro", "Não foi possível agendar o evento.");
-    }
-  };
-
-  const handleShareInvite = async () => {
     if (!token || !selectedCommunity) return;
     try {
-      const invite = await communityApi.createInvite(
-        token,
-        selectedCommunity.id,
-      );
-      const inviteUrl = `https://zapi.app/join/${invite.code}`;
-      await Share.share({
-        message: `Entre na minha comunidade "${selectedCommunity.name}" no Zapi! Use o código de convite: ${invite.code} ou acesse: ${inviteUrl}`,
-      });
-    } catch {
-      Alert.alert("Erro", "Não foi possível gerar convite.");
+      await communityApi.createEvent(token, selectedCommunity.id, payload);
+      setShowCreateEvent(false);
+      Alert.alert("Sucesso", "Evento criado!");
+    } catch (err: any) {
+      Alert.alert("Erro", err?.message || "Erro ao criar evento.");
     }
   };
 
-  // Render text channels, forums, events grouped
-  const textChans = channels.filter((c) => c.type === "text");
-  const forumChans = channels.filter((c) => c.type === "forum");
-  const eventChans = channels.filter((c) => c.type === "event");
+  const handleShareInvite = () => {
+    if (!selectedCommunity) return;
+    const inviteLink = `zapi://join?code=${selectedCommunity.invite_code}`;
+    Share.share({
+      message: `Entre na minha comunidade "${selectedCommunity.name}" no Zapi! Use o código: ${selectedCommunity.invite_code}\nOu clique no link: ${inviteLink}`,
+    });
+  };
 
-  if (!token) {
+  if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.brandGreen} />
@@ -232,64 +209,67 @@ export default function CommunitiesScreen() {
     );
   }
 
-  // Render full screen subviews
-  if (selectedChannel && activeChannelView === "chat") {
+  if (activeChannelView === "chat") {
     return (
-      <CommunityChatView
-        token={token}
-        communityId={selectedCommunity!.id}
-        channel={selectedChannel}
-        currentUserId={user?.user_id || ""}
-        onBack={() => setActiveChannelView("list")}
-      />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <CommunityChatView
+          token={token!}
+          currentUser={user!}
+          communityId={selectedCommunity!.id}
+          channel={selectedChannel!}
+          onBack={() => setActiveChannelView("list")}
+        />
+      </View>
     );
   }
 
-  if (selectedChannel && activeChannelView === "posts") {
+  if (activeChannelView === "posts") {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <CommunityPostsView
-          token={token}
+          token={token!}
+          currentUser={user!}
           communityId={selectedCommunity!.id}
-          channel={selectedChannel}
           onBack={() => setActiveChannelView("list")}
-          onSelectPost={(post) => setSelectedPost(post)}
           onCreatePostClick={() => setShowCreatePost(true)}
+          onPostClick={(post) => setSelectedPost(post)}
         />
         <CreatePostModal
           visible={showCreatePost}
           onClose={() => setShowCreatePost(false)}
           onSubmit={handleCreatePostSubmit}
         />
-        <PostDetailModal
-          visible={!!selectedPost}
-          onClose={() => setSelectedPost(null)}
-          post={selectedPost}
-          token={token}
-          communityId={selectedCommunity!.id}
-        />
+        {selectedPost && (
+          <PostDetailModal
+            visible={!!selectedPost}
+            post={selectedPost}
+            token={token!}
+            currentUser={user!}
+            onClose={() => setSelectedPost(null)}
+          />
+        )}
       </View>
     );
   }
 
-  if (selectedChannel && activeChannelView === "events") {
+  if (activeChannelView === "events") {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <CommunityEventsView
-          token={token}
+          token={token!}
+          currentUser={user!}
           communityId={selectedCommunity!.id}
           channel={selectedChannel}
           onBack={() => setActiveChannelView("list")}
           onCreateEventClick={() => setShowCreateEvent(true)}
         />
-        <CreateEventModal
-          visible={showCreateEvent}
-          onClose={() => setShowCreateEvent(false)}
-          onSubmit={handleCreateEventSubmit}
-        />
       </View>
     );
   }
+
+  const textChans = channels.filter((c) => c.type === "text");
+  const forumChans = channels.filter((c) => c.type === "forum");
+  const eventChans = channels.filter((c) => c.type === "event");
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -297,10 +277,15 @@ export default function CommunitiesScreen() {
       <View
         style={[
           styles.appHeader,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+          { backgroundColor: colors.headerBackground },
         ]}
       >
-        <Text style={[styles.appTitle, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.appTitle,
+            { color: isDark ? colors.headerText : colors.tint },
+          ]}
+        >
           Comunidades
         </Text>
         <View style={styles.headerButtons}>
@@ -771,16 +756,20 @@ const styles = StyleSheet.create({
   },
   appHeader: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 45,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   appTitle: {
     fontSize: 22,
-    fontWeight: "400",
+    fontWeight: "500",
   },
   headerButtons: {
     flexDirection: "row",

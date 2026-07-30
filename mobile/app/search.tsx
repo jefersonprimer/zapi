@@ -14,7 +14,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Search, Globe, User, MessageSquare, Users } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import {
   searchUsers,
@@ -46,7 +46,7 @@ export default function SearchScreen() {
   // Local data lists
   const [localChats, setLocalChats] = useState<ChatListItem[]>([]);
   const [localContacts, setLocalContacts] = useState<Contact[]>([]);
-  
+
   // Filtered lists
   const [filteredChats, setFilteredChats] = useState<ChatListItem[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
@@ -163,7 +163,9 @@ export default function SearchScreen() {
 
   const handleSelectContact = async (contact: Contact) => {
     // If a chat already exists with this contact, navigate directly
-    const existingChat = localChats.find((c) => c.participant_id === contact.contact_id);
+    const existingChat = localChats.find(
+      (c) => c.participant_id === contact.contact_id,
+    );
     if (existingChat) {
       handleSelectChat(existingChat);
       return;
@@ -183,7 +185,10 @@ export default function SearchScreen() {
         },
       });
     } catch (err: any) {
-      Alert.alert("Erro", err.message || "Não foi possível iniciar a conversa.");
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível iniciar a conversa.",
+      );
     } finally {
       setChatLoading(false);
     }
@@ -204,7 +209,10 @@ export default function SearchScreen() {
         },
       });
     } catch (err: any) {
-      Alert.alert("Erro", err.message || "Não foi possível iniciar a conversa.");
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível iniciar a conversa.",
+      );
     } finally {
       setChatLoading(false);
     }
@@ -213,15 +221,35 @@ export default function SearchScreen() {
   const isQueryEmpty = searchQuery.trim().length === 0;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       {/* HEADER WITH UNIFIED SEARCH INPUT */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={colors.text} />
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
 
-        <View style={[styles.searchInputContainer, { backgroundColor: isDark ? "#2A2A2F" : "#F1F5F9" }]}>
-          <Search size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
+        <View
+          style={[
+            styles.searchInputContainer,
+            { backgroundColor: isDark ? "#2A2A2F" : "#F1F5F9" },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="magnify"
+            size={18}
+            color={colors.textSecondary}
+            style={{ marginRight: 8 }}
+          />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Buscar conversas, contatos ou web..."
@@ -233,11 +261,22 @@ export default function SearchScreen() {
             autoFocus
             autoCorrect={false}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              style={{ padding: 4 }}
+            >
+              <MaterialCommunityIcons name="close" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {!isQueryEmpty && (
-          <TouchableOpacity onPress={handleWebSearch} style={styles.webSearchButton}>
-            <Globe size={20} color="#07C160" />
+          <TouchableOpacity
+            onPress={handleWebSearch}
+            style={styles.webSearchButton}
+          >
+            <MaterialCommunityIcons name="earth" size={20} color="#07C160" />
           </TouchableOpacity>
         )}
       </View>
@@ -249,42 +288,79 @@ export default function SearchScreen() {
       )}
 
       {/* SEARCH HUB CONTENT */}
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         {isQueryEmpty ? (
           <>
             {/* INITIAL STATE: RECENT CHATS & CONTACTS */}
             {localChats.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <MessageSquare size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Conversas Recentes</Text>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Conversas Recentes
+                  </Text>
                 </View>
                 {localChats.slice(0, 5).map((chat) => (
                   <TouchableOpacity
                     key={chat.id}
-                    style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    style={[
+                      styles.card,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
                     onPress={() => handleSelectChat(chat)}
                   >
-                    {chat.participant_avatar_url || (chat.is_group && chat.avatar_url) ? (
+                    {chat.participant_avatar_url ||
+                    (chat.is_group && chat.avatar_url) ? (
                       <Image
-                        source={{ uri: getAvatarUri(chat.participant_avatar_url || chat.avatar_url) }}
+                        source={{
+                          uri: getAvatarUri(
+                            chat.participant_avatar_url || chat.avatar_url,
+                          ),
+                        }}
                         style={styles.avatar}
                       />
                     ) : (
-                      <View style={[styles.avatarPlaceholder, { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" }]}>
+                      <View
+                        style={[
+                          styles.avatarPlaceholder,
+                          { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" },
+                        ]}
+                      >
                         {chat.is_group ? (
-                          <Users size={20} color={colors.textSecondary} />
+                          <MaterialCommunityIcons name="account-multiple" size={20} color={colors.textSecondary} />
                         ) : (
-                          <User size={20} color={colors.textSecondary} />
+                          <MaterialCommunityIcons name="account" size={20} color={colors.textSecondary} />
                         )}
                       </View>
                     )}
                     <View style={styles.cardInfo}>
-                      <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={1}>
-                        {chat.name ?? chat.participant_name ?? chat.participant_username ?? "Grupo"}
+                      <Text
+                        style={[styles.cardName, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {chat.name ??
+                          chat.participant_name ??
+                          chat.participant_username ??
+                          "Grupo"}
                       </Text>
                       {chat.last_message && (
-                        <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.cardSubtitle,
+                            { color: colors.textSecondary },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {chat.last_message}
                         </Text>
                       )}
@@ -297,27 +373,52 @@ export default function SearchScreen() {
             {localContacts.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Users size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Meus Contatos</Text>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Contatos
+                  </Text>
                 </View>
                 {localContacts.map((contact) => (
                   <TouchableOpacity
                     key={contact.contact_id}
-                    style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    style={[
+                      styles.card,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
                     onPress={() => handleSelectContact(contact)}
                   >
                     {contact.avatar_url ? (
-                      <Image source={{ uri: getAvatarUri(contact.avatar_url) }} style={styles.avatar} />
+                      <Image
+                        source={{ uri: getAvatarUri(contact.avatar_url) }}
+                        style={styles.avatar}
+                      />
                     ) : (
-                      <View style={[styles.avatarPlaceholder, { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" }]}>
-                        <User size={20} color={colors.textSecondary} />
+                      <View
+                        style={[
+                          styles.avatarPlaceholder,
+                          { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" },
+                        ]}
+                      >
+                        <MaterialCommunityIcons name="account" size={20} color={colors.textSecondary} />
                       </View>
                     )}
                     <View style={styles.cardInfo}>
                       <Text style={[styles.cardName, { color: colors.text }]}>
                         {contact.name ?? contact.username}
                       </Text>
-                      <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                      <Text
+                        style={[
+                          styles.cardSubtitle,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         @{contact.username}
                       </Text>
                     </View>
@@ -328,8 +429,15 @@ export default function SearchScreen() {
 
             {localChats.length === 0 && localContacts.length === 0 && (
               <View style={styles.centerContainer}>
-                <Search size={48} color={colors.textSecondary} style={{ marginBottom: 16, opacity: 0.3 }} />
-                <Text style={[styles.introText, { color: colors.textSecondary }]}>
+                <MaterialCommunityIcons
+                  name="magnify"
+                  size={48}
+                  color={colors.textSecondary}
+                  style={{ marginBottom: 16, opacity: 0.3 }}
+                />
+                <Text
+                  style={[styles.introText, { color: colors.textSecondary }]}
+                >
                   Digite acima para buscar contatos ou pesquisar na Web.
                 </Text>
               </View>
@@ -338,40 +446,80 @@ export default function SearchScreen() {
         ) : (
           <>
             {/* FILTERED RESULTS */}
-            
+
             {/* 1. LOCAL CHATS */}
             {filteredChats.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <MessageSquare size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Conversas Encontradas</Text>
+                  <MaterialCommunityIcons
+                    name="message-outline"
+                    size={16}
+                    color={colors.textSecondary}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Conversas Encontradas
+                  </Text>
                 </View>
                 {filteredChats.map((chat) => (
                   <TouchableOpacity
                     key={chat.id}
-                    style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    style={[
+                      styles.card,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
                     onPress={() => handleSelectChat(chat)}
                   >
-                    {chat.participant_avatar_url || (chat.is_group && chat.avatar_url) ? (
+                    {chat.participant_avatar_url ||
+                    (chat.is_group && chat.avatar_url) ? (
                       <Image
-                        source={{ uri: getAvatarUri(chat.participant_avatar_url || chat.avatar_url) }}
+                        source={{
+                          uri: getAvatarUri(
+                            chat.participant_avatar_url || chat.avatar_url,
+                          ),
+                        }}
                         style={styles.avatar}
                       />
                     ) : (
-                      <View style={[styles.avatarPlaceholder, { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" }]}>
+                      <View
+                        style={[
+                          styles.avatarPlaceholder,
+                          { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" },
+                        ]}
+                      >
                         {chat.is_group ? (
-                          <Users size={20} color={colors.textSecondary} />
+                          <MaterialCommunityIcons name="account-multiple" size={20} color={colors.textSecondary} />
                         ) : (
-                          <User size={20} color={colors.textSecondary} />
+                          <MaterialCommunityIcons name="account" size={20} color={colors.textSecondary} />
                         )}
                       </View>
                     )}
                     <View style={styles.cardInfo}>
-                      <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={1}>
-                        {chat.name ?? chat.participant_name ?? chat.participant_username ?? "Grupo"}
+                      <Text
+                        style={[styles.cardName, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {chat.name ??
+                          chat.participant_name ??
+                          chat.participant_username ??
+                          "Grupo"}
                       </Text>
                       {chat.last_message && (
-                        <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.cardSubtitle,
+                            { color: colors.textSecondary },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {chat.last_message}
                         </Text>
                       )}
@@ -385,27 +533,58 @@ export default function SearchScreen() {
             {filteredContacts.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Users size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Contatos Correspondentes</Text>
+                  <MaterialCommunityIcons
+                    name="account-multiple"
+                    size={16}
+                    color={colors.textSecondary}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Contatos Correspondentes
+                  </Text>
                 </View>
                 {filteredContacts.map((contact) => (
                   <TouchableOpacity
                     key={contact.contact_id}
-                    style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    style={[
+                      styles.card,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
                     onPress={() => handleSelectContact(contact)}
                   >
                     {contact.avatar_url ? (
-                      <Image source={{ uri: getAvatarUri(contact.avatar_url) }} style={styles.avatar} />
+                      <Image
+                        source={{ uri: getAvatarUri(contact.avatar_url) }}
+                        style={styles.avatar}
+                      />
                     ) : (
-                      <View style={[styles.avatarPlaceholder, { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" }]}>
-                        <User size={20} color={colors.textSecondary} />
+                      <View
+                        style={[
+                          styles.avatarPlaceholder,
+                          { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" },
+                        ]}
+                      >
+                        <MaterialCommunityIcons name="account" size={20} color={colors.textSecondary} />
                       </View>
                     )}
                     <View style={styles.cardInfo}>
                       <Text style={[styles.cardName, { color: colors.text }]}>
                         {contact.name ?? contact.username}
                       </Text>
-                      <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                      <Text
+                        style={[
+                          styles.cardSubtitle,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         @{contact.username}
                       </Text>
                     </View>
@@ -418,7 +597,13 @@ export default function SearchScreen() {
             {loadingGlobal ? (
               <View style={{ paddingVertical: 20, alignItems: "center" }}>
                 <ActivityIndicator size="small" color="#07C160" />
-                <Text style={{ marginTop: 8, fontSize: 12, color: colors.textSecondary }}>
+                <Text
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                  }}
+                >
                   Buscando globalmente no Zapi...
                 </Text>
               </View>
@@ -426,25 +611,58 @@ export default function SearchScreen() {
               globalResults.length > 0 && (
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
-                    <Search size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Outros usuários no Zapi</Text>
+                    <MaterialCommunityIcons
+                      name="magnify"
+                      size={16}
+                      color={colors.textSecondary}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={[
+                        styles.sectionTitle,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Outros usuários no Zapi
+                    </Text>
                   </View>
                   {globalResults.map((user) => (
                     <TouchableOpacity
                       key={user.id}
-                      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                      style={[
+                        styles.card,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                        },
+                      ]}
                       onPress={() => handleSelectGlobalUser(user)}
                     >
                       {user.avatar_url ? (
-                        <Image source={{ uri: getAvatarUri(user.avatar_url) }} style={styles.avatar} />
+                        <Image
+                          source={{ uri: getAvatarUri(user.avatar_url) }}
+                          style={styles.avatar}
+                        />
                       ) : (
-                        <View style={[styles.avatarPlaceholder, { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" }]}>
-                          <User size={20} color={colors.textSecondary} />
+                        <View
+                          style={[
+                            styles.avatarPlaceholder,
+                            { backgroundColor: isDark ? "#2A2A2F" : "#E2E8F0" },
+                          ]}
+                        >
+                          <MaterialCommunityIcons name="account" size={20} color={colors.textSecondary} />
                         </View>
                       )}
                       <View style={styles.cardInfo}>
-                        <Text style={[styles.cardName, { color: colors.text }]}>{user.username}</Text>
-                        <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                        <Text style={[styles.cardName, { color: colors.text }]}>
+                          {user.username}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.cardSubtitle,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
                           {user.email || "Usuário Zapi"}
                         </Text>
                       </View>
@@ -460,11 +678,19 @@ export default function SearchScreen() {
                 onPress={handleWebSearch}
                 style={[
                   styles.webSearchPrompt,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
                 ]}
               >
-                <Globe size={20} color="#07C160" style={{ marginRight: 10 }} />
-                <Text style={[styles.webSearchPromptText, { color: colors.brandGreen || "#07C160" }]}>
+                <MaterialCommunityIcons name="earth" size={20} color="#07C160" style={{ marginRight: 10 }} />
+                <Text
+                  style={[
+                    styles.webSearchPromptText,
+                    { color: colors.brandGreen || "#07C160" },
+                  ]}
+                >
                   {`Pesquisar na Web por "${searchQuery}"`}
                 </Text>
               </TouchableOpacity>
@@ -475,7 +701,12 @@ export default function SearchScreen() {
               globalResults.length === 0 &&
               !loadingGlobal && (
                 <View style={[styles.centerContainer, { marginVertical: 40 }]}>
-                  <Text style={[styles.introText, { color: colors.textSecondary, marginBottom: 20 }]}>
+                  <Text
+                    style={[
+                      styles.introText,
+                      { color: colors.textSecondary, marginBottom: 20 },
+                    ]}
+                  >
                     {`Nenhum resultado local ou global encontrado para "${searchQuery}"`}
                   </Text>
                 </View>
@@ -542,10 +773,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontSize: 14,
   },
   card: {
     flexDirection: "row",

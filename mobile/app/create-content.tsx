@@ -6,13 +6,13 @@ import {
   StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Film, Camera, FileText } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 
 const OPTIONS = [
   {
-    icon: Film,
+    icon: "movie-outline" as const,
     label: "Clip",
     description: "Compartilhe um vídeo curto",
     color: "#FF9500",
@@ -20,7 +20,7 @@ const OPTIONS = [
     params: undefined,
   },
   {
-    icon: Camera,
+    icon: "camera-outline" as const,
     label: "Status",
     description: "Atualize seu status por 24h",
     color: "#07C160",
@@ -28,7 +28,7 @@ const OPTIONS = [
     params: undefined,
   },
   {
-    icon: FileText,
+    icon: "file-document-outline" as const,
     label: "Post",
     description: "Compartilhe uma ideia ou foto",
     color: "#007AFF",
@@ -57,7 +57,7 @@ export default function CreateContentScreen() {
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
-          <ArrowLeft size={24} color={colors.text} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           Criar conteúdo
@@ -78,7 +78,7 @@ export default function CreateContentScreen() {
             onPress={() => handleOptionPress(option.route, option.params as Record<string, unknown> | undefined)}
           >
             <View style={[styles.iconContainer, { backgroundColor: option.color + "18" }]}>
-              <option.icon size={28} color={option.color} />
+              <MaterialCommunityIcons name={option.icon} size={28} color={option.color} />
             </View>
             <View style={styles.optionText}>
               <Text style={[styles.optionLabel, { color: colors.text }]}>

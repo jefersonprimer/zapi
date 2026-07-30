@@ -16,17 +16,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  ArrowLeft,
-  ChevronRight,
-  Lock,
-  Globe,
-  LogOut,
-  Palette,
-  Camera,
-  Laptop,
-  CreditCard,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   BottomSheetModal,
   BottomSheetView,
@@ -218,7 +208,7 @@ export default function SettingsScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <ArrowLeft size={24} color={colors.headerText} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
           </TouchableOpacity>
 
           {showHeaderProfile ? (
@@ -329,7 +319,7 @@ export default function SettingsScreen() {
                 },
               ]}
             >
-              <Camera size={12} color="#FFF" />
+              <MaterialCommunityIcons name="camera" size={12} color="#FFF" />
             </View>
           </TouchableOpacity>
 
@@ -460,7 +450,7 @@ export default function SettingsScreen() {
             onPress={() => router.push("/privacy")}
           >
             <View style={styles.optionLeft}>
-              <Lock size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons name="lock-outline" size={20} color={colors.textSecondary} />
               <View style={styles.optionTextContainer}>
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Privacidade
@@ -472,7 +462,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <ChevronRight size={20} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           {/* Pagamentos */}
@@ -481,7 +471,7 @@ export default function SettingsScreen() {
             onPress={() => router.push("/payments")}
           >
             <View style={styles.optionLeft}>
-              <CreditCard size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons name="credit-card-outline" size={20} color={colors.textSecondary} />
               <View style={styles.optionTextContainer}>
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Pagamentos
@@ -493,7 +483,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <ChevronRight size={20} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           {/* Idioma do app */}
@@ -502,7 +492,7 @@ export default function SettingsScreen() {
             onPress={() => langBottomSheetModalRef.current?.present()}
           >
             <View style={styles.optionLeft}>
-              <Globe size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons name="earth" size={20} color={colors.textSecondary} />
               <View style={styles.optionTextContainer}>
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Idioma do app
@@ -514,7 +504,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <ChevronRight size={20} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           {/* Tema */}
@@ -526,7 +516,7 @@ export default function SettingsScreen() {
             }}
           >
             <View style={styles.optionLeft}>
-              <Palette size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons name="palette-outline" size={20} color={colors.textSecondary} />
               <View style={styles.optionTextContainer}>
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Tema
@@ -538,7 +528,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <ChevronRight size={20} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           {/* Aparelhos Conectados */}
@@ -547,7 +537,7 @@ export default function SettingsScreen() {
             onPress={() => router.push("/link-device?mode=link")}
           >
             <View style={styles.optionLeft}>
-              <Laptop size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons name="laptop" size={20} color={colors.textSecondary} />
               <View style={styles.optionTextContainer}>
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
                   Aparelhos conectados
@@ -559,7 +549,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <ChevronRight size={20} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -574,7 +564,7 @@ export default function SettingsScreen() {
             onPress={handleSignOut}
           >
             <View style={styles.optionLeft}>
-              <LogOut size={20} color={colors.danger} />
+              <MaterialCommunityIcons name="logout" size={20} color={colors.danger} />
               <View style={styles.optionTextContainer}>
                 <Text
                   style={[

@@ -11,7 +11,7 @@ import {
   Modal,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, CheckCircle, Play, FileText } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
@@ -96,7 +96,7 @@ function PostGridItem({
           />
           {isVideo && (
             <View style={styles.videoBadge}>
-              <Play size={16} color="#fff" fill="#fff" />
+              <MaterialCommunityIcons name="play" size={16} color="#fff" />
             </View>
           )}
           {post.attachments.length > 1 && (
@@ -111,7 +111,7 @@ function PostGridItem({
         <View
           style={[styles.textPlaceholder, { backgroundColor: colors.surface }]}
         >
-          <FileText size={24} color={colors.textSecondary} />
+          <MaterialCommunityIcons name="file-document-outline" size={24} color={colors.textSecondary} />
           {post.content ? (
             <Text
               style={[
@@ -331,7 +331,7 @@ export default function PublisherProfileScreen() {
           @{publisher.username}
         </Text>
         {publisher.is_verified && (
-          <CheckCircle size={20} color={isDark ? "#60A5FA" : "#3B82F6"} />
+          <MaterialCommunityIcons name="check-circle" size={20} color={isDark ? "#60A5FA" : "#3B82F6"} />
         )}
       </View>
       <Text style={[styles.typeLabel, { color: colors.textSecondary }]}>
@@ -401,7 +401,7 @@ export default function PublisherProfileScreen() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={colors.text} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Perfil</Text>
         <View style={{ width: 24 }} />
@@ -460,7 +460,7 @@ export default function PublisherProfileScreen() {
             ]}
           >
             <TouchableOpacity onPress={() => setSelectedPost(null)}>
-              <ArrowLeft size={24} color={colors.text} />
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
             </TouchableOpacity>
             <Text style={[styles.title, { color: colors.text }]}>
               Publicação

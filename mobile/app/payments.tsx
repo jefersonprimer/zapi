@@ -11,13 +11,7 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import {
-  ArrowLeft,
-  Pencil,
-  Trash2,
-  Plus,
-  HandCoins,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -105,7 +99,7 @@ export default function PaymentsScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <ArrowLeft size={24} color={colors.headerText} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.headerText }]}>
             Pagamentos
@@ -187,7 +181,7 @@ export default function PaymentsScreen() {
                   onPress={() => setModalVisible(true)}
                   activeOpacity={0.7}
                 >
-                  <Pencil size={18} color={colors.textSecondary} />
+                  <MaterialCommunityIcons name="pencil" size={18} color={colors.textSecondary} />
                   <Text
                     style={[
                       styles.subActionText,
@@ -210,7 +204,7 @@ export default function PaymentsScreen() {
                   {deleting ? (
                     <ActivityIndicator size={16} color={colors.danger} />
                   ) : (
-                    <Trash2 size={18} color={colors.danger} />
+                    <MaterialCommunityIcons name="delete-outline" size={18} color={colors.danger} />
                   )}
                   <Text style={[styles.subActionText, { color: colors.danger }]}>
                     Excluir
@@ -242,7 +236,7 @@ export default function PaymentsScreen() {
                 onPress={() => setModalVisible(true)}
                 activeOpacity={0.8}
               >
-                <Plus size={18} color="#fff" />
+                <MaterialCommunityIcons name="plus" size={18} color="#fff" />
                 <Text style={styles.addBtnText}>Adicionar chave Pix</Text>
               </TouchableOpacity>
             </View>
@@ -280,7 +274,7 @@ export default function PaymentsScreen() {
           }
           activeOpacity={0.85}
         >
-          <HandCoins size={20} color={isDark ? "#121212" : "#FFFFFF"} />
+          <MaterialCommunityIcons name="hand-coin" size={20} color={isDark ? "#121212" : "#FFFFFF"} />
           <Text
             style={[
               styles.fabLabel,

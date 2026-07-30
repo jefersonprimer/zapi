@@ -14,26 +14,7 @@ import {
   Clipboard,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  Phone,
-  Video,
-  Trash2,
-  ArrowLeft,
-  MoreVertical,
-  Bell,
-  BellOff,
-  Heart,
-  HeartOff,
-  ListPlus,
-  Search,
-  ChevronRight,
-  Image as ImageIcon,
-  Ban,
-  ShieldCheck,
-  UserPlus,
-  UserCheck,
-  Sparkles,
-} from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Svg, Path } from "react-native-svg";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -329,7 +310,10 @@ export default function ContactDetailScreen() {
       }
 
       try {
-        const publisher = await updatesApi.getPublisherByUser(token, participantId);
+        const publisher = await updatesApi.getPublisherByUser(
+          token,
+          participantId,
+        );
         setPublisherId(publisher.id);
         setIsFollowing(!!publisher.is_following);
       } catch (err) {
@@ -512,7 +496,11 @@ export default function ContactDetailScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <ArrowLeft size={24} color={colors.headerText} />
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
 
           {showHeaderProfile ? (
@@ -564,7 +552,11 @@ export default function ContactDetailScreen() {
             onPress={() => setMenuVisible(true)}
             style={styles.headerMenuBtn}
           >
-            <MoreVertical size={24} color={colors.headerText} />
+            <MaterialCommunityIcons
+              name="dots-vertical"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -659,7 +651,11 @@ export default function ContactDetailScreen() {
               ]}
               onPress={handleVoiceCall}
             >
-              <Phone size={20} color={colors.text} />
+              <MaterialCommunityIcons
+                name="phone"
+                size={20}
+                color={colors.text}
+              />
               <Text style={[styles.actionButtonText, { color: colors.text }]}>
                 Ligar
               </Text>
@@ -672,7 +668,11 @@ export default function ContactDetailScreen() {
               ]}
               onPress={handleVideoCall}
             >
-              <Video size={20} color={colors.text} />
+              <MaterialCommunityIcons
+                name="video"
+                size={20}
+                color={colors.text}
+              />
               <Text style={[styles.actionButtonText, { color: colors.text }]}>
                 Vídeo
               </Text>
@@ -689,7 +689,12 @@ export default function ContactDetailScreen() {
                   Alert.alert("Copiado", "Chave Pix copiada com sucesso!");
                 }}
               >
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill={colors.text}>
+                <Svg
+                  width={20}
+                  height={20}
+                  viewBox="0 0 24 24"
+                  fill={colors.text}
+                >
                   <Path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156" />
                 </Svg>
                 <Text style={[styles.actionButtonText, { color: colors.text }]}>
@@ -761,9 +766,17 @@ export default function ContactDetailScreen() {
             <View style={styles.optionRow}>
               <View style={styles.optionLeft}>
                 {isMuted ? (
-                  <BellOff size={20} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="bell-off"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
                 ) : (
-                  <Bell size={20} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="bell"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
                 )}
                 <View style={styles.optionTextContainer}>
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
@@ -799,9 +812,17 @@ export default function ContactDetailScreen() {
             <View style={styles.optionRow}>
               <View style={styles.optionLeft}>
                 {isFavorite ? (
-                  <HeartOff size={20} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="heart-off"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
                 ) : (
-                  <Heart size={20} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="heart"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
                 )}
                 <View style={styles.optionTextContainer}>
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
@@ -834,15 +855,27 @@ export default function ContactDetailScreen() {
             <View style={styles.optionRow}>
               <View style={styles.optionLeft}>
                 {isFollowing ? (
-                  <UserCheck size={20} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="account-check"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
                 ) : (
-                  <UserPlus size={20} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="account-plus"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
                 )}
                 <View style={styles.optionTextContainer}>
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    {isFollowing ? "Seguindo atualizações" : "Seguir atualizações"}
+                    {isFollowing
+                      ? "Seguindo atualizações"
+                      : "Seguir atualizações"}
                   </Text>
-                  <Text style={[styles.optionSub, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[styles.optionSub, { color: colors.textSecondary }]}
+                  >
                     Ver stories e posts deste contato
                   </Text>
                 </View>
@@ -874,14 +907,17 @@ export default function ContactDetailScreen() {
                 onPress={handleOpenPublisherProfile}
               >
                 <View style={styles.optionLeft}>
-                  <Sparkles size={20} color={colors.textSecondary} />
                   <View style={styles.optionTextContainer}>
                     <Text style={[styles.optionTitle, { color: colors.text }]}>
                       Ver perfil de atualizações
                     </Text>
                   </View>
                 </View>
-                <ChevronRight size={20} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={20}
+                  color={colors.textSecondary}
+                />
               </TouchableOpacity>
             )}
 
@@ -891,7 +927,11 @@ export default function ContactDetailScreen() {
               onPress={handleOpenListSelector}
             >
               <View style={styles.optionLeft}>
-                <ListPlus size={20} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="playlist-plus"
+                  size={20}
+                  color={colors.textSecondary}
+                />
                 <View style={styles.optionTextContainer}>
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
                     Adicionar à lista
@@ -908,7 +948,11 @@ export default function ContactDetailScreen() {
                   )}
                 </View>
               </View>
-              <ChevronRight size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={colors.textSecondary}
+              />
             </TouchableOpacity>
 
             {/* Mídias compartilhadas */}
@@ -922,14 +966,22 @@ export default function ContactDetailScreen() {
               }
             >
               <View style={styles.optionLeft}>
-                <ImageIcon size={20} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="image"
+                  size={20}
+                  color={colors.textSecondary}
+                />
                 <View style={styles.optionTextContainer}>
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
                     Mídias compartilhadas
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={colors.textSecondary}
+              />
             </TouchableOpacity>
 
             {/* Buscar nesta conversa */}
@@ -943,14 +995,22 @@ export default function ContactDetailScreen() {
               }
             >
               <View style={styles.optionLeft}>
-                <Search size={20} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="magnify"
+                  size={20}
+                  color={colors.textSecondary}
+                />
                 <View style={styles.optionTextContainer}>
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
                     Buscar nesta conversa
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={colors.textSecondary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -965,7 +1025,11 @@ export default function ContactDetailScreen() {
               onPress={handleClearChat}
             >
               <View style={styles.optionLeft}>
-                <Trash2 size={20} color={colors.danger} />
+                <MaterialCommunityIcons
+                  name="trash-can-outline"
+                  size={20}
+                  color={colors.danger}
+                />
                 <View style={styles.optionTextContainer}>
                   <Text style={[styles.optionTitle, { color: colors.danger }]}>
                     Limpar conversa
@@ -981,7 +1045,11 @@ export default function ContactDetailScreen() {
               <View style={styles.optionLeft}>
                 {isBlocked ? (
                   <>
-                    <ShieldCheck size={20} color={colors.tint} />
+                    <MaterialCommunityIcons
+                      name="shield-check"
+                      size={20}
+                      color={colors.tint}
+                    />
                     <View style={styles.optionTextContainer}>
                       <Text
                         style={[styles.optionTitle, { color: colors.tint }]}
@@ -992,7 +1060,11 @@ export default function ContactDetailScreen() {
                   </>
                 ) : (
                   <>
-                    <Ban size={20} color={colors.danger} />
+                    <MaterialCommunityIcons
+                      name="block-helper"
+                      size={20}
+                      color={colors.danger}
+                    />
                     <View style={styles.optionTextContainer}>
                       <Text
                         style={[styles.optionTitle, { color: colors.danger }]}
@@ -1067,7 +1139,11 @@ export default function ContactDetailScreen() {
                 onPress={() => setIsAvatarFullScreen(false)}
                 style={styles.fullScreenBackBtn}
               >
-                <ArrowLeft size={24} color="#fff" />
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={24}
+                  color="#fff"
+                />
               </TouchableOpacity>
             </View>
             <View style={styles.fullScreenImageContainer}>

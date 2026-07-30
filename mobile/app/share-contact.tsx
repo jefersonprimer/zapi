@@ -11,7 +11,7 @@ import {
   Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -339,7 +339,7 @@ export default function ShareContactScreen() {
       >
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <ArrowLeft size={24} color={colors.headerText} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={[styles.headerTitle, { color: colors.headerText }]}>
@@ -431,7 +431,7 @@ export default function ShareContactScreen() {
                     ],
                   ]}
                 >
-                  {isSelected && <Check size={14} color="#fff" strokeWidth={3} />}
+                  {isSelected && <MaterialCommunityIcons name="check" size={14} color="#fff" />}
                 </View>
               </TouchableOpacity>
             );
@@ -459,7 +459,7 @@ export default function ShareContactScreen() {
           onPress={handleSend}
           activeOpacity={0.8}
         >
-          <ArrowRight size={24} color={isDark ? "#121212" : "#FFFFFF"} />
+          <MaterialCommunityIcons name="arrow-right" size={24} color={isDark ? "#121212" : "#FFFFFF"} />
         </TouchableOpacity>
       )}
     </View>

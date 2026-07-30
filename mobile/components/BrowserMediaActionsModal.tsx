@@ -74,11 +74,11 @@ export function BrowserMediaActionsModal({
 
   const handleSaveMedia = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== "granted") {
         Alert.alert(
           "Permissão necessária",
-          "Precisamos de permissão para salvar arquivos na sua galeria."
+          "Precisamos de permissão para salvar arquivos na sua galeria.",
         );
         return;
       }
@@ -92,7 +92,9 @@ export function BrowserMediaActionsModal({
         const parts = src.split(";base64,");
         if (parts.length === 2) {
           const base64Data = parts[1];
-          const match = src.match(/data:(image|video)\/([a-zA-Z0-9+]+);base64,/);
+          const match = src.match(
+            /data:(image|video)\/([a-zA-Z0-9+]+);base64,/,
+          );
           const ext = match ? match[2] : extension;
           const dataFilename = `zapi_${Date.now()}.${ext}`;
           const dataFileUri = `${FileSystem.documentDirectory}${dataFilename}`;
@@ -175,26 +177,26 @@ export function BrowserMediaActionsModal({
           },
         ]}
       >
-        <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.modalHeaderText, { color: colors.textSecondary || "#8E8E93" }]}>
-            Opções de {mediaLabel}
-          </Text>
-        </View>
-
         <TouchableOpacity
-          style={[styles.modalRowOption, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
+          style={[
+            styles.modalRowOption,
+            {
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.border,
+            },
+          ]}
           onPress={handleSaveMedia}
         >
           <View
             style={[
               styles.modalRowIconContainer,
-              { backgroundColor: "#34C759" },
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
             <MaterialCommunityIcons
               name="download"
               size={20}
-              color="#FFFFFF"
+              color={colors.text}
             />
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
@@ -203,19 +205,25 @@ export function BrowserMediaActionsModal({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.modalRowOption, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
+          style={[
+            styles.modalRowOption,
+            {
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.border,
+            },
+          ]}
           onPress={handleShareMedia}
         >
           <View
             style={[
               styles.modalRowIconContainer,
-              { backgroundColor: "#007AFF" },
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
             <MaterialCommunityIcons
               name="share-variant"
               size={20}
-              color="#FFFFFF"
+              color={colors.text}
             />
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
@@ -224,19 +232,25 @@ export function BrowserMediaActionsModal({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.modalRowOption, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
+          style={[
+            styles.modalRowOption,
+            {
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.border,
+            },
+          ]}
           onPress={handleCopyLink}
         >
           <View
             style={[
               styles.modalRowIconContainer,
-              { backgroundColor: "#FF9500" },
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
             <MaterialCommunityIcons
               name="content-copy"
               size={20}
-              color="#FFFFFF"
+              color={colors.text}
             />
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
@@ -253,13 +267,13 @@ export function BrowserMediaActionsModal({
           <View
             style={[
               styles.modalRowIconContainer,
-              { backgroundColor: "#AF52DE" },
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
             ]}
           >
             <MaterialCommunityIcons
               name="open-in-new"
               size={20}
-              color="#FFFFFF"
+              color={colors.text}
             />
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
@@ -278,8 +292,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   actionsModalCard: {
-    width: "75%",
-    borderRadius: 16,
+    width: "65%",
+    borderRadius: 32,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     shadowColor: "#000",
@@ -316,6 +330,5 @@ const styles = StyleSheet.create({
   },
   modalRowText: {
     fontSize: 16,
-    fontWeight: "500",
   },
 });

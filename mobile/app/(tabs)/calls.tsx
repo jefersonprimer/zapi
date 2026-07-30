@@ -204,7 +204,7 @@ export default function CallsScreen() {
             </Text>
             <View style={styles.statusRow}>
               <MaterialCommunityIcons
-                name={statusIconName}
+                name={statusIconName as any}
                 size={14}
                 color={iconColor}
                 style={{ marginRight: 6 }}
@@ -266,36 +266,51 @@ export default function CallsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {isSelectionMode ? (
         <View
-          style={[styles.headerContainer, { borderBottomColor: colors.border }]}
+          style={[styles.header, { backgroundColor: colors.headerBackground }]}
         >
-          <TouchableOpacity
-            onPress={() => setSelectedCallIds([])}
-            style={styles.headerButton}
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={24}
-              color={colors.text}
-            />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitleSelection, { color: colors.text }]}>
-            {selectedCallIds.length} selecionadas
-          </Text>
-          <TouchableOpacity
-            onPress={handleDeleteSelectedPrompt}
-            style={styles.headerButton}
-          >
-            <MaterialCommunityIcons
-              name="delete-outline"
-              size={24}
-              color={colors.headerText}
-            />
-          </TouchableOpacity>
+          <View style={styles.headerLeftSelected}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={() => setSelectedCallIds([])}
+            >
+              <MaterialCommunityIcons
+                name="arrow-left"
+                color={colors.headerText}
+                size={22}
+              />
+            </TouchableOpacity>
+            <Text
+              style={[styles.selectedCountText, { color: colors.headerText }]}
+            >
+              {selectedCallIds.length}
+            </Text>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={handleDeleteSelectedPrompt}
+            >
+              <MaterialCommunityIcons
+                name="delete-outline"
+                color={colors.headerText}
+                size={24}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Ligações
-        </Text>
+        <View
+          style={[styles.header, { backgroundColor: colors.headerBackground }]}
+        >
+          <Text
+            style={[
+              styles.title,
+              { color: isDark ? colors.headerText : colors.tint },
+            ]}
+          >
+            Ligações
+          </Text>
+        </View>
       )}
       {calls.length === 0 ? (
         <View style={styles.empty}>
@@ -318,13 +333,29 @@ export default function CallsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 40,
   },
-  headerTitle: {
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  title: {
     fontSize: 22,
-    fontWeight: "400",
-    paddingHorizontal: 20,
-    marginVertical: 10,
+    fontWeight: "500",
+  },
+  headerLeftSelected: { flexDirection: "row", alignItems: "center", gap: 12 },
+  selectedCountText: { fontSize: 20, fontWeight: "bold", marginLeft: 8 },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 16 },
+  headerIcon: {
+    padding: 4,
   },
   loading: {
     flex: 1,
@@ -391,27 +422,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-  },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    marginVertical: 10,
-    height: 56,
-  },
-  headerButton: {
-    padding: 8,
-  },
-  headerTitleSelection: {
-    fontSize: 20,
-    fontWeight: "600",
-    flex: 1,
-    marginLeft: 16,
-  },
-  selectionIndicator: {
-    padding: 10,
-    marginLeft: 12,
   },
   selectedCircle: {
     width: 22,

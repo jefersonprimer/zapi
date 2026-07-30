@@ -10,15 +10,7 @@ import {
   Image,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import {
-  Users as GroupIcon,
-  UserPlus as UserIcon,
-  Trash2 as TrashIcon,
-  ArrowLeft,
-  QrCode,
-  Scan,
-  MessageCircleMore,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import {
   getContacts,
@@ -113,7 +105,7 @@ export default function ContactsScreen() {
         onPress={() => router.push("/new-group")}
       >
         <View style={[styles.iconContainer, styles.groupBg]}>
-          <GroupIcon color="#fff" size={22} />
+          <MaterialCommunityIcons name="account-group" color="#fff" size={22} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Conversas em Grupo
@@ -131,7 +123,7 @@ export default function ContactsScreen() {
             { backgroundColor: "#FA9E3B" },
           ]}
         >
-          <UserIcon color="#fff" size={22} />
+          <MaterialCommunityIcons name="account-plus" color="#fff" size={22} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Novos Amigos
@@ -140,10 +132,10 @@ export default function ContactsScreen() {
 
       <TouchableOpacity
         style={[styles.actionItem, { borderBottomColor: colors.border }]}
-        onPress={() => router.push("/scan-qr")}
+        onPress={() => router.push("/link-device?mode=scan")}
       >
         <View style={[styles.iconContainer, { backgroundColor: "#FF9500" }]}>
-          <Scan color="#fff" size={22} />
+          <MaterialCommunityIcons name="qrcode-scan" color="#fff" size={22} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Escanear QR Code
@@ -155,7 +147,7 @@ export default function ContactsScreen() {
         onPress={() => router.push("/my-qr")}
       >
         <View style={[styles.iconContainer, { backgroundColor: "#5856D6" }]}>
-          <QrCode color="#fff" size={22} />
+          <MaterialCommunityIcons name="qrcode" color="#fff" size={22} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Meu QR Code
@@ -182,7 +174,7 @@ export default function ContactsScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <ArrowLeft size={24} color={colors.headerText} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={[styles.headerTitle, { color: colors.headerText }]}>
@@ -266,7 +258,7 @@ export default function ContactsScreen() {
                   ]}
                   onPress={() => handleStartChat(item)}
                 >
-                  <MessageCircleMore size={20} color={colors.tint} />
+                  <MaterialCommunityIcons name="message-reply-text-outline" size={20} color={colors.tint} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -279,7 +271,7 @@ export default function ContactsScreen() {
                   ]}
                   onPress={() => handleConfirmRemove(item)}
                 >
-                  <TrashIcon size={20} color={colors.danger} />
+                  <MaterialCommunityIcons name="delete-outline" size={20} color={colors.danger} />
                 </TouchableOpacity>
               </View>
             </View>

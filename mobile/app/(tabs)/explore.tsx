@@ -26,7 +26,7 @@ interface ServiceItem {
 }
 
 export default function ExploreScreen() {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const router = useRouter();
 
   const services: ServiceItem[] = [
@@ -125,8 +125,18 @@ export default function ExploreScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.headerBackground },
+        ]}
+      >
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: isDark ? colors.headerText : colors.tint },
+          ]}
+        >
           Explorar
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
@@ -195,16 +205,20 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === "ios" ? 50 : 40,
   },
   header: {
-    paddingHorizontal: 20,
-    marginTop: 6,
-    marginBottom: 15,
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: "400",
+    fontSize: 22,
+    fontWeight: "500",
   },
   headerSubtitle: {
     fontSize: 14,

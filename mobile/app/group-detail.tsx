@@ -10,7 +10,7 @@ import {
   StyleSheet,
   Image,
 } from "react-native";
-import { ArrowLeft, LogOut, Camera, MessageSquare } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
@@ -276,7 +276,7 @@ export default function GroupDetailScreen() {
           onPress={() => router.back()}
           style={{ padding: 4, marginRight: 16 }}
         >
-          <ArrowLeft size={24} color={colors.headerText} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text
           style={{
@@ -351,7 +351,7 @@ export default function GroupDetailScreen() {
                     alignItems: "center",
                   }}
                 >
-                  <Camera size={12} color="#fff" />
+                  <MaterialCommunityIcons name="camera" size={12} color="#fff" />
                 </View>
               )}
           </TouchableOpacity>
@@ -732,7 +732,8 @@ export default function GroupDetailScreen() {
                       </View>
 
                       {!isMe && !showRemoveButton && (
-                        <MessageSquare
+                        <MaterialCommunityIcons
+                          name="message-outline"
                           size={20}
                           color={colors.tint}
                           style={{ marginRight: 4 }}
@@ -783,7 +784,7 @@ export default function GroupDetailScreen() {
                 }}
                 onPress={handleLeaveGroup}
               >
-                <LogOut size={20} color="#fff" />
+                <MaterialCommunityIcons name="logout" size={20} color="#fff" />
                 <Text
                   style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}
                 >

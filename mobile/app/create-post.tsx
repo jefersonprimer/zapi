@@ -13,15 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import {
-  ArrowLeft,
-  BarChart3,
-  Image as ImageIcon,
-  Camera,
-  X,
-  Video,
-  SendHorizonal,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   BottomSheetModal,
   BottomSheetView,
@@ -297,14 +289,15 @@ export default function CreatePostScreen() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={colors.text} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }} />
         <TouchableOpacity onPress={handleSend} disabled={sending || !canSend}>
           {sending ? (
             <ActivityIndicator size="small" color={colors.tint} />
           ) : (
-            <SendHorizonal
+            <MaterialCommunityIcons
+              name="send"
               size={22}
               color={canSend ? colors.tint : colors.textSecondary}
             />
@@ -332,7 +325,7 @@ export default function CreatePostScreen() {
                 <Image source={{ uri: item.uri }} style={styles.mediaImage} />
                 {item.type === "video" && (
                   <View style={styles.videoBadge}>
-                    <Video size={14} color="white" />
+                    <MaterialCommunityIcons name="video" size={14} color="white" />
                   </View>
                 )}
                 <TouchableOpacity
@@ -340,7 +333,7 @@ export default function CreatePostScreen() {
                   onPress={() => removeMedia(index)}
                   hitSlop={8}
                 >
-                  <X size={14} color="white" />
+                  <MaterialCommunityIcons name="close" size={14} color="white" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -356,7 +349,7 @@ export default function CreatePostScreen() {
             onPress={openGallery}
             disabled={media.length >= MAX_ATTACHMENTS}
           >
-            <ImageIcon size={20} color={colors.icon} />
+            <MaterialCommunityIcons name="image-outline" size={20} color={colors.icon} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -366,7 +359,7 @@ export default function CreatePostScreen() {
             onPress={handleSelectMediaOption}
             disabled={media.length >= MAX_ATTACHMENTS}
           >
-            <Camera size={20} color={colors.icon} />
+            <MaterialCommunityIcons name="camera" size={20} color={colors.icon} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -378,7 +371,7 @@ export default function CreatePostScreen() {
             ]}
             onPress={() => setIsPoll(!isPoll)}
           >
-            <BarChart3 size={20} color={isPoll ? "white" : colors.icon} />
+            <MaterialCommunityIcons name="chart-bar" size={20} color={isPoll ? "white" : colors.icon} />
           </TouchableOpacity>
         </View>
 
@@ -463,7 +456,7 @@ export default function CreatePostScreen() {
               openCamera();
             }}
           >
-            <Camera size={20} color={colors.text} style={styles.optionIcon} />
+            <MaterialCommunityIcons name="camera" size={20} color={colors.text} style={styles.optionIcon} />
             <Text style={[styles.optionText, { color: colors.text }]}>
               Câmera
             </Text>
@@ -508,7 +501,7 @@ export default function CreatePostScreen() {
               })();
             }}
           >
-            <Video size={20} color={colors.text} style={styles.optionIcon} />
+            <MaterialCommunityIcons name="video" size={20} color={colors.text} style={styles.optionIcon} />
             <Text style={[styles.optionText, { color: colors.text }]}>
               Vídeo
             </Text>

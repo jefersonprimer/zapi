@@ -69,7 +69,12 @@ export default function UpdatesScreen() {
   const renderScreenHeader = useCallback(
     () => (
       <View
-        style={[styles.headerRow, activeTab === "reels" && styles.reelsHeader]}
+        style={[
+          styles.header,
+          activeTab === "reels"
+            ? styles.reelsHeader
+            : { backgroundColor: colors.headerBackground },
+        ]}
       >
         <View style={styles.tabContainer}>
           <TouchableOpacity
@@ -84,7 +89,9 @@ export default function UpdatesScreen() {
                 styles.tabText,
                 {
                   color:
-                    activeTab === "feed" ? colors.text : colors.textSecondary,
+                    activeTab === "feed"
+                      ? (activeTab === "feed" && colors.tint ? colors.tint : colors.text)
+                      : colors.textSecondary,
                 },
                 activeTab === "feed" && styles.activeTabText,
               ]}
@@ -125,7 +132,7 @@ export default function UpdatesScreen() {
         </TouchableOpacity>
       </View>
     ),
-    [colors.text, colors.textSecondary, handleCreateContent, activeTab],
+    [colors.text, colors.textSecondary, colors.tint, colors.headerBackground, handleCreateContent, activeTab],
   );
 
   const renderHeader = useCallback(
@@ -245,7 +252,6 @@ export default function UpdatesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 40,
   },
   center: {
     flex: 1,
@@ -254,16 +260,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingBottom: 80,
   },
-  headerRow: {
+  header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginVertical: 6,
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   reelsHeader: {
     borderBottomWidth: 0,
     backgroundColor: "transparent",
+    elevation: 0,
+    shadowOpacity: 0,
   },
   tabContainer: {
     flexDirection: "row",
