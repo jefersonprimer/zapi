@@ -112,6 +112,8 @@ export default function ChatScreen() {
     handleUnblock,
     participantStoreId,
     user,
+    handleReact,
+    messages,
   } = useChat();
 
   const flatListRef = useRef<FlatList>(null);
@@ -121,6 +123,12 @@ export default function ChatScreen() {
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
   const [webSearchVisible, setWebSearchVisible] = useState(false);
   const [msgOptionsVisible, setMsgOptionsVisible] = useState(false);
+  const [selectedMessageLayout, setSelectedMessageLayout] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   const scrollToBottom = useCallback((animated = false) => {
     flatListRef.current?.scrollToEnd({ animated });
@@ -236,6 +244,10 @@ export default function ChatScreen() {
     handleSaveLists,
     handleCreateList,
   } = useChatLists(chatId);
+
+  const selectedMsg = messages.find((m) => selectedMessageIds.includes(m.id));
+  const isMine = selectedMsg ? selectedMsg.sender_id === user?.user_id : false;
+  const currentReaction = selectedMsg ? selectedMsg.reaction : null;
 
   return (
     <KeyboardAvoidingView
@@ -510,11 +522,12 @@ export default function ChatScreen() {
             participantUsername={participantUsername}
             participantAvatarUrl={participantAvatarUrl}
             onSwipeRight={handleReencaminhar}
-            onToggleMessageSelection={(msg) => {
+            onToggleMessageSelection={(msg, layout) => {
               if (selectedMessageIds.length > 0) {
                 toggleMessageSelection(msg);
               } else {
                 setSelectedMessageIds([msg.id]);
+                setSelectedMessageLayout(layout || null);
                 setMsgOptionsVisible(true);
               }
             }}
@@ -789,9 +802,15 @@ export default function ChatScreen() {
         />
       )}
 
-      {msgOptionsVisible && (
+      {msgOptionsVisible && selectedMsg && (
         <ChatMessageOptionsModal
           visible={msgOptionsVisible}
+          layout={selectedMessageLayout}
+          isMine={isMine}
+          reaction={currentReaction}
+          onReact={(reactionEmoji) => {
+            handleReact(selectedMsg.id, reactionEmoji);
+          }}
           onClose={(shouldClear) => {
             setMsgOptionsVisible(false);
             if (shouldClear) {

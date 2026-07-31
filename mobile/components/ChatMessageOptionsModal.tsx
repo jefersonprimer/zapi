@@ -1,13 +1,17 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Animated,
+  useWindowDimensions,
+  Modal,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
+import { EmojiKeyboard } from "rn-emoji-keyboard";
+import * as SecureStore from "expo-secure-store";
 
 interface ChatMessageOptionsModalProps {
   visible: boolean;
@@ -17,6 +21,52 @@ interface ChatMessageOptionsModalProps {
   onCopy: () => void;
   onDelete: () => void;
   onSelect: () => void;
+  layout?: { x: number; y: number; width: number; height: number } | null;
+  isMine?: boolean;
+  reaction?: string | null;
+  onReact?: (reactionEmoji: string | null) => void;
+}
+
+const HISTORY_KEY = "zapi_reactions_history";
+const DEFAULT_EMOJIS = ["❤️", "👍", "👎", "😂", "😮", "😢"];
+
+let cachedHistory = [...DEFAULT_EMOJIS];
+
+// Background load
+SecureStore.getItemAsync(HISTORY_KEY).then((val) => {
+  if (val) {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        cachedHistory = parsed;
+      }
+    } catch {}
+  }
+});
+
+async function getReactionsHistory(): Promise<string[]> {
+  try {
+    const val = await SecureStore.getItemAsync(HISTORY_KEY);
+    if (val) {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return DEFAULT_EMOJIS;
+}
+
+async function addEmojiToHistory(emoji: string) {
+  try {
+    const current = await getReactionsHistory();
+    const filtered = current.filter((e) => e !== emoji);
+    const updated = [emoji, ...filtered].slice(0, 6);
+    await SecureStore.setItemAsync(HISTORY_KEY, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return DEFAULT_EMOJIS;
+  }
 }
 
 export function ChatMessageOptionsModal({
@@ -27,12 +77,25 @@ export function ChatMessageOptionsModal({
   onCopy,
   onDelete,
   onSelect,
+  layout,
+  isMine = false,
+  reaction,
+  onReact,
 }: ChatMessageOptionsModalProps) {
   const { colors, isDark } = useAppTheme();
+  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
   const actionsAnimation = useRef(new Animated.Value(0)).current;
+
+  const [reactionsList, setReactionsList] = useState<string[]>(cachedHistory);
+  const [isEmojiKeyboardOpen, setIsEmojiKeyboardOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
+      getReactionsHistory().then((history) => {
+        cachedHistory = history;
+        setReactionsList(history);
+      });
+
       actionsAnimation.setValue(0);
       Animated.spring(actionsAnimation, {
         toValue: 1,
@@ -71,161 +134,363 @@ export function ChatMessageOptionsModal({
     outputRange: [0, 1],
   });
 
+  // Calculate coordinates dynamically based on message bubble layout
+  const menuHeight = 270;
+  const reactionsHeight = 56;
+
+  let menuTop = screenHeight / 2 - 130;
+  let menuLeft: number | undefined = screenWidth / 2 - 120;
+  let menuRight: number | undefined = undefined;
+
+  let reactionsTop = menuTop - 64;
+  let reactionsLeft: number | undefined = menuLeft;
+  let reactionsRight: number | undefined = undefined;
+
+  if (layout) {
+    const bubbleTop = layout.y;
+    const bubbleBottom = layout.y + layout.height;
+    const spaceBelow = screenHeight - bubbleBottom;
+
+    if (spaceBelow > menuHeight + 30) {
+      // Place menu below, reactions above
+      menuTop = bubbleBottom + 8;
+      reactionsTop = bubbleTop - reactionsHeight - 8;
+      
+      if (reactionsTop < 60) {
+        // Fallback: put both below message
+        reactionsTop = bubbleBottom + 8;
+        menuTop = reactionsTop + reactionsHeight + 8;
+      }
+    } else {
+      // Place menu above, reactions above menu or below bubble
+      menuTop = bubbleTop - menuHeight - 8;
+      reactionsTop = menuTop - reactionsHeight - 8;
+
+      if (menuTop < 60) {
+        // Fallback: menu below
+        menuTop = bubbleBottom + 8;
+        reactionsTop = bubbleTop - reactionsHeight - 8;
+      }
+      
+      if (reactionsTop < 60) {
+        reactionsTop = bubbleBottom + 8;
+        menuTop = reactionsTop + reactionsHeight + 8;
+      }
+    }
+
+    if (isMine) {
+      menuRight = 16;
+      reactionsRight = 16;
+      menuLeft = undefined;
+      reactionsLeft = undefined;
+    } else {
+      menuLeft = 16;
+      reactionsLeft = 16;
+      menuRight = undefined;
+      reactionsRight = undefined;
+    }
+  }
+
   return (
-    <TouchableOpacity
-      style={[
-        StyleSheet.absoluteFillObject,
-        styles.modalOverlayCentered,
-        { zIndex: 1000 },
-      ]}
-      activeOpacity={1}
-      onPress={() => hideModal()}
-    >
-      <Animated.View
+    <>
+      <TouchableOpacity
         style={[
           StyleSheet.absoluteFillObject,
-          {
-            backgroundColor: colors.modalOverlay,
-            opacity: modalOpacity,
-          },
+          styles.modalOverlay,
+          { zIndex: 1000 },
         ]}
-      />
-      <Animated.View
-        style={[
-          styles.actionsModalCard,
-          {
-            backgroundColor: isDark
-              ? "rgba(30, 30, 30, 0.85)"
-              : "rgba(255, 255, 255, 0.85)",
-            borderColor: colors.border,
-            opacity: modalOpacity,
-            transform: [{ scale: modalScale }, { translateY: modalTranslateY }],
-          },
-        ]}
+        activeOpacity={1}
+        onPress={() => hideModal()}
       >
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => hideModal(onReply)}
-        >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="reply-outline"
-              size={24}
-              color={colors.text}
-            />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Responder
-          </Text>
-        </TouchableOpacity>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: colors.modalOverlay,
+              opacity: modalOpacity,
+            },
+          ]}
+        />
 
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => hideModal(onForward)}
+        {/* Reactions Bar */}
+        <Animated.View
+          style={[
+            styles.reactionsBarCard,
+            {
+              backgroundColor: isDark
+                ? "rgba(30, 30, 30, 0.95)"
+                : "rgba(255, 255, 255, 0.95)",
+              borderColor: colors.border,
+              top: reactionsTop,
+              left: reactionsLeft,
+              right: reactionsRight,
+              opacity: modalOpacity,
+              transform: [{ scale: modalScale }],
+            },
+          ]}
         >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
+          {reactionsList.map((emoji) => {
+            const isSelected = reaction === emoji;
+            return (
+              <TouchableOpacity
+                key={emoji}
+                style={[
+                  styles.reactionEmojiButton,
+                  isSelected && {
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.05)",
+                  },
+                ]}
+                onPress={() => {
+                  addEmojiToHistory(emoji).then((updated) => {
+                    cachedHistory = updated;
+                    setReactionsList(updated);
+                  });
+                  if (onReact) onReact(isSelected ? null : emoji);
+                  hideModal();
+                }}
+              >
+                <Text style={styles.reactionEmojiText}>{emoji}</Text>
+              </TouchableOpacity>
+            );
+          })}
+          {/* Plus Button to open custom emoji selector */}
+          <TouchableOpacity
+            style={styles.plusButton}
+            onPress={() => setIsEmojiKeyboardOpen(true)}
           >
             <MaterialCommunityIcons
-              name="share-all-outline"
+              name="plus"
               size={24}
-              color={colors.text}
+              color={colors.textSecondary}
             />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Encaminhar
-          </Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </Animated.View>
 
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => hideModal(onCopy)}
+        {/* Options Menu */}
+        <Animated.View
+          style={[
+            styles.actionsModalCard,
+            {
+              backgroundColor: isDark
+                ? "rgba(30, 30, 30, 0.85)"
+                : "rgba(255, 255, 255, 0.85)",
+              borderColor: colors.border,
+              top: menuTop,
+              left: menuLeft,
+              right: menuRight,
+              opacity: modalOpacity,
+              transform: [{ scale: modalScale }, { translateY: modalTranslateY }],
+            },
+          ]}
         >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
+          <TouchableOpacity
+            style={styles.modalRowOption}
+            onPress={() => hideModal(onReply)}
           >
-            <MaterialCommunityIcons
-              name="content-copy"
-              size={24}
-              color={colors.text}
-            />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Copiar
-          </Text>
-        </TouchableOpacity>
+            <View
+              style={[
+                styles.modalRowIconContainer,
+                { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="reply-outline"
+                size={24}
+                color={colors.text}
+              />
+            </View>
+            <Text style={[styles.modalRowText, { color: colors.text }]}>
+              Responder
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => hideModal(onSelect)}
-        >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
+          <TouchableOpacity
+            style={styles.modalRowOption}
+            onPress={() => hideModal(onForward)}
           >
-            <MaterialCommunityIcons
-              name="checkbox-multiple-marked-outline"
-              size={24}
-              color={colors.text}
-            />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Selecionar mais
-          </Text>
-        </TouchableOpacity>
+            <View
+              style={[
+                styles.modalRowIconContainer,
+                { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="share-all-outline"
+                size={24}
+                color={colors.text}
+              />
+            </View>
+            <Text style={[styles.modalRowText, { color: colors.text }]}>
+              Encaminhar
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => hideModal(onDelete)}
+          <TouchableOpacity
+            style={styles.modalRowOption}
+            onPress={() => hideModal(onCopy)}
+          >
+            <View
+              style={[
+                styles.modalRowIconContainer,
+                { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="content-copy"
+                size={24}
+                color={colors.text}
+              />
+            </View>
+            <Text style={[styles.modalRowText, { color: colors.text }]}>
+              Copiar
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.modalRowOption}
+            onPress={() => hideModal(onSelect)}
+          >
+            <View
+              style={[
+                styles.modalRowIconContainer,
+                { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="checkbox-multiple-marked-outline"
+                size={24}
+                color={colors.text}
+              />
+            </View>
+            <Text style={[styles.modalRowText, { color: colors.text }]}>
+              Selecionar mais
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.modalRowOption}
+            onPress={() => hideModal(onDelete)}
+          >
+            <View
+              style={[
+                styles.modalRowIconContainer,
+                { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="delete-outline"
+                size={24}
+                color="#FF3B30"
+              />
+            </View>
+            <Text
+              style={[
+                styles.modalRowText,
+                { color: "#FF3B30", fontWeight: "600" },
+              ]}
+            >
+              Apagar
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </TouchableOpacity>
+
+      {/* Emoji Keyboard Modal */}
+      {isEmojiKeyboardOpen && (
+        <Modal
+          transparent={true}
+          visible={isEmojiKeyboardOpen}
+          animationType="slide"
+          onRequestClose={() => setIsEmojiKeyboardOpen(false)}
         >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
+          <TouchableOpacity
+            style={styles.emojiModalOverlay}
+            activeOpacity={1}
+            onPress={() => setIsEmojiKeyboardOpen(false)}
           >
-            <MaterialCommunityIcons
-              name="delete-outline"
-              size={24}
-              color="#FF3B30"
-            />
-          </View>
-          <Text
-            style={[
-              styles.modalRowText,
-              { color: "#FF3B30", fontWeight: "600" },
-            ]}
-          >
-            Apagar
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </TouchableOpacity>
+            <View
+              style={[
+                styles.emojiSheetContainer,
+                { backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF" },
+              ]}
+            >
+              <View style={styles.emojiSheetHeader}>
+                <Text style={[styles.emojiSheetTitle, { color: colors.text }]}>
+                  Reagir com...
+                </Text>
+                <TouchableOpacity onPress={() => setIsEmojiKeyboardOpen(false)}>
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={24}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              </View>
+              <EmojiKeyboard
+                onEmojiSelected={(emojiObj) => {
+                  const selectedEmoji = emojiObj.emoji;
+                  addEmojiToHistory(selectedEmoji).then((updated) => {
+                    cachedHistory = updated;
+                    setReactionsList(updated);
+                  });
+                  if (onReact) onReact(selectedEmoji);
+                  setIsEmojiKeyboardOpen(false);
+                  hideModal();
+                }}
+                expandable={false}
+                hideHeader={true}
+                enableRecentlyUsed={true}
+                theme={{
+                  backdrop: "transparent",
+                  knob: colors.tint,
+                  container: isDark ? "#1E1E1E" : "#FFFFFF",
+                  header: colors.text,
+                  skinTonesContainer: isDark ? "#1E1E1E" : "#FFFFFF",
+                }}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlayCentered: {
+  modalOverlay: {
     flex: 1,
+  },
+  reactionsBarCard: {
+    position: "absolute",
+    flexDirection: "row",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 30,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 10,
+    alignItems: "center",
+    zIndex: 1001,
+  },
+  reactionEmojiButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  reactionEmojiText: {
+    fontSize: 22,
+  },
+  plusButton: {
+    paddingHorizontal: 8,
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: 54,
   },
   actionsModalCard: {
-    width: "60%",
+    position: "absolute",
+    width: 240,
     borderRadius: 32,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
@@ -234,6 +499,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 24,
+    zIndex: 1000,
   },
   modalRowOption: {
     flexDirection: "row",
@@ -251,5 +517,33 @@ const styles = StyleSheet.create({
   },
   modalRowText: {
     fontSize: 16,
+  },
+  emojiModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "flex-end",
+  },
+  emojiSheetContainer: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
+    height: 420,
+    elevation: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+  },
+  emojiSheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  emojiSheetTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });

@@ -44,6 +44,7 @@ interface MessageBubbleProps {
   item: Message;
   currentUserId?: string;
   isGroup?: boolean;
+  onLongPress?: () => void;
 }
 
 const isImageUrl = (url: string) =>
@@ -111,6 +112,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   item,
   currentUserId,
   isGroup,
+  onLongPress,
 }) => {
   const { colors, isDark } = useAppTheme();
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -460,6 +462,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               },
             ]}
             onPress={handleStartChat}
+            onLongPress={onLongPress}
             disabled={loadingChat}
             activeOpacity={0.8}
           >
@@ -549,6 +552,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             Clipboard.setString(pixShareData.pix_value);
             Alert.alert("Copiado", "Chave Pix copiada com sucesso!");
           }}
+          onLongPress={onLongPress}
           activeOpacity={0.8}
         >
           {isGroup && !isMine && item.sender_username ? (
@@ -747,6 +751,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 params: { id: item.order_id! },
               });
             }}
+            onLongPress={onLongPress}
             activeOpacity={0.8}
           >
             <Text
@@ -959,6 +964,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       {isFileMessage && (
         <TouchableOpacity
           onPress={handleForwardMessage}
+          onLongPress={onLongPress}
           style={{
             marginRight: 8,
             width: 36,
@@ -979,19 +985,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           />
         </TouchableOpacity>
       )}
-      <View
-        style={[
-          styles.messageBubble,
-          isMine
-            ? [styles.myMessage, { backgroundColor: colors.tint }]
-            : [styles.theirMessage, { backgroundColor: colors.surface }],
-          { marginBottom: 0, flexShrink: 1 },
-          isAudio && { padding: 4 },
-          (isImage || isVideo || (!!fullUrl && !isAudio)) &&
-            !messageContent &&
-            !commentText && { padding: 4 },
-        ]}
-      >
+      <View style={{ flexDirection: "column", flexShrink: 1 }}>
+        <View
+          style={[
+            styles.messageBubble,
+            isMine
+              ? [styles.myMessage, { backgroundColor: colors.tint }]
+              : [styles.theirMessage, { backgroundColor: colors.surface }],
+            { marginBottom: 0, flexShrink: 1 },
+            isAudio && { padding: 4 },
+            (isImage || isVideo || (!!fullUrl && !isAudio)) &&
+              !messageContent &&
+              !commentText && { padding: 4 },
+          ]}
+        >
         {isGroup && !isMine && item.sender_username ? (
           <Text style={[styles.senderUsername, { color: colors.tint }]}>
             {item.sender_username}
@@ -1027,6 +1034,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {isImage ? (
               <TouchableOpacity
                 onPress={() => setIsFullScreen(true)}
+                onLongPress={onLongPress}
                 activeOpacity={0.9}
               >
                 <Image
@@ -1036,11 +1044,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 />
               </TouchableOpacity>
             ) : isAudio ? (
-              <AudioPlayer uri={fullUrl} isMine={isMine} />
+              <AudioPlayer uri={fullUrl} isMine={isMine} onLongPress={onLongPress} />
             ) : isVideo ? (
               <TouchableOpacity
                 style={styles.videoContainer}
                 onPress={() => setIsFullScreen(true)}
+                onLongPress={onLongPress}
                 activeOpacity={0.9}
               >
                 <MessageVideo uri={fullUrl} isFullScreen={false} />
@@ -1067,6 +1076,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     Linking.openURL(fullUrl);
                   }
                 }}
+                onLongPress={onLongPress}
               >
                 <FileIcon
                   size={18}
@@ -1110,6 +1120,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 params: { url: youtubeUrl },
               });
             }}
+            onLongPress={onLongPress}
             activeOpacity={0.9}
           >
             <Image
@@ -1223,6 +1234,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </TouchableWithoutFeedback>
           </Modal>
         )}
+      </View>
+      {item.reaction && (
+        <View style={[
+          styles.reactionPill,
+          {
+            backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+            borderColor: colors.border,
+            alignSelf: "flex-start",
+            marginTop: 4,
+            marginBottom: 2,
+          }
+        ]}>
+          <Text style={styles.reactionPillText}>{item.reaction}</Text>
+        </View>
+      )}
       </View>
     </View>
   );
@@ -1583,5 +1609,20 @@ const styles = StyleSheet.create({
   orderShareButtonText: {
     fontSize: 13,
     fontWeight: "bold",
+  },
+  reactionPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
+  },
+  reactionPillText: {
+    fontSize: 14,
   },
 });

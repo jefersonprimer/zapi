@@ -91,7 +91,8 @@ export async function initializeDatabase() {
       created_at TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'sent', -- 'pending', 'uploading', 'uploaded', 'sending', 'sent', 'delivered', 'read', 'failed'
       deleted_for_everyone INTEGER DEFAULT 0,
-      deleted_at TEXT DEFAULT NULL
+      deleted_at TEXT DEFAULT NULL,
+      reaction TEXT DEFAULT NULL
     );
 
     CREATE TABLE IF NOT EXISTS attachments (
@@ -122,6 +123,12 @@ export async function initializeDatabase() {
 
   try {
     await db.execAsync("ALTER TABLE messages ADD COLUMN deleted_at TEXT DEFAULT NULL;");
+  } catch (_) {
+    // Column already exists
+  }
+
+  try {
+    await db.execAsync("ALTER TABLE messages ADD COLUMN reaction TEXT DEFAULT NULL;");
   } catch (_) {
     // Column already exists
   }
@@ -253,15 +260,16 @@ export async function saveMessages(messages: Message[]) {
   for (const msg of messages) {
     await db.runAsync(
       `INSERT INTO messages (
-        id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at, reaction
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         content = excluded.content,
         image_url = excluded.image_url,
         local_file_path = COALESCE(excluded.local_file_path, local_file_path),
         created_at = excluded.created_at,
         deleted_for_everyone = excluded.deleted_for_everyone,
-        deleted_at = excluded.deleted_at`,
+        deleted_at = excluded.deleted_at,
+        reaction = COALESCE(excluded.reaction, reaction)`,
       [
         msg.id,
         msg.chat_id,
@@ -274,6 +282,7 @@ export async function saveMessages(messages: Message[]) {
         msg.status || "sent",
         msg.deleted_for_everyone ? 1 : 0,
         msg.deleted_at || null,
+        msg.reaction || null,
       ]
     );
 
@@ -433,6 +442,7 @@ export async function getMessagesFromLocal(
       deleted_for_everyone: r.deleted_for_everyone === 1,
       deleted_at: r.deleted_at || null,
       attachments,
+      reaction: r.reaction || null,
     });
   }
 
@@ -450,12 +460,13 @@ export async function insertMessageLocal(msg: {
   created_at: string;
   status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked";
   attachments?: Attachment[];
+  reaction?: string | null;
 }) {
   const db = await getDatabase();
   await db.runAsync(
     `INSERT INTO messages (
-      id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, reaction
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       msg.id,
       msg.chat_id,
@@ -466,6 +477,7 @@ export async function insertMessageLocal(msg: {
       msg.local_file_path || null,
       msg.created_at,
       msg.status || "sent",
+      msg.reaction || null,
     ]
   );
 
@@ -905,3 +917,10 @@ export async function updateLocalGroupDetails(
   );
 }
 
+export async function updateMessageReactionLocal(messageId: string, reaction: string | null): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE messages SET reaction = ? WHERE id = ?",
+    [reaction, messageId]
+  );
+}

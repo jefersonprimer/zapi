@@ -83,6 +83,7 @@ export interface Message {
   deleted_for_everyone?: boolean;
   deleted_at?: string | null;
   attachments?: Attachment[];
+  reaction?: string | null;
 }
 
 export async function authFetch(url: string, token: string, options: RequestInit = {}) {

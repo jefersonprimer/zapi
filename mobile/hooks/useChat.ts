@@ -32,6 +32,7 @@ import {
   deleteMessageLocal,
   deleteMessageForMeLocal,
   clearChatMessagesLocal,
+  updateMessageReactionLocal,
 } from "@/services/database";
 import { syncWorker } from "@/services/syncWorker";
 import { cacheMediaFile } from "@/services/mediaCache";
@@ -1360,7 +1361,22 @@ export function useChat() {
     }
   }, [token, participantId, chatId]);
 
+  const handleReact = useCallback(async (messageId: string, reaction: string | null) => {
+    try {
+      await updateMessageReactionLocal(messageId, reaction);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, reaction } : msg
+        )
+      );
+      syncWorker.notifyMessagesChanged(chatId);
+    } catch (err) {
+      console.error("Error setting reaction:", err);
+    }
+  }, [chatId]);
+
   return {
+    handleReact,
     chatId,
     participantId,
     participantUsername,

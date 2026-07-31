@@ -7,9 +7,10 @@ import { useAppTheme } from "@/context/ThemeContext";
 interface AudioPlayerProps {
   uri: string;
   isMine: boolean;
+  onLongPress?: () => void;
 }
 
-export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
+export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPress }) => {
   const { colors, isDark } = useAppTheme();
   const [speed, setSpeed] = useState(1.0);
 
@@ -76,6 +77,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
     >
       <TouchableOpacity
         onPress={status.playing ? () => player.pause() : () => player.play()}
+        onLongPress={onLongPress}
         style={[
           styles.playButton,
           isMine ? styles.playButtonMine : [styles.playButtonTheir, { backgroundColor: colors.tint }],
@@ -103,6 +105,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
           activeOpacity={1}
           style={styles.timelineTouch}
           onPress={handleTimelinePress}
+          onLongPress={onLongPress}
         >
           <View
             style={[
@@ -146,6 +149,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine }) => {
           isMine ? styles.speedButtonMine : [styles.speedButtonTheir, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 122, 255, 0.1)", borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 122, 255, 0.2)" }],
         ]}
         onPress={changeSpeed}
+        onLongPress={onLongPress}
       >
         <Text
           style={[

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { SwipeableMessageRow } from "@/components/SwipeableMessageRow";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -25,7 +25,7 @@ interface ChatItemRowProps {
   participantUsername: string;
   participantAvatarUrl: string;
   onSwipeRight: (msg: Message) => void;
-  onToggleMessageSelection: (msg: Message) => void;
+  onToggleMessageSelection: (msg: Message, layout?: { x: number; y: number; width: number; height: number }) => void;
   onToggleCallSelection: (callId: string) => void;
 }
 
@@ -46,6 +46,7 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
   onToggleCallSelection,
 }) => {
   const { colors, isDark } = useAppTheme();
+  const bubbleRef = useRef<TouchableOpacity>(null);
 
   const itemDate =
     item.type === "message"
@@ -62,6 +63,15 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
   if (item.type === "message") {
     const msg = item.data;
     const isSelected = selectedMessageIds.includes(msg.id);
+    const handleLongPress = () => {
+      if (isSelectionMode) {
+        onToggleMessageSelection(msg);
+      } else {
+        bubbleRef.current?.measure((x, y, width, height, pageX, pageY) => {
+          onToggleMessageSelection(msg, { x: pageX, y: pageY, width, height });
+        });
+      }
+    };
 
     return (
       <View>
@@ -95,10 +105,11 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
           }
         >
           <TouchableOpacity
+            ref={bubbleRef}
             onPress={() => {
               if (isSelectionMode) onToggleMessageSelection(msg);
             }}
-            onLongPress={() => onToggleMessageSelection(msg)}
+            onLongPress={handleLongPress}
             delayLongPress={500}
             style={styles.messageRow}
             activeOpacity={0.8}
@@ -107,6 +118,7 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
               item={msg}
               currentUserId={currentUserId}
               isGroup={isGroup}
+              onLongPress={handleLongPress}
             />
           </TouchableOpacity>
         </SwipeableMessageRow>
