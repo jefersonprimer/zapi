@@ -29,7 +29,6 @@ import {
   JoinCommunityModal,
   CreateChannelModal,
   CreatePostModal,
-  CreateEventModal,
 } from "@/components/communities/Modals";
 import { PostDetailModal } from "@/components/communities/PostDetailModal";
 
@@ -275,10 +274,7 @@ export default function CommunitiesScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View
-        style={[
-          styles.appHeader,
-          { backgroundColor: colors.headerBackground },
-        ]}
+        style={[styles.appHeader, { backgroundColor: colors.headerBackground }]}
       >
         <Text
           style={[

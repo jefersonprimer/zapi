@@ -15,48 +15,11 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import {
-  createChat,
-  searchUsers,
-  type UserSearchResult,
-  API_URL,
-} from "@/services/api";
+import { createChat, searchUsers, type UserSearchResult } from "@/services/api";
+import { UserContactCard } from "@/components/UserContactCard";
 import { useAppTheme } from "@/context/ThemeContext";
-import {
-  ArrowLeft,
-  Search,
-  X,
-  Users,
-  MessageSquare,
-} from "lucide-react-native";
+import { ArrowLeft, Search, X, Users } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// Helper to get consistent background color for avatars based on user's name
-function getAvatarColor(name: string) {
-  const colors = [
-    "#FF5733",
-    "#33FF57",
-    "#3357FF",
-    "#F3FF33",
-    "#FF33F3",
-    "#33FFF0",
-    "#FFA833",
-    "#AF33FF",
-    "#33FFA8",
-    "#FF3383",
-    "#07C160",
-    "#10B981",
-    "#3B82F6",
-    "#8B5CF6",
-    "#EC4899",
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % colors.length;
-  return colors[index];
-}
 
 export default function NewChatScreen() {
   const router = useRouter();
@@ -145,7 +108,6 @@ export default function NewChatScreen() {
             styles.customHeader,
             {
               paddingTop: insets.top,
-              backgroundColor: colors.surface,
               borderBottomColor: colors.border,
             },
           ]}
@@ -225,79 +187,21 @@ export default function NewChatScreen() {
               />
             </View>
           )}
-
           <FlatList
             data={users}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => {
-              const displayName = item.name || item.username;
-              const avatarBg = getAvatarColor(displayName);
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.userItem,
-                    { borderBottomColor: colors.border },
-                  ]}
-                  onPress={() => handleSelectUser(item.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.userRowLeft}>
-                    {/* Avatar */}
-                    <View
-                      style={[styles.avatar, { backgroundColor: avatarBg }]}
-                    >
-                      {item.avatar_url ? (
-                        <Image
-                          source={{
-                            uri: item.avatar_url.startsWith("http")
-                              ? item.avatar_url
-                              : `${API_URL}${item.avatar_url}`,
-                          }}
-                          style={styles.avatarImage}
-                        />
-                      ) : (
-                        <Text style={styles.avatarText}>
-                          {displayName[0].toUpperCase()}
-                        </Text>
-                      )}
-                    </View>
-
-                    {/* User Info */}
-                    <View style={styles.userInfo}>
-                      <Text
-                        style={[styles.username, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {displayName}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.usernameHandle,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        @{item.username}
-                      </Text>
-                      <Text
-                        style={[styles.email, { color: colors.textSecondary }]}
-                        numberOfLines={1}
-                      >
-                        {item.email}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.userRowRight}>
-                    <MessageSquare
-                      size={20}
-                      color={colors.brandGreen || "#07C160"}
-                    />
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
+            renderItem={({ item }) => (
+              <UserContactCard
+                avatarUrl={item.avatar_url}
+                name={item.name}
+                username={item.username}
+                email={item.email}
+                onPress={() => handleSelectUser(item.id)}
+                containerStyle={styles.userItem}
+              />
+            )}
             ListEmptyComponent={
               query.trim() && !searching ? (
                 <View style={styles.emptyState}>
@@ -340,12 +244,6 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingBottom: 6,
-    borderBottomWidth: 1,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
   },
   headerContent: {
     flexDirection: "row",

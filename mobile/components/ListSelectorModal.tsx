@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { Check } from "lucide-react-native";
+import { Check, CheckCircle } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { LocalChatList } from "@/services/database";
 
@@ -29,7 +29,9 @@ export default function ListSelectorModal({
   onCreateNewList,
 }: ListSelectorModalProps) {
   const { colors } = useAppTheme();
-  const [selectedListIds, setSelectedListIds] = useState<string[]>(initialSelectedListIds);
+  const [selectedListIds, setSelectedListIds] = useState<string[]>(
+    initialSelectedListIds,
+  );
 
   useEffect(() => {
     if (visible) {
@@ -57,10 +59,7 @@ export default function ListSelectorModal({
       onRequestClose={onClose}
     >
       <TouchableOpacity
-        style={[
-          styles.dialogOverlay,
-          { backgroundColor: colors.modalOverlay },
-        ]}
+        style={[styles.dialogOverlay, { backgroundColor: colors.modalOverlay }]}
         activeOpacity={1}
         onPress={onClose}
       >
@@ -119,7 +118,7 @@ export default function ListSelectorModal({
                         {
                           width: 22,
                           height: 22,
-                          borderRadius: 4,
+                          borderRadius: 50,
                           borderWidth: 2,
                           borderColor: colors.textSecondary,
                           justifyContent: "center",
@@ -149,9 +148,7 @@ export default function ListSelectorModal({
             }}
             onPress={onCreateNewList}
           >
-            <Text
-              style={{ color: colors.tint, fontSize: 16, fontWeight: "bold" }}
-            >
+            <Text style={{ color: colors.tint, fontSize: 16 }}>
               ＋ Nova lista
             </Text>
           </TouchableOpacity>
@@ -186,7 +183,6 @@ export default function ListSelectorModal({
                 style={{
                   color: colors.tint,
                   fontSize: 16,
-                  fontWeight: "bold",
                   padding: 8,
                 }}
               >
@@ -207,8 +203,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   themeDialog: {
-    width: "80%",
-    borderRadius: 16,
+    width: "70%",
+    borderRadius: 24,
     padding: 20,
     borderWidth: 1,
     shadowColor: "#000",
@@ -218,8 +214,9 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   dialogTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "500",
+    textAlign: "center",
   },
   menuDivider: {
     height: StyleSheet.hairlineWidth,

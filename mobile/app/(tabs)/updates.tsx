@@ -15,12 +15,16 @@ import StoryBar from "@/components/StoryBar";
 import FeedPost from "@/components/FeedPost";
 import ReelsFeed from "@/components/ReelsFeed";
 import type { StoryGroup } from "@/services/updatesApi";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { ShareBottomSheet } from "@/components/ShareBottomSheet";
 
 export default function UpdatesScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const skipNextFocusRefresh = useRef(true);
   const [activeTab, setActiveTab] = useState<"feed" | "reels">("feed");
+  const shareSheetRef = useRef<BottomSheetModal>(null);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
   const {
     storyGroups,
     feed,
@@ -90,7 +94,9 @@ export default function UpdatesScreen() {
                 {
                   color:
                     activeTab === "feed"
-                      ? (activeTab === "feed" && colors.tint ? colors.tint : colors.text)
+                      ? activeTab === "feed" && colors.tint
+                        ? colors.tint
+                        : colors.text
                       : colors.textSecondary,
                 },
                 activeTab === "feed" && styles.activeTabText,
@@ -132,7 +138,14 @@ export default function UpdatesScreen() {
         </TouchableOpacity>
       </View>
     ),
-    [colors.text, colors.textSecondary, colors.tint, colors.headerBackground, handleCreateContent, activeTab],
+    [
+      colors.text,
+      colors.textSecondary,
+      colors.tint,
+      colors.headerBackground,
+      handleCreateContent,
+      activeTab,
+    ],
   );
 
   const renderHeader = useCallback(
@@ -165,12 +178,15 @@ export default function UpdatesScreen() {
             params: { postId: item.id },
           })
         }
-        onShare={() => {}}
+        onShare={() => {
+          setActivePostId(item.id);
+          shareSheetRef.current?.present();
+        }}
         onSave={() => toggleSave(item.id)}
         onVote={(optionId) => votePoll(item.id, optionId)}
       />
     ),
-    [router, toggleLike, toggleSave, votePoll],
+    [router, toggleLike, toggleSave, votePoll, setActivePostId],
   );
 
   const renderFooter = useCallback(
@@ -245,6 +261,13 @@ export default function UpdatesScreen() {
           contentContainerStyle={styles.list}
         />
       )}
+      <ShareBottomSheet
+        ref={shareSheetRef}
+        clipId={activePostId || ""}
+        shareUrl={
+          activePostId ? `https://zapi.app/post/${activePostId}` : undefined
+        }
+      />
     </View>
   );
 }
@@ -267,11 +290,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 16,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   reelsHeader: {
     borderBottomWidth: 0,

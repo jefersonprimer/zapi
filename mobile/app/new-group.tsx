@@ -8,19 +8,18 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import {
   createGroup,
   searchUsers,
   type UserSearchResult,
-  API_URL,
 } from "@/services/api";
+import { UserContactCard } from "@/components/UserContactCard";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -54,6 +53,20 @@ function getAvatarColor(name: string) {
 
 export default function NewGroupScreen() {
   const router = useRouter();
+  const {
+    preselectedContactId,
+    preselectedUsername,
+    preselectedName,
+    preselectedEmail,
+    preselectedAvatarUrl,
+  } = useLocalSearchParams<{
+    preselectedContactId?: string;
+    preselectedUsername?: string;
+    preselectedName?: string;
+    preselectedEmail?: string;
+    preselectedAvatarUrl?: string;
+  }>();
+
   const { token } = useAuth();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -61,7 +74,19 @@ export default function NewGroupScreen() {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<UserSearchResult[]>([]);
   const [selected, setSelected] = useState<Map<string, UserSearchResult>>(
-    new Map(),
+    () => {
+      const initial = new Map<string, UserSearchResult>();
+      if (preselectedContactId && preselectedUsername) {
+        initial.set(preselectedContactId, {
+          id: preselectedContactId,
+          username: preselectedUsername,
+          name: preselectedName || undefined,
+          email: preselectedEmail || undefined,
+          avatar_url: preselectedAvatarUrl || null,
+        });
+      }
+      return initial;
+    },
   );
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -157,7 +182,6 @@ export default function NewGroupScreen() {
             styles.customHeader,
             {
               paddingTop: insets.top,
-              backgroundColor: colors.surface,
               borderBottomColor: colors.border,
             },
           ]}
@@ -167,7 +191,11 @@ export default function NewGroupScreen() {
               onPress={() => router.back()}
               style={styles.backBtn}
             >
-              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={colors.text}
+              />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -202,14 +230,22 @@ export default function NewGroupScreen() {
                   { backgroundColor: colors.border },
                 ]}
               >
-                <MaterialCommunityIcons name="account-multiple" size={32} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="account-multiple"
+                  size={32}
+                  color={colors.textSecondary}
+                />
                 <View
                   style={[
                     styles.cameraIconContainer,
                     { backgroundColor: colors.brandGreen || "#07C160" },
                   ]}
                 >
-                  <MaterialCommunityIcons name="camera" size={14} color="#FFF" />
+                  <MaterialCommunityIcons
+                    name="camera"
+                    size={14}
+                    color="#FFF"
+                  />
                 </View>
               </View>
             </View>
@@ -271,7 +307,11 @@ export default function NewGroupScreen() {
                           ]}
                           onPress={() => removeUser(user.id)}
                         >
-                          <MaterialCommunityIcons name="close" size={10} color="#FFF" />
+                          <MaterialCommunityIcons
+                            name="close"
+                            size={10}
+                            color="#FFF"
+                          />
                         </TouchableOpacity>
                       </View>
                       <Text
@@ -320,7 +360,11 @@ export default function NewGroupScreen() {
                   onPress={() => setQuery("")}
                   style={styles.clearBtn}
                 >
-                  <MaterialCommunityIcons name="close" size={18} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={18}
+                    color={colors.textSecondary}
+                  />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -345,20 +389,16 @@ export default function NewGroupScreen() {
             {users.length > 0 ? (
               users.map((item) => {
                 const isSelected = selected.has(item.id);
-                const displayName = item.name || item.username;
-                const avatarBg = getAvatarColor(displayName);
                 return (
-                  <TouchableOpacity
+                  <UserContactCard
                     key={item.id}
-                    style={[
-                      styles.userItem,
-                      { borderBottomColor: colors.border },
-                    ]}
+                    avatarUrl={item.avatar_url}
+                    name={item.name}
+                    username={item.username}
+                    email={item.email}
                     onPress={() => toggleUser(item)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.userRowLeft}>
-                      {/* Checkbox */}
+                    containerStyle={styles.userItem}
+                    leftElement={
                       <View
                         style={[
                           styles.checkbox,
@@ -373,58 +413,15 @@ export default function NewGroupScreen() {
                         ]}
                       >
                         {isSelected && (
-                          <MaterialCommunityIcons name="check" size={12} color="#FFF" />
-                        )}
-                      </View>
-
-                      {/* Avatar */}
-                      <View
-                        style={[styles.avatar, { backgroundColor: avatarBg }]}
-                      >
-                        {item.avatar_url ? (
-                          <Image
-                            source={{
-                              uri: item.avatar_url.startsWith("http")
-                                ? item.avatar_url
-                                : `${API_URL}${item.avatar_url}`,
-                            }}
-                            style={styles.avatarImage}
+                          <MaterialCommunityIcons
+                            name="check"
+                            size={12}
+                            color="#FFF"
                           />
-                        ) : (
-                          <Text style={styles.avatarText}>
-                            {displayName[0].toUpperCase()}
-                          </Text>
                         )}
                       </View>
-
-                      {/* User Info */}
-                      <View style={styles.userInfo}>
-                        <Text
-                          style={[styles.username, { color: colors.text }]}
-                          numberOfLines={1}
-                        >
-                          {displayName}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.usernameHandle,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          @{item.username}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.email,
-                            { color: colors.textSecondary },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {item.email}
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
+                    }
+                  />
                 );
               })
             ) : query.trim() !== "" && !searching ? (
@@ -499,12 +496,6 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingBottom: 6,
-    borderBottomWidth: 1,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
   },
   headerContent: {
     flexDirection: "row",

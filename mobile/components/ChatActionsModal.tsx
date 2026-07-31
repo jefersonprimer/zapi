@@ -119,7 +119,7 @@ export function ChatActionsModal({
           >
             <MaterialCommunityIcons
               name="emoticon-happy-outline"
-              size={20}
+              size={24}
               color={colors.text}
             />
           </View>
@@ -142,7 +142,7 @@ export function ChatActionsModal({
           >
             <MaterialCommunityIcons
               name="image-outline"
-              size={20}
+              size={24}
               color={colors.text}
             />
           </View>
@@ -165,7 +165,7 @@ export function ChatActionsModal({
           >
             <MaterialCommunityIcons
               name="camera-outline"
-              size={20}
+              size={24}
               color={colors.text}
             />
           </View>
@@ -188,7 +188,7 @@ export function ChatActionsModal({
           >
             <MaterialCommunityIcons
               name="file-document-outline"
-              size={20}
+              size={24}
               color={colors.text}
             />
           </View>
@@ -211,7 +211,7 @@ export function ChatActionsModal({
           >
             <MaterialCommunityIcons
               name="earth"
-              size={20}
+              size={24}
               color={colors.text}
             />
           </View>
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   actionsModalCard: {
     width: "60%",
-    borderRadius: 16,
+    borderRadius: 32,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     shadowColor: "#000",
@@ -259,6 +259,5 @@ const styles = StyleSheet.create({
   },
   modalRowText: {
     fontSize: 16,
-    fontWeight: "500",
   },
 });

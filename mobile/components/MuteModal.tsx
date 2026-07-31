@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   themeDialog: {
     width: "80%",
-    borderRadius: 16,
+    borderRadius: 32,
     padding: 20,
     borderWidth: StyleSheet.hairlineWidth,
     shadowColor: "#000",

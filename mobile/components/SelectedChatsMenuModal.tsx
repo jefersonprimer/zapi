@@ -217,9 +217,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 90,
     right: 6,
-    borderRadius: 16,
+    borderRadius: 24,
     paddingVertical: 6,
-    width: 220,
+    width: "50%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -228,11 +228,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   menuItem: {
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
   menuItemText: {
     fontSize: 16,
-    fontWeight: "400",
   },
   menuDivider: {
     height: StyleSheet.hairlineWidth,

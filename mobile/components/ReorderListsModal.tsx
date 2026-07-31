@@ -283,7 +283,6 @@ const styles = StyleSheet.create({
   },
   reorderListName: {
     fontSize: 16,
-    fontWeight: "400",
     lineHeight: 20,
     includeFontPadding: false,
   },

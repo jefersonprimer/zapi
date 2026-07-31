@@ -146,7 +146,15 @@ export default function CreateListModal({
       resetForm();
       openSheet();
     }
-  }, [visible, mode, initialName, initialColor, initialIcon, openSheet, resetForm]);
+  }, [
+    visible,
+    mode,
+    initialName,
+    initialColor,
+    initialIcon,
+    openSheet,
+    resetForm,
+  ]);
 
   const handleEmojiSelected = (emojiObject: { emoji: string }) => {
     setIcon(emojiObject.emoji);
@@ -180,7 +188,12 @@ export default function CreateListModal({
           <Animated.View
             style={[
               styles.overlayBg,
-              { opacity: overlayAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }) },
+              {
+                opacity: overlayAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 1],
+                }),
+              },
             ]}
           />
         </TouchableWithoutFeedback>
@@ -204,14 +217,9 @@ export default function CreateListModal({
 
           <View style={styles.inputRow}>
             <View
-              style={[
-                styles.inputWithIcon,
-                { borderBottomColor: colors.tint },
-              ]}
+              style={[styles.inputWithIcon, { borderBottomColor: colors.tint }]}
             >
-              {icon ? (
-                <Text style={styles.selectedIcon}>{icon}</Text>
-              ) : null}
+              {icon ? <Text style={styles.selectedIcon}>{icon}</Text> : null}
               <TextInput
                 ref={inputRef}
                 placeholder="Nome da tag"
@@ -231,9 +239,7 @@ export default function CreateListModal({
             <TouchableOpacity
               style={[styles.emojiButton, { backgroundColor: colors.border }]}
               onPress={
-                showEmojiPicker
-                  ? () => closeEmojiPicker()
-                  : openEmojiPicker
+                showEmojiPicker ? () => closeEmojiPicker() : openEmojiPicker
               }
             >
               {showEmojiPicker ? (
@@ -246,10 +252,22 @@ export default function CreateListModal({
             </TouchableOpacity>
           </View>
 
-          <Text style={{ color: colors.textSecondary, marginBottom: 8, fontSize: 14 }}>
+          <Text
+            style={{
+              color: colors.textSecondary,
+              marginBottom: 8,
+              fontSize: 14,
+            }}
+          >
             Cor
           </Text>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 20 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginBottom: 20,
+            }}
+          >
             {COLOR_OPTIONS.map((c) => (
               <TouchableOpacity
                 key={c.hex}
@@ -259,14 +277,33 @@ export default function CreateListModal({
                 ]}
                 onPress={() => setColor(c.emoji)}
               >
-                <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: c.hex }} />
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    backgroundColor: c.hex,
+                  }}
+                />
               </TouchableOpacity>
             ))}
           </View>
 
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 12 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              gap: 12,
+            }}
+          >
             <TouchableOpacity onPress={() => closeSheet()}>
-              <Text style={{ color: colors.textSecondary, fontSize: 16, padding: 8 }}>
+              <Text
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: 16,
+                  padding: 8,
+                }}
+              >
                 Cancelar
               </Text>
             </TouchableOpacity>
@@ -296,7 +333,9 @@ export default function CreateListModal({
               <TouchableOpacity onPress={() => closeEmojiPicker()}>
                 <X size={22} color={colors.text} />
               </TouchableOpacity>
-              <Text style={[styles.title, { color: colors.text, marginBottom: 0 }]}>
+              <Text
+                style={[styles.title, { color: colors.text, marginBottom: 0 }]}
+              >
                 Escolher ícone
               </Text>
               <View style={{ width: 22 }} />
@@ -377,8 +416,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: SHEET_TOP,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 40,
     height: SHEET_HEIGHT,

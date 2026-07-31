@@ -21,13 +21,7 @@ import {
 } from "react-native";
 import { TextInput as GestureHandlerTextInput } from "react-native-gesture-handler";
 import { useVideoPlayer, VideoView } from "expo-video";
-import {
-  X,
-  Heart,
-  Send,
-  Smile,
-  MessageSquare,
-} from "lucide-react-native";
+import { X, Heart, Send, Smile, MessageSquare } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BottomSheetBackdrop,
@@ -85,7 +79,11 @@ type CommentsSheetStoreState = {
   onClosePreview: () => void;
   onToggleEmojiPicker: () => void;
   onSend: () => void;
-  onSendMedia: (media: { uri: string; name: string; mimeType: string }) => Promise<void>;
+  onSendMedia: (media: {
+    uri: string;
+    name: string;
+    mimeType: string;
+  }) => Promise<void>;
   setText: (value: string) => void;
   setShowEmojiPicker: (value: boolean | ((prev: boolean) => boolean)) => void;
   setReplyTo: (value: { id: string; name: string } | null) => void;
@@ -135,7 +133,10 @@ function createCommentsSheetStore() {
 const commentsSheetStore = createCommentsSheetStore();
 
 function useCommentsSheetStore() {
-  return useSyncExternalStore(commentsSheetStore.subscribe, commentsSheetStore.getSnapshot);
+  return useSyncExternalStore(
+    commentsSheetStore.subscribe,
+    commentsSheetStore.getSnapshot,
+  );
 }
 
 function PreviewVideo({ uri }: { uri: string }) {
@@ -192,8 +193,18 @@ function OutsidePreview({
     );
 
     return {
-      borderBottomLeftRadius: interpolate(progress, [0, 1], [18, 0], Extrapolation.CLAMP),
-      borderBottomRightRadius: interpolate(progress, [0, 1], [18, 0], Extrapolation.CLAMP),
+      borderBottomLeftRadius: interpolate(
+        progress,
+        [0, 1],
+        [18, 0],
+        Extrapolation.CLAMP,
+      ),
+      borderBottomRightRadius: interpolate(
+        progress,
+        [0, 1],
+        [18, 0],
+        Extrapolation.CLAMP,
+      ),
       transform: [
         {
           scale: interpolate(progress, [0, 1], [1.06, 1], Extrapolation.CLAMP),
@@ -203,7 +214,10 @@ function OutsidePreview({
   });
 
   return (
-    <Animated.View style={[styles.outsidePreview, containerStyle]} pointerEvents="box-none">
+    <Animated.View
+      style={[styles.outsidePreview, containerStyle]}
+      pointerEvents="box-none"
+    >
       <Pressable style={styles.outsidePreviewPressable} onPress={onPress}>
         <Animated.View style={[styles.outsidePreviewMediaWrap, mediaStyle]}>
           {loading && !preview ? (
@@ -214,7 +228,11 @@ function OutsidePreview({
             preview.type === "video" ? (
               <PreviewVideo uri={preview.uri} />
             ) : (
-              <Image source={{ uri: preview.uri }} style={styles.previewMedia} resizeMode="contain" />
+              <Image
+                source={{ uri: preview.uri }}
+                style={styles.previewMedia}
+                resizeMode="contain"
+              />
             )
           ) : (
             <View style={styles.previewEmptyOutside}>
@@ -266,10 +284,16 @@ function CommentsSheetFooter(props: BottomSheetFooterProps) {
           <View
             style={[
               styles.replyBar,
-              { backgroundColor: colors.surface, borderTopColor: colors.border },
+              {
+                backgroundColor: colors.surface,
+                borderTopColor: colors.border,
+              },
             ]}
           >
-            <Text style={[styles.replyBarText, { color: colors.textSecondary }]} numberOfLines={1}>
+            <Text
+              style={[styles.replyBarText, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
               Respondendo para {state.replyTo.name}
             </Text>
             <TouchableOpacity onPress={() => state.setReplyTo(null)}>
@@ -289,10 +313,23 @@ function CommentsSheetFooter(props: BottomSheetFooterProps) {
         >
           <View style={[styles.inputBar, { borderTopColor: colors.border }]}>
             {state.commenterAvatarUri ? (
-              <Image source={{ uri: state.commenterAvatarUri }} style={styles.inputAvatar} />
+              <Image
+                source={{ uri: state.commenterAvatarUri }}
+                style={styles.inputAvatar}
+              />
             ) : (
-              <View style={[styles.inputAvatarFallback, { backgroundColor: colors.border }]}>
-                <Text style={[styles.commentAvatarInitial, { color: colors.textSecondary }]}>
+              <View
+                style={[
+                  styles.inputAvatarFallback,
+                  { backgroundColor: colors.border },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.commentAvatarInitial,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {initial}
                 </Text>
               </View>
@@ -301,11 +338,20 @@ function CommentsSheetFooter(props: BottomSheetFooterProps) {
             <View
               style={[
                 styles.inputPill,
-                { backgroundColor: colors.background, borderColor: colors.border },
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
               ]}
             >
-              <TouchableOpacity onPress={state.onToggleEmojiPicker} style={styles.pillActionButton}>
-                <Smile size={18} color={state.showEmojiPicker ? colors.tint : colors.icon} />
+              <TouchableOpacity
+                onPress={state.onToggleEmojiPicker}
+                style={styles.pillActionButton}
+              >
+                <Smile
+                  size={18}
+                  color={state.showEmojiPicker ? colors.tint : colors.icon}
+                />
               </TouchableOpacity>
               <BottomSheetTextInput
                 ref={state.inputRef ?? undefined}
@@ -342,7 +388,9 @@ function CommentsSheetFooter(props: BottomSheetFooterProps) {
         {state.showEmojiPicker && (
           <ChatMediaSelector
             onEmojiSelected={(emojiObject) =>
-              state.setText(`${commentsSheetStore.getSnapshot().text}${emojiObject.emoji}`)
+              state.setText(
+                `${commentsSheetStore.getSnapshot().text}${emojiObject.emoji}`,
+              )
             }
             onSendMedia={state.onSendMedia}
             height={260}
@@ -353,7 +401,11 @@ function CommentsSheetFooter(props: BottomSheetFooterProps) {
   );
 }
 
-export default function CommentsModal({ postId, visible, onClose }: CommentsModalProps) {
+export default function CommentsModal({
+  postId,
+  visible,
+  onClose,
+}: CommentsModalProps) {
   const { colors } = useAppTheme();
   const { token, user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -365,7 +417,9 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
   const [text, setText] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [sendingMedia, setSendingMedia] = useState(false);
-  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(
+    null,
+  );
   const [preview, setPreview] = useState<PreviewMedia | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -502,7 +556,12 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
       if (!token || sendingMedia) return;
       try {
         setSendingMedia(true);
-        const uploaded = await uploadFile(token, media.uri, media.name, media.mimeType);
+        const uploaded = await uploadFile(
+          token,
+          media.uri,
+          media.name,
+          media.mimeType,
+        );
         const payload: { content: string; parent_id?: string } = {
           content: uploaded.url,
         };
@@ -582,7 +641,9 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
     return name?.trim().charAt(0).toUpperCase() || "?";
   }, []);
 
-  const commenterAvatarUri = user?.avatar_url ? getFullRemoteUrl(user.avatar_url) : null;
+  const commenterAvatarUri = user?.avatar_url
+    ? getFullRemoteUrl(user.avatar_url)
+    : null;
 
   // Keep portal children in sync without changing footer/backdrop component identity.
   useEffect(() => {
@@ -640,8 +701,18 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
                 style={styles.commentAvatar}
               />
             ) : (
-              <View style={[styles.commentAvatarFallback, { backgroundColor: colors.border }]}>
-                <Text style={[styles.commentAvatarInitial, { color: colors.textSecondary }]}>
+              <View
+                style={[
+                  styles.commentAvatarFallback,
+                  { backgroundColor: colors.border },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.commentAvatarInitial,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {getInitial(item.user_name)}
                 </Text>
               </View>
@@ -649,7 +720,9 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
 
             <View style={styles.commentBody}>
               <View style={styles.commentContent}>
-                <Text style={[styles.commentUser, { color: colors.text }]}>{item.user_name}</Text>
+                <Text style={[styles.commentUser, { color: colors.text }]}>
+                  {item.user_name}
+                </Text>
                 {commentMediaUrl ? (
                   <Image
                     source={{ uri: commentMediaUrl }}
@@ -657,23 +730,41 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
                     resizeMode="cover"
                   />
                 ) : (
-                  <Text style={[styles.commentText, { color: colors.text }]}>{item.content}</Text>
+                  <Text style={[styles.commentText, { color: colors.text }]}>
+                    {item.content}
+                  </Text>
                 )}
               </View>
 
               <View style={styles.commentActions}>
-                <TouchableOpacity onPress={() => setReplyTo({ id: item.id, name: item.user_name })}>
-                  <Text style={[styles.replyBtn, { color: colors.textSecondary }]}>Responder</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    setReplyTo({ id: item.id, name: item.user_name })
+                  }
+                >
+                  <Text
+                    style={[styles.replyBtn, { color: colors.textSecondary }]}
+                  >
+                    Responder
+                  </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => handleLike(item.id)} style={styles.likeBtn}>
+                <TouchableOpacity
+                  onPress={() => handleLike(item.id)}
+                  style={styles.likeBtn}
+                >
                   <Heart
                     size={14}
                     color={item.liked_by_me ? colors.danger : colors.icon}
                     fill={item.liked_by_me ? colors.danger : "transparent"}
                   />
                   {item.likes_count > 0 && (
-                    <Text style={[styles.likeCount, { color: colors.textSecondary }]}>
+                    <Text
+                      style={[
+                        styles.likeCount,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       {item.likes_count}
                     </Text>
                   )}
@@ -689,22 +780,41 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
 
                 return (
                   <View key={reply.id} style={styles.replyContainer}>
-                    <View style={[styles.replyLine, { backgroundColor: colors.border }]} />
+                    <View
+                      style={[
+                        styles.replyLine,
+                        { backgroundColor: colors.border },
+                      ]}
+                    />
                     {reply.user_avatar ? (
                       <Image
                         source={{ uri: getFullRemoteUrl(reply.user_avatar) }}
                         style={styles.replyAvatar}
                       />
                     ) : (
-                      <View style={[styles.replyAvatarFallback, { backgroundColor: colors.border }]}>
-                        <Text style={[styles.commentAvatarInitial, { color: colors.textSecondary }]}>
+                      <View
+                        style={[
+                          styles.replyAvatarFallback,
+                          { backgroundColor: colors.border },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.commentAvatarInitial,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
                           {getInitial(reply.user_name)}
                         </Text>
                       </View>
                     )}
 
                     <View style={styles.replyContent}>
-                      <Text style={[styles.commentUser, { color: colors.text }]}>{reply.user_name}</Text>
+                      <Text
+                        style={[styles.commentUser, { color: colors.text }]}
+                      >
+                        {reply.user_name}
+                      </Text>
                       {replyMediaUrl ? (
                         <Image
                           source={{ uri: replyMediaUrl }}
@@ -712,26 +822,49 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
                           resizeMode="cover"
                         />
                       ) : (
-                        <Text style={[styles.commentText, { color: colors.text }]}>{reply.content}</Text>
+                        <Text
+                          style={[styles.commentText, { color: colors.text }]}
+                        >
+                          {reply.content}
+                        </Text>
                       )}
 
                       <View style={styles.commentActions}>
                         <TouchableOpacity
-                          onPress={() => setReplyTo({ id: reply.id, name: reply.user_name })}
+                          onPress={() =>
+                            setReplyTo({ id: reply.id, name: reply.user_name })
+                          }
                         >
-                          <Text style={[styles.replyBtn, { color: colors.textSecondary }]}>
+                          <Text
+                            style={[
+                              styles.replyBtn,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
                             Responder
                           </Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={() => handleLike(reply.id)} style={styles.likeBtn}>
+                        <TouchableOpacity
+                          onPress={() => handleLike(reply.id)}
+                          style={styles.likeBtn}
+                        >
                           <Heart
                             size={14}
-                            color={reply.liked_by_me ? colors.danger : colors.icon}
-                            fill={reply.liked_by_me ? colors.danger : "transparent"}
+                            color={
+                              reply.liked_by_me ? colors.danger : colors.icon
+                            }
+                            fill={
+                              reply.liked_by_me ? colors.danger : "transparent"
+                            }
                           />
                           {reply.likes_count > 0 && (
-                            <Text style={[styles.likeCount, { color: colors.textSecondary }]}>
+                            <Text
+                              style={[
+                                styles.likeCount,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
                               {reply.likes_count}
                             </Text>
                           )}
@@ -769,7 +902,9 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
       android_keyboardInputMode="adjustResize"
       enableBlurKeyboardOnGesture
     >
-      <BottomSheetView style={[styles.sheetContent, { backgroundColor: colors.surface }]}>
+      <BottomSheetView
+        style={[styles.sheetContent, { backgroundColor: colors.surface }]}
+      >
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           {/* Left spacer to balance the close button on the right */}
           <View style={{ width: 22 }} />
@@ -778,8 +913,14 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               Comentários
               {comments.length > 0 && (
-                <Text style={[styles.commentsCount, { color: colors.textSecondary }]}>
-                  {" "}{comments.length}
+                <Text
+                  style={[
+                    styles.commentsCount,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  {" "}
+                  {comments.length}
                 </Text>
               )}
             </Text>
@@ -803,10 +944,23 @@ export default function CommentsModal({ postId, visible, onClose }: CommentsModa
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <View style={styles.center}>
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
                   Nenhum comentário ainda. Seja o primeiro a comentar!
                 </Text>
               </View>
+            }
+            ListFooterComponent={
+              <View
+                style={{
+                  height:
+                    80 +
+                    (replyTo ? 40 : 0) +
+                    (showEmojiPicker ? 260 : 0) +
+                    insets.bottom,
+                }}
+              />
             }
           />
         )}
@@ -834,12 +988,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modalTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "500",
   },
   commentsCount: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "500",
   },
   outsidePreview: {
     position: "absolute",
@@ -885,7 +1039,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   list: {
     flex: 1,

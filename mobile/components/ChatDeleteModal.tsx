@@ -110,7 +110,11 @@ export const ChatDeleteModal: React.FC<ChatDeleteModalProps> = ({
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.alertButton, styles.deleteButton]}
+                  style={[
+                    styles.alertButton,
+                    styles.deleteButton,
+                    { backgroundColor: colors.danger },
+                  ]}
                   onPress={onDeleteForMe}
                 >
                   <Text style={styles.deleteButtonText}>Apagar para mim</Text>
@@ -134,7 +138,7 @@ const styles = StyleSheet.create({
   alertContainer: {
     width: "80%",
     backgroundColor: "#ffffff",
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 24,
     alignItems: "center",
     elevation: 5,
@@ -145,7 +149,7 @@ const styles = StyleSheet.create({
   },
   alertTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "500",
     color: "#272727",
     marginBottom: 24,
     textAlign: "center",
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
   alertButton: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 50,
     alignItems: "center",
   },
   cancelButton: {
@@ -187,7 +191,7 @@ const styles = StyleSheet.create({
   alertButtonVertical: {
     width: "100%",
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 50,
     alignItems: "center",
   },
   deleteEveryoneButton: {

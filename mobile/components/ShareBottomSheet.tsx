@@ -17,16 +17,16 @@ import {
   BottomSheetView,
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
-import {
-  Link,
-  Share2,
-  PlusCircle,
-  Search,
-  Check,
-} from "lucide-react-native";
+import { Link, Share2, PlusCircle, Search, Check } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
-import { getContacts, createChat, sendMessage, type Contact, API_URL } from "@/services/api";
+import {
+  getContacts,
+  createChat,
+  sendMessage,
+  type Contact,
+  API_URL,
+} from "@/services/api";
 import { useRouter } from "expo-router";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,8 +39,14 @@ interface ShareBottomSheetProps {
   onAddToStatus?: () => void;
 }
 
-export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetProps>(
-  ({ clipId, shareUrl = `https://zapi.app/clip/${clipId}`, onAddToStatus }, ref) => {
+export const ShareBottomSheet = forwardRef<
+  BottomSheetModal,
+  ShareBottomSheetProps
+>(
+  (
+    { clipId, shareUrl = `https://zapi.app/clip/${clipId}`, onAddToStatus },
+    ref,
+  ) => {
     const { colors, isDark } = useAppTheme();
     const { token } = useAuth();
     const router = useRouter();
@@ -49,7 +55,9 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(false);
-    const [sendingIds, setSendingIds] = useState<Record<string, "sending" | "sent">>({});
+    const [sendingIds, setSendingIds] = useState<
+      Record<string, "sending" | "sent">
+    >({});
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     // Fetch contacts
@@ -77,7 +85,7 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
     const handleShareToContact = async (contact: Contact) => {
       if (!token) return;
       const contactId = contact.contact_id;
-      
+
       // Prevent double tap or resending if already sending/sent
       if (sendingIds[contactId]) return;
 
@@ -86,7 +94,7 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
       try {
         // 1. Create/Get chat with the contact
         const chat = await createChat(token, contactId);
-        
+
         // 2. Send message with the clip link
         const messageText = `Confira este Clip no Zapi: ${shareUrl}`;
         await sendMessage(token, chat.id, messageText);
@@ -140,7 +148,7 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
       return contacts.filter(
         (c) =>
           c.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (c.name && c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+          (c.name && c.name.toLowerCase().includes(searchQuery.toLowerCase())),
       );
     }, [contacts, searchQuery]);
 
@@ -152,7 +160,7 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
           appearsOnIndex={0}
         />
       ),
-      []
+      [],
     );
 
     // Reset sending states & fetch contacts when bottom sheet changes state
@@ -175,7 +183,12 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
         handleIndicatorStyle={{ backgroundColor: colors.border }}
         onChange={handleSheetChange}
       >
-        <BottomSheetView style={[styles.sheetContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <BottomSheetView
+          style={[
+            styles.sheetContainer,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
           {/* Header */}
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>
@@ -187,8 +200,20 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
           </View>
 
           {/* Search bar */}
-          <View style={[styles.searchContainer, { backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6", borderColor: colors.border }]}>
-            <Search size={18} color={colors.textSecondary} style={styles.searchIcon} />
+          <View
+            style={[
+              styles.searchContainer,
+              {
+                backgroundColor: isDark ? "#1E1E1E" : "#F3F4F6",
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Search
+              size={18}
+              color={colors.textSecondary}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
               placeholder="Pesquisar contatos..."
@@ -200,7 +225,12 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
 
           {/* Toast Message Display inside sheet */}
           {toastMessage && (
-            <View style={[styles.toastContainer, { backgroundColor: colors.brandGreen || "#07C160" }]}>
+            <View
+              style={[
+                styles.toastContainer,
+                { backgroundColor: colors.brandGreen || "#07C160" },
+              ]}
+            >
               <Text style={styles.toastText}>{toastMessage}</Text>
             </View>
           )}
@@ -208,10 +238,15 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
           {/* Contact List */}
           <View style={styles.contactsWrapper}>
             {loading ? (
-              <ActivityIndicator color={colors.brandGreen || "#07C160"} style={styles.loader} />
+              <ActivityIndicator
+                color={colors.brandGreen || "#07C160"}
+                style={styles.loader}
+              />
             ) : filteredContacts.length === 0 ? (
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {searchQuery ? "Nenhum contato encontrado" : "Nenhum contato disponível"}
+                {searchQuery
+                  ? "Nenhum contato encontrado"
+                  : "Nenhum contato disponível"}
               </Text>
             ) : (
               <FlatList
@@ -222,9 +257,11 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
                 contentContainerStyle={styles.contactsList}
                 renderItem={({ item }) => {
                   const avatarUri = item.avatar_url
-                    ? (item.avatar_url.startsWith("http") ? item.avatar_url : `${API_URL}${item.avatar_url}`)
+                    ? item.avatar_url.startsWith("http")
+                      ? item.avatar_url
+                      : `${API_URL}${item.avatar_url}`
                     : null;
-                  
+
                   const status = sendingIds[item.contact_id];
 
                   return (
@@ -235,18 +272,35 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
                     >
                       <View style={styles.avatarContainer}>
                         {avatarUri ? (
-                          <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                          <Image
+                            source={{ uri: avatarUri }}
+                            style={styles.avatar}
+                          />
                         ) : (
-                          <View style={[styles.avatarPlaceholder, { backgroundColor: colors.brandGreen || "#07C160" }]}>
+                          <View
+                            style={[
+                              styles.avatarPlaceholder,
+                              {
+                                backgroundColor: colors.brandGreen || "#07C160",
+                              },
+                            ]}
+                          >
                             <Text style={styles.avatarText}>
                               {item.username.charAt(0).toUpperCase()}
                             </Text>
                           </View>
                         )}
-                        
+
                         {/* Status overlays */}
                         {status === "sent" && (
-                          <View style={[styles.statusBadge, { backgroundColor: colors.brandGreen || "#07C160" }]}>
+                          <View
+                            style={[
+                              styles.statusBadge,
+                              {
+                                backgroundColor: colors.brandGreen || "#07C160",
+                              },
+                            ]}
+                          >
                             <Check size={10} color="white" />
                           </View>
                         )}
@@ -256,18 +310,32 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
                           </View>
                         )}
                       </View>
-                      <Text style={[styles.contactName, { color: colors.text }]} numberOfLines={1}>
+                      <Text
+                        style={[styles.contactName, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
                         {item.username}
                       </Text>
                       <View
                         style={[
                           styles.sendBtn,
-                          status === "sent" && { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.border },
-                          status === "sending" && { opacity: 0.7 }
+                          status === "sent" && {
+                            backgroundColor: "transparent",
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                          },
+                          status === "sending" && { opacity: 0.7 },
                         ]}
                       >
                         {status === "sent" ? (
-                          <Text style={[styles.sendBtnText, { color: colors.textSecondary }]}>Enviado</Text>
+                          <Text
+                            style={[
+                              styles.sendBtnText,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            Enviado
+                          </Text>
                         ) : status === "sending" ? (
                           <Text style={styles.sendBtnText}>...</Text>
                         ) : (
@@ -283,31 +351,61 @@ export const ShareBottomSheet = forwardRef<BottomSheetModal, ShareBottomSheetPro
 
           {/* Action Grid */}
           <View style={[styles.actionGrid, { borderTopColor: colors.border }]}>
-            <TouchableOpacity style={styles.actionItem} onPress={handleStatusShare}>
-              <View style={[styles.actionIcon, { backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6" }]}>
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleStatusShare}
+            >
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6" },
+                ]}
+              >
                 <PlusCircle size={24} color={colors.brandGreen || "#07C160"} />
               </View>
-              <Text style={[styles.actionLabel, { color: colors.text }]}>Meu Status</Text>
+              <Text style={[styles.actionLabel, { color: colors.text }]}>
+                Meu Status
+              </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionItem} onPress={handleCopyLink}>
-              <View style={[styles.actionIcon, { backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6" }]}>
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleCopyLink}
+            >
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6" },
+                ]}
+              >
                 <Link size={24} color={colors.text} />
               </View>
-              <Text style={[styles.actionLabel, { color: colors.text }]}>Copiar Link</Text>
+              <Text style={[styles.actionLabel, { color: colors.text }]}>
+                Copiar Link
+              </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionItem} onPress={handleNativeShare}>
-              <View style={[styles.actionIcon, { backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6" }]}>
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleNativeShare}
+            >
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6" },
+                ]}
+              >
                 <Share2 size={24} color={colors.text} />
               </View>
-              <Text style={[styles.actionLabel, { color: colors.text }]}>Compartilhar</Text>
+              <Text style={[styles.actionLabel, { color: colors.text }]}>
+                Compartilhar
+              </Text>
             </TouchableOpacity>
           </View>
         </BottomSheetView>
       </BottomSheetModal>
     );
-  }
+  },
 );
 
 ShareBottomSheet.displayName = "ShareBottomSheet";
@@ -324,7 +422,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "500",
     textAlign: "center",
   },
   subtitle: {

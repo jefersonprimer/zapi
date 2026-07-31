@@ -198,9 +198,9 @@ const styles = StyleSheet.create({
     top: 200,
     left: "50%",
     marginLeft: -110,
-    borderRadius: 16,
+    borderRadius: 24,
     paddingVertical: 6,
-    width: 220,
+    width: "50%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -222,7 +222,6 @@ const styles = StyleSheet.create({
   },
   dialogOptionText: {
     fontSize: 16,
-    fontWeight: "500",
   },
   menuDivider: {
     height: StyleSheet.hairlineWidth,

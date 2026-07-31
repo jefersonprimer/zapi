@@ -178,7 +178,7 @@ export default function ArchivedScreen() {
               <MaterialCommunityIcons
                 name="arrow-left"
                 color={colors.headerText}
-                size={22}
+                size={24}
               />
             </TouchableOpacity>
             <Text

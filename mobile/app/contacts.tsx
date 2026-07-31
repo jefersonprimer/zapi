@@ -7,7 +7,6 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  Image,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -17,19 +16,22 @@ import {
   removeContact,
   createChat,
   type Contact,
-  API_URL,
 } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { UserContactCard } from "@/components/UserContactCard";
+import { UserContactModal } from "@/components/UserContactModal";
 
 export default function ContactsScreen() {
   const router = useRouter();
   const { token } = useAuth();
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const fetchContacts = useCallback(async () => {
     if (!token) return;
@@ -105,7 +107,7 @@ export default function ContactsScreen() {
         onPress={() => router.push("/new-group")}
       >
         <View style={[styles.iconContainer, styles.groupBg]}>
-          <MaterialCommunityIcons name="account-group" color="#fff" size={22} />
+          <MaterialCommunityIcons name="account-group" color="#fff" size={24} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Conversas em Grupo
@@ -123,7 +125,7 @@ export default function ContactsScreen() {
             { backgroundColor: "#FA9E3B" },
           ]}
         >
-          <MaterialCommunityIcons name="account-plus" color="#fff" size={22} />
+          <MaterialCommunityIcons name="account-plus" color="#fff" size={24} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Novos Amigos
@@ -135,7 +137,7 @@ export default function ContactsScreen() {
         onPress={() => router.push("/link-device?mode=scan")}
       >
         <View style={[styles.iconContainer, { backgroundColor: "#FF9500" }]}>
-          <MaterialCommunityIcons name="qrcode-scan" color="#fff" size={22} />
+          <MaterialCommunityIcons name="qrcode-scan" color="#fff" size={24} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Escanear QR Code
@@ -147,7 +149,7 @@ export default function ContactsScreen() {
         onPress={() => router.push("/my-qr")}
       >
         <View style={[styles.iconContainer, { backgroundColor: "#5856D6" }]}>
-          <MaterialCommunityIcons name="qrcode" color="#fff" size={22} />
+          <MaterialCommunityIcons name="qrcode" color="#fff" size={24} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Meu QR Code
@@ -174,7 +176,11 @@ export default function ContactsScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={[styles.headerTitle, { color: colors.headerText }]}>
@@ -212,69 +218,17 @@ export default function ContactsScreen() {
           keyExtractor={(item) => item.contact_id}
           ListHeaderComponent={renderHeader}
           renderItem={({ item }) => (
-            <View
-              style={[styles.contactRow, { borderBottomColor: colors.border }]}
-            >
-              <TouchableOpacity
-                style={styles.contactInfo}
-                onPress={() => handleStartChat(item)}
-              >
-                <View
-                  style={[
-                    styles.avatar,
-                    { backgroundColor: isDark ? "#2C2C2E" : "#e5e5ea" },
-                  ]}
-                >
-                  {item.avatar_url ? (
-                    <Image
-                      source={{
-                        uri: item.avatar_url.startsWith("http")
-                          ? item.avatar_url
-                          : `${API_URL}${item.avatar_url.startsWith("/") ? "" : "/"}${item.avatar_url}`,
-                      }}
-                      style={styles.avatarImage}
-                    />
-                  ) : (
-                    <Text style={[styles.avatarText, { color: colors.text }]}>
-                      {item.username[0]?.toUpperCase() ?? "?"}
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.textContainer}>
-                  <Text style={[styles.username, { color: colors.text }]}>
-                    {item.username}
-                  </Text>
-                  <Text style={[styles.email, { color: colors.textSecondary }]}>
-                    {item.email}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <View style={styles.rowActions}>
-                <TouchableOpacity
-                  style={[
-                    styles.chatIconBtn,
-                    { backgroundColor: colors.surface },
-                  ]}
-                  onPress={() => handleStartChat(item)}
-                >
-                  <MaterialCommunityIcons name="message-reply-text-outline" size={20} color={colors.tint} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.removeBtn,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255, 69, 58, 0.15)"
-                        : "#ffeaea",
-                    },
-                  ]}
-                  onPress={() => handleConfirmRemove(item)}
-                >
-                  <MaterialCommunityIcons name="delete-outline" size={20} color={colors.danger} />
-                </TouchableOpacity>
-              </View>
-            </View>
+            <UserContactCard
+              avatarUrl={item.avatar_url}
+              username={item.username}
+              email={item.email}
+              onPress={() => handleStartChat(item)}
+              onLongPress={() => {
+                setSelectedContact(item);
+                setModalVisible(true);
+              }}
+              containerStyle={styles.contactRow}
+            />
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -291,6 +245,33 @@ export default function ContactsScreen() {
           contentContainerStyle={{ paddingBottom: 40 }}
         />
       )}
+
+      <UserContactModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onStartChat={() => {
+          if (selectedContact) handleStartChat(selectedContact);
+        }}
+        onCreateGroup={() => {
+          if (selectedContact) {
+            router.push({
+              pathname: "/new-group",
+              params: {
+                preselectedContactId: selectedContact.contact_id,
+                preselectedUsername: selectedContact.username,
+                preselectedName: selectedContact.name || "",
+                preselectedEmail: selectedContact.email || "",
+                preselectedAvatarUrl: selectedContact.avatar_url || "",
+              },
+            });
+          } else {
+            router.push("/new-group");
+          }
+        }}
+        onRemoveContact={() => {
+          if (selectedContact) handleConfirmRemove(selectedContact);
+        }}
+      />
     </View>
   );
 }
@@ -312,11 +293,6 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingBottom: 12,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   headerContent: {
     flexDirection: "row",
@@ -375,58 +351,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   contactRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  contactInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-    overflow: "hidden",
-  },
-  avatarImage: {
-    width: "100%",
-    height: "100%",
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  textContainer: {
-    flex: 1,
-  },
-  username: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  email: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  rowActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  chatIconBtn: {
-    padding: 8,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  removeBtn: {
-    padding: 8,
-    borderRadius: 12,
   },
   emptyContainer: {
     alignItems: "center",

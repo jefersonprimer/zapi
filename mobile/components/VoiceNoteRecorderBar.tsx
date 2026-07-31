@@ -213,6 +213,9 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
               backgroundColor: isDark
                 ? "rgba(239, 68, 68, 0.15)"
                 : "rgba(239, 68, 68, 0.08)",
+              // Remove shadow to prevent weird rendering behind transparent background
+              shadowOpacity: 0,
+              elevation: 0,
             },
           ]}
           onPress={onStopRecording}
@@ -223,7 +226,14 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
         {/* Middle Pause/Resume/Continue Button */}
         {!recordedUri && (
           <TouchableOpacity
-            style={styles.pillBtn}
+            style={[
+              styles.pillBtn,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderWidth: 1,
+              },
+            ]}
             onPress={onPauseResumeRecording}
           >
             {isPaused ? (

@@ -24,6 +24,7 @@ import {
   buildForwardContent,
   type ForwardedMessageData,
 } from "@/utils/forwardMessage";
+import { UserContactCard } from "@/components/UserContactCard";
 
 export default function ShareContactScreen() {
   const router = useRouter();
@@ -82,7 +83,9 @@ export default function ShareContactScreen() {
 
   useEffect(() => {
     if (isPixMode && token) {
-      getMyPixKey(token).then((res) => setPixKey(res.pix_key)).catch(() => {});
+      getMyPixKey(token)
+        .then((res) => setPixKey(res.pix_key))
+        .catch(() => {});
     }
   }, [isPixMode, token]);
 
@@ -113,7 +116,10 @@ export default function ShareContactScreen() {
           return;
         }
 
-        if (!Array.isArray(messagesToForward) || messagesToForward.length === 0) {
+        if (
+          !Array.isArray(messagesToForward) ||
+          messagesToForward.length === 0
+        ) {
           Alert.alert("Erro", "Nenhuma mensagem para encaminhar.");
           return;
         }
@@ -212,7 +218,10 @@ export default function ShareContactScreen() {
         ]);
       } catch (err: any) {
         console.error("Failed to share pix key:", err);
-        Alert.alert("Erro", err.message || "Não foi possível compartilhar a chave Pix.");
+        Alert.alert(
+          "Erro",
+          err.message || "Não foi possível compartilhar a chave Pix.",
+        );
       } finally {
         setActionLoading(false);
       }
@@ -264,7 +273,10 @@ export default function ShareContactScreen() {
         ]);
       } catch (err: any) {
         console.error("Failed to share note:", err);
-        Alert.alert("Erro", err.message || "Não foi possível compartilhar a nota.");
+        Alert.alert(
+          "Erro",
+          err.message || "Não foi possível compartilhar a nota.",
+        );
       } finally {
         setActionLoading(false);
       }
@@ -316,7 +328,10 @@ export default function ShareContactScreen() {
       ]);
     } catch (err: any) {
       console.error("Failed to share contact:", err);
-      Alert.alert("Erro", err.message || "Não foi possível compartilhar o contato.");
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível compartilhar o contato.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -338,12 +353,25 @@ export default function ShareContactScreen() {
         ]}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={[styles.headerTitle, { color: colors.headerText }]}>
-              {isForwardMode ? "Encaminhar para..." : isPixMode ? "Compartilhar Pix para..." : isNoteMode ? "Compartilhar nota para..." : "Enviar para ..."}
+              {isForwardMode
+                ? "Encaminhar para..."
+                : isPixMode
+                  ? "Compartilhar Pix para..."
+                  : isNoteMode
+                    ? "Compartilhar nota para..."
+                    : "Enviar para ..."}
             </Text>
           </View>
         </View>
@@ -351,7 +379,10 @@ export default function ShareContactScreen() {
 
       {actionLoading && (
         <View
-          style={[styles.overlayLoading, { backgroundColor: colors.modalOverlay }]}
+          style={[
+            styles.overlayLoading,
+            { backgroundColor: colors.modalOverlay },
+          ]}
         >
           <ActivityIndicator size="large" color={colors.tint} />
         </View>
@@ -384,56 +415,17 @@ export default function ShareContactScreen() {
           keyExtractor={(item) => item.contact_id}
           renderItem={({ item }) => {
             const isSelected = selected.has(item.contact_id);
-            const nameInitial = item.username[0]?.toUpperCase() ?? "?";
-            const avatarUri = item.avatar_url
-              ? item.avatar_url.startsWith("http")
-                ? item.avatar_url
-                : `${API_URL}${item.avatar_url.startsWith("/") ? "" : "/"}${item.avatar_url}`
-              : null;
 
             return (
-              <TouchableOpacity
-                style={[styles.contactRow, { borderBottomColor: colors.border }]}
+              <UserContactCard
+                username={item.username}
+                email={item.email}
+                avatarUrl={item.avatar_url}
+                showCheckbox={true}
+                checked={isSelected}
                 onPress={() => toggleContact(item)}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.avatar,
-                    { backgroundColor: isDark ? "#2C2C2E" : "#e5e5ea" },
-                  ]}
-                >
-                  {avatarUri ? (
-                    <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-                  ) : (
-                    <Text style={[styles.avatarText, { color: colors.text }]}>
-                      {nameInitial}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.textContainer}>
-                  <Text style={[styles.username, { color: colors.text }]}>
-                    {item.username}
-                  </Text>
-                  <Text style={[styles.email, { color: colors.textSecondary }]}>
-                    {item.email}
-                  </Text>
-                </View>
-
-                <View
-                  style={[
-                    styles.checkbox,
-                    { borderColor: colors.border },
-                    isSelected && [
-                      styles.checked,
-                      { backgroundColor: colors.tint, borderColor: colors.tint },
-                    ],
-                  ]}
-                >
-                  {isSelected && <MaterialCommunityIcons name="check" size={14} color="#fff" />}
-                </View>
-              </TouchableOpacity>
+                containerStyle={{ paddingHorizontal: 16 }}
+              />
             );
           }}
           ListEmptyComponent={
@@ -454,12 +446,16 @@ export default function ShareContactScreen() {
         <TouchableOpacity
           style={[
             styles.fab,
-            { backgroundColor: colors.tint, bottom: insets.bottom + 24 },
+            { backgroundColor: colors.fab, bottom: insets.bottom + 24 },
           ]}
           onPress={handleSend}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="arrow-right" size={24} color={isDark ? "#121212" : "#FFFFFF"} />
+          <MaterialCommunityIcons
+            name="arrow-right"
+            size={24}
+            color={isDark ? "#121212" : "#FFFFFF"}
+          />
         </TouchableOpacity>
       )}
     </View>
@@ -483,11 +479,6 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingBottom: 12,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   headerContent: {
     flexDirection: "row",
@@ -503,18 +494,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "500",
   },
   searchContainer: {
     padding: 12,
   },
   searchInput: {
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 16,
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    height: 44,
   },
   contactRow: {
     flexDirection: "row",
@@ -576,7 +568,7 @@ const styles = StyleSheet.create({
     right: 24,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
     elevation: 3,
