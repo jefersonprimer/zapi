@@ -917,7 +917,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   }
 
-  const isFileMessage = !!fullUrl && !isAudio;
+  const isFileMessage = !!fullUrl && !isAudio && !youtubeId;
 
   return (
     <View
@@ -1015,7 +1015,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   <PlayIcon size={32} color="#fff" fill="#fff" />
                 </View>
               </TouchableOpacity>
-            ) : (
+            ) : youtubeId ? null : (
               <TouchableOpacity
                 style={[
                   styles.docBubble,

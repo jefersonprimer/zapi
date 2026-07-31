@@ -16,6 +16,7 @@ import { WebView } from "react-native-webview";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import * as FileSystem from "expo-file-system/legacy";
+import { BrowserMediaActionsModal } from "./BrowserMediaActionsModal";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -43,6 +44,15 @@ export function WebSearchBottomSheet({
   const [searchQuery, setSearchQuery] = useState("");
   const [currentUrl, setCurrentUrl] = useState("https://www.google.com");
   const [loading, setLoading] = useState(false);
+  const [mediaModalState, setMediaModalState] = useState<{
+    visible: boolean;
+    mediaType: "image" | "video" | null;
+    src: string | null;
+  }>({
+    visible: false,
+    mediaType: null,
+    src: null,
+  });
   const webViewRef = useRef<WebView>(null);
 
   // Bottom Sheet height state and animation
@@ -54,7 +64,7 @@ export function WebSearchBottomSheet({
 
   // Dragging state inside React Native
   const [dragMedia, setDragMedia] = useState<{
-    type: "image" | "video";
+    type: "image" | "video" | "link";
     src: string;
     pageUrl?: string;
     linkUrl?: string;
@@ -65,7 +75,7 @@ export function WebSearchBottomSheet({
 
   // Use a ref to keep track of the drag state synchronously to prevent duplicate sends during asynchronous state updates
   const dragMediaRef = useRef<{
-    type: "image" | "video";
+    type: "image" | "video" | "link";
     src: string;
     pageUrl?: string;
     linkUrl?: string;
@@ -131,7 +141,7 @@ export function WebSearchBottomSheet({
   // Helper to download remote file locally and trigger onSendMedia
   const processAndSendMedia = async (
     src: string,
-    type: "image" | "video",
+    type: "image" | "video" | "link",
     pageUrl?: string,
     linkUrl?: string,
   ) => {
@@ -266,7 +276,13 @@ export function WebSearchBottomSheet({
       // Top margin of WebView relative to screen = SCREEN_HEIGHT - current sheet height + header offset (approx 120px)
       const webViewTopOffset = SCREEN_HEIGHT - sheetHeight + 110;
 
-      if (data.type === "MEDIA_DRAG_START") {
+      if (data.type === "MEDIA_CONTEXT_MENU") {
+        setMediaModalState({
+          visible: true,
+          mediaType: data.mediaType,
+          src: data.src,
+        });
+      } else if (data.type === "MEDIA_DRAG_START") {
         const newDrag = {
           type: data.mediaType,
           src: data.src,
@@ -421,7 +437,12 @@ export function WebSearchBottomSheet({
           }
 
           var isBlob = src && src.indexOf('blob:') === 0;
-          var mediaType = (mediaElement.tagName.toUpperCase() === 'IMG' || mediaElement.tagName.toUpperCase() === 'A') ? 'image' : 'video';
+          var mediaType = 'image';
+          if (mediaElement.tagName.toUpperCase() === 'A') {
+            mediaType = 'link';
+          } else if (mediaElement.tagName.toUpperCase() === 'VIDEO') {
+            mediaType = 'video';
+          }
 
           // Detect video platform elements (YouTube, Vimeo, Dailymotion, etc.)
           var isVideoPlatform = (window.location.href.indexOf('youtube.com') !== -1 || 
@@ -552,6 +573,31 @@ export function WebSearchBottomSheet({
           isDragging = false;
         }
       }, { passive: false });
+
+      document.addEventListener('contextmenu', function(e) {
+        var target = e.target;
+        while (target && target !== document.body) {
+          var tagName = target.tagName ? target.tagName.toUpperCase() : '';
+          if (tagName === 'IMG' || tagName === 'VIDEO') {
+            e.preventDefault();
+            var src = target.src || target.currentSrc || target.getAttribute('src');
+            if (src) {
+              if (!src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:')) {
+                var a = document.createElement('a');
+                a.href = src;
+                src = a.href;
+              }
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'MEDIA_CONTEXT_MENU',
+                mediaType: tagName === 'IMG' ? 'image' : 'video',
+                src: src
+              }));
+            }
+            return;
+          }
+          target = target.parentNode;
+        }
+      }, true);
     })();
   `;
 
@@ -687,7 +733,13 @@ export function WebSearchBottomSheet({
           ]}
         >
           <MaterialCommunityIcons
-            name={dragMedia.type === "video" ? "video" : "image"}
+            name={
+              dragMedia.type === "video"
+                ? "video"
+                : dragMedia.type === "link"
+                ? "link"
+                : "image"
+            }
             size={36}
             color={isDraggingAboveSheet ? colors.brandGreen : colors.text}
           />
@@ -715,6 +767,18 @@ export function WebSearchBottomSheet({
           </View>
         </View>
       )}
+
+      <BrowserMediaActionsModal
+        visible={mediaModalState.visible}
+        onClose={() =>
+          setMediaModalState((prev) => ({ ...prev, visible: false }))
+        }
+        mediaType={mediaModalState.mediaType}
+        src={mediaModalState.src}
+        onOpenInNewTab={(url) => {
+          setCurrentUrl(url);
+        }}
+      />
     </View>
   );
 }
