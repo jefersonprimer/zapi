@@ -59,6 +59,12 @@ const isAudioUrl = (url?: string | null) =>
     url.toLowerCase().includes("voice_note") ||
     url.startsWith("blob:"));
 
+const isVideoUrl = (url?: string | null) =>
+  !!url &&
+  (/\.(mp4|mov|webm|mkv|avi|3gp)(\?.*)?$/i.test(url) ||
+    url.toLowerCase().includes("video") ||
+    url.toLowerCase().includes("upload/videos"));
+
 const getPinnedChatIds = (): string[] => {
   if (typeof window === "undefined") return [];
   try {
@@ -1261,10 +1267,18 @@ function ConversasContent() {
                               : "bg-neutral-100 dark:bg-neutral-800 rounded-bl-none"
                           }`}
                         >
-                          {/* Image or Audio Attachment */}
+                          {/* Image, Video or Audio Attachment */}
                           {msg.image_url &&
                             (isAudioUrl(msg.image_url) ? (
                               <AudioPlayer uri={msg.image_url} isMine={isOwn} />
+                            ) : isVideoUrl(msg.image_url) ? (
+                              <div className="mb-2 rounded-xl overflow-hidden max-h-60 bg-black/10 flex items-center justify-center">
+                                <video
+                                  src={msg.image_url}
+                                  controls
+                                  className="max-h-60 max-w-full rounded-xl"
+                                />
+                              </div>
                             ) : (
                               <div className="mb-2 rounded-xl overflow-hidden max-h-60 bg-black/10 flex items-center justify-center">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}

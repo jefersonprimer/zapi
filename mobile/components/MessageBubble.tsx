@@ -57,7 +57,8 @@ const isImageUrl = (url: string) =>
 
 const getYoutubeId = (url: string) => {
   if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+  const regExp =
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
   const match = url.match(regExp);
   return match && match[2].length === 11 ? match[2] : null;
 };
@@ -68,7 +69,7 @@ const isAudioUrl = (url: string) =>
   url.includes("/uploads/audio");
 
 const isVideoUrl = (url: string) =>
-  /\.(mp4|mov|webm|mkv|avi)/i.test(url) ||
+  /\.(mp4|mov|webm|mkv|avi|quicktime|qt|3gp|m4v|flv|wmv|mpg|mpeg)/i.test(url) ||
   url.includes("data:video/") ||
   url.includes("/uploads/videos");
 
@@ -211,11 +212,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const isForwarded = !!forwardContent;
   const forwarded = forwardContent?.forwarded;
 
-  const contentIsLink = item.content && (item.content.startsWith("http://") || item.content.startsWith("https://"));
+  const contentIsLink =
+    item.content &&
+    (item.content.startsWith("http://") || item.content.startsWith("https://"));
 
   const mediaUrl = isForwarded
     ? forwarded?.local_file_path || forwarded?.image_url
-    : item.local_file_path || item.image_url || (contentIsLink ? item.content : null);
+    : item.local_file_path ||
+      item.image_url ||
+      (contentIsLink ? item.content : null);
 
   const fullUrl = mediaUrl
     ? mediaUrl.startsWith("http") || mediaUrl.startsWith("file://")
@@ -263,7 +268,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     isImage,
     isVideo,
     attachmentType: attachment ? attachment.type : null,
-    isForwarded
+    isForwarded,
   });
 
   const fileSize = isForwarded
@@ -283,7 +288,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   // Structured shares render their own cards — never dump JSON into the bubble text
   const messageContent =
-    isNoteShare || isContactShare || isPixShare || (contentIsLink && (isImage || isVideo || youtubeId))
+    isNoteShare ||
+    isContactShare ||
+    isPixShare ||
+    (contentIsLink && (isImage || isVideo || youtubeId))
       ? null
       : isForwarded
         ? forwarded?.content
@@ -674,12 +682,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               {item.sender_username}
             </Text>
           ) : null}
-          
+
           <View style={styles.orderShareHeader}>
             <View
               style={[
                 styles.orderShareIconCircle,
-                { backgroundColor: isMine ? "rgba(255, 255, 255, 0.2)" : "rgba(10, 132, 255, 0.15)" },
+                {
+                  backgroundColor: isMine
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : "rgba(10, 132, 255, 0.15)",
+                },
               ]}
             >
               <MaterialIcons
@@ -691,7 +703,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <Text
               style={[
                 styles.orderShareLabel,
-                { color: isMine ? "#fff" : colors.text, fontWeight: "bold", fontSize: 16 },
+                {
+                  color: isMine ? "#fff" : colors.text,
+                  fontWeight: "bold",
+                  fontSize: 16,
+                },
               ]}
             >
               Pedido
@@ -736,7 +752,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <Text
               style={[
                 styles.orderShareButtonText,
-                { color: isMine ? colors.tint : "#fff", fontWeight: "600", fontSize: 14 },
+                {
+                  color: isMine ? colors.tint : "#fff",
+                  fontWeight: "600",
+                  fontSize: 14,
+                },
               ]}
             >
               Ver Detalhes do Pedido
@@ -820,18 +840,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <View
               style={[
                 styles.noteShareIconCircle,
-                { backgroundColor: isMine ? "rgba(255,255,255,0.2)" : "#FFF3B0" },
+                {
+                  backgroundColor: isMine ? "rgba(255,255,255,0.2)" : "#FFF3B0",
+                },
               ]}
             >
-              <StickyNote
-                size={18}
-                color={isMine ? "#fff" : "#F5A623"}
-              />
+              <StickyNote size={18} color={isMine ? "#fff" : "#F5A623"} />
             </View>
             <Text
               style={[
                 styles.noteShareLabel,
-                { color: isMine ? "rgba(255,255,255,0.8)" : colors.textSecondary },
+                {
+                  color: isMine
+                    ? "rgba(255,255,255,0.8)"
+                    : colors.textSecondary,
+                },
               ]}
             >
               Nota
@@ -850,7 +873,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <Text
               style={[
                 styles.noteShareContent,
-                { color: isMine ? "rgba(255,255,255,0.8)" : colors.textSecondary },
+                {
+                  color: isMine
+                    ? "rgba(255,255,255,0.8)"
+                    : colors.textSecondary,
+                },
               ]}
               numberOfLines={3}
             >
@@ -945,7 +972,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           }}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="share" size={20} color={colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="share-all-outline"
+            size={24}
+            color={colors.textSecondary}
+          />
         </TouchableOpacity>
       )}
       <View
@@ -956,7 +987,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             : [styles.theirMessage, { backgroundColor: colors.surface }],
           { marginBottom: 0, flexShrink: 1 },
           isAudio && { padding: 4 },
-          (isImage || isVideo || (!!fullUrl && !isAudio)) && !messageContent && !commentText && { padding: 4 },
+          (isImage || isVideo || (!!fullUrl && !isAudio)) &&
+            !messageContent &&
+            !commentText && { padding: 4 },
         ]}
       >
         {isGroup && !isMine && item.sender_username ? (
@@ -1022,10 +1055,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   isMine ? styles.docBubbleMine : styles.docBubbleTheir,
                 ]}
                 onPress={() => {
-                  if (fullUrl.startsWith("http://") || fullUrl.startsWith("https://")) {
+                  if (
+                    fullUrl.startsWith("http://") ||
+                    fullUrl.startsWith("https://")
+                  ) {
                     router.push({
                       pathname: "/browser",
-                      params: { url: fullUrl }
+                      params: { url: fullUrl },
                     });
                   } else {
                     Linking.openURL(fullUrl);
@@ -1071,13 +1107,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               const youtubeUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
               router.push({
                 pathname: "/browser",
-                params: { url: youtubeUrl }
+                params: { url: youtubeUrl },
               });
             }}
             activeOpacity={0.9}
           >
             <Image
-              source={{ uri: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` }}
+              source={{
+                uri: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`,
+              }}
               style={styles.youtubeThumbnail}
               resizeMode="cover"
             />
@@ -1185,7 +1223,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </TouchableWithoutFeedback>
           </Modal>
         )}
-
       </View>
     </View>
   );

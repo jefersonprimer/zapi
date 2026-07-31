@@ -43,9 +43,9 @@ pub async fn upload_image(
         } else {
             match ext.as_str() {
                 "jpg" | "jpeg" | "png" | "gif" | "webp" => ("images", 20 * 1024 * 1024, "Photo (max 20MB)"),
-                "mp4" | "mov" | "webm" | "mkv" | "avi" => ("videos", 250 * 1024 * 1024, "Video (max 250MB)"),
+                "mp4" | "mov" | "webm" | "mkv" | "avi" | "quicktime" | "qt" | "3gp" | "m4v" | "flv" | "wmv" | "mpg" | "mpeg" => ("videos", 250 * 1024 * 1024, "Video (max 250MB)"),
                 "mp3" | "wav" | "caf" | "ogg" => ("audio", 50 * 1024 * 1024, "Audio (max 50MB)"),
-                "3gp" | "aac" | "m4a" | "opus" => ("audio", 25 * 1024 * 1024, "Voice message (max 25MB)"),
+                "aac" | "m4a" | "opus" => ("audio", 25 * 1024 * 1024, "Voice message (max 25MB)"),
                 _ => ("documents", 500 * 1024 * 1024, "Document (max 500MB)"),
             }
         };

@@ -10,6 +10,30 @@ import {
 
 type ChangeCallback = () => void;
 
+function mimeToExt(mimeType: string | null | undefined): string {
+  if (!mimeType) return "bin";
+  const mime = mimeType.toLowerCase();
+  if (mime === "image/jpeg" || mime === "image/jpg") return "jpg";
+  if (mime === "image/png") return "png";
+  if (mime === "image/gif") return "gif";
+  if (mime === "image/webp") return "webp";
+  if (mime === "video/mp4") return "mp4";
+  if (mime === "video/quicktime") return "mov";
+  if (mime === "video/x-matroska") return "mkv";
+  if (mime === "video/webm") return "webm";
+  if (mime === "video/x-msvideo") return "avi";
+  if (mime === "audio/mpeg" || mime === "audio/mp3") return "mp3";
+  if (mime === "audio/wav" || mime === "audio/x-wav") return "wav";
+  if (mime === "audio/mp4" || mime === "audio/m4a") return "m4a";
+  if (mime === "application/pdf") return "pdf";
+  
+  const ext = mime.split("/")[1];
+  if (ext === "quicktime") return "mov";
+  if (ext === "x-matroska") return "mkv";
+  if (ext === "x-msvideo") return "avi";
+  return ext || "bin";
+}
+
 class SyncWorker {
   private listeners = new Map<string, Set<ChangeCallback>>();
   private syncQueue = new Set<string>();
@@ -215,11 +239,10 @@ class SyncWorker {
           const isDurable = localFilePath.startsWith(durablePrefix);
           if (!isDurable) {
             try {
-              // Determine file extension
+               // Determine file extension
               let ext = "bin";
               if (attachment?.mime_type) {
-                ext = attachment.mime_type.split("/")[1] || "bin";
-                if (ext === "jpeg") ext = "jpg";
+                ext = mimeToExt(attachment.mime_type);
               } else {
                 const uriParts = localFilePath.split("/");
                 const filename = uriParts[uriParts.length - 1] || "file";
@@ -315,7 +338,7 @@ class SyncWorker {
               const uriParts = localFilePath.split("/");
               let filename = uriParts[uriParts.length - 1];
               if (attachment.mime_type && !filename.includes(".")) {
-                const ext = attachment.mime_type.split("/")[1] || "bin";
+                const ext = mimeToExt(attachment.mime_type);
                 filename = `${filename}.${ext}`;
               }
               uploadName = filename;

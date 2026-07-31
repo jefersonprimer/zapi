@@ -6,6 +6,12 @@ import Image from "next/image";
 import { getImageUrl } from "@/lib/utils";
 import { CommunityChannel, CommunityMessage } from "@/lib/community-types";
 
+const isVideoUrl = (url?: string | null) =>
+  !!url &&
+  (/\.(mp4|mov|webm|mkv|avi|3gp)(\?.*)?$/i.test(url) ||
+    url.toLowerCase().includes("video") ||
+    url.toLowerCase().includes("upload/videos"));
+
 interface CommunityChatViewProps {
   channel: CommunityChannel;
   messages: CommunityMessage[];
@@ -116,14 +122,22 @@ export const CommunityChatView: React.FC<CommunityChatViewProps> = ({
                 )}
 
                 {msg.image_url && (
-                  <div className="mt-2 relative max-w-sm rounded-xl overflow-hidden border border-zinc-800">
-                    <Image
-                      src={msg.image_url}
-                      alt="Attachment"
-                      width={400}
-                      height={250}
-                      className="w-full h-auto object-cover max-h-60"
-                    />
+                  <div className="mt-2 relative max-w-sm rounded-xl overflow-hidden border border-zinc-800 bg-black/10">
+                    {isVideoUrl(msg.image_url) ? (
+                      <video
+                        src={msg.image_url}
+                        controls
+                        className="w-full h-auto max-h-60 rounded-xl"
+                      />
+                    ) : (
+                      <Image
+                        src={msg.image_url}
+                        alt="Attachment"
+                        width={400}
+                        height={250}
+                        className="w-full h-auto object-cover max-h-60"
+                      />
+                    )}
                   </div>
                 )}
               </div>

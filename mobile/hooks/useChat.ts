@@ -1379,6 +1379,7 @@ export function useChat() {
     setMuteModalVisible,
     isContact,
     selectedMessageIds,
+    setSelectedMessageIds,
     selectedCallIds,
     deleteModalVisible,
     setDeleteModalVisible,

@@ -33,6 +33,7 @@ import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
 import { ForwardPreviewBar } from "@/components/ForwardPreviewBar";
 import { ChatActionsModal } from "@/components/ChatActionsModal";
+import { ChatMessageOptionsModal } from "@/components/ChatMessageOptionsModal";
 import { WebSearchBottomSheet } from "@/components/WebSearchBottomSheet";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -61,6 +62,7 @@ export default function ChatScreen() {
     setMuteModalVisible,
     isContact,
     selectedMessageIds,
+    setSelectedMessageIds,
     selectedCallIds,
     deleteModalVisible,
     setDeleteModalVisible,
@@ -118,6 +120,7 @@ export default function ChatScreen() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
   const [webSearchVisible, setWebSearchVisible] = useState(false);
+  const [msgOptionsVisible, setMsgOptionsVisible] = useState(false);
 
   const scrollToBottom = useCallback((animated = false) => {
     flatListRef.current?.scrollToEnd({ animated });
@@ -276,7 +279,7 @@ export default function ChatScreen() {
                 color={colors.text}
               />
             </TouchableOpacity>
-            {isSelectionMode ? (
+            {isSelectionMode && !msgOptionsVisible ? (
               <Text
                 style={[
                   styles.headerTitleText,
@@ -286,7 +289,7 @@ export default function ChatScreen() {
                 {selectedCount}
               </Text>
             ) : null}
-            {!isSelectionMode && (
+            {(!isSelectionMode || msgOptionsVisible) && (
               <TouchableOpacity
                 onPress={() => {
                   if (isGroup) {
@@ -361,7 +364,7 @@ export default function ChatScreen() {
           </View>
 
           <View style={styles.headerRightContainer}>
-            {isSelectionMode ? (
+            {isSelectionMode && !msgOptionsVisible ? (
               <>
                 {hasOnlyMessagesSelected && selectedMessageIds.length === 1 && (
                   <TouchableOpacity
@@ -369,7 +372,7 @@ export default function ChatScreen() {
                     style={styles.headerActionBtn}
                   >
                     <MaterialCommunityIcons
-                      name="reply"
+                      name="reply-outline"
                       size={24}
                       color={colors.text}
                     />
@@ -381,7 +384,7 @@ export default function ChatScreen() {
                     style={styles.headerActionBtn}
                   >
                     <MaterialCommunityIcons
-                      name="share-all"
+                      name="share-all-outline"
                       size={24}
                       color={colors.text}
                     />
@@ -500,14 +503,21 @@ export default function ChatScreen() {
             chatItems={chatItems}
             selectedMessageIds={selectedMessageIds}
             selectedCallIds={selectedCallIds}
-            isSelectionMode={isSelectionMode}
+            isSelectionMode={isSelectionMode && !msgOptionsVisible}
             currentUserId={user?.user_id}
             isGroup={isGroup}
             participantId={participantId}
             participantUsername={participantUsername}
             participantAvatarUrl={participantAvatarUrl}
             onSwipeRight={handleReencaminhar}
-            onToggleMessageSelection={toggleMessageSelection}
+            onToggleMessageSelection={(msg) => {
+              if (selectedMessageIds.length > 0) {
+                toggleMessageSelection(msg);
+              } else {
+                setSelectedMessageIds([msg.id]);
+                setMsgOptionsVisible(true);
+              }
+            }}
             onToggleCallSelection={toggleCallSelection}
           />
         )}
@@ -776,6 +786,33 @@ export default function ChatScreen() {
           onCameraPress={handleTakePhoto}
           onDocumentosPress={handlePickFile}
           onSearchWebPress={() => setWebSearchVisible(true)}
+        />
+      )}
+
+      {msgOptionsVisible && (
+        <ChatMessageOptionsModal
+          visible={msgOptionsVisible}
+          onClose={(shouldClear) => {
+            setMsgOptionsVisible(false);
+            if (shouldClear) {
+              clearSelection();
+            }
+          }}
+          onReply={() => {
+            handleReencaminhar();
+          }}
+          onForward={() => {
+            handleEncaminhar();
+          }}
+          onCopy={() => {
+            handleCopy();
+          }}
+          onDelete={() => {
+            setDeleteModalVisible(true);
+          }}
+          onSelect={() => {
+            setMsgOptionsVisible(false);
+          }}
         />
       )}
 

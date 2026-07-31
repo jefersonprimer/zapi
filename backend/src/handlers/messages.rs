@@ -208,6 +208,15 @@ pub async fn send_message(
                 || url_lower.ends_with(".webm")
                 || url_lower.ends_with(".mkv")
                 || url_lower.ends_with(".avi")
+                || url_lower.ends_with(".quicktime")
+                || url_lower.ends_with(".qt")
+                || url_lower.ends_with(".3gp")
+                || url_lower.ends_with(".m4v")
+                || url_lower.ends_with(".flv")
+                || url_lower.ends_with(".wmv")
+                || url_lower.ends_with(".mpg")
+                || url_lower.ends_with(".mpeg")
+                || url_lower.contains("/uploads/videos")
             {
                 "video"
             } else {
@@ -344,6 +353,15 @@ pub async fn send_message(
                 || url_lower.ends_with(".webm")
                 || url_lower.ends_with(".mkv")
                 || url_lower.ends_with(".avi")
+                || url_lower.ends_with(".quicktime")
+                || url_lower.ends_with(".qt")
+                || url_lower.ends_with(".3gp")
+                || url_lower.ends_with(".m4v")
+                || url_lower.ends_with(".flv")
+                || url_lower.ends_with(".wmv")
+                || url_lower.ends_with(".mpg")
+                || url_lower.ends_with(".mpeg")
+                || url_lower.contains("/uploads/videos")
             {
                 "🎥 Vídeo".to_string()
             } else {
