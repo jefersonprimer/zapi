@@ -38,6 +38,7 @@ import {
 } from "@/utils/forwardMessage";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { WebView } from "react-native-webview";
 
 interface MessageBubbleProps {
   item: Message;
@@ -46,11 +47,30 @@ interface MessageBubbleProps {
 }
 
 const isImageUrl = (url: string) =>
-  /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url);
+  /\.(jpg|jpeg|png|gif|webp)/i.test(url) ||
+  url.includes("gstatic.com") ||
+  url.includes("google.com/images") ||
+  url.includes("googleusercontent.com") ||
+  url.includes("data:image/") ||
+  url.includes("tbn:") ||
+  url.includes("/uploads/images");
+
+const getYoutubeId = (url: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+};
+
 const isAudioUrl = (url: string) =>
-  /\.(m4a|mp3|wav|caf|ogg|3gp|opus)(\?.*)?$/i.test(url);
+  /\.(m4a|mp3|wav|caf|ogg|3gp|opus)/i.test(url) ||
+  url.includes("data:audio/") ||
+  url.includes("/uploads/audio");
+
 const isVideoUrl = (url: string) =>
-  /\.(mp4|mov|webm|mkv|avi)(\?.*)?$/i.test(url);
+  /\.(mp4|mov|webm|mkv|avi)/i.test(url) ||
+  url.includes("data:video/") ||
+  url.includes("/uploads/videos");
 
 const formatFileSize = (bytes: number | null | undefined): string => {
   if (bytes === null || bytes === undefined || bytes === 0) return "";
@@ -191,9 +211,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const isForwarded = !!forwardContent;
   const forwarded = forwardContent?.forwarded;
 
+  const contentIsLink = item.content && (item.content.startsWith("http://") || item.content.startsWith("https://"));
+
   const mediaUrl = isForwarded
     ? forwarded?.local_file_path || forwarded?.image_url
-    : item.local_file_path || item.image_url;
+    : item.local_file_path || item.image_url || (contentIsLink ? item.content : null);
 
   const fullUrl = mediaUrl
     ? mediaUrl.startsWith("http") || mediaUrl.startsWith("file://")
@@ -201,15 +223,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       : `${API_URL}${mediaUrl.startsWith("/") ? "" : "/"}${mediaUrl}`
     : null;
 
-  const isImage = isForwarded
-    ? forwarded?.attachment_type === "image" ||
+  const isVideo = isForwarded
+    ? forwarded?.attachment_type === "video" ||
       (mediaUrl
-        ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
+        ? isVideoUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
         : false)
     : attachment
-      ? attachment.type === "image"
+      ? attachment.type === "video" || (mediaUrl ? isVideoUrl(mediaUrl) : false)
       : mediaUrl
-        ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
+        ? isVideoUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
         : false;
 
   const isAudio = isForwarded
@@ -223,16 +245,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         ? isAudioUrl(mediaUrl) || mediaUrl.toLowerCase().includes("audio")
         : false;
 
-  const isVideo = isForwarded
-    ? forwarded?.attachment_type === "video" ||
+  const isImage = isForwarded
+    ? forwarded?.attachment_type === "image" ||
       (mediaUrl
-        ? isVideoUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
+        ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
         : false)
     : attachment
-      ? attachment.type === "video"
+      ? attachment.type === "image" && !isVideo
       : mediaUrl
-        ? isVideoUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
+        ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
         : false;
+
+  console.log("[MessageBubble] Debug:", {
+    msgId: item.id,
+    mediaUrl,
+    fullUrl,
+    isImage,
+    isVideo,
+    attachmentType: attachment ? attachment.type : null,
+    isForwarded
+  });
 
   const fileSize = isForwarded
     ? (forwarded?.file_size ?? null)
@@ -246,9 +278,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       ? forwarded.file_name
       : getFileName(mediaUrl);
 
+  const rawContent = isForwarded ? forwarded?.content : item.content;
+  const youtubeId = rawContent ? getYoutubeId(rawContent) : null;
+
   // Structured shares render their own cards — never dump JSON into the bubble text
   const messageContent =
-    isNoteShare || isContactShare || isPixShare
+    isNoteShare || isContactShare || isPixShare || (contentIsLink && (isImage || isVideo || youtubeId))
       ? null
       : isForwarded
         ? forwarded?.content
@@ -1029,6 +1064,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             )}
           </>
         )}
+        {youtubeId ? (
+          <TouchableOpacity
+            style={styles.youtubeThumbnailContainer}
+            onPress={() => {
+              const youtubeUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+              router.push({
+                pathname: "/browser",
+                params: { url: youtubeUrl }
+              });
+            }}
+            activeOpacity={0.9}
+          >
+            <Image
+              source={{ uri: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` }}
+              style={styles.youtubeThumbnail}
+              resizeMode="cover"
+            />
+            <View style={styles.videoPlayOverlay}>
+              <PlayIcon size={40} color="#fff" fill="#fff" />
+            </View>
+          </TouchableOpacity>
+        ) : null}
         {messageContent && !(mediaUrl && isAudioUrl(mediaUrl)) ? (
           <Text
             style={
@@ -1128,12 +1185,36 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </TouchableWithoutFeedback>
           </Modal>
         )}
+
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  youtubeThumbnailContainer: {
+    width: 240,
+    height: 135,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 8,
+    position: "relative",
+    backgroundColor: "#000",
+  },
+  youtubeThumbnail: {
+    width: "100%",
+    height: "100%",
+  },
+  youtubeModalContainer: {
+    width: "95%",
+    aspectRatio: 16 / 9,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#000",
+  },
+  youtubeEmbedFull: {
+    flex: 1,
+  },
   senderUsername: {
     fontSize: 12,
     fontWeight: "bold",

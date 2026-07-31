@@ -12,16 +12,34 @@ export function getFullRemoteUrl(url: string): string {
   return `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16);
+}
+
 // Determines the subfolder and returns local file path
 export function getLocalPathForUrl(remoteUrl: string): string | null {
   if (Platform.OS === "web" || !remoteUrl) return null;
   if (remoteUrl.startsWith("file://")) return remoteUrl;
 
   const urlPath = remoteUrl.split("?")[0];
-  const filename = urlPath.substring(urlPath.lastIndexOf("/") + 1);
+  let filename = urlPath.substring(urlPath.lastIndexOf("/") + 1);
   if (!filename) return null;
 
-  const ext = filename.split(".").pop()?.toLowerCase() || "bin";
+  let ext = filename.split(".").pop()?.toLowerCase() || "bin";
+
+  // If the filename has no valid extension (e.g. Google gstatic /images URL)
+  if (!["jpg", "jpeg", "png", "gif", "webp", "mp4", "mov", "webm", "mp3", "wav", "m4a", "pdf", "txt"].includes(ext)) {
+    const hash = simpleHash(remoteUrl);
+    const isVid = remoteUrl.toLowerCase().includes("video") || remoteUrl.toLowerCase().includes("mp4");
+    ext = isVid ? "mp4" : "jpg";
+    filename = `web_${hash}.${ext}`;
+  }
+
   let subfolder = "documents";
 
   if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {

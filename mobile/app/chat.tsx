@@ -33,6 +33,7 @@ import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
 import { ForwardPreviewBar } from "@/components/ForwardPreviewBar";
 import { ChatActionsModal } from "@/components/ChatActionsModal";
+import { WebSearchBottomSheet } from "@/components/WebSearchBottomSheet";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useChat } from "@/hooks/useChat";
@@ -116,6 +117,7 @@ export default function ChatScreen() {
   const shouldStickToBottomRef = useRef(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
+  const [webSearchVisible, setWebSearchVisible] = useState(false);
 
   const scrollToBottom = useCallback((animated = false) => {
     flatListRef.current?.scrollToEnd({ animated });
@@ -773,8 +775,22 @@ export default function ChatScreen() {
           onFotosPress={handlePickFromGallery}
           onCameraPress={handleTakePhoto}
           onDocumentosPress={handlePickFile}
+          onSearchWebPress={() => setWebSearchVisible(true)}
         />
       )}
+
+      <WebSearchBottomSheet
+        visible={webSearchVisible}
+        onClose={() => setWebSearchVisible(false)}
+        onSendMedia={(media) => {
+          handleSend(media);
+          setWebSearchVisible(false);
+        }}
+        onSendLink={(link) => {
+          handleSend(null, link);
+          setWebSearchVisible(false);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

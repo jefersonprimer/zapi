@@ -171,10 +171,12 @@ class SyncWorker {
             localFilePath.startsWith("content://") ||
             localFilePath.startsWith("ph://") ||
             localFilePath.startsWith("assets-library://") ||
-            localFilePath.startsWith("assets-carousels://")
+            localFilePath.startsWith("assets-carousels://") ||
+            localFilePath.startsWith("http://") ||
+            localFilePath.startsWith("https://")
           ) {
-            fileExists = true; // Native URIs are handled by native OS APIs and assumed to exist
-            console.log(`[SyncWorker] File assumed to exist (native scheme): ${localFilePath}`);
+            fileExists = true; // Native URIs and web links are assumed to exist/accessible
+            console.log(`[SyncWorker] File assumed to exist (native/web scheme): ${localFilePath}`);
           } else {
             try {
               const info = await FileSystem.getInfoAsync(localFilePath);
@@ -268,24 +270,27 @@ class SyncWorker {
 
         // If there's a local file path but no remote image url, upload it first
         if (localFilePath && !remoteImageUrl) {
-          console.log(`[SyncWorker] Uploading local file for message ${msg.id}: ${localFilePath}`);
-          await db.runAsync(
-            "UPDATE messages SET status = 'uploading' WHERE id = ?",
-            [msg.id]
-          );
-          this.notifyMessagesChanged(chatId);
+          if (localFilePath.startsWith("http://") || localFilePath.startsWith("https://")) {
+            remoteImageUrl = localFilePath;
+          } else {
+            console.log(`[SyncWorker] Uploading local file for message ${msg.id}: ${localFilePath}`);
+            await db.runAsync(
+              "UPDATE messages SET status = 'uploading' WHERE id = ?",
+              [msg.id]
+            );
+            this.notifyMessagesChanged(chatId);
 
-          try {
-            if (localFilePath.startsWith("file://")) {
-              const file = new File(localFilePath);
-              // Limit MD5 calculation to files under 20MB to prevent OutOfMemoryError on large files
-              if (file.exists && file.size < 20 * 1024 * 1024 && file.md5) {
-                fileHashStr = file.md5;
+            try {
+              if (localFilePath.startsWith("file://")) {
+                const file = new File(localFilePath);
+                // Limit MD5 calculation to files under 20MB to prevent OutOfMemoryError on large files
+                if (file.exists && file.size < 20 * 1024 * 1024 && file.md5) {
+                  fileHashStr = file.md5;
+                }
               }
+            } catch (hashErr) {
+              console.error("SyncWorker: Failed to compute MD5 hash for local file:", hashErr);
             }
-          } catch (hashErr) {
-            console.error("SyncWorker: Failed to compute MD5 hash for local file:", hashErr);
-          }
 
           let existsOnServer = false;
           if (fileHashStr) {
@@ -343,6 +348,7 @@ class SyncWorker {
             console.log(`[SyncWorker] File uploaded successfully. Remote URL: ${remoteImageUrl}`);
           }
         }
+      }
 
         console.log(`[SyncWorker] Sending message to server: content="${msg.content || ""}", remoteImageUrl="${remoteImageUrl || ""}"`);
         const res = await sendMessage(

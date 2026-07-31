@@ -17,6 +17,7 @@ interface ChatActionsModalProps {
   onFotosPress: () => void;
   onCameraPress: () => void;
   onDocumentosPress: () => void;
+  onSearchWebPress: () => void;
 }
 
 export function ChatActionsModal({
@@ -26,6 +27,7 @@ export function ChatActionsModal({
   onFotosPress,
   onCameraPress,
   onDocumentosPress,
+  onSearchWebPress,
 }: ChatActionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const actionsAnimation = useRef(new Animated.Value(0)).current;
@@ -192,6 +194,29 @@ export function ChatActionsModal({
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
             Documentos
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.modalRowOption}
+          onPress={() => {
+            hideActionsModal(onSearchWebPress);
+          }}
+        >
+          <View
+            style={[
+              styles.modalRowIconContainer,
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="earth"
+              size={20}
+              color={colors.text}
+            />
+          </View>
+          <Text style={[styles.modalRowText, { color: colors.text }]}>
+            Pesquisar na Web
           </Text>
         </TouchableOpacity>
       </Animated.View>

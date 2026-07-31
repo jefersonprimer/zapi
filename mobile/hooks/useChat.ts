@@ -784,7 +784,7 @@ export function useChat() {
     };
   }, [chatId, token, user]);
 
-  const handleSend = useCallback(async (customAttachment?: any) => {
+  const handleSend = useCallback(async (customAttachment?: any, customText?: string) => {
     const validAttachment =
       customAttachment &&
       typeof customAttachment === "object" &&
@@ -793,7 +793,7 @@ export function useChat() {
         : null;
 
     const attachmentInfo = validAttachment || selectedAttachment;
-    const hasContent = content.trim().length > 0;
+    const hasContent = (customText || content).trim().length > 0;
     const hasAttachment = attachmentInfo !== null;
     const hasForward = forwardingMessage !== null;
 
@@ -821,9 +821,11 @@ export function useChat() {
       }
     }
 
-    const messageContentText = content;
+    const messageContentText = customText || content;
     const forwardData = forwardingMessage;
-    setContent("");
+    if (!customText) {
+      setContent("");
+    }
     setSelectedAttachment(null);
     setForwardingMessage(null);
 

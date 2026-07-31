@@ -195,6 +195,12 @@ pub async fn send_message(
                 || url_lower.ends_with(".png")
                 || url_lower.ends_with(".gif")
                 || url_lower.ends_with(".webp")
+                || url_lower.contains("gstatic.com")
+                || url_lower.contains("google.com/images")
+                || url_lower.contains("googleusercontent.com")
+                || url_lower.contains("data:image/")
+                || url_lower.contains("tbn:")
+                || url_lower.contains("/uploads/images")
             {
                 "image"
             } else if url_lower.ends_with(".mp4")
@@ -315,6 +321,12 @@ pub async fn send_message(
                 || url_lower.ends_with(".png")
                 || url_lower.ends_with(".gif")
                 || url_lower.ends_with(".webp")
+                || url_lower.contains("gstatic.com")
+                || url_lower.contains("google.com/images")
+                || url_lower.contains("googleusercontent.com")
+                || url_lower.contains("data:image/")
+                || url_lower.contains("tbn:")
+                || url_lower.contains("/uploads/images")
             {
                 "📷 Foto".to_string()
             } else if url_lower.ends_with(".m4a")
