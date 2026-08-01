@@ -37,6 +37,7 @@ interface ShareBottomSheetProps {
   clipId: string;
   shareUrl?: string;
   onAddToStatus?: () => void;
+  onDismiss?: () => void;
 }
 
 export const ShareBottomSheet = forwardRef<
@@ -44,7 +45,7 @@ export const ShareBottomSheet = forwardRef<
   ShareBottomSheetProps
 >(
   (
-    { clipId, shareUrl = `https://zapi.app/clip/${clipId}`, onAddToStatus },
+    { clipId, shareUrl = `https://zapi.app/clip/${clipId}`, onAddToStatus, onDismiss },
     ref,
   ) => {
     const { colors, isDark } = useAppTheme();
@@ -182,6 +183,7 @@ export const ShareBottomSheet = forwardRef<
         backgroundStyle={{ backgroundColor: colors.menuBackground }}
         handleIndicatorStyle={{ backgroundColor: colors.border }}
         onChange={handleSheetChange}
+        onDismiss={onDismiss}
       >
         <BottomSheetView
           style={[

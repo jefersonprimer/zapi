@@ -9,16 +9,7 @@ import {
   Image,
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import {
-  Heart,
-  MessageCircle,
-  Share2,
-  Bookmark,
-  Volume2,
-  VolumeX,
-  Music,
-  Play,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -36,10 +27,13 @@ export interface ReelsVideo {
   sharesCount?: number;
   likedByMe?: boolean;
   savedByMe?: boolean;
+  isFollowing?: boolean;
+  isOwnProfile?: boolean;
   onLike?: () => void;
   onComment?: () => void;
   onShare?: () => void;
   onSave?: () => void;
+  onFollow?: () => void;
   onProfilePress?: () => void;
 }
 
@@ -128,62 +122,73 @@ export default function ReelsItem({
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
         />
-      ) : (
+      ) : isActive ? (
         <ReelsVideoPlayer
           uri={video.mediaUrl}
           isActive={isActive}
           isMuted={isMuted}
           onPlayingChange={handlePlayingChange}
         />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: "black" }]} />
       )}
 
-      {!isImage ? (
-        <TouchableOpacity
-          style={styles.muteButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            onToggleMute();
-          }}
-        >
-          {isMuted ? (
-            <VolumeX size={20} color="white" />
-          ) : (
-            <Volume2 size={20} color="white" />
-          )}
-        </TouchableOpacity>
-      ) : null}
+
 
       {!isImage && !isPlaying ? (
         <View style={styles.playPauseOverlay} pointerEvents="none">
           <View style={styles.playPauseCircle}>
-            <Play size={28} color="white" fill="white" />
+            <MaterialCommunityIcons name="play" size={32} color="white" />
           </View>
         </View>
       ) : null}
 
-      {/* Side Interactions (Like, Comment, Share, Save) */}
+      {/* Side Interactions (Like, Comment, Save, Share) */}
       <View style={styles.rightContainer}>
-        <TouchableOpacity
-          style={styles.avatarContainer}
-          onPress={(e) => {
-            e.stopPropagation();
-            video.onProfilePress?.();
-          }}
-        >
-          {video.publisherAvatar ? (
-            <Image
-              source={{ uri: video.publisherAvatar }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.tint }]}>
-              <Text style={styles.avatarInitial}>
-                {video.publisherName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={styles.avatarWrapper}>
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={(e) => {
+              e.stopPropagation();
+              video.onProfilePress?.();
+            }}
+          >
+            {video.publisherAvatar ? (
+              <Image
+                source={{ uri: video.publisherAvatar }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.avatarPlaceholder,
+                  { backgroundColor: colors.tint },
+                ]}
+              >
+                <Text style={styles.avatarInitial}>
+                  {video.publisherName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
+          {video.onFollow && !video.isFollowing && !video.isOwnProfile && (
+            <TouchableOpacity
+              style={[
+                styles.followIconContainer,
+                { backgroundColor: colors.tint },
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                video.onFollow?.();
+              }}
+            >
+              <MaterialCommunityIcons name="plus" size={14} color="white" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Curtidas */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={(e) => {
@@ -191,14 +196,15 @@ export default function ReelsItem({
             video.onLike?.();
           }}
         >
-          <Heart
+          <MaterialCommunityIcons
+            name={video.likedByMe ? "heart" : "heart-outline"}
             size={28}
             color={video.likedByMe ? "#FF3B30" : "white"}
-            fill={video.likedByMe ? "#FF3B30" : "none"}
           />
           <Text style={styles.actionText}>{video.likesCount}</Text>
         </TouchableOpacity>
 
+        {/* Mensagem / Comentários */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={(e) => {
@@ -206,10 +212,15 @@ export default function ReelsItem({
             video.onComment?.();
           }}
         >
-          <MessageCircle size={28} color="white" />
+          <MaterialCommunityIcons
+            name="message-text-outline"
+            size={28}
+            color="white"
+          />
           <Text style={styles.actionText}>{video.commentsCount}</Text>
         </TouchableOpacity>
 
+        {/* Bookmark / Salvos */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={(e) => {
@@ -217,13 +228,15 @@ export default function ReelsItem({
             video.onSave?.();
           }}
         >
-          <Bookmark
+          <MaterialCommunityIcons
+            name={video.savedByMe ? "bookmark" : "bookmark-outline"}
             size={28}
             color={video.savedByMe ? colors.tint : "white"}
-            fill={video.savedByMe ? colors.tint : "none"}
           />
+          <Text style={styles.actionText}>{video.savedByMe ? 1 : 0}</Text>
         </TouchableOpacity>
 
+        {/* Compartilhar */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={(e) => {
@@ -231,7 +244,12 @@ export default function ReelsItem({
             video.onShare?.();
           }}
         >
-          <Share2 size={28} color="white" />
+          <MaterialCommunityIcons
+            name="share-outline"
+            size={28}
+            color="white"
+          />
+          <Text style={styles.actionText}>Compartilhar</Text>
         </TouchableOpacity>
       </View>
 
@@ -253,7 +271,12 @@ export default function ReelsItem({
 
         {!isImage ? (
           <View style={styles.musicContainer}>
-            <Music size={14} color="white" style={styles.musicIcon} />
+            <MaterialCommunityIcons
+              name="music"
+              size={14}
+              color="white"
+              style={styles.musicIcon}
+            />
             <Text style={styles.musicText} numberOfLines={1}>
               Áudio original • {video.publisherName}
             </Text>
@@ -271,15 +294,6 @@ const styles = StyleSheet.create({
     backgroundColor: "black",
     justifyContent: "flex-end",
   },
-  muteButton: {
-    position: "absolute",
-    top: 20,
-    right: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    padding: 8,
-    borderRadius: 20,
-    zIndex: 10,
-  },
   playPauseOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
@@ -296,14 +310,30 @@ const styles = StyleSheet.create({
   },
   rightContainer: {
     position: "absolute",
-    right: 12,
+    right: 6,
     bottom: 80,
     alignItems: "center",
     gap: 16,
     zIndex: 10,
   },
-  avatarContainer: {
+  avatarWrapper: {
+    position: "relative",
+    alignItems: "center",
+    paddingBottom: 6,
     marginBottom: 8,
+  },
+  avatarContainer: {},
+  followIconContainer: {
+    position: "absolute",
+    bottom: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "black",
+    zIndex: 11,
   },
   avatar: {
     width: 44,

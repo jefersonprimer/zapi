@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Heart, MessageCircle, Share2, Bookmark } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface PostActionsProps {
@@ -28,31 +28,58 @@ export default function PostActions({
   return (
     <View style={styles.container}>
       <View style={styles.left}>
-        <TouchableOpacity onPress={onLike} style={styles.action} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Heart
-            size={22}
+        <TouchableOpacity
+          onPress={onLike}
+          style={styles.action}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons
+            name={liked ? "heart" : "heart-outline"}
+            size={28}
             color={liked ? (isDark ? "#F87171" : "#EF4444") : colors.icon}
-            fill={liked ? (isDark ? "#F87171" : "#EF4444") : "transparent"}
           />
           {likesCount > 0 && (
-            <Text style={[styles.count, { color: colors.textSecondary }]}>{likesCount}</Text>
+            <Text style={[styles.count, { color: colors.textSecondary }]}>
+              {likesCount}
+            </Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={onComment} style={styles.action} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <MessageCircle size={22} color={colors.icon} />
+        <TouchableOpacity
+          onPress={onComment}
+          style={styles.action}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons
+            name="message-text-outline"
+            size={28}
+            color={colors.icon}
+          />
           {commentsCount > 0 && (
-            <Text style={[styles.count, { color: colors.textSecondary }]}>{commentsCount}</Text>
+            <Text style={[styles.count, { color: colors.textSecondary }]}>
+              {commentsCount}
+            </Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={onShare} style={styles.action} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Share2 size={22} color={colors.icon} />
+        <TouchableOpacity
+          onPress={onShare}
+          style={styles.action}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons
+            name="share-outline"
+            size={28}
+            color={colors.icon}
+          />
         </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={onSave} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Bookmark
-          size={22}
+      <TouchableOpacity
+        onPress={onSave}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <MaterialCommunityIcons
+          name={saved ? "bookmark" : "bookmark-outline"}
+          size={28}
           color={saved ? (isDark ? "#FBBF24" : "#F59E0B") : colors.icon}
-          fill={saved ? (isDark ? "#FBBF24" : "#F59E0B") : "transparent"}
         />
       </TouchableOpacity>
     </View>

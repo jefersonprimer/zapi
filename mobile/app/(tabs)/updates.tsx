@@ -17,6 +17,7 @@ import ReelsFeed from "@/components/ReelsFeed";
 import type { StoryGroup } from "@/services/updatesApi";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ShareBottomSheet } from "@/components/ShareBottomSheet";
+import SkeletonFeedPost from "@/components/SkeletonFeedPost";
 
 export default function UpdatesScreen() {
   const { colors } = useAppTheme();
@@ -180,7 +181,9 @@ export default function UpdatesScreen() {
         }
         onShare={() => {
           setActivePostId(item.id);
-          shareSheetRef.current?.present();
+          requestAnimationFrame(() => {
+            shareSheetRef.current?.present();
+          });
         }}
         onSave={() => toggleSave(item.id)}
         onVote={(optionId) => votePoll(item.id, optionId)}
@@ -201,14 +204,19 @@ export default function UpdatesScreen() {
 
   if (isLoading) {
     return (
-      <View
-        style={[
-          styles.container,
-          styles.center,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <ActivityIndicator size="large" color={colors.tint} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {renderScreenHeader()}
+        <View style={styles.list}>
+          <StoryBar
+            myAvatarUrl={null}
+            groups={[]}
+            onMyStoryPress={handleMyStoryPress}
+            onStoryPress={handleStoryPress}
+          />
+          <SkeletonFeedPost />
+          <SkeletonFeedPost />
+          <SkeletonFeedPost />
+        </View>
       </View>
     );
   }
@@ -256,18 +264,23 @@ export default function UpdatesScreen() {
           onRefresh={refresh}
           refreshing={refreshing}
           onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
+          onEndReachedThreshold={0.2}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={11}
+          removeClippedSubviews={true}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.list}
         />
       )}
-      <ShareBottomSheet
-        ref={shareSheetRef}
-        clipId={activePostId || ""}
-        shareUrl={
-          activePostId ? `https://zapi.app/post/${activePostId}` : undefined
-        }
-      />
+      {activePostId !== null && (
+        <ShareBottomSheet
+          ref={shareSheetRef}
+          clipId={activePostId}
+          shareUrl={`https://zapi.app/post/${activePostId}`}
+          onDismiss={() => setActivePostId(null)}
+        />
+      )}
     </View>
   );
 }

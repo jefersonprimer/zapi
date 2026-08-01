@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -8,6 +8,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useUpdates } from "@/hooks/useUpdates";
+import { useAuth } from "@/context/AuthContext";
+import * as updatesApi from "@/services/updatesApi";
 import ReelsItem, { ReelsVideo } from "./ReelsItem";
 import { getFullRemoteUrl } from "@/services/mediaCache";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -17,16 +19,31 @@ import { ShareBottomSheet } from "./ShareBottomSheet";
 export default function ReelsFeed() {
   const { colors } = useAppTheme();
   const router = useRouter();
-  const { feed, toggleLike, toggleSave } = useUpdates();
-  const [reelsList, setReelsList] = useState<ReelsVideo[]>([]);
+  const { token } = useAuth();
+  const { feed, toggleLike, toggleSave, toggleFollow } = useUpdates();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [activeClipId, setActiveClipId] = useState<string | null>(null);
+  const [followedPublisherIds, setFollowedPublisherIds] = useState<Set<string>>(new Set());
+  const [myPublisherId, setMyPublisherId] = useState<string | null>(null);
 
   const shareSheetRef = useRef<BottomSheetModal>(null);
 
   useEffect(() => {
-    const clipPosts: ReelsVideo[] = feed
+    if (!token) return;
+    updatesApi.getMyPublisher(token)
+      .then((pub) => setMyPublisherId(pub.id))
+      .catch((err) => console.error("Error fetching my publisher info:", err));
+
+    updatesApi.getFollowing(token)
+      .then((publishers) => {
+        setFollowedPublisherIds(new Set(publishers.map((p) => p.id)));
+      })
+      .catch((err) => console.error("Error loading followed publishers:", err));
+  }, [token]);
+
+  const reelsList = useMemo(() => {
+    return feed
       .filter((post) => post.type === "clip")
       .map((post) => {
         const videoAttachment = post.attachments?.find(
@@ -42,6 +59,8 @@ export default function ReelsFeed() {
         );
         const mediaAttachment = videoAttachment ?? imageAttachment;
         const mediaType: "video" | "image" = videoAttachment ? "video" : "image";
+        const isFollowing = post.publisher_id ? followedPublisherIds.has(post.publisher_id) : false;
+        const isOwnProfile = post.publisher_id === myPublisherId;
 
         return {
           id: post.id,
@@ -57,8 +76,23 @@ export default function ReelsFeed() {
           commentsCount: post.comments_count,
           likedByMe: post.liked_by_me,
           savedByMe: post.saved_by_me,
+          isFollowing,
+          isOwnProfile,
           onLike: () => toggleLike(post.id),
           onSave: () => toggleSave(post.id),
+          onFollow: async () => {
+            if (!post.publisher_id) return;
+            const following = await toggleFollow(post.publisher_id);
+            setFollowedPublisherIds((prev) => {
+              const next = new Set(prev);
+              if (following) {
+                next.add(post.publisher_id);
+              } else {
+                next.delete(post.publisher_id);
+              }
+              return next;
+            });
+          },
           onComment: () =>
             router.push({
               pathname: "/comments-modal",
@@ -66,7 +100,9 @@ export default function ReelsFeed() {
             }),
           onShare: () => {
             setActiveClipId(post.id);
-            shareSheetRef.current?.present();
+            requestAnimationFrame(() => {
+              shareSheetRef.current?.present();
+            });
           },
           onProfilePress: () =>
             router.push({
@@ -76,9 +112,7 @@ export default function ReelsFeed() {
         };
       })
       .filter((item) => !!item.mediaUrl);
-
-    setReelsList(clipPosts);
-  }, [feed, toggleLike, toggleSave, router]);
+  }, [feed, toggleLike, toggleSave, toggleFollow, followedPublisherIds, myPublisherId, router]);
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -132,7 +166,13 @@ export default function ReelsFeed() {
         windowSize={5}
         removeClippedSubviews={true}
       />
-      <ShareBottomSheet ref={shareSheetRef} clipId={activeClipId || ""} />
+      {activeClipId !== null && (
+        <ShareBottomSheet
+          ref={shareSheetRef}
+          clipId={activeClipId}
+          onDismiss={() => setActiveClipId(null)}
+        />
+      )}
     </View>
   );
 }
