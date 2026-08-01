@@ -14,20 +14,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  Search,
-  ShoppingCart,
-  Store,
-  ChevronRight,
-  StoreIcon,
-  ArrowLeft,
-  ClipboardList,
-  MapPin,
-  ChevronDown,
-  ArrowUpDown,
-  Tag,
-  Motorbike,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useCartStore } from "@/store/useCartStore";
@@ -230,7 +217,7 @@ export default function DeliveryScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <ArrowLeft color={colors.headerText} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Zapi Delivery
@@ -243,19 +230,19 @@ export default function DeliveryScreen() {
             ]}
             onPress={() => router.push("/delivery/search")}
           >
-            <Search color={colors.icon} size={20} />
+            <MaterialCommunityIcons name="magnify" color={colors.icon} size={20} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.ordersButton, { backgroundColor: colors.surface }]}
             onPress={() => router.push("/delivery/orders")}
           >
-            <ClipboardList color={colors.icon} size={20} />
+            <MaterialCommunityIcons name="clipboard-text-outline" color={colors.icon} size={20} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.vendorButton, { backgroundColor: colors.surface }]}
             onPress={() => router.push("/delivery/vendor/dashboard")}
           >
-            <StoreIcon color={colors.icon} size={20} />
+            <MaterialCommunityIcons name="store" color={colors.icon} size={20} />
           </TouchableOpacity>
         </View>
       </View>
@@ -268,7 +255,7 @@ export default function DeliveryScreen() {
         onPress={() => router.push("/delivery/addresses")}
         activeOpacity={0.7}
       >
-        <MapPin size={18} color={colors.tint} />
+        <MaterialCommunityIcons name="map-marker" size={18} color={colors.tint} />
         <View style={styles.addressBarText}>
           {loading ? (
             <Text
@@ -298,7 +285,7 @@ export default function DeliveryScreen() {
             </Text>
           )}
         </View>
-        <ChevronRight size={18} color={colors.icon} />
+        <MaterialCommunityIcons name="chevron-right" size={18} color={colors.icon} />
       </TouchableOpacity>
 
       {loading && !address ? (
@@ -314,7 +301,7 @@ export default function DeliveryScreen() {
         </ScrollView>
       ) : !address ? (
         <View style={styles.emptyContainer}>
-          <MapPin color={colors.icon} size={64} />
+          <MaterialCommunityIcons name="map-marker" color={colors.icon} size={64} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             Cadastre um endereço para ver lojas na sua cidade
           </Text>
@@ -372,7 +359,8 @@ export default function DeliveryScreen() {
                     onPress={() => setSortModalVisible(true)}
                     activeOpacity={0.7}
                   >
-                    <ArrowUpDown
+                    <MaterialCommunityIcons
+                      name="arrow-up-down"
                       size={14}
                       color={sortBy !== "default" ? "#FFF" : colors.text}
                     />
@@ -394,7 +382,8 @@ export default function DeliveryScreen() {
                                 ? "Menor taxa"
                                 : "Mais próximo"}
                     </Text>
-                    <ChevronDown
+                    <MaterialCommunityIcons
+                      name="chevron-down"
                       size={14}
                       color={sortBy !== "default" ? "#FFF" : colors.text}
                     />
@@ -427,7 +416,8 @@ export default function DeliveryScreen() {
                           ? "Entregar (Delivery)"
                           : "Retirar"}
                     </Text>
-                    <ChevronDown
+                    <MaterialCommunityIcons
+                      name="chevron-down"
                       size={14}
                       color={deliveryMode !== "all" ? "#FFF" : colors.text}
                     />
@@ -460,7 +450,8 @@ export default function DeliveryScreen() {
                           ? "Máquina de cartão"
                           : "Online (Pix)"}
                     </Text>
-                    <ChevronDown
+                    <MaterialCommunityIcons
+                      name="chevron-down"
                       size={14}
                       color={paymentFilter !== null ? "#FFF" : colors.text}
                     />
@@ -504,7 +495,8 @@ export default function DeliveryScreen() {
                     onPress={() => setFreeDelivery(!freeDelivery)}
                     activeOpacity={0.7}
                   >
-                    <Motorbike
+                    <MaterialCommunityIcons
+                      name="motorbike"
                       size={14}
                       color={freeDelivery ? "#FFF" : colors.text}
                     />
@@ -533,7 +525,7 @@ export default function DeliveryScreen() {
                     onPress={() => setPromotionOnly(!promotionOnly)}
                     activeOpacity={0.7}
                   >
-                    <Tag size={14} color={promotionOnly ? "#FFF" : colors.text} />
+                    <MaterialCommunityIcons name="tag-outline" size={14} color={promotionOnly ? "#FFF" : colors.text} />
                     <Text
                       style={[
                         styles.filterChipText,
@@ -584,7 +576,7 @@ export default function DeliveryScreen() {
               </View>
             ) : (
               <View style={styles.emptyContainer}>
-                <Store color={colors.icon} size={64} />
+                <MaterialCommunityIcons name="store" color={colors.icon} size={64} />
                 <Text
                   style={[styles.emptyText, { color: colors.textSecondary }]}
                 >
@@ -607,7 +599,7 @@ export default function DeliveryScreen() {
           onPress={() => router.push("/delivery/cart")}
           activeOpacity={0.8}
         >
-          <ShoppingCart color={isDark ? "#121212" : "#FFFFFF"} size={24} />
+          <MaterialCommunityIcons name="cart" color={isDark ? "#121212" : "#FFFFFF"} size={24} />
           <View style={[styles.badge, { backgroundColor: colors.badge }]}>
             <Text style={[styles.badgeText, { color: colors.badgeText }]}>
               {getItemCount()}

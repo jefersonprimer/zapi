@@ -8,9 +8,13 @@ import {
   FlatList,
   SafeAreaView,
 } from "react-native";
-import { X, History, Star, Trash2 } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
-import { useBrowserStore, HistoryItem, FavoriteItem } from "@/store/useBrowserStore";
+import {
+  useBrowserStore,
+  HistoryItem,
+  FavoriteItem,
+} from "@/store/useBrowserStore";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface BrowserHistoryBookmarksModalProps {
   visible: boolean;
@@ -24,14 +28,12 @@ export function BrowserHistoryBookmarksModal({
   onNavigateToUrl,
 }: BrowserHistoryBookmarksModalProps) {
   const { colors } = useAppTheme();
-  const {
-    history,
-    favorites,
-    clearHistory,
-    removeFavorite,
-  } = useBrowserStore();
+  const { history, favorites, clearHistory, removeFavorite } =
+    useBrowserStore();
 
-  const [activeTab, setActiveTab] = useState<"favorites" | "history">("favorites");
+  const [activeTab, setActiveTab] = useState<"favorites" | "history">(
+    "favorites",
+  );
 
   const handleSelectUrl = (url: string) => {
     onNavigateToUrl(url);
@@ -44,10 +46,16 @@ export function BrowserHistoryBookmarksModal({
         style={styles.listItemTextContainer}
         onPress={() => handleSelectUrl(item.url)}
       >
-        <Text style={[styles.listItemTitle, { color: colors.text }]} numberOfLines={1}>
+        <Text
+          style={[styles.listItemTitle, { color: colors.text }]}
+          numberOfLines={1}
+        >
           {item.title}
         </Text>
-        <Text style={[styles.listItemUrl, { color: colors.textSecondary }]} numberOfLines={1}>
+        <Text
+          style={[styles.listItemUrl, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
           {item.url}
         </Text>
       </TouchableOpacity>
@@ -60,10 +68,16 @@ export function BrowserHistoryBookmarksModal({
         style={styles.listItemTextContainer}
         onPress={() => handleSelectUrl(item.url)}
       >
-        <Text style={[styles.listItemTitle, { color: colors.text }]} numberOfLines={1}>
+        <Text
+          style={[styles.listItemTitle, { color: colors.text }]}
+          numberOfLines={1}
+        >
           {item.title}
         </Text>
-        <Text style={[styles.listItemUrl, { color: colors.textSecondary }]} numberOfLines={1}>
+        <Text
+          style={[styles.listItemUrl, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
           {item.url}
         </Text>
       </TouchableOpacity>
@@ -71,7 +85,11 @@ export function BrowserHistoryBookmarksModal({
         style={styles.deleteButton}
         onPress={() => removeFavorite(item.url)}
       >
-        <Trash2 size={18} color={colors.danger} />
+        <MaterialCommunityIcons
+          name="trash-can"
+          size={18}
+          color={colors.danger}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -83,35 +101,59 @@ export function BrowserHistoryBookmarksModal({
       visible={visible}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             Favoritos e Histórico
           </Text>
           <TouchableOpacity style={styles.headerCloseButton} onPress={onClose}>
-            <X size={24} color={colors.text} />
+            <MaterialCommunityIcons
+              name="close"
+              size={24}
+              color={colors.text}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Tab Selector */}
-        <View style={[styles.tabSelectorContainer, { borderBottomColor: colors.border }]}>
+        <View
+          style={[
+            styles.tabSelectorContainer,
+            { borderBottomColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
             style={[
               styles.tabButton,
-              activeTab === "favorites" && [styles.activeTabButton, { borderBottomColor: colors.brandGreen || "#10B981" }],
+              activeTab === "favorites" && [
+                styles.activeTabButton,
+                { borderBottomColor: colors.brandGreen || "#10B981" },
+              ],
             ]}
             onPress={() => setActiveTab("favorites")}
           >
-            <Star
+            <MaterialCommunityIcons
+              name="star"
               size={18}
-              color={activeTab === "favorites" ? (colors.brandGreen || "#10B981") : colors.textSecondary}
+              color={
+                activeTab === "favorites"
+                  ? colors.brandGreen || "#10B981"
+                  : colors.textSecondary
+              }
               style={{ marginRight: 6 }}
             />
             <Text
               style={[
                 styles.tabButtonText,
-                { color: activeTab === "favorites" ? (colors.brandGreen || "#10B981") : colors.textSecondary },
+                {
+                  color:
+                    activeTab === "favorites"
+                      ? colors.brandGreen || "#10B981"
+                      : colors.textSecondary,
+                },
               ]}
             >
               Favoritos
@@ -121,19 +163,32 @@ export function BrowserHistoryBookmarksModal({
           <TouchableOpacity
             style={[
               styles.tabButton,
-              activeTab === "history" && [styles.activeTabButton, { borderBottomColor: colors.brandGreen || "#10B981" }],
+              activeTab === "history" && [
+                styles.activeTabButton,
+                { borderBottomColor: colors.brandGreen || "#10B981" },
+              ],
             ]}
             onPress={() => setActiveTab("history")}
           >
-            <History
+            <MaterialCommunityIcons
+              name="history"
               size={18}
-              color={activeTab === "history" ? (colors.brandGreen || "#10B981") : colors.textSecondary}
+              color={
+                activeTab === "history"
+                  ? colors.brandGreen || "#10B981"
+                  : colors.textSecondary
+              }
               style={{ marginRight: 6 }}
             />
             <Text
               style={[
                 styles.tabButtonText,
-                { color: activeTab === "history" ? (colors.brandGreen || "#10B981") : colors.textSecondary },
+                {
+                  color:
+                    activeTab === "history"
+                      ? colors.brandGreen || "#10B981"
+                      : colors.textSecondary,
+                },
               ]}
             >
               Histórico
@@ -149,7 +204,9 @@ export function BrowserHistoryBookmarksModal({
             keyExtractor={(item) => item.url}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={{ color: colors.textSecondary }}>Nenhum favorito salvo.</Text>
+                <Text style={{ color: colors.textSecondary }}>
+                  Nenhum favorito salvo.
+                </Text>
               </View>
             }
           />
@@ -161,16 +218,26 @@ export function BrowserHistoryBookmarksModal({
               keyExtractor={(item, index) => `${item.url}-${index}`}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Text style={{ color: colors.textSecondary }}>Nenhum histórico disponível.</Text>
+                  <Text style={{ color: colors.textSecondary }}>
+                    Nenhum histórico disponível.
+                  </Text>
                 </View>
               }
             />
             {history.length > 0 && (
               <TouchableOpacity
-                style={[styles.clearAllButton, { backgroundColor: colors.danger }]}
+                style={[
+                  styles.clearAllButton,
+                  { backgroundColor: colors.danger },
+                ]}
                 onPress={clearHistory}
               >
-                <Trash2 size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <MaterialCommunityIcons
+                  name="trash-can"
+                  size={18}
+                  color="#FFFFFF"
+                  style={{ marginRight: 8 }}
+                />
                 <Text style={styles.clearAllText}>Limpar Todo o Histórico</Text>
               </TouchableOpacity>
             )}

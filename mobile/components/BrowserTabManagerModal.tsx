@@ -11,18 +11,10 @@ import {
   StatusBar,
   TextInput,
 } from "react-native";
-import {
-  X,
-  Plus,
-  EyeOff,
-  Globe,
-  Lock,
-  Search,
-  Compass,
-  Sparkles,
-} from "lucide-react-native";
+
 import { useAppTheme } from "@/context/ThemeContext";
 import { useBrowserStore, BrowserTab } from "@/store/useBrowserStore";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface BrowserTabManagerModalProps {
   visible: boolean;
@@ -154,7 +146,11 @@ export function BrowserTabManagerModal({
           ]}
           onPress={() => closeTab(item.id)}
         >
-          <X size={10} color={isIncognito || isDark ? "#FFFFFF" : "#3D3D3D"} />
+          <MaterialCommunityIcons
+            name="close"
+            size={20}
+            color={isIncognito || isDark ? "#FFFFFF" : "#3D3D3D"}
+          />
         </TouchableOpacity>
 
         {/* Card Body / Webpage Mockup Viewport */}
@@ -174,7 +170,11 @@ export function BrowserTabManagerModal({
           >
             <View style={styles.faviconContainer}>
               {isIncognito ? (
-                <EyeOff size={11} color="#A78BFA" />
+                <MaterialCommunityIcons
+                  name="eye-off"
+                  size={11}
+                  color="#A78BFA"
+                />
               ) : item.url.includes("google.com") ? (
                 <Text
                   style={[
@@ -185,7 +185,11 @@ export function BrowserTabManagerModal({
                   G
                 </Text>
               ) : (
-                <Globe size={11} color={isDark ? "#AEAEB2" : "#8E8E93"} />
+                <MaterialCommunityIcons
+                  name="earth"
+                  size={11}
+                  color={isDark ? "#AEAEB2" : "#8E8E93"}
+                />
               )}
             </View>
             <Text
@@ -334,18 +338,14 @@ export function BrowserTabManagerModal({
                 activeMode === "normal" && [
                   styles.segmentActive,
                   {
-                    backgroundColor:
-                      activeMode === "incognito"
-                        ? "#3A3A3C"
-                        : isDark
-                          ? "#2C2C2E"
-                          : "#FFFFFF",
+                    backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
                   },
                 ],
               ]}
               onPress={() => setActiveMode("normal")}
             >
-              <Compass
+              <MaterialCommunityIcons
+                name="compass"
                 size={13}
                 color={
                   activeMode === "normal"
@@ -362,7 +362,7 @@ export function BrowserTabManagerModal({
                   {
                     color:
                       activeMode === "normal"
-                        ? isDark || activeMode === "incognito"
+                        ? isDark
                           ? "#FFFFFF"
                           : "#000000"
                         : "#8E8E93",
@@ -441,7 +441,12 @@ export function BrowserTabManagerModal({
               },
             ]}
           >
-            <Search size={14} color="#8E8E93" style={{ marginRight: 6 }} />
+            <MaterialCommunityIcons
+              name="magnify"
+              size={20}
+              color="#8E8E93"
+              style={{ marginRight: 6 }}
+            />
             <TextInput
               placeholder="Buscar abas"
               placeholderTextColor="#8E8E93"
@@ -467,7 +472,8 @@ export function BrowserTabManagerModal({
           <View style={styles.emptyContainer}>
             {activeMode === "incognito" ? (
               <View style={styles.privateIntroContainer}>
-                <EyeOff
+                <MaterialCommunityIcons
+                  name="eye-off"
                   size={48}
                   color="#A78BFA"
                   style={{ marginBottom: 12 }}
@@ -481,7 +487,8 @@ export function BrowserTabManagerModal({
               </View>
             ) : (
               <>
-                <Compass
+                <MaterialCommunityIcons
+                  name="compass"
                   size={40}
                   color={isDark ? "#2C2C2E" : "#D1D1D6"}
                   style={{ marginBottom: 12 }}
@@ -545,7 +552,8 @@ export function BrowserTabManagerModal({
             ]}
             onPress={handleNewTab}
           >
-            <Plus
+            <MaterialCommunityIcons
+              name="plus"
               size={20}
               color={
                 activeMode === "incognito"

@@ -1,26 +1,13 @@
 import React, { forwardRef, useCallback, useMemo } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
-import {
-  ArrowLeft,
-  ArrowRight,
-  RotateCw,
-  Share2,
-  Shield,
-  Star,
-  Plus,
-  Layers,
-} from "lucide-react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+
 import {
   BottomSheetModal,
   BottomSheetView,
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/context/ThemeContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface BrowserSidebarProps {
   canGoBack: boolean;
@@ -36,6 +23,10 @@ interface BrowserSidebarProps {
   onCreateTab: () => void;
   onOpenTabManager: () => void;
   tabsCount: number;
+  zoom: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onResetZoom: () => void;
 }
 
 export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
@@ -54,11 +45,15 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
       onCreateTab,
       onOpenTabManager,
       tabsCount,
+      zoom,
+      onZoomIn,
+      onZoomOut,
+      onResetZoom,
     },
-    ref
+    ref,
   ) => {
     const { colors } = useAppTheme();
-    const snapPoints = useMemo(() => ["35%"], []);
+    const snapPoints = useMemo(() => ["42%"], []);
 
     const renderBackdrop = useCallback(
       (props: any) => (
@@ -68,7 +63,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
           appearsOnIndex={0}
         />
       ),
-      []
+      [],
     );
 
     const handleClose = () => {
@@ -88,7 +83,10 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
         <BottomSheetView style={styles.contentContainer}>
           {/* Top Navigation Row */}
           <View
-            style={[styles.bottomSheetNavRow, { borderBottomColor: colors.border }]}
+            style={[
+              styles.bottomSheetNavRow,
+              { borderBottomColor: colors.border },
+            ]}
           >
             <TouchableOpacity
               onPress={() => {
@@ -98,11 +96,15 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               disabled={!canGoBack}
               style={[
                 styles.bottomSheetNavButton,
-                { backgroundColor: colors.background, opacity: canGoBack ? 1 : 0.5 },
+                {
+                  backgroundColor: colors.background,
+                  opacity: canGoBack ? 1 : 0.5,
+                },
               ]}
             >
-              <ArrowLeft
-                size={22}
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
                 color={canGoBack ? colors.text : colors.tabIconDefault}
               />
             </TouchableOpacity>
@@ -115,10 +117,14 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               disabled={!canGoForward}
               style={[
                 styles.bottomSheetNavButton,
-                { backgroundColor: colors.background, opacity: canGoForward ? 1 : 0.5 },
+                {
+                  backgroundColor: colors.background,
+                  opacity: canGoForward ? 1 : 0.5,
+                },
               ]}
             >
-              <ArrowRight
+              <MaterialCommunityIcons
+                name="arrow-right"
                 size={22}
                 color={canGoForward ? colors.text : colors.tabIconDefault}
               />
@@ -129,9 +135,16 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 onReload();
                 handleClose();
               }}
-              style={[styles.bottomSheetNavButton, { backgroundColor: colors.background }]}
+              style={[
+                styles.bottomSheetNavButton,
+                { backgroundColor: colors.background },
+              ]}
             >
-              <RotateCw size={20} color={colors.text} />
+              <MaterialCommunityIcons
+                name="rotate-right"
+                size={20}
+                color={colors.text}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -139,10 +152,14 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 onToggleFavorite();
                 handleClose();
               }}
-              style={[styles.bottomSheetNavButton, { backgroundColor: colors.background }]}
+              style={[
+                styles.bottomSheetNavButton,
+                { backgroundColor: colors.background },
+              ]}
             >
-              <Star
-                size={22}
+              <MaterialCommunityIcons
+                name="star"
+                size={24}
                 color={isCurrentFavorite ? "#FFB300" : colors.text}
                 fill={isCurrentFavorite ? "#FFB300" : "transparent"}
               />
@@ -153,9 +170,16 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 onCreateTab();
                 handleClose();
               }}
-              style={[styles.bottomSheetNavButton, { backgroundColor: colors.background }]}
+              style={[
+                styles.bottomSheetNavButton,
+                { backgroundColor: colors.background },
+              ]}
             >
-              <Plus size={22} color={colors.text} />
+              <MaterialCommunityIcons
+                name="plus"
+                size={24}
+                color={colors.text}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -163,7 +187,10 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 onOpenTabManager();
                 handleClose();
               }}
-              style={[styles.bottomSheetNavButton, { backgroundColor: colors.background }]}
+              style={[
+                styles.bottomSheetNavButton,
+                { backgroundColor: colors.background },
+              ]}
             >
               <View style={[styles.tabBadge, { borderColor: colors.text }]}>
                 <Text style={[styles.tabBadgeText, { color: colors.text }]}>
@@ -171,6 +198,49 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 </Text>
               </View>
             </TouchableOpacity>
+          </View>
+
+          {/* Zoom Control Row */}
+          <View style={[styles.zoomRow, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.zoomLabel, { color: colors.text }]}>
+              Zoom da Página
+            </Text>
+            <View style={styles.zoomControls}>
+              <TouchableOpacity
+                onPress={onZoomOut}
+                style={[
+                  styles.zoomButton,
+                  { backgroundColor: colors.background },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="magnify-minus"
+                  size={20}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onResetZoom}
+                style={styles.zoomValueContainer}
+              >
+                <Text style={[styles.zoomValue, { color: colors.text }]}>
+                  {zoom}%
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onZoomIn}
+                style={[
+                  styles.zoomButton,
+                  { backgroundColor: colors.background },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="magnify-plus"
+                  size={20}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Menu Items List */}
@@ -182,12 +252,15 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               }}
               style={styles.bottomSheetMenuItem}
             >
-              <Share2
-                size={20}
+              <MaterialCommunityIcons
+                name="share"
+                size={24}
                 color={colors.text}
                 style={styles.bottomSheetMenuIcon}
               />
-              <Text style={[styles.bottomSheetMenuText, { color: colors.text }]}>
+              <Text
+                style={[styles.bottomSheetMenuText, { color: colors.text }]}
+              >
                 Compartilhar
               </Text>
             </TouchableOpacity>
@@ -199,12 +272,15 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               }}
               style={styles.bottomSheetMenuItem}
             >
-              <Star
-                size={20}
+              <MaterialCommunityIcons
+                name="star"
+                size={24}
                 color={colors.text}
                 style={styles.bottomSheetMenuIcon}
               />
-              <Text style={[styles.bottomSheetMenuText, { color: colors.text }]}>
+              <Text
+                style={[styles.bottomSheetMenuText, { color: colors.text }]}
+              >
                 Favoritos e Histórico
               </Text>
             </TouchableOpacity>
@@ -216,12 +292,15 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               }}
               style={styles.bottomSheetMenuItem}
             >
-              <Shield
-                size={20}
+              <MaterialCommunityIcons
+                name="shield"
+                size={24}
                 color={colors.text}
                 style={styles.bottomSheetMenuIcon}
               />
-              <Text style={[styles.bottomSheetMenuText, { color: colors.text }]}>
+              <Text
+                style={[styles.bottomSheetMenuText, { color: colors.text }]}
+              >
                 Configurações do AdBlock
               </Text>
             </TouchableOpacity>
@@ -229,7 +308,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
         </BottomSheetView>
       </BottomSheetModal>
     );
-  }
+  },
 );
 
 BrowserSidebar.displayName = "BrowserSidebar";
@@ -244,6 +323,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
+  },
+  zoomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+  },
+  zoomLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  zoomControls: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  zoomButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  zoomValueContainer: {
+    paddingHorizontal: 16,
+    minWidth: 60,
+    alignItems: "center",
+  },
+  zoomValue: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   bottomSheetNavButton: {
     width: 42,

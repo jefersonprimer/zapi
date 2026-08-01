@@ -18,20 +18,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  ArrowLeft,
-  Plus,
-  Minus,
-  ShoppingCart,
-  Store,
-  X,
-  Check,
-  Search,
-  Ticket,
-  Star,
-  ArrowRight,
-  CircleAlert,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { Colors } from "@/constants/theme";
@@ -532,7 +519,7 @@ export default function StoreScreen() {
                   { backgroundColor: Colors.light.surface },
                 ]}
               >
-                <Store color={Colors.light.icon} size={isCarousel ? 24 : 28} />
+                <MaterialCommunityIcons name="store" color={Colors.light.icon} size={isCarousel ? 24 : 28} />
               </View>
             )}
           </TouchableOpacity>
@@ -572,7 +559,7 @@ export default function StoreScreen() {
                 }}
                 hitSlop={6}
               >
-                <Minus color={Colors.light.tint} size={16} />
+                <MaterialCommunityIcons name="minus" color={Colors.light.tint} size={16} />
               </TouchableOpacity>
 
               <Text
@@ -599,7 +586,7 @@ export default function StoreScreen() {
                 }}
                 hitSlop={6}
               >
-                <Plus color={Colors.light.tint} size={16} />
+                <MaterialCommunityIcons name="plus" color={Colors.light.tint} size={16} />
               </TouchableOpacity>
             </View>
           ) : (
@@ -615,7 +602,7 @@ export default function StoreScreen() {
               onPress={() => quickAddToCart(product)}
               hitSlop={6}
             >
-              <Plus color={Colors.light.tint} size={isCarousel ? 18 : 20} />
+              <MaterialCommunityIcons name="plus" color={Colors.light.tint} size={isCarousel ? 18 : 20} />
             </TouchableOpacity>
           )}
         </View>
@@ -729,7 +716,7 @@ export default function StoreScreen() {
                 },
               ]}
             >
-              <Store color={Colors.light.icon} size={20} />
+              <MaterialCommunityIcons name="store" color={Colors.light.icon} size={20} />
             </View>
           )}
         </TouchableOpacity>
@@ -751,7 +738,7 @@ export default function StoreScreen() {
                       )
                 }
               >
-                <Minus color={Colors.light.text} size={20} />
+                <MaterialCommunityIcons name="minus" color={Colors.light.text} size={20} />
               </TouchableOpacity>
               <Text style={[styles.qtyText, { color: Colors.light.text }]}>
                 {formatQuantityLabel(qty, saleType)}
@@ -765,7 +752,7 @@ export default function StoreScreen() {
                   updateQuantity(product.id, Math.round((qty + step) * 10) / 10)
                 }
               >
-                <Plus color="#fff" size={20} />
+                <MaterialCommunityIcons name="plus" color="#fff" size={20} />
               </TouchableOpacity>
             </View>
           ) : (
@@ -786,7 +773,7 @@ export default function StoreScreen() {
                 }
               }}
             >
-              <Plus color={Colors.light.tint} size={22} />
+              <MaterialCommunityIcons name="plus" color={Colors.light.tint} size={22} />
             </TouchableOpacity>
           )}
         </View>
@@ -865,7 +852,7 @@ export default function StoreScreen() {
               onPress={() => setIsGridViewVisible(false)}
               style={styles.gridBackButton}
             >
-              <ArrowLeft color={colors.text} size={24} />
+              <MaterialCommunityIcons name="arrow-left" color={colors.text} size={24} />
             </TouchableOpacity>
 
             <Text
@@ -885,14 +872,14 @@ export default function StoreScreen() {
                 }}
                 style={styles.gridSearchButton}
               >
-                <Search color={colors.text} size={24} />
+                <MaterialCommunityIcons name="magnify" color={colors.text} size={24} />
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => setStoreDetailsModalVisible(true)}
                 style={styles.gridSearchButton}
               >
-                <CircleAlert color={colors.text} size={24} />
+                <MaterialCommunityIcons name="alert-circle-outline" color={colors.text} size={24} />
               </TouchableOpacity>
             </View>
           </View>
@@ -1018,7 +1005,7 @@ export default function StoreScreen() {
                     { backgroundColor: colors.border },
                   ]}
                 >
-                  <ArrowLeft color={colors.headerText} size={20} />
+                  <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={20} />
                 </TouchableOpacity>
 
                 <Text
@@ -1062,7 +1049,7 @@ export default function StoreScreen() {
                       { backgroundColor: colors.border },
                     ]}
                   >
-                    <Search color={colors.headerText} size={20} />
+                    <MaterialCommunityIcons name="magnify" color={colors.headerText} size={20} />
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1072,7 +1059,7 @@ export default function StoreScreen() {
                       { backgroundColor: colors.border },
                     ]}
                   >
-                    <CircleAlert color={colors.headerText} size={20} />
+                    <MaterialCommunityIcons name="alert-circle-outline" color={colors.headerText} size={20} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1162,7 +1149,7 @@ export default function StoreScreen() {
               onPress={() => router.back()}
               style={[styles.searchButton, { backgroundColor: colors.border }]}
             >
-              <ArrowLeft color={colors.headerText} size={20} />
+              <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={20} />
             </TouchableOpacity>
 
             <View
@@ -1198,7 +1185,7 @@ export default function StoreScreen() {
                   { backgroundColor: colors.border },
                 ]}
               >
-                <Search color={colors.headerText} size={20} />
+                <MaterialCommunityIcons name="magnify" color={colors.headerText} size={20} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1208,7 +1195,7 @@ export default function StoreScreen() {
                   { backgroundColor: colors.border },
                 ]}
               >
-                <CircleAlert color={colors.headerText} size={20} />
+                <MaterialCommunityIcons name="alert-circle-outline" color={colors.headerText} size={20} />
               </TouchableOpacity>
             </View>
           </View>
@@ -1294,7 +1281,7 @@ export default function StoreScreen() {
                         },
                       ]}
                     >
-                      <Store color={colors.icon} size={32} />
+                      <MaterialCommunityIcons name="store" color={colors.icon} size={32} />
                     </View>
                   )}
                 </View>
@@ -1319,7 +1306,7 @@ export default function StoreScreen() {
                     <View
                       style={{ flexDirection: "row", alignItems: "center" }}
                     >
-                      <Star color="#F59E0B" fill="#F59E0B" size={14} />
+                      <MaterialCommunityIcons name="star" color="#F59E0B" size={14} />
                       <Text
                         style={[
                           styles.storeMetaCompactText,
@@ -1436,7 +1423,8 @@ export default function StoreScreen() {
                         >
                           Ver todos
                         </Text>
-                        <ArrowRight
+                        <MaterialCommunityIcons
+                          name="arrow-right"
                           color={colors.tint}
                           size={18}
                           style={{ marginVertical: 6 }}
@@ -1484,7 +1472,7 @@ export default function StoreScreen() {
               style={[styles.modalHeader, { borderBottomColor: colors.border }]}
             >
               <TouchableOpacity onPress={() => setAddonModalVisible(false)}>
-                <X color={colors.text} size={24} />
+                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
               </TouchableOpacity>
               <Text
                 style={[styles.modalTitle, { color: colors.text }]}
@@ -1493,7 +1481,7 @@ export default function StoreScreen() {
                 {selectedProduct?.name}
               </Text>
               <TouchableOpacity onPress={() => confirmAddToCart()}>
-                <Check color={colors.tint} size={24} />
+                <MaterialCommunityIcons name="check" color={colors.tint} size={24} />
               </TouchableOpacity>
             </View>
 
@@ -1541,7 +1529,7 @@ export default function StoreScreen() {
                         );
                       }}
                     >
-                      <Minus color={colors.text} size={20} />
+                      <MaterialCommunityIcons name="minus" color={colors.text} size={20} />
                     </TouchableOpacity>
                     <Text
                       style={[
@@ -1569,7 +1557,7 @@ export default function StoreScreen() {
                         setModalQty((q) => Math.round((q + step) * 10) / 10);
                       }}
                     >
-                      <Plus color="#fff" size={20} />
+                      <MaterialCommunityIcons name="plus" color="#fff" size={20} />
                     </TouchableOpacity>
                   </View>
                   {selectedProduct.sale_type === "weight" && (
@@ -1677,7 +1665,7 @@ export default function StoreScreen() {
                           },
                         ]}
                       >
-                        {selected && <Check color="#fff" size={14} />}
+                        {selected && <MaterialCommunityIcons name="check" color="#fff" size={14} />}
                       </View>
                     </TouchableOpacity>
                   );
@@ -1705,7 +1693,7 @@ export default function StoreScreen() {
               style={[styles.modalHeader, { borderBottomColor: colors.border }]}
             >
               <TouchableOpacity onPress={() => setProductDetailVisible(false)}>
-                <X color={colors.text} size={24} />
+                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
               </TouchableOpacity>
               <Text
                 style={[styles.modalTitle, { color: colors.text }]}
@@ -1738,7 +1726,7 @@ export default function StoreScreen() {
                         { backgroundColor: colors.surface },
                       ]}
                     >
-                      <Store color={colors.icon} size={48} />
+                      <MaterialCommunityIcons name="store" color={colors.icon} size={48} />
                     </View>
                   )}
 
@@ -1792,7 +1780,7 @@ export default function StoreScreen() {
                           );
                         }}
                       >
-                        <Minus color={colors.text} size={20} />
+                        <MaterialCommunityIcons name="minus" color={colors.text} size={20} />
                       </TouchableOpacity>
                       <Text
                         style={[
@@ -1820,7 +1808,7 @@ export default function StoreScreen() {
                           setModalQty((q) => Math.round((q + step) * 10) / 10);
                         }}
                       >
-                        <Plus color="#fff" size={20} />
+                        <MaterialCommunityIcons name="plus" color="#fff" size={20} />
                       </TouchableOpacity>
                     </View>
                     {selectedProduct.sale_type === "weight" && (
@@ -1920,7 +1908,7 @@ export default function StoreScreen() {
                                 },
                               ]}
                             >
-                              {selected && <Check color="#fff" size={14} />}
+                              {selected && <MaterialCommunityIcons name="check" color="#fff" size={14} />}
                             </View>
                           </TouchableOpacity>
                         );
@@ -1935,7 +1923,7 @@ export default function StoreScreen() {
                     ]}
                     onPress={() => confirmAddToCart(true)}
                   >
-                    <Plus color="#fff" size={18} />
+                    <MaterialCommunityIcons name="plus" color="#fff" size={18} />
                     <Text style={styles.detailAddBtnText}>
                       Adicionar · R${" "}
                       {(
@@ -1995,7 +1983,7 @@ export default function StoreScreen() {
           activeOpacity={0.9}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <ShoppingCart color={isDark ? "#121212" : "#FFFFFF"} size={20} style={{ marginRight: 8 }} />
+            <MaterialCommunityIcons name="cart" color={isDark ? "#121212" : "#FFFFFF"} size={20} style={{ marginRight: 8 }} />
             <Text style={{ color: isDark ? "#121212" : "#FFFFFF", fontWeight: "600", fontSize: 15 }}>
               {getItemCount()} {getItemCount() === 1 ? "item" : "itens"} • R${" "}
               {getSubtotal().toFixed(2).replace(".", ",")}
@@ -2035,7 +2023,7 @@ export default function StoreScreen() {
               <TouchableOpacity
                 onPress={() => setStoreDetailsModalVisible(false)}
               >
-                <X color={colors.text} size={24} />
+                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
               </TouchableOpacity>
               <Text
                 style={[styles.modalTitle, { color: colors.text }]}
@@ -2290,7 +2278,7 @@ export default function StoreScreen() {
               style={[styles.modalHeader, { borderBottomColor: colors.border }]}
             >
               <TouchableOpacity onPress={() => setCouponsModalVisible(false)}>
-                <X color={colors.text} size={24} />
+                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
               </TouchableOpacity>
               <Text
                 style={[styles.modalTitle, { color: colors.text }]}
@@ -2323,7 +2311,7 @@ export default function StoreScreen() {
                       { backgroundColor: `${colors.tint}10` },
                     ]}
                   >
-                    <Ticket color={colors.tint} size={24} />
+                    <MaterialCommunityIcons name="ticket-percent" color={colors.tint} size={24} />
                   </View>
 
                   <View
@@ -2402,7 +2390,7 @@ export default function StoreScreen() {
               onPress={() => setReviewsModalVisible(false)}
               style={styles.revModalCloseButton}
             >
-              <ArrowLeft color={colors.text} size={24} />
+              <MaterialCommunityIcons name="arrow-left" color={colors.text} size={24} />
             </TouchableOpacity>
             <Text style={[styles.revModalTitle, { color: colors.text }]}>
               Avaliações da Loja
@@ -2438,14 +2426,14 @@ export default function StoreScreen() {
                   </Text>
                   <View style={{ flexDirection: "row", marginVertical: 4 }}>
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
+                      <MaterialCommunityIcons
                         key={star}
                         size={16}
                         color="#F59E0B"
-                        fill={
+                        name={
                           store.score && star <= Math.round(Number(store.score))
-                            ? "#F59E0B"
-                            : "transparent"
+                            ? "star"
+                            : "star-outline"
                         }
                       />
                     ))}
@@ -2507,10 +2495,10 @@ export default function StoreScreen() {
                     activeOpacity={0.7}
                     style={{ padding: 6 }}
                   >
-                    <Star
+                    <MaterialCommunityIcons
                       size={32}
                       color="#F59E0B"
-                      fill={star <= userRating ? "#F59E0B" : "transparent"}
+                      name={star <= userRating ? "star" : "star-outline"}
                     />
                   </TouchableOpacity>
                 ))}
@@ -2639,12 +2627,12 @@ export default function StoreScreen() {
                           </Text>
                           <View style={{ flexDirection: "row", marginTop: 2 }}>
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
+                              <MaterialCommunityIcons
                                 key={star}
                                 size={12}
                                 color="#F59E0B"
-                                fill={
-                                  star <= rev.rating ? "#F59E0B" : "transparent"
+                                name={
+                                  star <= rev.rating ? "star" : "star-outline"
                                 }
                               />
                             ))}
@@ -2707,7 +2695,7 @@ export default function StoreScreen() {
               }}
               style={styles.searchModalCloseButton}
             >
-              <ArrowLeft color={colors.headerText} size={24} />
+              <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
             </TouchableOpacity>
 
             <View
@@ -2716,7 +2704,7 @@ export default function StoreScreen() {
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
             >
-              <Search color={colors.icon} size={18} />
+              <MaterialCommunityIcons name="magnify" color={colors.icon} size={18} />
               <TextInput
                 style={[styles.searchModalInput, { color: colors.text }]}
                 placeholder="Buscar produtos na loja..."
@@ -2733,7 +2721,7 @@ export default function StoreScreen() {
                   onPress={() => setSearchQuery("")}
                   hitSlop={8}
                 >
-                  <X color={colors.icon} size={16} />
+                  <MaterialCommunityIcons name="close" color={colors.icon} size={16} />
                 </TouchableOpacity>
               )}
             </View>
@@ -2840,7 +2828,7 @@ export default function StoreScreen() {
                                 )
                           }
                         >
-                          <Minus color={colors.text} size={20} />
+                          <MaterialCommunityIcons name="minus" color={colors.text} size={20} />
                         </TouchableOpacity>
                         <Text style={[styles.qtyText, { color: colors.text }]}>
                           {formatQuantityLabel(qty, saleType)}
@@ -2857,7 +2845,7 @@ export default function StoreScreen() {
                             )
                           }
                         >
-                          <Plus color="#fff" size={20} />
+                          <MaterialCommunityIcons name="plus" color="#fff" size={20} />
                         </TouchableOpacity>
                       </View>
                     ) : (
@@ -2882,7 +2870,7 @@ export default function StoreScreen() {
                           }
                         }}
                       >
-                        <Plus color={colors.tint} size={22} />
+                        <MaterialCommunityIcons name="plus" color={colors.tint} size={22} />
                       </TouchableOpacity>
                     )}
                   </View>

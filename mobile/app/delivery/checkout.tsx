@@ -13,17 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  ArrowLeft,
-  MapPin,
-  Check,
-  Tag,
-  X,
-  Bike,
-  ShoppingBag,
-  CreditCard,
-  QrCode,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useCartStore } from "@/store/useCartStore";
@@ -410,7 +400,7 @@ export default function CheckoutScreen() {
         ]}
       >
         <View style={{ alignItems: "center", marginVertical: 24 }}>
-          <QrCode color={colors.tint} size={64} style={{ marginBottom: 12 }} />
+          <MaterialCommunityIcons name="qrcode" color={colors.tint} size={64} style={{ marginBottom: 12 }} />
           <Text style={{ fontSize: 22, fontWeight: "700", color: colors.text }}>
             Pagamento do Pedido
           </Text>
@@ -622,7 +612,7 @@ export default function CheckoutScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <ArrowLeft color={colors.headerText} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Finalizar Pedido
@@ -667,7 +657,8 @@ export default function CheckoutScreen() {
                       setShowMoreSlots(false);
                     }}
                   >
-                    <Bike
+                    <MaterialCommunityIcons
+                      name="bike"
                       color={
                         fulfillmentType === "entrega"
                           ? colors.tint
@@ -717,7 +708,8 @@ export default function CheckoutScreen() {
                       setShowMoreSlots(false);
                     }}
                   >
-                    <ShoppingBag
+                    <MaterialCommunityIcons
+                      name="shopping"
                       color={
                         fulfillmentType === "retirada"
                           ? colors.tint
@@ -836,7 +828,7 @@ export default function CheckoutScreen() {
                         >
                           {feeLabel}
                         </Text>
-                        {selected && <Check color={colors.tint} size={18} />}
+                        {selected && <MaterialCommunityIcons name="check" color={colors.tint} size={18} />}
                       </TouchableOpacity>
                     );
                   })}
@@ -883,7 +875,8 @@ export default function CheckoutScreen() {
                 ]}
                 onPress={() => setPaymentMethod("pix")}
               >
-                <QrCode
+                <MaterialCommunityIcons
+                  name="qrcode"
                   color={paymentMethod === "pix" ? colors.tint : colors.icon}
                   size={20}
                 />
@@ -901,7 +894,7 @@ export default function CheckoutScreen() {
                   </Text>
                 </View>
                 {paymentMethod === "pix" && (
-                  <Check color={colors.tint} size={20} />
+                  <MaterialCommunityIcons name="check" color={colors.tint} size={20} />
                 )}
               </TouchableOpacity>
 
@@ -920,7 +913,8 @@ export default function CheckoutScreen() {
                 ]}
                 onPress={() => setPaymentMethod("credit_card")}
               >
-                <CreditCard
+                <MaterialCommunityIcons
+                  name="credit-card"
                   color={
                     paymentMethod === "credit_card" ? colors.tint : colors.icon
                   }
@@ -940,7 +934,7 @@ export default function CheckoutScreen() {
                   </Text>
                 </View>
                 {paymentMethod === "credit_card" && (
-                  <Check color={colors.tint} size={20} />
+                  <MaterialCommunityIcons name="check" color={colors.tint} size={20} />
                 )}
               </TouchableOpacity>
 
@@ -959,7 +953,8 @@ export default function CheckoutScreen() {
                 ]}
                 onPress={() => setPaymentMethod("debit_card")}
               >
-                <CreditCard
+                <MaterialCommunityIcons
+                  name="credit-card"
                   color={
                     paymentMethod === "debit_card" ? colors.tint : colors.icon
                   }
@@ -979,7 +974,7 @@ export default function CheckoutScreen() {
                   </Text>
                 </View>
                 {paymentMethod === "debit_card" && (
-                  <Check color={colors.tint} size={20} />
+                  <MaterialCommunityIcons name="check" color={colors.tint} size={20} />
                 )}
               </TouchableOpacity>
             </View>
@@ -1026,7 +1021,8 @@ export default function CheckoutScreen() {
                       ]}
                       onPress={() => setSelectedAddress(addr)}
                     >
-                      <MapPin
+                      <MaterialCommunityIcons
+                        name="map-marker"
                         color={
                           selectedAddress?.id === addr.id
                             ? colors.tint
@@ -1056,7 +1052,7 @@ export default function CheckoutScreen() {
                         </Text>
                       </View>
                       {selectedAddress?.id === addr.id && (
-                        <Check color={colors.tint} size={20} />
+                        <MaterialCommunityIcons name="check" color={colors.tint} size={20} />
                       )}
                     </TouchableOpacity>
                   ))
@@ -1080,7 +1076,7 @@ export default function CheckoutScreen() {
                 <View
                   style={[styles.addressOption, { borderColor: colors.border }]}
                 >
-                  <MapPin color={colors.tint} size={20} />
+                  <MaterialCommunityIcons name="map-marker" color={colors.tint} size={20} />
                   <View style={styles.addressInfo}>
                     <Text style={[styles.addressLabel, { color: colors.text }]}>
                       {store.name}
@@ -1196,7 +1192,7 @@ export default function CheckoutScreen() {
                       gap: 6,
                     }}
                   >
-                    <Tag color="#10B981" size={16} />
+                     <MaterialCommunityIcons name="tag-outline" color="#10B981" size={16} />
                     <Text style={{ color: "#10B981", fontWeight: "600" }}>
                       {couponCode}
                     </Text>
@@ -1211,8 +1207,8 @@ export default function CheckoutScreen() {
                     <Text style={{ color: "#10B981", fontWeight: "700" }}>
                       - R$ {discount.toFixed(2)}
                     </Text>
-                    <TouchableOpacity onPress={handleRemoveCoupon}>
-                      <X color="#10B981" size={18} />
+                     <TouchableOpacity onPress={handleRemoveCoupon}>
+                      <MaterialCommunityIcons name="close" color="#10B981" size={18} />
                     </TouchableOpacity>
                   </View>
                 </View>

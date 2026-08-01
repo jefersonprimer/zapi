@@ -580,25 +580,32 @@ export default function ChatScreen() {
             messagesRestrictedReason={messagesRestrictedReason}
             onUnblock={handleUnblock}
           />
-        ) : isRecording ? (
-          <VoiceNoteRecorderBar
-            recordingDuration={recordingDuration}
-            onStopRecording={discardRecording}
-            isPaused={isRecordingPaused}
-            onPauseResumeRecording={handlePauseResumeRecording}
-            recordedUri={recordedUri}
-            onStopAndPreview={stopRecordingAndPreview}
-            onSendAudio={
-              recordedUri ? sendPreviewedAudio : sendRecordingImmediately
-            }
-          />
         ) : (
           <>
+            {isRecording && (
+              <VoiceNoteRecorderBar
+                recordingDuration={recordingDuration}
+                onStopRecording={discardRecording}
+                isPaused={isRecordingPaused}
+                onPauseResumeRecording={handlePauseResumeRecording}
+                recordedUri={recordedUri}
+                onStopAndPreview={stopRecordingAndPreview}
+                onSendAudio={
+                  recordedUri ? sendPreviewedAudio : sendRecordingImmediately
+                }
+              />
+            )}
+
             <View
-              style={[
-                styles.inputContainerMessage,
-                { backgroundColor: "transparent", borderColor: colors.border },
-              ]}
+              style={
+                isRecording
+                  ? { position: "absolute", opacity: 0, width: 0, height: 0, overflow: "hidden" }
+                  : [
+                      styles.inputContainerMessage,
+                      { backgroundColor: "transparent", borderColor: colors.border },
+                    ]
+              }
+              pointerEvents={isRecording ? "none" : "auto"}
             >
               <TouchableOpacity
                 style={styles.actionMenuButton}
@@ -625,16 +632,18 @@ export default function ChatScreen() {
               />
             </View>
 
-            <SendOrMicButton
-              hasContent={
-                content.trim().length > 0 ||
-                selectedAttachment !== null ||
-                forwardingMessage !== null
-              }
-              sending={sending}
-              onSend={() => handleSend()}
-              onStartRecording={startRecording}
-            />
+            {!isRecording && (
+              <SendOrMicButton
+                hasContent={
+                  content.trim().length > 0 ||
+                  selectedAttachment !== null ||
+                  forwardingMessage !== null
+                }
+                sending={sending}
+                onSend={() => handleSend()}
+                onStartRecording={startRecording}
+              />
+            )}
           </>
         )}
       </View>

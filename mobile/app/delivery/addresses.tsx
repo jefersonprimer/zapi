@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { ArrowLeft, Plus, Trash2, MapPin, Check, X, LocateFixed } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { getCurrentUserAddress } from "@/utils/location";
@@ -203,7 +203,7 @@ export default function AddressesScreen() {
     <View style={[styles.addrCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
       <View style={styles.addrHeader}>
         <View style={styles.addrLabelRow}>
-          <MapPin color={item.is_default ? colors.tint : colors.icon} size={18} />
+          <MaterialCommunityIcons name="map-marker" color={item.is_default ? colors.tint : colors.icon} size={18} />
           <Text style={[styles.addrLabel, { color: colors.text }]}>
             {LABELS.find((l) => l.value === item.label)?.label || item.label}
           </Text>
@@ -218,7 +218,7 @@ export default function AddressesScreen() {
             <Text style={[styles.addrActionText, { color: colors.tint }]}>Editar</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleDelete(item)} style={styles.addrAction}>
-            <Trash2 color={colors.danger} size={16} />
+            <MaterialCommunityIcons name="trash-can-outline" color={colors.danger} size={16} />
           </TouchableOpacity>
         </View>
       </View>
@@ -234,11 +234,11 @@ export default function AddressesScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color={colors.headerText} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>Endereços</Text>
         <TouchableOpacity onPress={() => openForm()} style={[styles.addButton, { backgroundColor: colors.tint }]}>
-          <Plus color="#fff" size={20} />
+          <MaterialCommunityIcons name="plus" color="#fff" size={20} />
         </TouchableOpacity>
       </View>
 
@@ -257,7 +257,7 @@ export default function AddressesScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <MapPin color={colors.icon} size={64} />
+              <MaterialCommunityIcons name="map-marker" color={colors.icon} size={64} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 Nenhum endereço cadastrado
               </Text>
@@ -280,7 +280,7 @@ export default function AddressesScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <TouchableOpacity onPress={() => setShowForm(false)}>
-                <X color={colors.text} size={24} />
+                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
               </TouchableOpacity>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 {editingId ? "Editar endereço" : "Novo endereço"}
@@ -289,7 +289,7 @@ export default function AddressesScreen() {
                 {saving ? (
                   <ActivityIndicator color={colors.tint} />
                 ) : (
-                  <Check color={colors.tint} size={24} />
+                  <MaterialCommunityIcons name="check" color={colors.tint} size={24} />
                 )}
               </TouchableOpacity>
             </View>
@@ -303,7 +303,7 @@ export default function AddressesScreen() {
                 {gettingLocation ? (
                   <ActivityIndicator size="small" color={colors.tint} />
                 ) : (
-                  <LocateFixed color={colors.tint} size={18} />
+                  <MaterialCommunityIcons name="crosshairs-gps" color={colors.tint} size={18} />
                 )}
                 <Text style={[styles.locationBtnText, { color: colors.tint }]}>
                   {gettingLocation ? "Buscando localização..." : "Usar minha localização atual"}
@@ -422,7 +422,7 @@ export default function AddressesScreen() {
                     },
                   ]}
                 >
-                  {form.is_default && <Check color="#fff" size={14} />}
+                  {form.is_default && <MaterialCommunityIcons name="check" color="#fff" size={14} />}
                 </View>
                 <Text style={[styles.defaultLabel, { color: colors.text }]}>Definir como padrão</Text>
               </TouchableOpacity>

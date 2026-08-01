@@ -8,14 +8,13 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
-  Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getContacts, createChat, type Contact, API_URL } from "@/services/api";
+import { getContacts, createChat, type Contact } from "@/services/api";
 import { insertMessageLocal } from "@/services/database";
 import { getMyPixKey, type PixKeyData } from "@/services/pixApi";
 import { syncWorker } from "@/services/syncWorker";

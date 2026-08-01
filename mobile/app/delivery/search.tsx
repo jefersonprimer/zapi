@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Search, ArrowLeft, Store, MapPin } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
@@ -96,7 +96,7 @@ export default function SearchScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <ArrowLeft size={24} color={colors.headerText} />
+          <MaterialCommunityIcons size={24} color={colors.headerText} name="arrow-left" />
         </TouchableOpacity>
         <View
           style={[
@@ -104,7 +104,7 @@ export default function SearchScreen() {
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
-          <Search color={colors.icon} size={18} />
+          <MaterialCommunityIcons name="magnify" color={colors.icon} size={18} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Buscar loja..."
@@ -126,7 +126,7 @@ export default function SearchScreen() {
 
       {!address ? (
         <View style={styles.emptyContainer}>
-          <MapPin color={colors.icon} size={64} />
+          <MaterialCommunityIcons name="map-marker" color={colors.icon} size={64} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             Cadastre um endereço para buscar lojas na sua cidade
           </Text>
@@ -154,7 +154,7 @@ export default function SearchScreen() {
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Store color={colors.icon} size={64} />
+                  <MaterialCommunityIcons name="store" color={colors.icon} size={64} />
                   <Text
                     style={[styles.emptyText, { color: colors.textSecondary }]}
                   >
@@ -167,7 +167,7 @@ export default function SearchScreen() {
 
           {!loading && searchQuery.trim().length === 0 && (
             <View style={styles.emptyContainer}>
-              <Search color={colors.icon} size={64} />
+              <MaterialCommunityIcons name="magnify" color={colors.icon} size={64} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 Digite o nome de uma loja para começar a buscar
               </Text>

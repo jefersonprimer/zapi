@@ -13,10 +13,10 @@ import {
   type NativeScrollEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft, Play as PlayIcon } from "lucide-react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import type { PostAttachment } from "@/services/updatesApi";
 import { getFullRemoteUrl } from "@/services/mediaCache";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -83,11 +83,18 @@ interface MediaTileProps {
   onPress: () => void;
 }
 
-function MediaTile({ attachment, width, aspectRatio, onPress }: MediaTileProps) {
+function MediaTile({
+  attachment,
+  width,
+  aspectRatio,
+  onPress,
+}: MediaTileProps) {
   const isVideo = isVideoAttachment(attachment);
   const fullUri = mediaUri(attachment.url);
   const previewUri = mediaUri(
-    isVideo && attachment.thumbnail_url ? attachment.thumbnail_url : attachment.url,
+    isVideo && attachment.thumbnail_url
+      ? attachment.thumbnail_url
+      : attachment.url,
   );
 
   return (
@@ -99,16 +106,29 @@ function MediaTile({ attachment, width, aspectRatio, onPress }: MediaTileProps) 
       {isVideo ? (
         <>
           {attachment.thumbnail_url ? (
-            <Image source={{ uri: previewUri }} style={styles.fill} resizeMode="cover" />
+            <Image
+              source={{ uri: previewUri }}
+              style={styles.fill}
+              resizeMode="cover"
+            />
           ) : (
             <MediaVideo uri={fullUri} isFullScreen={false} />
           )}
           <View style={styles.playOverlay}>
-            <PlayIcon size={36} color="#fff" fill="#fff" />
+            <MaterialCommunityIcons
+              name="play"
+              size={36}
+              color="#fff"
+              fill="#fff"
+            />
           </View>
         </>
       ) : (
-        <Image source={{ uri: previewUri }} style={styles.fill} resizeMode="cover" />
+        <Image
+          source={{ uri: previewUri }}
+          style={styles.fill}
+          resizeMode="cover"
+        />
       )}
     </TouchableOpacity>
   );
@@ -210,7 +230,11 @@ function MediaFullscreenModal({
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <ArrowLeft size={24} color="#fff" />
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color="#fff"
+              />
             </TouchableOpacity>
             <TouchableWithoutFeedback>
               <View style={styles.modalContent}>

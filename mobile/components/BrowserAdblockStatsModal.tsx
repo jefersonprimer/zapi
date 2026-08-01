@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native";
-import { ShieldAlert, X } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface BrowserAdblockStatsModalProps {
   visible: boolean;
@@ -52,7 +52,11 @@ export function BrowserAdblockStatsModal({
               </Text>
             </View>
             <TouchableOpacity onPress={onClose}>
-              <X size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={20}
+                color={colors.textSecondary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -162,7 +166,8 @@ export function BrowserAdblockStatsModal({
             </View>
           ) : (
             <View style={styles.disabledContainer}>
-              <ShieldAlert
+              <MaterialCommunityIcons
+                name="shield-alert"
                 size={48}
                 color={colors.textSecondary}
                 style={{ marginBottom: 12 }}

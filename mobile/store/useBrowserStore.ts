@@ -21,6 +21,7 @@ export interface BrowserTab {
   canGoForward: boolean;
   loading: boolean;
   lastActive: number;
+  zoom?: number;
 }
 
 interface BrowserStore {
@@ -60,6 +61,7 @@ export const useBrowserStore = create<BrowserStore>((set, get) => ({
       canGoForward: false,
       loading: false,
       lastActive: Date.now(),
+      zoom: 100,
     },
   ],
   activeTabId: "default",
@@ -87,6 +89,7 @@ export const useBrowserStore = create<BrowserStore>((set, get) => ({
       canGoForward: false,
       loading: false,
       lastActive: Date.now(),
+      zoom: 100,
     };
     set((state) => ({
       tabs: [...state.tabs, newTab],

@@ -46,7 +46,7 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
   onToggleCallSelection,
 }) => {
   const { colors, isDark } = useAppTheme();
-  const bubbleRef = useRef<TouchableOpacity>(null);
+  const bubbleRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
 
   const itemDate =
     item.type === "message"
@@ -67,7 +67,7 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
       if (isSelectionMode) {
         onToggleMessageSelection(msg);
       } else {
-        bubbleRef.current?.measure((x, y, width, height, pageX, pageY) => {
+        bubbleRef.current?.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
           onToggleMessageSelection(msg, { x: pageX, y: pageY, width, height });
         });
       }

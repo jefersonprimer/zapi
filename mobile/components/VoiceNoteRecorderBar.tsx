@@ -12,6 +12,7 @@ import {
   Trash2 as TrashIcon,
   Pause as PauseIcon,
   Play as PlayIcon,
+  Square as SquareIcon,
   SendHorizonal,
 } from "lucide-react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
@@ -104,20 +105,106 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
   const progressPercent =
     audioDuration > 0 ? (currentPosition / audioDuration) * 100 : 0;
 
-  return (
-    <View style={styles.recordingContainer}>
-      {/* 1. Preview Player (Visible when paused or recordedUri is set) */}
-      {(isPaused || recordedUri) && (
-        <View style={[styles.previewContainer, { marginBottom: 12 }]}>
+  // Render Recording State (No recorded URI yet)
+  if (!recordedUri) {
+    return (
+      <View
+        style={[
+          styles.mainContainer,
+          {
+            backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#F2F2F7",
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.rowContainer,
+            { paddingVertical: 8, paddingHorizontal: 12 },
+          ]}
+        >
+          {/* Left: Beautiful Soundwave / Recording graphic */}
+          <View style={styles.waveformContainer}>
+            {Array.from({ length: 26 }).map((_, i) => {
+              const heights = [
+                4, 10, 16, 22, 14, 8, 12, 18, 24, 20, 12, 6, 10, 16, 22, 14, 8,
+                12, 18, 24, 20, 12, 6, 8, 4,
+              ];
+              const height = heights[i % heights.length];
+              return (
+                <View
+                  key={i}
+                  style={[
+                    styles.waveformBar,
+                    {
+                      height,
+                      backgroundColor: colors.tint,
+                      opacity: isPaused ? 0.4 : 1,
+                    },
+                  ]}
+                />
+              );
+            })}
+          </View>
+
+          {/* Middle-Right: Timer */}
+          <Text style={[styles.timerText, { color: colors.text }]}>
+            {formatDuration(recordingDuration)}
+          </Text>
+
+          {/* Right: Stop Recording Button */}
           <TouchableOpacity
+            style={[styles.stopBtn, { backgroundColor: colors.danger }]}
+            onPress={onStopAndPreview}
+          >
+            <SquareIcon size={18} color="#fff" fill="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Render Preview/Send State (recordedUri is set)
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
+      {/* 1st: Trash Button to discard (with its own background and border radius) */}
+      <TouchableOpacity
+        style={[
+          styles.trashBtn,
+          {
+            backgroundColor: isDark
+              ? "rgba(239, 68, 68, 0.2)"
+              : "rgba(239, 68, 68, 0.1)",
+          },
+        ]}
+        onPress={onStopRecording}
+      >
+        <TrashIcon size={20} color="#EF4444" />
+      </TouchableOpacity>
+
+      {/* Main controls container */}
+      <View
+        style={[
+          styles.mainContainer,
+          {
+            flex: 1,
+            backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#F2F2F7",
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.rowContainer,
+            { paddingVertical: 8, paddingHorizontal: 12 },
+          ]}
+        >
+          {/* 2nd: Play/Pause Button to listen */}
+          <TouchableOpacity
+            style={[styles.playPauseBtn, { backgroundColor: colors.tint }]}
             onPress={
-              status.playing
-                ? () => player.pause()
-                : recordedUri
-                  ? () => player.play()
-                  : onStopAndPreview
+              status.playing ? () => player.pause() : () => player.play()
             }
-            style={[styles.previewPlayBtn, { backgroundColor: colors.tint }]}
           >
             {status.playing ? (
               <PauseIcon size={16} color="#fff" fill="#fff" />
@@ -126,208 +213,146 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
                 size={16}
                 color="#fff"
                 fill="#fff"
-                style={{ marginLeft: 2 }}
+                style={{ marginLeft: 1 }}
               />
             )}
           </TouchableOpacity>
 
+          {/* 3rd: Timeline Waveform Line / Progress */}
           <TouchableOpacity
             activeOpacity={1}
             style={styles.timelineTouch}
-            onPress={recordedUri ? handleTimelinePress : onStopAndPreview}
+            onPress={handleTimelinePress}
           >
             <View
-              style={[
-                styles.timelineBackground,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.2)"
-                    : "#dcdcdc",
-                },
-              ]}
+              style={styles.waveformContainer}
               onLayout={(e) => setTimelineWidth(e.nativeEvent.layout.width)}
             >
-              <View
-                style={[
-                  styles.timelineProgress,
-                  {
-                    backgroundColor: colors.tint,
-                    width: `${progressPercent}%`,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.timelineThumb,
-                  { backgroundColor: colors.tint, left: `${progressPercent}%` },
-                ]}
-              />
+              {Array.from({ length: 26 }).map((_, i) => {
+                const heights = [
+                  4, 10, 16, 22, 14, 8, 12, 18, 24, 20, 12, 6, 10, 16, 22, 14,
+                  8, 12, 18, 24, 20, 12, 6, 8, 4,
+                ];
+                const height = heights[i % heights.length];
+                const isActive = progressPercent >= (i / 25) * 100;
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.waveformBar,
+                      {
+                        height,
+                        backgroundColor: isActive
+                          ? colors.tint
+                          : isDark
+                            ? "rgba(255, 255, 255, 0.2)"
+                            : "#dcdcdc",
+                      },
+                    ]}
+                  />
+                );
+              })}
             </View>
           </TouchableOpacity>
 
+          {/* 4th: Timer (current / total) */}
           <Text
-            style={[styles.previewTimeText, { color: colors.textSecondary }]}
+            style={[styles.timerTextPreview, { color: colors.textSecondary }]}
           >
-            {formatTime(currentPosition)} / {formatTime(audioDuration)}
+            {formatTime(currentPosition)}
           </Text>
-        </View>
-      )}
 
-      {/* 2. Status Row */}
-      <View style={[styles.statusContainer, { marginBottom: 8 }]}>
-        <View style={styles.statusInfo}>
-          <View
-            style={[
-              styles.statusDot,
-              isPaused || recordedUri
-                ? styles.statusDotPaused
-                : [styles.statusDotActive, { backgroundColor: colors.danger }],
-            ]}
-          />
-          <Text
-            style={[
-              styles.recordingText,
-              {
-                color:
-                  isPaused || recordedUri
-                    ? colors.textSecondary
-                    : colors.danger,
-              },
-            ]}
-          >
-            {isPaused || recordedUri ? "Gravação pausada" : "Gravando áudio"}
-          </Text>
-        </View>
-        <Text style={[styles.timerText, { color: colors.text }]}>
-          {formatDuration(recordingDuration)}
-        </Text>
-      </View>
-
-      {/* Bottom Action Row */}
-      <View style={styles.bottomRow}>
-        {/* Left: Trash Button with background */}
-        <TouchableOpacity
-          style={[
-            styles.circleBtn,
-            {
-              backgroundColor: isDark
-                ? "rgba(239, 68, 68, 0.15)"
-                : "rgba(239, 68, 68, 0.08)",
-              // Remove shadow to prevent weird rendering behind transparent background
-              shadowOpacity: 0,
-              elevation: 0,
-            },
-          ]}
-          onPress={onStopRecording}
-        >
-          <TrashIcon size={20} color="#EF4444" />
-        </TouchableOpacity>
-
-        {/* Middle Pause/Resume/Continue Button */}
-        {!recordedUri && (
+          {/* 5th: Send Audio Button */}
           <TouchableOpacity
-            style={[
-              styles.pillBtn,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                borderWidth: 1,
-              },
-            ]}
-            onPress={onPauseResumeRecording}
+            style={[styles.sendBtn, { backgroundColor: "#34C759" }]}
+            onPress={onSendAudio}
           >
-            {isPaused ? (
-              <>
-                <PlayIcon size={18} color={colors.tint} fill={colors.tint} />
-                <Text style={[styles.pillBtnText, { color: colors.tint }]}>
-                  Continuar
-                </Text>
-              </>
-            ) : (
-              <>
-                <PauseIcon size={16} color={colors.tint} fill={colors.tint} />
-                <Text style={[styles.pillBtnText, { color: colors.tint }]}>
-                  Pausar
-                </Text>
-              </>
-            )}
+            <SendHorizonal size={20} color="#fff" style={{ marginLeft: 1 }} />
           </TouchableOpacity>
-        )}
-
-        {/* Right Send Button */}
-        <TouchableOpacity
-          style={[styles.circleBtn, { backgroundColor: "#34C759" }]}
-          onPress={onSendAudio}
-        >
-          <SendHorizonal size={20} color="#fff" style={{ marginLeft: 2 }} />
-        </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  recordingContainer: {
-    flexDirection: "column",
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  topRow: {
+  mainContainer: {
+    borderRadius: 50,
+    borderWidth: 1,
+    overflow: "hidden",
     width: "100%",
-    marginBottom: 8,
+    padding: 2,
   },
-  statusContainer: {
+  rowContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  waveformContainer: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    width: "100%",
-    paddingHorizontal: 8,
+    paddingRight: 16,
+    height: 32,
   },
-  statusInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  statusDotActive: {
-    backgroundColor: "#EF4444",
-  },
-  statusDotPaused: {
-    backgroundColor: "#8E8E93",
-  },
-  recordingText: {
-    fontSize: 14,
-    fontWeight: "600",
+  waveformBar: {
+    width: 2.5,
+    borderRadius: 1.25,
   },
   timerText: {
     fontSize: 14,
     fontWeight: "700",
     fontVariant: ["tabular-nums"],
+    marginRight: 16,
   },
-  previewContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    paddingHorizontal: 4,
+  timerTextPreview: {
+    fontSize: 12,
+    fontVariant: ["tabular-nums"],
+    marginRight: 12,
+    minWidth: 32,
+    textAlign: "right",
   },
-  previewPlayBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  stopBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  trashBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 50, // Distinct border radius for the trash button, scaled up slightly
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  playPauseBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   timelineTouch: {
     flex: 1,
-    height: 20,
+    height: 44,
     justifyContent: "center",
-    marginRight: 10,
+    marginRight: 12,
   },
   timelineBackground: {
     height: 4,
@@ -350,48 +375,16 @@ const styles = StyleSheet.create({
     top: -3,
     marginLeft: -5,
   },
-  previewTimeText: {
-    fontSize: 11,
-    fontVariant: ["tabular-nums"],
-    minWidth: 75,
-    textAlign: "right",
-  },
-  bottomRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingHorizontal: 8,
-  },
-  circleBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 1,
-  },
-  pillBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  pillBtnText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: "600",
+    elevation: 2,
   },
 });

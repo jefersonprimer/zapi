@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { Play as PlayIcon, Pause as PauseIcon } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface AudioPlayerProps {
   uri: string;
@@ -10,7 +10,11 @@ interface AudioPlayerProps {
   onLongPress?: () => void;
 }
 
-export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPress }) => {
+export const AudioPlayer: React.FC<AudioPlayerProps> = ({
+  uri,
+  isMine,
+  onLongPress,
+}) => {
   const { colors, isDark } = useAppTheme();
   const [speed, setSpeed] = useState(1.0);
 
@@ -32,11 +36,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPre
     }
   }, [status.didJustFinish, player]);
 
-  const audioDuration = (status.duration && isFinite(status.duration) && status.duration > 0)
-    ? (status.duration * 1000)
-    : 0;
+  const audioDuration =
+    status.duration && isFinite(status.duration) && status.duration > 0
+      ? status.duration * 1000
+      : 0;
 
-  const currentPosition = (status.currentTime * 1000) || 0;
+  const currentPosition = status.currentTime * 1000 || 0;
 
   const handleTimelinePress = (event: any) => {
     if (audioDuration <= 0 || !player) return;
@@ -66,13 +71,23 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPre
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  const progressPercent = audioDuration > 0 ? (currentPosition / audioDuration) * 100 : 0;
+  const progressPercent =
+    audioDuration > 0 ? (currentPosition / audioDuration) * 100 : 0;
 
   return (
     <View
       style={[
         styles.container,
-        isMine ? styles.containerMine : [styles.containerTheir, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)" }],
+        isMine
+          ? styles.containerMine
+          : [
+              styles.containerTheir,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.05)",
+              },
+            ],
       ]}
     >
       <TouchableOpacity
@@ -80,17 +95,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPre
         onLongPress={onLongPress}
         style={[
           styles.playButton,
-          isMine ? styles.playButtonMine : [styles.playButtonTheir, { backgroundColor: colors.tint }],
+          isMine
+            ? styles.playButtonMine
+            : [styles.playButtonTheir, { backgroundColor: colors.tint }],
         ]}
       >
         {status.playing ? (
-          <PauseIcon
+          <MaterialCommunityIcons
+            name="play-pause"
             size={14}
             color={isMine ? colors.tint : "#fff"}
             fill={isMine ? colors.tint : "#fff"}
           />
         ) : (
-          <PlayIcon
+          <MaterialCommunityIcons
+            name="play"
             size={14}
             color={isMine ? colors.tint : "#fff"}
             fill={isMine ? colors.tint : "#fff"}
@@ -110,13 +129,27 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPre
           <View
             style={[
               styles.timelineBackground,
-              isMine ? styles.timelineBgMine : [styles.timelineBgTheir, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.2)" : "#dcdcdc" }],
+              isMine
+                ? styles.timelineBgMine
+                : [
+                    styles.timelineBgTheir,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.2)"
+                        : "#dcdcdc",
+                    },
+                  ],
             ]}
           >
             <View
               style={[
                 styles.timelineProgress,
-                isMine ? styles.timelineProgressMine : [styles.timelineProgressTheir, { backgroundColor: colors.tint }],
+                isMine
+                  ? styles.timelineProgressMine
+                  : [
+                      styles.timelineProgressTheir,
+                      { backgroundColor: colors.tint },
+                    ],
                 { width: `${progressPercent}%` },
               ]}
             />
@@ -124,7 +157,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPre
             <View
               style={[
                 styles.timelineThumb,
-                isMine ? styles.timelineThumbMine : [styles.timelineThumbTheir, { backgroundColor: colors.tint }],
+                isMine
+                  ? styles.timelineThumbMine
+                  : [
+                      styles.timelineThumbTheir,
+                      { backgroundColor: colors.tint },
+                    ],
                 { left: `${progressPercent}%` },
               ]}
             />
@@ -135,7 +173,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPre
         <Text
           style={[
             styles.timeText,
-            isMine ? styles.timeTextMine : [styles.timeTextTheir, { color: colors.textSecondary }],
+            isMine
+              ? styles.timeTextMine
+              : [styles.timeTextTheir, { color: colors.textSecondary }],
           ]}
         >
           {formatTime(currentPosition)} / {formatTime(audioDuration)}
@@ -146,7 +186,19 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPre
       <TouchableOpacity
         style={[
           styles.speedButton,
-          isMine ? styles.speedButtonMine : [styles.speedButtonTheir, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 122, 255, 0.1)", borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 122, 255, 0.2)" }],
+          isMine
+            ? styles.speedButtonMine
+            : [
+                styles.speedButtonTheir,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 122, 255, 0.1)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.15)"
+                    : "rgba(0, 122, 255, 0.2)",
+                },
+              ],
         ]}
         onPress={changeSpeed}
         onLongPress={onLongPress}
@@ -154,7 +206,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, isMine, onLongPre
         <Text
           style={[
             styles.speedText,
-            isMine ? styles.speedTextMine : [styles.speedTextTheir, { color: colors.tint }],
+            isMine
+              ? styles.speedTextMine
+              : [styles.speedTextTheir, { color: colors.tint }],
           ]}
         >
           {speed}x

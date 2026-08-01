@@ -138,7 +138,10 @@ export default function CommunitiesScreen() {
   const handleJoinCommunitySubmit = async (code: string) => {
     if (!token) return;
     try {
-      const comm = await communityApi.joinCommunity(token, code);
+      const comm = await communityApi.joinByCode(token, code);
+      if (!comm) {
+        throw new Error("Código de convite inválido ou comunidade não encontrada.");
+      }
       setCommunities((prev) => {
         if (prev.some((c) => c.id === comm.id)) return prev;
         return [...prev, comm];
@@ -167,7 +170,7 @@ export default function CommunitiesScreen() {
     }
   };
 
-  const handleCreatePostSubmit = async (title: string, content: string) => {
+  const handleCreatePostSubmit = async ({ title, content }: { title: string; content: string }) => {
     if (!token || !selectedCommunity) return;
     try {
       await communityApi.createPost(token, selectedCommunity.id, {
@@ -192,12 +195,17 @@ export default function CommunitiesScreen() {
     }
   };
 
-  const handleShareInvite = () => {
-    if (!selectedCommunity) return;
-    const inviteLink = `zapi://join?code=${selectedCommunity.invite_code}`;
-    Share.share({
-      message: `Entre na minha comunidade "${selectedCommunity.name}" no Zapi! Use o código: ${selectedCommunity.invite_code}\nOu clique no link: ${inviteLink}`,
-    });
+  const handleShareInvite = async () => {
+    if (!selectedCommunity || !token) return;
+    try {
+      const invite = await communityApi.createInvite(token, selectedCommunity.id);
+      const inviteLink = `zapi://join?code=${invite.code}`;
+      Share.share({
+        message: `Entre na minha comunidade "${selectedCommunity.name}" no Zapi! Use o código: ${invite.code}\nOu clique no link: ${inviteLink}`,
+      });
+    } catch (err: any) {
+      Alert.alert("Erro", "Não foi possível gerar um código de convite.");
+    }
   };
 
   if (loading) {
@@ -213,7 +221,7 @@ export default function CommunitiesScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <CommunityChatView
           token={token!}
-          currentUser={user!}
+          currentUserId={user!.user_id}
           communityId={selectedCommunity!.id}
           channel={selectedChannel!}
           onBack={() => setActiveChannelView("list")}
@@ -227,11 +235,11 @@ export default function CommunitiesScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <CommunityPostsView
           token={token!}
-          currentUser={user!}
           communityId={selectedCommunity!.id}
+          channel={selectedChannel!}
           onBack={() => setActiveChannelView("list")}
           onCreatePostClick={() => setShowCreatePost(true)}
-          onPostClick={(post) => setSelectedPost(post)}
+          onSelectPost={(post: CommunityPost) => setSelectedPost(post)}
         />
         <CreatePostModal
           visible={showCreatePost}
@@ -243,7 +251,7 @@ export default function CommunitiesScreen() {
             visible={!!selectedPost}
             post={selectedPost}
             token={token!}
-            currentUser={user!}
+            communityId={selectedCommunity!.id}
             onClose={() => setSelectedPost(null)}
           />
         )}
@@ -256,9 +264,8 @@ export default function CommunitiesScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <CommunityEventsView
           token={token!}
-          currentUser={user!}
           communityId={selectedCommunity!.id}
-          channel={selectedChannel}
+          channel={selectedChannel!}
           onBack={() => setActiveChannelView("list")}
           onCreateEventClick={() => setShowCreateEvent(true)}
         />

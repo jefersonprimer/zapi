@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { ArrowLeft, ChevronRight, Package, Tag } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
@@ -56,7 +56,7 @@ export default function OrdersScreen() {
     >
       <View style={styles.orderHeader}>
         <View style={styles.orderIdRow}>
-          <Package color={colors.icon} size={18} />
+          <MaterialCommunityIcons name="package-variant" color={colors.icon} size={18} />
           <Text style={[styles.orderId, { color: colors.text }]}>
             #{item.id.slice(0, 8).toUpperCase()}
           </Text>
@@ -77,7 +77,7 @@ export default function OrdersScreen() {
       </View>
       {item.discount > 0 && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
-          <Tag color="#10B981" size={12} />
+          <MaterialCommunityIcons name="tag-outline" color="#10B981" size={12} />
           <Text style={{ color: "#10B981", fontSize: 12, fontWeight: "500" }}>
             {item.coupon_code} — Desconto: -R$ {item.discount.toFixed(2)}
           </Text>
@@ -89,7 +89,7 @@ export default function OrdersScreen() {
             ? "Retirada na loja"
             : `${item.address_snapshot.rua}, ${item.address_snapshot.numero} - ${item.address_snapshot.bairro}`}
         </Text>
-        <ChevronRight color={colors.icon} size={18} />
+        <MaterialCommunityIcons name="chevron-right" color={colors.icon} size={18} />
       </View>
     </TouchableOpacity>
   );
@@ -106,7 +106,7 @@ export default function OrdersScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color={colors.headerText} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>Meus Pedidos</Text>
       </View>
@@ -121,7 +121,7 @@ export default function OrdersScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Package color={colors.icon} size={64} />
+            <MaterialCommunityIcons name="package-variant" color={colors.icon} size={64} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               Nenhum pedido encontrado
             </Text>

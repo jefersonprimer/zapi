@@ -1,9 +1,9 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
-import { Video as VideoIcon, FileText as FileIcon, X as XIcon } from "lucide-react-native";
 import { Attachment } from "./AttachCameraButton";
 import { AudioPlayer } from "./AudioPlayer";
 import { useAppTheme } from "@/context/ThemeContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface AttachmentPreviewBarProps {
   attachment: Attachment;
@@ -17,17 +17,29 @@ export const AttachmentPreviewBar: React.FC<AttachmentPreviewBarProps> = ({
   const { colors, isDark } = useAppTheme();
 
   return (
-    <View style={[styles.previewAttachmentBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+    <View
+      style={[
+        styles.previewAttachmentBar,
+        { backgroundColor: colors.surface, borderTopColor: colors.border },
+      ]}
+    >
       {attachment.type === "audio" ? (
         <View style={styles.audioPreviewContainer}>
           <View style={styles.audioPlayerWrapper}>
             <AudioPlayer uri={attachment.uri} isMine={false} />
           </View>
           <TouchableOpacity
-            style={[styles.previewCloseBtn, { backgroundColor: isDark ? "#2C2C2E" : "#e0e0e0" }]}
+            style={[
+              styles.previewCloseBtn,
+              { backgroundColor: isDark ? "#2C2C2E" : "#e0e0e0" },
+            ]}
             onPress={onClear}
           >
-            <XIcon size={14} color={colors.textSecondary} />
+            <MaterialCommunityIcons
+              name="close"
+              size={14}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
         </View>
       ) : (
@@ -39,28 +51,53 @@ export const AttachmentPreviewBar: React.FC<AttachmentPreviewBarProps> = ({
                 style={styles.previewImage}
               />
             ) : (
-              <View style={[styles.previewIconContainer, { backgroundColor: isDark ? "#2C2C2E" : "#eee" }]}>
+              <View
+                style={[
+                  styles.previewIconContainer,
+                  { backgroundColor: isDark ? "#2C2C2E" : "#eee" },
+                ]}
+              >
                 {attachment.type === "video" ? (
-                  <VideoIcon size={20} color={colors.tint} />
+                  <MaterialCommunityIcons
+                    name="video"
+                    size={20}
+                    color={colors.tint}
+                  />
                 ) : (
-                  <FileIcon size={20} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="file"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
                 )}
               </View>
             )}
             <View style={styles.previewTextContainer}>
-              <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={1}>
+              <Text
+                style={[styles.previewName, { color: colors.text }]}
+                numberOfLines={1}
+              >
                 {attachment.name}
               </Text>
-              <Text style={[styles.previewType, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.previewType, { color: colors.textSecondary }]}
+              >
                 {attachment.type.toUpperCase()} pronto para enviar
               </Text>
             </View>
           </View>
           <TouchableOpacity
-            style={[styles.previewCloseBtn, { backgroundColor: isDark ? "#2C2C2E" : "#e0e0e0" }]}
+            style={[
+              styles.previewCloseBtn,
+              { backgroundColor: isDark ? "#2C2C2E" : "#e0e0e0" },
+            ]}
             onPress={onClear}
           >
-            <XIcon size={14} color={colors.textSecondary} />
+            <MaterialCommunityIcons
+              name="close"
+              size={14}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
         </>
       )}

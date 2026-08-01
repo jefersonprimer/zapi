@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { ArrowLeft, MapPin, Tag } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
@@ -95,7 +95,7 @@ export default function OrderDetailScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color={colors.headerText} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Pedido #{order.id.slice(0, 8).toUpperCase()}
@@ -164,7 +164,7 @@ export default function OrderDetailScreen() {
         {/* Address / Fulfillment */}
         <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <MapPin color={colors.icon} size={18} />
+            <MaterialCommunityIcons name="map-marker" color={colors.icon} size={18} />
             <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>
               {order.fulfillment_type === "retirada" ? "Retirada" : "Entrega"}
             </Text>
@@ -190,7 +190,7 @@ export default function OrderDetailScreen() {
           {order.discount > 0 && (
             <View style={styles.totalRow}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Tag color="#10B981" size={14} />
+                <MaterialCommunityIcons name="tag-outline" color="#10B981" size={14} />
                 <Text style={{ color: "#10B981" }}>{order.coupon_code}</Text>
               </View>
               <Text style={{ color: "#10B981" }}>- R$ {order.discount.toFixed(2)}</Text>

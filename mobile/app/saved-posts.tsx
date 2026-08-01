@@ -1,13 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  StyleSheet,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Bookmark } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import FeedPostCard from "@/components/FeedPost";
 import * as updatesApi from "@/services/updatesApi";
 import type { FeedPost } from "@/services/updatesApi";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function SavedPostsScreen() {
   const { colors } = useAppTheme();
@@ -44,13 +50,26 @@ export default function SavedPostsScreen() {
         onVote={() => {}}
       />
     ),
-    []
+    [],
   );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.headerBackground }]}>
-        <ArrowLeft size={24} color={colors.text} onPress={() => router.back()} />
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + 8,
+            backgroundColor: colors.headerBackground,
+          },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name="arrow-left"
+          size={24}
+          color={colors.text}
+          onPress={() => router.back()}
+        />
         <Text style={[styles.title, { color: colors.text }]}>Posts salvos</Text>
         <View style={{ width: 24 }} />
       </View>
@@ -61,7 +80,11 @@ export default function SavedPostsScreen() {
         </View>
       ) : posts.length === 0 ? (
         <View style={styles.center}>
-          <Bookmark size={48} color={colors.icon} />
+          <MaterialCommunityIcons
+            name="bookmark"
+            size={48}
+            color={colors.icon}
+          />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             Nenhum post salvo
           </Text>

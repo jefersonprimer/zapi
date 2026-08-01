@@ -26,7 +26,7 @@ export default function TabLayout() {
     const currentIndex = getActiveTabIndex(pathname);
     if (currentIndex < TABS_ORDER.length - 1) {
       const nextTab = TABS_ORDER[currentIndex + 1];
-      router.push(nextTab === "index" ? "/" : `/${nextTab}`);
+      router.push((nextTab === "index" ? "/" : `/${nextTab}`) as any);
     }
   };
 
@@ -34,7 +34,7 @@ export default function TabLayout() {
     const currentIndex = getActiveTabIndex(pathname);
     if (currentIndex > 0) {
       const prevTab = TABS_ORDER[currentIndex - 1];
-      router.push(prevTab === "index" ? "/" : `/${prevTab}`);
+      router.push((prevTab === "index" ? "/" : `/${prevTab}`) as any);
     }
   };
 

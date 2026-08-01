@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, Trash2, Plus, Minus, ShoppingBag, Tag } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useCartStore, MIN_WEIGHT, WEIGHT_STEP } from "@/store/useCartStore";
 import { formatProductPrice, formatQuantityLabel } from "@/services/deliveryApi";
@@ -36,12 +36,12 @@ export default function CartScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft color={colors.headerText} size={24} />
+            <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.headerText }]}>Carrinho</Text>
         </View>
         <View style={styles.emptyContainer}>
-          <ShoppingBag color={colors.icon} size={64} />
+          <MaterialCommunityIcons name="shopping" color={colors.icon} size={64} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             Carrinho vazio
           </Text>
@@ -54,7 +54,7 @@ export default function CartScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color={colors.headerText} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>Carrinho</Text>
         <TouchableOpacity onPress={handleClear}>
@@ -113,7 +113,7 @@ export default function CartScreen() {
                         : updateQuantity(item.productId, Math.round((item.quantity - step) * 10) / 10)
                     }
                   >
-                    <Minus color={colors.text} size={16} />
+                    <MaterialCommunityIcons name="minus" color={colors.text} size={16} />
                   </TouchableOpacity>
                   <Text style={[styles.qtyText, { color: colors.text }]}>
                     {formatQuantityLabel(item.quantity, saleType)}
@@ -124,11 +124,11 @@ export default function CartScreen() {
                       updateQuantity(item.productId, Math.round((item.quantity + step) * 10) / 10)
                     }
                   >
-                    <Plus color="#fff" size={16} />
+                    <MaterialCommunityIcons name="plus" color="#fff" size={16} />
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity onPress={() => removeItem(item.productId)} style={styles.removeButton}>
-                  <Trash2 color={colors.danger} size={16} />
+                  <MaterialCommunityIcons name="trash-can-outline" color={colors.danger} size={16} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -153,7 +153,7 @@ export default function CartScreen() {
         {couponCode && discount > 0 && (
           <View style={styles.totalRow}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Tag color="#10B981" size={14} />
+              <MaterialCommunityIcons name="tag-outline" color="#10B981" size={14} />
               <Text style={[styles.totalLabel, { color: "#10B981" }]}>{couponCode}</Text>
             </View>
             <Text style={[styles.totalValue, { color: "#10B981" }]}>- R$ {discount.toFixed(2)}</Text>

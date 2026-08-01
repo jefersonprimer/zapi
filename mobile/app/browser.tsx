@@ -134,6 +134,20 @@ export default function BrowserScreen() {
     return () => subscription.remove();
   }, [activeTab.canGoBack, activeTabId, router]);
 
+  // Dynamically inject JS to update body zoom when zoom changes
+  useEffect(() => {
+    const activeWebView = webViewRefs.current[activeTabId];
+    if (activeWebView) {
+      const zoomVal = activeTab.zoom || 100;
+      activeWebView.injectJavaScript(`
+        (function() {
+          document.body.style.zoom = '${zoomVal}%';
+        })();
+        true;
+      `);
+    }
+  }, [activeTabId, activeTab.zoom]);
+
   const handleNavigate = (urlText: string) => {
     Keyboard.dismiss();
     let url = urlText.trim();
@@ -356,6 +370,12 @@ export default function BrowserScreen() {
                     }, true);
                   })();
                 `}
+                injectedJavaScript={`
+                  (function() {
+                    document.body.style.zoom = '${tab.zoom || 100}%';
+                  })();
+                  true;
+                `}
                 onMessage={(e) => handleMessage(e, tab.id)}
                 onNavigationStateChange={(navState) => {
                   // Update tab URL states dynamically
@@ -403,6 +423,18 @@ export default function BrowserScreen() {
         onCreateTab={() => createTab("https://www.google.com", isIncognito)}
         onOpenTabManager={() => setTabManagerVisible(true)}
         tabsCount={tabs.length}
+        zoom={activeTab.zoom || 100}
+        onZoomIn={() => {
+          const currentZoom = activeTab.zoom || 100;
+          updateTabState(activeTabId, { zoom: Math.min(currentZoom + 10, 200) });
+        }}
+        onZoomOut={() => {
+          const currentZoom = activeTab.zoom || 100;
+          updateTabState(activeTabId, { zoom: Math.max(currentZoom - 10, 50) });
+        }}
+        onResetZoom={() => {
+          updateTabState(activeTabId, { zoom: 100 });
+        }}
       />
 
       {/* TAB MANAGER MODAL */}

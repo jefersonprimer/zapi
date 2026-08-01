@@ -15,14 +15,16 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft } from "lucide-react-native";
 import { updateProfile } from "@/services/api";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const ABOUT_MAX_LEN = 139;
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { field } = useLocalSearchParams<{ field: "name" | "about" | "username" }>();
+  const { field } = useLocalSearchParams<{
+    field: "name" | "about" | "username";
+  }>();
   const { user, token, updateUser } = useAuth();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -54,7 +56,13 @@ export default function EditProfileScreen() {
       }
       setIsUpdating(true);
       try {
-        await updateProfile(token, undefined, undefined, undefined, trimmed || null);
+        await updateProfile(
+          token,
+          undefined,
+          undefined,
+          undefined,
+          trimmed || null,
+        );
         await updateUser({ name: trimmed || null });
         router.back();
       } catch (err: any) {
@@ -64,7 +72,10 @@ export default function EditProfileScreen() {
       }
     } else if (field === "about") {
       if (trimmed.length > ABOUT_MAX_LEN) {
-        Alert.alert("Erro", `O recado pode ter no máximo ${ABOUT_MAX_LEN} caracteres.`);
+        Alert.alert(
+          "Erro",
+          `O recado pode ter no máximo ${ABOUT_MAX_LEN} caracteres.`,
+        );
         return;
       }
       setIsUpdating(true);
@@ -81,7 +92,10 @@ export default function EditProfileScreen() {
       const lower = trimmed.toLowerCase();
       const len = lower.length;
       if (len < 3 || len > 30) {
-        Alert.alert("Erro", "O nome de usuário deve ter entre 3 e 30 caracteres.");
+        Alert.alert(
+          "Erro",
+          "O nome de usuário deve ter entre 3 e 30 caracteres.",
+        );
         return;
       }
 
@@ -89,16 +103,28 @@ export default function EditProfileScreen() {
       for (let i = 0; i < lower.length; i++) {
         const c = lower[i];
         const code = lower.charCodeAt(i);
-        const isLetter = (code >= 97 && code <= 122); // a-z
-        const isDigit = (code >= 48 && code <= 57);   // 0-9
-        const isUnderscore = (c === '_');
+        const isLetter = code >= 97 && code <= 122; // a-z
+        const isDigit = code >= 48 && code <= 57; // 0-9
+        const isUnderscore = c === "_";
         if (!isLetter && !isDigit && !isUnderscore) {
-          Alert.alert("Erro", "O nome de usuário só pode conter letras minúsculas, números e underlines (_).");
+          Alert.alert(
+            "Erro",
+            "O nome de usuário só pode conter letras minúsculas, números e underlines (_).",
+          );
           return;
         }
       }
 
-      const reserved = ["admin", "support", "zapi", "api", "root", "system", "security", "official"];
+      const reserved = [
+        "admin",
+        "support",
+        "zapi",
+        "api",
+        "root",
+        "system",
+        "security",
+        "official",
+      ];
       if (reserved.includes(lower)) {
         Alert.alert("Erro", `O nome de usuário '${lower}' é reservado.`);
         return;
@@ -106,11 +132,21 @@ export default function EditProfileScreen() {
 
       setIsUpdating(true);
       try {
-        await updateProfile(token, undefined, undefined, undefined, undefined, lower);
+        await updateProfile(
+          token,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          lower,
+        );
         await updateUser({ username: lower });
         router.back();
       } catch (err: any) {
-        Alert.alert("Erro", err.message || "Falha ao atualizar nome de usuário");
+        Alert.alert(
+          "Erro",
+          err.message || "Falha ao atualizar nome de usuário",
+        );
       } finally {
         setIsUpdating(false);
       }
@@ -125,7 +161,8 @@ export default function EditProfileScreen() {
           title: "Editar Nome",
           label: "Nome",
           placeholder: "Digite seu nome...",
-          helper: "Este nome será exibido para seus contatos e nas suas conversas do Zapi.",
+          helper:
+            "Este nome será exibido para seus contatos e nas suas conversas do Zapi.",
           multiline: false,
           maxLength: 100,
         };
@@ -134,7 +171,8 @@ export default function EditProfileScreen() {
           title: "Editar Recado",
           label: "Recado",
           placeholder: "Escreva um recado...",
-          helper: "Este recado será exibido no seu perfil para outros usuários do aplicativo.",
+          helper:
+            "Este recado será exibido no seu perfil para outros usuários do aplicativo.",
           multiline: true,
           maxLength: ABOUT_MAX_LEN,
         };
@@ -143,7 +181,8 @@ export default function EditProfileScreen() {
           title: "Editar Nome de Usuário",
           label: "Nome de usuário",
           placeholder: "Escolha um nome de usuário...",
-          helper: "Seu nome de usuário é exclusivo e permite que outras pessoas te encontrem sem precisar do seu e-mail ou número de telefone.",
+          helper:
+            "Seu nome de usuário é exclusivo e permite que outras pessoas te encontrem sem precisar do seu e-mail ou número de telefone.",
           multiline: false,
           maxLength: 30,
         };
@@ -178,27 +217,42 @@ export default function EditProfileScreen() {
         ]}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-            <ArrowLeft size={24} color={colors.headerText} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}>
+          <Text
+            style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
+          >
             {info.title}
           </Text>
-          <TouchableOpacity 
-            onPress={handleSave} 
+          <TouchableOpacity
+            onPress={handleSave}
             disabled={isUpdating}
             activeOpacity={0.7}
           >
             {isUpdating ? (
               <ActivityIndicator size="small" color={colors.tint} />
             ) : (
-              <Text style={[styles.saveText, { color: colors.tint }]}>Salvar</Text>
+              <Text style={[styles.saveText, { color: colors.tint }]}>
+                Salvar
+              </Text>
             )}
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.inputContainer}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>
             {info.label.toUpperCase()}

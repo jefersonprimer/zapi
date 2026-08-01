@@ -13,10 +13,10 @@ import {
 import { Image } from "expo-image";
 import * as MediaLibrary from "expo-media-library";
 import { File } from "expo-file-system";
-import { FileText, Images, Play } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import type { Attachment } from "@/components/AttachCameraButton";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const RECENT_LIMIT = 24;
 const THUMB_GAP = 4;
@@ -214,7 +214,11 @@ export function AttachMediaSheet({
           <View
             style={[styles.actionIcon, { backgroundColor: colors.tint + "18" }]}
           >
-            <Images size={22} color={colors.tint} />
+            <MaterialCommunityIcons
+              name="image"
+              size={22}
+              color={colors.tint}
+            />
           </View>
           <Text style={[styles.actionLabel, { color: colors.text }]}>
             Galeria
@@ -229,7 +233,7 @@ export function AttachMediaSheet({
           <View
             style={[styles.actionIcon, { backgroundColor: colors.tint + "18" }]}
           >
-            <FileText size={22} color={colors.tint} />
+            <MaterialCommunityIcons name="file" size={22} color={colors.tint} />
           </View>
           <Text
             style={[styles.actionLabel, { color: colors.text }]}
@@ -295,7 +299,12 @@ export function AttachMediaSheet({
                 />
                 {isVideo && (
                   <View style={styles.videoBadge}>
-                    <Play size={10} color="#fff" fill="#fff" />
+                    <MaterialCommunityIcons
+                      name="play"
+                      size={10}
+                      color="#fff"
+                      fill="#fff"
+                    />
                     <Text style={styles.videoDuration}>
                       {formatDuration(item.duration)}
                     </Text>

@@ -1,9 +1,9 @@
 import React from "react";
 import { TouchableOpacity, Alert, StyleSheet, Platform } from "react-native";
-import { Camera as CameraIcon } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export interface Attachment {
   uri: string;
@@ -41,7 +41,9 @@ export const AttachCameraButton: React.FC<AttachCameraButtonProps> = ({
           const uri = URL.createObjectURL(file);
           onTakePhoto({
             uri,
-            name: file.name || (isVideo ? `video_${Date.now()}.mp4` : `photo_${Date.now()}.jpg`),
+            name:
+              file.name ||
+              (isVideo ? `video_${Date.now()}.mp4` : `photo_${Date.now()}.jpg`),
             type: isVideo ? "video" : "image",
             mimeType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
             size: file.size,
@@ -73,7 +75,10 @@ export const AttachCameraButton: React.FC<AttachCameraButtonProps> = ({
         return;
       const asset = result.assets[0];
 
-      const isVideo = asset.type === "video" || (asset as any).mediaType === "video" || asset.mimeType?.startsWith("video/");
+      const isVideo =
+        asset.type === "video" ||
+        (asset as any).mediaType === "video" ||
+        asset.mimeType?.startsWith("video/");
       onTakePhoto({
         uri: asset.uri,
         name: isVideo ? `video_${Date.now()}.mp4` : `photo_${Date.now()}.jpg`,
@@ -88,7 +93,7 @@ export const AttachCameraButton: React.FC<AttachCameraButtonProps> = ({
 
   return (
     <TouchableOpacity style={styles.iconBtn} onPress={handleTakePhoto}>
-      <CameraIcon size={22} color={colors.icon} />
+      <MaterialCommunityIcons name="camera" size={22} color={colors.icon} />
     </TouchableOpacity>
   );
 };

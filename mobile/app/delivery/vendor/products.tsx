@@ -14,16 +14,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Search,
-  X,
-  Pencil,
-  Check,
-  ExternalLink,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { getFullRemoteUrl } from "@/services/mediaCache";
@@ -196,14 +187,14 @@ export default function VendorProductsScreen() {
                     {savingPrice ? (
                       <ActivityIndicator color="#fff" size="small" />
                     ) : (
-                      <Check color="#fff" size={16} />
+                      <MaterialCommunityIcons name="check" color="#fff" size={16} />
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.priceCancelBtn}
                     onPress={() => setEditingPriceId(null)}
                   >
-                    <X color={colors.icon} size={16} />
+                    <MaterialCommunityIcons name="close" color={colors.icon} size={16} />
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -214,7 +205,7 @@ export default function VendorProductsScreen() {
                   <Text style={[styles.productPrice, { color: colors.tint }]}>
                     {formatProductPrice(item.price, item.sale_type || "unit")}
                   </Text>
-                  <Pencil color={colors.tint} size={12} />
+                  <MaterialCommunityIcons name="pencil" color={colors.tint} size={12} />
                 </TouchableOpacity>
               )}
             </View>
@@ -229,9 +220,9 @@ export default function VendorProductsScreen() {
             onPress={() => handleToggleAvailable(item)}
           >
             {item.is_available ? (
-              <Eye color="#10B981" size={20} />
+              <MaterialCommunityIcons name="eye" color="#10B981" size={20} />
             ) : (
-              <EyeOff color="#EF4444" size={20} />
+              <MaterialCommunityIcons name="eye-off" color="#EF4444" size={20} />
             )}
           </TouchableOpacity>
         </View>
@@ -248,7 +239,7 @@ export default function VendorProductsScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <ArrowLeft color={colors.headerText} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Produtos
@@ -259,7 +250,7 @@ export default function VendorProductsScreen() {
             Linking.openURL(DASHBOARD_WEB_URL);
           }}
         >
-          <ExternalLink color={colors.headerText} size={18} />
+          <MaterialCommunityIcons name="open-in-new" color={colors.headerText} size={18} />
         </TouchableOpacity>
       </View>
 
@@ -280,7 +271,7 @@ export default function VendorProductsScreen() {
                   },
                 ]}
               >
-                <Search color={colors.icon} size={18} />
+                <MaterialCommunityIcons name="magnify" color={colors.icon} size={18} />
                 <TextInput
                   style={[styles.searchInput, { color: colors.text }]}
                   placeholder="Buscar produto..."
@@ -296,7 +287,7 @@ export default function VendorProductsScreen() {
                     onPress={() => setSearchQuery("")}
                     hitSlop={8}
                   >
-                    <X color={colors.icon} size={16} />
+                    <MaterialCommunityIcons name="close" color={colors.icon} size={16} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -343,7 +334,7 @@ export default function VendorProductsScreen() {
                       Linking.openURL(DASHBOARD_WEB_URL);
                     }}
                   >
-                    <ExternalLink color="#fff" size={16} />
+                    <MaterialCommunityIcons name="open-in-new" color="#fff" size={16} />
                     <Text style={styles.dashboardLinkText}>
                       Abrir Dashboard
                     </Text>

@@ -81,7 +81,7 @@ export default function NewGroupScreen() {
           id: preselectedContactId,
           username: preselectedUsername,
           name: preselectedName || undefined,
-          email: preselectedEmail || undefined,
+          email: preselectedEmail || "",
           avatar_url: preselectedAvatarUrl || null,
         });
       }

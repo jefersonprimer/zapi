@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { ArrowLeft, ChevronRight, Tag } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
@@ -173,7 +173,7 @@ export default function VendorOrdersScreen() {
 
         {item.discount > 0 && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
-            <Tag color="#10B981" size={12} />
+            <MaterialCommunityIcons name="tag-outline" color="#10B981" size={12} />
             <Text style={{ color: "#10B981", fontSize: 12, fontWeight: "500" }}>
               {item.coupon_code} — Desconto: -R$ {item.discount.toFixed(2)}
             </Text>
@@ -199,7 +199,7 @@ export default function VendorOrdersScreen() {
             ) : (
               <>
                 <Text style={styles.advanceButtonText}>{nextLabel}</Text>
-                <ChevronRight color="#fff" size={16} />
+                <MaterialCommunityIcons name="chevron-right" color="#fff" size={16} />
               </>
             )}
           </TouchableOpacity>
@@ -212,7 +212,7 @@ export default function VendorOrdersScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color={colors.headerText} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>Pedidos Recebidos</Text>
       </View>

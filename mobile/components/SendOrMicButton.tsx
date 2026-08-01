@@ -15,8 +15,6 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
   onSend,
   onStartRecording,
 }) => {
-
-
   if (hasContent) {
     return (
       <TouchableOpacity
@@ -28,7 +26,7 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
         onPress={onSend}
         disabled={sending}
       >
-        <SendHorizonal size={18} color="#f2f2f2" />
+        <SendHorizonal size={20} color="#f2f2f2" />
       </TouchableOpacity>
     );
   }
@@ -47,7 +45,7 @@ const styles = StyleSheet.create({
   sendButtonCircle: {
     width: 46,
     height: 46,
-    borderRadius: 16,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -57,7 +55,7 @@ const styles = StyleSheet.create({
   micButton: {
     width: 46,
     height: 46,
-    borderRadius: 16,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
   },

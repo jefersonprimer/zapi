@@ -12,18 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  ArrowLeft,
-  Store,
-  Package,
-  ToggleLeft,
-  ToggleRight,
-  Clock,
-  MessageCircle,
-  ExternalLink,
-  TrendingUp,
-  ShoppingCart,
-} from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import {
@@ -138,14 +127,14 @@ export default function VendorDashboardScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <ArrowLeft color={colors.headerText} size={24} />
+            <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.headerText }]}>
             Minha Loja
           </Text>
         </View>
         <View style={styles.emptyContainer}>
-          <Store color={colors.icon} size={64} />
+          <MaterialCommunityIcons name="store" color={colors.icon} size={64} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
             Crie sua loja no Dashboard
           </Text>
@@ -157,7 +146,7 @@ export default function VendorDashboardScreen() {
             style={[styles.dashboardButton, { backgroundColor: colors.tint }]}
             onPress={handleOpenDashboard}
           >
-            <ExternalLink color="#fff" size={18} />
+            <MaterialCommunityIcons name="open-in-new" color="#fff" size={18} />
             <Text style={styles.dashboardButtonText}>Abrir Dashboard</Text>
           </TouchableOpacity>
         </View>
@@ -174,7 +163,7 @@ export default function VendorDashboardScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <ArrowLeft color={colors.headerText} size={24} />
+          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Minha Loja
@@ -226,9 +215,9 @@ export default function VendorDashboardScreen() {
                   {toggling ? (
                     <ActivityIndicator color={colors.tint} />
                   ) : store.is_open ? (
-                    <ToggleRight color={colors.tint} size={48} />
+                    <MaterialCommunityIcons name="toggle-switch" color={colors.tint} size={48} />
                   ) : (
-                    <ToggleLeft color={colors.icon} size={48} />
+                    <MaterialCommunityIcons name="toggle-switch-off" color={colors.icon} size={48} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -265,7 +254,7 @@ export default function VendorDashboardScreen() {
                   },
                 ]}
               >
-                <ShoppingCart color={colors.tint} size={20} />
+                <MaterialCommunityIcons name="cart" color={colors.tint} size={20} />
                 <Text style={[styles.statValue, { color: colors.text }]}>
                   {pendingCount}
                 </Text>
@@ -284,7 +273,7 @@ export default function VendorDashboardScreen() {
                   },
                 ]}
               >
-                <TrendingUp color="#10B981" size={20} />
+                <MaterialCommunityIcons name="trending-up" color="#10B981" size={20} />
                 <Text style={[styles.statValue, { color: "#10B981" }]}>
                   R$ {todayRevenue.toFixed(2)}
                 </Text>
@@ -308,7 +297,7 @@ export default function VendorDashboardScreen() {
                 ]}
                 onPress={() => router.push("/delivery/vendor/orders")}
               >
-                <Clock color={colors.tint} size={28} />
+                <MaterialCommunityIcons name="clock-outline" color={colors.tint} size={28} />
                 <Text style={[styles.actionTitle, { color: colors.text }]}>
                   Pedidos
                 </Text>
@@ -331,7 +320,7 @@ export default function VendorDashboardScreen() {
                 ]}
                 onPress={() => router.push("/delivery/vendor/products")}
               >
-                <Package color={colors.tint} size={28} />
+                <MaterialCommunityIcons name="package-variant" color={colors.tint} size={28} />
                 <Text style={[styles.actionTitle, { color: colors.text }]}>
                   Produtos
                 </Text>
@@ -357,7 +346,7 @@ export default function VendorDashboardScreen() {
                 ]}
                 onPress={() => router.push("/(tabs)")}
               >
-                <MessageCircle color={colors.tint} size={28} />
+                <MaterialCommunityIcons name="message-text-outline" color={colors.tint} size={28} />
                 <Text style={[styles.actionTitle, { color: colors.text }]}>
                   Mensagens
                 </Text>
@@ -380,7 +369,7 @@ export default function VendorDashboardScreen() {
                 ]}
                 onPress={handleOpenDashboard}
               >
-                <ExternalLink color="#fff" size={28} />
+                <MaterialCommunityIcons name="open-in-new" color="#fff" size={28} />
                 <Text style={[styles.actionTitle, { color: "#fff" }]}>
                   Dashboard
                 </Text>

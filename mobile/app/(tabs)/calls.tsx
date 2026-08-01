@@ -437,4 +437,9 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 2,
   },
+  selectionIndicator: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 12,
+  },
 });

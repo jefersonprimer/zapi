@@ -240,7 +240,7 @@ export function WebSearchBottomSheet({
           onSendMedia({
             uri: localUri,
             name: filename,
-            type,
+            type: type === "video" ? "video" : "image",
             mimeType: type === "video" ? "video/mp4" : "image/jpeg",
           });
           setDownloading(false);
@@ -254,7 +254,7 @@ export function WebSearchBottomSheet({
         onSendMedia({
           uri: downloadResult.uri,
           name: filename,
-          type,
+          type: type === "video" ? "video" : "image",
           mimeType: type === "video" ? "video/mp4" : "image/jpeg",
         });
       } else {

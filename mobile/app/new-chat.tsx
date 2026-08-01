@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
@@ -18,8 +17,8 @@ import { useAuth } from "@/context/AuthContext";
 import { createChat, searchUsers, type UserSearchResult } from "@/services/api";
 import { UserContactCard } from "@/components/UserContactCard";
 import { useAppTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Search, X, Users } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function NewChatScreen() {
   const router = useRouter();
@@ -117,7 +116,11 @@ export default function NewChatScreen() {
               onPress={() => router.back()}
               style={styles.backBtn}
             >
-              <ArrowLeft size={24} color={colors.text} />
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={colors.text}
+              />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -140,7 +143,8 @@ export default function NewChatScreen() {
               { backgroundColor: colors.surface, borderColor: colors.border },
             ]}
           >
-            <Search
+            <MaterialCommunityIcons
+              name="magnify"
               size={20}
               color={colors.textSecondary}
               style={styles.searchIcon}
@@ -160,7 +164,11 @@ export default function NewChatScreen() {
                 onPress={() => setQuery("")}
                 style={styles.clearBtn}
               >
-                <X size={18} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={colors.textSecondary}
+                />
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -205,7 +213,8 @@ export default function NewChatScreen() {
             ListEmptyComponent={
               query.trim() && !searching ? (
                 <View style={styles.emptyState}>
-                  <Users
+                  <MaterialCommunityIcons
+                    name="account-group"
                     size={48}
                     color={colors.textSecondary}
                     style={{ opacity: 0.5, marginBottom: 12 }}
@@ -218,7 +227,8 @@ export default function NewChatScreen() {
                 </View>
               ) : !searching ? (
                 <View style={styles.emptyState}>
-                  <Users
+                  <MaterialCommunityIcons
+                    name="account-group"
                     size={48}
                     color={colors.textSecondary}
                     style={{ opacity: 0.3, marginBottom: 12 }}
