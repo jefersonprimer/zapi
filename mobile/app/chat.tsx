@@ -45,7 +45,7 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const router = useRouter();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const {
     chatId,
     participantId,
@@ -509,7 +509,15 @@ export default function ChatScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         style={styles.messageList}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom:
+            (isKeyboardVisible || attachSheetVisible
+              ? 60
+              : showEmojiPicker
+                ? 280 + (insets.bottom > 0 ? insets.bottom : 16) + 60
+                : insets.bottom + 60) + 16,
+        }}
         renderItem={({ item, index }) => (
           <ChatItemRow
             item={item}
@@ -549,105 +557,130 @@ export default function ChatScreen() {
         }
       />
 
-      {forwardingMessage && (
-        <ForwardPreviewBar
-          forwarded={forwardingMessage}
-          onClear={() => setForwardingMessage(null)}
-        />
-      )}
-
-      {selectedAttachment && (
-        <AttachmentPreviewBar
-          attachment={selectedAttachment}
-          onClear={() => setSelectedAttachment(null)}
-        />
-      )}
-
       <View
-        style={[
-          styles.inputContainer,
-          {
-            paddingBottom:
-              isKeyboardVisible || showEmojiPicker || attachSheetVisible
-                ? 6
-                : insets.bottom,
-            backgroundColor: "transparent",
-          },
-        ]}
+        style={{
+          position: "absolute",
+          bottom: showEmojiPicker
+            ? 280 + (insets.bottom > 0 ? insets.bottom : 16)
+            : 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+        }}
       >
-        {isBlockedByMe || isBlockedByThem || messagesRestrictedReason ? (
-          <ChatBlockedBar
-            isBlockedByMe={isBlockedByMe}
-            isBlockedByThem={isBlockedByThem}
-            messagesRestrictedReason={messagesRestrictedReason}
-            onUnblock={handleUnblock}
+        {forwardingMessage && (
+          <ForwardPreviewBar
+            forwarded={forwardingMessage}
+            onClear={() => setForwardingMessage(null)}
           />
-        ) : (
-          <>
-            {isRecording && (
-              <VoiceNoteRecorderBar
-                recordingDuration={recordingDuration}
-                onStopRecording={discardRecording}
-                isPaused={isRecordingPaused}
-                onPauseResumeRecording={handlePauseResumeRecording}
-                recordedUri={recordedUri}
-                onStopAndPreview={stopRecordingAndPreview}
-                onSendAudio={
-                  recordedUri ? sendPreviewedAudio : sendRecordingImmediately
-                }
-              />
-            )}
-
-            <View
-              style={
-                isRecording
-                  ? { position: "absolute", opacity: 0, width: 0, height: 0, overflow: "hidden" }
-                  : [
-                      styles.inputContainerMessage,
-                      { backgroundColor: "transparent", borderColor: colors.border },
-                    ]
-              }
-              pointerEvents={isRecording ? "none" : "auto"}
-            >
-              <TouchableOpacity
-                style={styles.actionMenuButton}
-                onPress={() => {
-                  setShowEmojiPicker(false);
-                  setActionsModalVisible(true);
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="plus"
-                  size={24}
-                  color={colors.icon}
-                />
-              </TouchableOpacity>
-
-              <ChatInput
-                ref={inputRef}
-                value={content}
-                onChangeText={setContent}
-                onFocus={() => {
-                  setShowEmojiPicker(false);
-                  setAttachSheetVisible(false);
-                }}
-              />
-            </View>
-
-            {!isRecording && (
-              <SendOrMicButton
-                hasContent={
-                  content.trim().length > 0 ||
-                  selectedAttachment !== null ||
-                  forwardingMessage !== null
-                }
-                sending={sending}
-                onSend={() => handleSend()}
-                onStartRecording={startRecording}
-              />
-            )}
-          </>
         )}
+
+        {selectedAttachment && (
+          <AttachmentPreviewBar
+            attachment={selectedAttachment}
+            onClear={() => setSelectedAttachment(null)}
+          />
+        )}
+
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              paddingBottom:
+                isKeyboardVisible || showEmojiPicker || attachSheetVisible
+                  ? 6
+                  : insets.bottom,
+              backgroundColor: "transparent",
+            },
+          ]}
+        >
+          {isBlockedByMe || isBlockedByThem || messagesRestrictedReason ? (
+            <ChatBlockedBar
+              isBlockedByMe={isBlockedByMe}
+              isBlockedByThem={isBlockedByThem}
+              messagesRestrictedReason={messagesRestrictedReason}
+              onUnblock={handleUnblock}
+            />
+          ) : (
+            <>
+              {isRecording && (
+                <VoiceNoteRecorderBar
+                  recordingDuration={recordingDuration}
+                  onStopRecording={discardRecording}
+                  isPaused={isRecordingPaused}
+                  onPauseResumeRecording={handlePauseResumeRecording}
+                  recordedUri={recordedUri}
+                  onStopAndPreview={stopRecordingAndPreview}
+                  onSendAudio={
+                    recordedUri ? sendPreviewedAudio : sendRecordingImmediately
+                  }
+                />
+              )}
+
+              <View
+                style={
+                  isRecording
+                    ? {
+                        position: "absolute",
+                        opacity: 0,
+                        width: 0,
+                        height: 0,
+                        overflow: "hidden",
+                      }
+                    : [
+                        styles.inputContainerMessage,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(30, 30, 30, 0.85)"
+                            : "rgba(255, 255, 255, 0.85)",
+                          borderColor: isDark
+                            ? "rgba(255, 255, 255, 0.12)"
+                            : "rgba(0, 0, 0, 0.08)",
+                        },
+                      ]
+                }
+                pointerEvents={isRecording ? "none" : "auto"}
+              >
+                <TouchableOpacity
+                  style={styles.actionMenuButton}
+                  onPress={() => {
+                    setShowEmojiPicker(false);
+                    setActionsModalVisible(true);
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="plus"
+                    size={24}
+                    color={colors.icon}
+                  />
+                </TouchableOpacity>
+
+                <ChatInput
+                  ref={inputRef}
+                  value={content}
+                  onChangeText={setContent}
+                  onFocus={() => {
+                    setShowEmojiPicker(false);
+                    setAttachSheetVisible(false);
+                  }}
+                />
+              </View>
+
+              {!isRecording && (
+                <SendOrMicButton
+                  hasContent={
+                    content.trim().length > 0 ||
+                    selectedAttachment !== null ||
+                    forwardingMessage !== null
+                  }
+                  sending={sending}
+                  onSend={() => handleSend()}
+                  onStartRecording={startRecording}
+                />
+              )}
+            </>
+          )}
+        </View>
       </View>
 
       {showEmojiPicker && (
@@ -659,7 +692,7 @@ export default function ChatScreen() {
             handleSend(media);
             setShowEmojiPicker(false);
           }}
-          height={320}
+          height={280}
         />
       )}
 
@@ -923,6 +956,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 4,
     marginRight: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
   },
   emptyText: {
     textAlign: "center",

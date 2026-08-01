@@ -345,6 +345,18 @@ export async function deleteMessageForEveryone(
   });
 }
 
+export async function reactToMessage(
+  token: string,
+  chatId: string,
+  messageId: string,
+  reaction: string | null
+): Promise<{ status: string; message_id: string; reaction: string | null }> {
+  return authFetch(`${API_URL}/chats/${chatId}/messages/${messageId}/react`, token, {
+    method: "POST",
+    body: JSON.stringify({ reaction }),
+  });
+}
+
 export async function deleteChat(token: string, chatId: string): Promise<{ status: string; chat_id: string }> {
   return authFetch(`${API_URL}/chats/${chatId}`, token, {
     method: "DELETE",

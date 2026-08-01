@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
-import { Mic as MicIcon, SendHorizonal } from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface SendOrMicButtonProps {
   hasContent: boolean;
@@ -26,7 +26,7 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
         onPress={onSend}
         disabled={sending}
       >
-        <SendHorizonal size={20} color="#f2f2f2" />
+        <MaterialCommunityIcons name="send" size={20} color="#f2f2f2" />
       </TouchableOpacity>
     );
   }
@@ -36,7 +36,7 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
       style={[styles.micButton, { backgroundColor: "#07C160" }]}
       onPress={onStartRecording}
     >
-      <MicIcon size={20} color="#f2f2f2" />
+      <MaterialCommunityIcons name="microphone" size={24} color="#f2f2f2" />
     </TouchableOpacity>
   );
 };

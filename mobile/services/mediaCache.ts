@@ -53,6 +53,8 @@ export function getLocalPathForUrl(remoteUrl: string): string | null {
   return Paths.join(Paths.document, "media", subfolder, filename);
 }
 
+const failedUrls = new Set<string>();
+
 // Caches the media file and optionally updates the SQLite DB
 export async function cacheMediaFile(remoteUrl: string, messageId?: string): Promise<string> {
   if (Platform.OS === "web" || !remoteUrl) {
@@ -62,6 +64,10 @@ export async function cacheMediaFile(remoteUrl: string, messageId?: string): Pro
   // Already a local file
   if (remoteUrl.startsWith("file://") || remoteUrl.startsWith("content://")) {
     return remoteUrl;
+  }
+
+  if (failedUrls.has(remoteUrl)) {
+    return getFullRemoteUrl(remoteUrl);
   }
 
   const localUri = getLocalPathForUrl(remoteUrl);
@@ -100,13 +106,14 @@ export async function cacheMediaFile(remoteUrl: string, messageId?: string): Pro
             [localUri, messageId, remoteUrl]
           );
         } catch (dbErr) {
-          console.error("Failed to update local_file_path/attachments in SQLite:", dbErr);
+          console.warn("Failed to update local_file_path/attachments in SQLite:", dbErr);
         }
       }
       return localUri;
     }
   } catch (err) {
-    console.error("Error caching media file:", err);
+    console.warn("Error caching media file:", err);
+    failedUrls.add(remoteUrl);
   }
 
   // Fallback to full remote URL on error

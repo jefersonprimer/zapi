@@ -511,6 +511,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </View>
           </View>
         </TouchableOpacity>
+        {item.reaction && (
+          <View style={[
+            styles.reactionPill,
+            {
+              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+              borderColor: colors.border,
+              alignSelf: "flex-start",
+              marginTop: 4,
+              marginBottom: 2,
+            }
+          ]}>
+            <Text style={styles.reactionPillText}>{item.reaction}</Text>
+          </View>
+        )}
       </View>
     );
   }
@@ -533,7 +547,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           marginBottom: 8,
         }}
       >
-        <View
+        <TouchableOpacity
           style={[
             styles.messageBubble,
             isMine
@@ -542,6 +556,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             styles.contactShareCard,
             { borderColor: colors.border, marginBottom: 0 },
           ]}
+          onLongPress={onLongPress}
+          activeOpacity={0.95}
         >
           {isGroup && !isMine && item.sender_username ? (
             <Text
@@ -667,7 +683,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </View>
             )}
           </View>
-        </View>
+        </TouchableOpacity>
+        {item.reaction && (
+          <View style={[
+            styles.reactionPill,
+            {
+              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+              borderColor: colors.border,
+              alignSelf: "flex-start",
+              marginTop: 4,
+              marginBottom: 2,
+            }
+          ]}>
+            <Text style={styles.reactionPillText}>{item.reaction}</Text>
+          </View>
+        )}
       </View>
     );
   }
@@ -795,6 +825,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             )}
           </View>
         </TouchableOpacity>
+        {item.reaction && (
+          <View style={[
+            styles.reactionPill,
+            {
+              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+              borderColor: colors.border,
+              alignSelf: "flex-start",
+              marginTop: 4,
+              marginBottom: 2,
+            }
+          ]}>
+            <Text style={styles.reactionPillText}>{item.reaction}</Text>
+          </View>
+        )}
       </View>
     );
   }
@@ -927,6 +971,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {isMine && renderStatusIcons()}
           </View>
         </View>
+        {item.reaction && (
+          <View style={[
+            styles.reactionPill,
+            {
+              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+              borderColor: colors.border,
+              alignSelf: "flex-start",
+              marginTop: 4,
+              marginBottom: 2,
+            }
+          ]}>
+            <Text style={styles.reactionPillText}>{item.reaction}</Text>
+          </View>
+        )}
       </View>
     );
   }
@@ -940,7 +998,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           marginBottom: 8,
         }}
       >
-        <View
+        <TouchableOpacity
           style={[
             styles.messageBubble,
             isMine
@@ -949,6 +1007,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             styles.noteShareCard,
             { borderColor: colors.border, marginBottom: 0 },
           ]}
+          onLongPress={onLongPress}
+          activeOpacity={0.95}
         >
           {isGroup && !isMine && item.sender_username ? (
             <Text
@@ -1086,7 +1146,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </View>
             )}
           </View>
-        </View>
+        </TouchableOpacity>
+        {item.reaction && (
+          <View style={[
+            styles.reactionPill,
+            {
+              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+              borderColor: colors.border,
+              alignSelf: "flex-start",
+              marginTop: 4,
+              marginBottom: 2,
+            }
+          ]}>
+            <Text style={styles.reactionPillText}>{item.reaction}</Text>
+          </View>
+        )}
       </View>
     );
   }

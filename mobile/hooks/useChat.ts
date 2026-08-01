@@ -18,6 +18,7 @@ import {
   markChatRead,
   deleteMessageForEveryone,
   getChats,
+  reactToMessage,
 } from "@/services/api";
 import { toggleBlockContact, toggleMuteChat, clearChatHistory } from "@/services/chatActions";
 import {
@@ -775,12 +776,28 @@ export function useChat() {
       }
     });
 
+    const unsubReaction = wsClient.on("message_reaction", (data) => {
+      if (data.chat_id === chatId) {
+        updateMessageReactionLocal(data.message_id, data.reaction)
+          .then(() => {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === data.message_id ? { ...msg, reaction: data.reaction } : msg
+              )
+            );
+            syncWorker.notifyMessagesChanged(chatId);
+          })
+          .catch(console.error);
+      }
+    });
+
     return () => {
       unsub();
       unsubDelete();
       unsubClear();
       unsubRead();
       unsubDelivered();
+      unsubReaction();
       wsClient.unsubscribe(chatId);
     };
   }, [chatId, token, user]);
@@ -1370,10 +1387,13 @@ export function useChat() {
         )
       );
       syncWorker.notifyMessagesChanged(chatId);
+      if (token) {
+        await reactToMessage(token, chatId, messageId, reaction);
+      }
     } catch (err) {
       console.error("Error setting reaction:", err);
     }
-  }, [chatId]);
+  }, [chatId, token]);
 
   return {
     handleReact,

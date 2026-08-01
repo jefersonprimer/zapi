@@ -41,4 +41,7 @@ pub struct Message {
 
     #[sqlx(skip)]
     pub status: Option<String>,
+
+    pub reaction: Option<String>,
 }
+

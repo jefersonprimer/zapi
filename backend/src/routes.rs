@@ -46,6 +46,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/chat-lists/:id", post(handlers::chats::update_chat_list).delete(handlers::chats::delete_chat_list))
         .route("/chats/:id/messages", get(handlers::messages::get_messages).post(handlers::messages::send_message))
         .route("/chats/:id/messages/:message_id", delete(handlers::messages::delete_message))
+        .route("/chats/:id/messages/:message_id/react", post(handlers::messages::react_to_message))
         .route("/chats/:id/read", post(handlers::messages::mark_chat_read))
         .route("/chats/:id/clear", post(handlers::messages::clear_chat_messages))
         .route("/users/search", get(handlers::users::search_users))

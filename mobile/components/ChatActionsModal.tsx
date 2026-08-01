@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     paddingBottom: 54,
   },
   actionsModalCard: {
-    width: "60%",
+    width: "70%",
     borderRadius: 32,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
@@ -267,12 +267,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 24,
+    paddingVertical: 8,
   },
   modalRowOption: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   modalRowIconContainer: {
     width: 36,

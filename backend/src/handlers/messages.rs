@@ -144,7 +144,8 @@ pub async fn send_message(
             msg_type,
             created_at,
             deleted_for_everyone,
-            deleted_at",
+            deleted_at,
+            reaction",
     )
     .bind(message_id)
     .bind(chat_id)
@@ -452,7 +453,7 @@ pub async fn get_messages(
 
     let mut messages = if let Some(since) = query.since {
         sqlx::query_as::<_, Message>(
-            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at
+            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at, m.reaction
              FROM messages m
              JOIN users u ON u.id = m.sender_id
              JOIN chat_participants cp ON cp.chat_id = m.chat_id AND cp.user_id = $2
@@ -469,7 +470,7 @@ pub async fn get_messages(
     } else {
         // Initial load: return last 50 messages
         sqlx::query_as::<_, Message>(
-            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at
+            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at, m.reaction
              FROM (
                  SELECT * FROM messages 
                  WHERE chat_id = $1 
@@ -768,4 +769,84 @@ pub async fn clear_chat_messages(
 
     Ok(Json(json!({ "status": "success", "chat_id": chat_id })))
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ReactMessageRequest {
+    pub reaction: Option<String>,
+}
+
+pub async fn react_to_message(
+    State(pool): State<PgPool>,
+    State(ws_state): State<ws::WsState>,
+    auth: AuthUser,
+    Path((chat_id, message_id)): Path<(Uuid, Uuid)>,
+    Json(body): Json<ReactMessageRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // 1. Verify if the caller is a participant of the chat
+    let is_participant: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT chat_id FROM chat_participants WHERE chat_id = $1 AND user_id = $2",
+    )
+    .bind(chat_id)
+    .bind(auth.0)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "database error" })),
+        )
+    })?;
+
+    if is_participant.is_none() {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "you are not a participant of this chat" })),
+        ));
+    }
+
+    // 2. Check if the message exists in this chat
+    let message_exists = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM messages WHERE id = $1 AND chat_id = $2)"
+    )
+    .bind(message_id)
+    .bind(chat_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap_or(false);
+
+    if !message_exists {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "message not found in this chat" })),
+        ));
+    }
+
+    // 3. Update the reaction in the database
+    sqlx::query(
+        "UPDATE messages SET reaction = $1 WHERE id = $2"
+    )
+    .bind(&body.reaction)
+    .bind(message_id)
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Error updating message reaction: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "failed to update reaction" })),
+        )
+    })?;
+
+    // 4. Broadcast the reaction event via WebSocket
+    let ws_event = json!({
+        "type": "message_reaction",
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "reaction": body.reaction
+    }).to_string();
+    let _ = ws_state.broadcast(chat_id, &ws_event).await;
+
+    Ok(Json(json!({ "status": "success", "message_id": message_id, "reaction": body.reaction })))
+}
+
 
