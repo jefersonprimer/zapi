@@ -515,6 +515,8 @@ export async function insertMessageLocal(msg: {
       const parsed = JSON.parse(lastMsg);
       if (parsed?.type === "contact_share") {
         lastMsg = `👤 Contato: ${parsed.username || ""}`;
+      } else if (parsed?.type === "location") {
+        lastMsg = `📍 Localização`;
       }
     } catch {
       // plain text / already resolved forward preview

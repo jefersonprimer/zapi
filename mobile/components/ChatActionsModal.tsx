@@ -18,6 +18,7 @@ interface ChatActionsModalProps {
   onCameraPress: () => void;
   onDocumentosPress: () => void;
   onSearchWebPress: () => void;
+  onLocationPress: () => void;
 }
 
 export function ChatActionsModal({
@@ -28,6 +29,7 @@ export function ChatActionsModal({
   onCameraPress,
   onDocumentosPress,
   onSearchWebPress,
+  onLocationPress,
 }: ChatActionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const actionsAnimation = useRef(new Animated.Value(0)).current;
@@ -194,6 +196,29 @@ export function ChatActionsModal({
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
             Documentos
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.modalRowOption}
+          onPress={() => {
+            hideActionsModal(onLocationPress);
+          }}
+        >
+          <View
+            style={[
+              styles.modalRowIconContainer,
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="map-marker-outline"
+              size={24}
+              color={colors.text}
+            />
+          </View>
+          <Text style={[styles.modalRowText, { color: colors.text }]}>
+            Localização
           </Text>
         </TouchableOpacity>
 

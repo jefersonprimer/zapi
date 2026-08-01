@@ -33,6 +33,7 @@ import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
 import { ForwardPreviewBar } from "@/components/ForwardPreviewBar";
 import { ChatActionsModal } from "@/components/ChatActionsModal";
+import { LocationPickerModal } from "@/components/LocationPickerModal";
 import { ChatMessageOptionsModal } from "@/components/ChatMessageOptionsModal";
 import { WebSearchBottomSheet } from "@/components/WebSearchBottomSheet";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -122,6 +123,7 @@ export default function ChatScreen() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
   const [webSearchVisible, setWebSearchVisible] = useState(false);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [msgOptionsVisible, setMsgOptionsVisible] = useState(false);
   const [selectedMessageLayout, setSelectedMessageLayout] = useState<{
     x: number;
@@ -808,6 +810,17 @@ export default function ChatScreen() {
           onCameraPress={handleTakePhoto}
           onDocumentosPress={handlePickFile}
           onSearchWebPress={() => setWebSearchVisible(true)}
+          onLocationPress={() => setLocationPickerVisible(true)}
+        />
+      )}
+
+      {locationPickerVisible && (
+        <LocationPickerModal
+          visible={locationPickerVisible}
+          onClose={() => setLocationPickerVisible(false)}
+          onSendLocation={(locationData) => {
+            handleSend(null, JSON.stringify(locationData));
+          }}
         />
       )}
 

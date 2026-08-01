@@ -13,6 +13,7 @@ import {
   BellOff,
   Pin,
   StickyNote,
+  MapPin,
 } from "lucide-react-native";
 import { ChatListItem as ChatListItemType, API_URL } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -244,6 +245,23 @@ export default function ChatListItem({
               <PhoneMissed
                 size={15}
                 color={colors.danger}
+                style={{ marginRight: 4 }}
+              />
+            );
+          } else if (
+            lastMessage.startsWith('{"type":"location"') ||
+            item.last_message?.trimStart().startsWith('{"type":"location"')
+          ) {
+            try {
+              const parsed = JSON.parse(lastMessage.startsWith('{"type":"location"') ? lastMessage : item.last_message || "");
+              displayMessage = parsed.name || "Localização";
+            } catch {
+              displayMessage = "Localização";
+            }
+            iconElement = (
+              <MapPin
+                size={15}
+                color={colors.textSecondary}
                 style={{ marginRight: 4 }}
               />
             );

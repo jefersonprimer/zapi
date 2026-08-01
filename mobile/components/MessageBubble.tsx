@@ -151,6 +151,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     title: string;
     content: string;
   } | null = null;
+  let isLocationShare = false;
+  let locationShareData: {
+    type: "location";
+    latitude: number;
+    longitude: number;
+    name?: string;
+    address?: string;
+  } | null = null;
   const forwardContent = parseForwardContent(item.content);
 
   let sharePayload: any = null;
@@ -174,6 +182,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   } else if (sharePayload?.type === "note_share") {
     isNoteShare = true;
     noteShareData = sharePayload;
+  } else if (sharePayload?.type === "location") {
+    isLocationShare = true;
+    locationShareData = sharePayload;
   }
 
   const handleStartChat = async () => {
@@ -293,6 +304,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     isNoteShare ||
     isContactShare ||
     isPixShare ||
+    isLocationShare ||
     (contentIsLink && (isImage || isVideo || youtubeId))
       ? null
       : isForwarded
@@ -372,6 +384,136 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   );
 
   // Forward early-return removed to unify layout rendering
+
+  if (isLocationShare && locationShareData) {
+    const handleOpenMap = () => {
+      const url = `https://www.google.com/maps?q=${locationShareData.latitude},${locationShareData.longitude}`;
+      Linking.openURL(url).catch((err) => {
+        Alert.alert("Erro", "Não foi possível abrir o mapa.");
+      });
+    };
+
+    return (
+      <View
+        style={{
+          alignSelf: isMine ? "flex-end" : "flex-start",
+          maxWidth: "75%",
+          marginBottom: 8,
+        }}
+      >
+        <TouchableOpacity
+          style={[
+            styles.messageBubble,
+            isMine
+              ? [styles.myMessage, { backgroundColor: colors.tint }]
+              : [styles.theirMessage, { backgroundColor: colors.surface }],
+            styles.locationShareCard,
+            { borderColor: colors.border, marginBottom: 0, padding: 0, overflow: "hidden" },
+          ]}
+          onPress={handleOpenMap}
+          onLongPress={onLongPress}
+          activeOpacity={0.9}
+        >
+          {isGroup && !isMine && item.sender_username ? (
+            <Text
+              style={[
+                styles.senderUsername,
+                { color: colors.tint, marginTop: 8, marginLeft: 12, marginBottom: 4 },
+              ]}
+            >
+              {item.sender_username}
+            </Text>
+          ) : null}
+
+          <View style={{ width: "100%", height: 120, backgroundColor: colors.border }} pointerEvents="none">
+            <WebView
+              originWhitelist={["*"]}
+              source={{
+                html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body, html, #map { margin: 0; padding: 0; height: 100%; width: 100%; background: ${isMine ? "#0f4c81" : "#f0f0f0"}; }
+    .leaflet-control-attribution { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    var map = L.map('map', {
+      zoomControl: false,
+      dragging: false,
+      touchZoom: false,
+      doubleClickZoom: false,
+      scrollWheelZoom: false,
+      boxZoom: false,
+      keyboard: false
+    }).setView([${locationShareData.latitude}, ${locationShareData.longitude}], 15);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.marker([${locationShareData.latitude}, ${locationShareData.longitude}]).addTo(map);
+  </script>
+</body>
+</html>
+                `
+              }}
+              style={{ width: "100%", height: 120 }}
+              scrollEnabled={false}
+            />
+          </View>
+
+          <View style={{ padding: 10 }}>
+            <Text
+              style={{
+                fontWeight: "bold",
+                color: isMine ? "#fff" : colors.text,
+                fontSize: 14,
+              }}
+              numberOfLines={1}
+            >
+              {locationShareData.name || "Localização"}
+            </Text>
+            {locationShareData.address ? (
+              <Text
+                style={{
+                  color: isMine ? "rgba(255, 255, 255, 0.85)" : colors.textSecondary,
+                  fontSize: 12,
+                  marginTop: 2,
+                }}
+                numberOfLines={2}
+              >
+                {locationShareData.address}
+              </Text>
+            ) : null}
+
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", alignItems: "center", marginTop: 6 }}>
+              <Text
+                style={[
+                  styles.messageTime,
+                  {
+                    color: isMine ? "rgba(255, 255, 255, 0.7)" : colors.textSecondary,
+                    fontSize: 10,
+                    marginRight: 4,
+                  }
+                ]}
+              >
+                {new Date(item.created_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </Text>
+              {isMine && renderStatusIcons()}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (isContactShare && contactShareData) {
     const currentAvatarUrl = contactShareData.avatar_url;
@@ -1624,5 +1766,48 @@ const styles = StyleSheet.create({
   },
   reactionPillText: {
     fontSize: 14,
+  },
+  locationShareCard: {
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 16,
+    width: 220,
+  },
+  locationShareHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  locationShareIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  locationShareInfo: {
+    flex: 1,
+  },
+  locationShareTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  locationShareAddress: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  locationShareSubAddress: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  locationShareButton: {
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  locationShareButtonText: {
+    fontSize: 14,
+    fontWeight: "bold",
   },
 });
