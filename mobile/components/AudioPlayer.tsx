@@ -17,6 +17,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 }) => {
   const { colors, isDark } = useAppTheme();
   const [speed, setSpeed] = useState(1.0);
+  const [timelineWidth, setTimelineWidth] = useState(0);
 
   // Initialize the audio player and status hook
   const player = useAudioPlayer(uri || null, { updateInterval: 100 });
@@ -44,9 +45,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const currentPosition = status.currentTime * 1000 || 0;
 
   const handleTimelinePress = (event: any) => {
-    if (audioDuration <= 0 || !player) return;
+    if (audioDuration <= 0 || timelineWidth <= 0 || !player) return;
     const { locationX } = event.nativeEvent;
-    const timelineWidth = 150;
     let clickX = locationX;
     if (clickX < 0) clickX = 0;
     if (clickX > timelineWidth) clickX = timelineWidth;
@@ -102,15 +102,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       >
         {status.playing ? (
           <MaterialCommunityIcons
-            name="play-pause"
-            size={14}
+            name="pause"
+            size={20}
             color={isMine ? colors.tint : "#fff"}
             fill={isMine ? colors.tint : "#fff"}
           />
         ) : (
           <MaterialCommunityIcons
             name="play"
-            size={14}
+            size={20}
             color={isMine ? colors.tint : "#fff"}
             fill={isMine ? colors.tint : "#fff"}
             style={{ marginLeft: 2 }}
@@ -119,7 +119,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </TouchableOpacity>
 
       <View style={styles.timelineContainer}>
-        {/* Seekable Progress Bar */}
+        {/* Seekable Progress Bar Waveform */}
         <TouchableOpacity
           activeOpacity={1}
           style={styles.timelineTouch}
@@ -127,45 +127,41 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           onLongPress={onLongPress}
         >
           <View
-            style={[
-              styles.timelineBackground,
-              isMine
-                ? styles.timelineBgMine
-                : [
-                    styles.timelineBgTheir,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.2)"
-                        : "#dcdcdc",
-                    },
-                  ],
-            ]}
+            style={styles.waveformContainer}
+            onLayout={(e) => setTimelineWidth(e.nativeEvent.layout.width)}
           >
-            <View
-              style={[
-                styles.timelineProgress,
-                isMine
-                  ? styles.timelineProgressMine
-                  : [
-                      styles.timelineProgressTheir,
-                      { backgroundColor: colors.tint },
-                    ],
-                { width: `${progressPercent}%` },
-              ]}
-            />
-            {/* Playback Thumb */}
-            <View
-              style={[
-                styles.timelineThumb,
-                isMine
-                  ? styles.timelineThumbMine
-                  : [
-                      styles.timelineThumbTheir,
-                      { backgroundColor: colors.tint },
-                    ],
-                { left: `${progressPercent}%` },
-              ]}
-            />
+            {Array.from({ length: 26 }).map((_, i) => {
+              const heights = [
+                4, 10, 16, 22, 14, 8, 12, 18, 24, 20, 12, 6, 10, 16, 22, 14, 8,
+                12, 18, 24, 20, 12, 6, 8, 4,
+              ];
+              const height = heights[i % heights.length];
+              const isActive = progressPercent >= (i / 25) * 100;
+
+              let barColor;
+              if (isMine) {
+                barColor = isActive ? "#fff" : "rgba(255, 255, 255, 0.3)";
+              } else {
+                barColor = isActive
+                  ? colors.tint
+                  : isDark
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : "#dcdcdc";
+              }
+
+              return (
+                <View
+                  key={i}
+                  style={[
+                    styles.waveformBar,
+                    {
+                      height,
+                      backgroundColor: barColor,
+                    },
+                  ]}
+                />
+              );
+            })}
           </View>
         </TouchableOpacity>
 
@@ -223,7 +219,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 8,
-    borderRadius: 14,
+    borderRadius: 16,
     marginVertical: 4,
     minWidth: 260,
   },
@@ -253,45 +249,20 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   timelineTouch: {
-    height: 14,
+    height: 32,
     justifyContent: "center",
     width: 150,
   },
-  timelineBackground: {
-    height: 4,
-    borderRadius: 2,
-    width: 150,
-    position: "relative",
+  waveformContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    height: 24,
   },
-  timelineBgMine: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-  },
-  timelineBgTheir: {
-    backgroundColor: "#dcdcdc",
-  },
-  timelineProgress: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  timelineProgressMine: {
-    backgroundColor: "#fff",
-  },
-  timelineProgressTheir: {
-    backgroundColor: "#007AFF",
-  },
-  timelineThumb: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    position: "absolute",
-    top: -3,
-    marginLeft: -5,
-  },
-  timelineThumbMine: {
-    backgroundColor: "#fff",
-  },
-  timelineThumbTheir: {
-    backgroundColor: "#007AFF",
+  waveformBar: {
+    width: 2.5,
+    borderRadius: 1.25,
   },
   timeText: {
     fontSize: 10,
