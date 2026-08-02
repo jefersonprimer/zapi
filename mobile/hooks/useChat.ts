@@ -545,6 +545,7 @@ export function useChat() {
   const audioChunksRef = useRef<any[]>([]);
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
+  const scheduledTimersRef = useRef<Map<string, any>>(new Map());
 
   useEffect(() => {
     return () => {
@@ -553,6 +554,15 @@ export function useChat() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      scheduledTimersRef.current.forEach((timerId) => {
+        if (timerId !== true) clearTimeout(timerId);
+      });
+      scheduledTimersRef.current.clear();
+    };
+  }, [chatId]);
 
   const cacheMediaForMessages = useCallback(async (msgs: Message[]) => {
     for (const msg of msgs) {
@@ -582,6 +592,40 @@ export function useChat() {
 
       cacheMediaForMessages(localMsgs);
 
+      // Process and trigger local scheduled messages
+      const now = Date.now();
+      for (const msg of localMsgs) {
+        if (msg.status === "scheduled" && msg.scheduled_for) {
+          if (scheduledTimersRef.current.has(msg.id)) {
+            continue;
+          }
+          const delayMs = msg.scheduled_for - now;
+          const capturedContent = msg.content;
+          const capturedAttachment = msg.local_file_path ? {
+            uri: msg.local_file_path,
+            name: msg.id + "_att",
+            type: msg.attachments?.[0]?.type || "image",
+            mimeType: msg.attachments?.[0]?.mime_type || "image/jpeg",
+          } : null;
+
+          if (delayMs <= 0) {
+            scheduledTimersRef.current.set(msg.id, true);
+            await deleteMessageLocal(msg.id);
+            setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+            handleSend(capturedAttachment, capturedContent || undefined);
+            scheduledTimersRef.current.delete(msg.id);
+          } else {
+            const timerId = setTimeout(async () => {
+              scheduledTimersRef.current.delete(msg.id);
+              await deleteMessageLocal(msg.id);
+              setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+              handleSend(capturedAttachment, capturedContent || undefined);
+            }, delayMs);
+            scheduledTimersRef.current.set(msg.id, timerId);
+          }
+        }
+      }
+
       getCallHistory(token)
         .then((callData) => {
           setCalls(callData);
@@ -599,7 +643,7 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [chatId, token, cacheMediaForMessages]);
+  }, [chatId, token, cacheMediaForMessages, handleSend]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -903,6 +947,81 @@ export function useChat() {
       console.error("Failed to save message to local SQLite:", dbErr);
     }
   }, [content, selectedAttachment, forwardingMessage, token, chatId, user, sending]);
+
+  const handleScheduleMessage = useCallback(async (delayMs: number) => {
+    const validAttachment =
+      selectedAttachment &&
+      typeof selectedAttachment === "object" &&
+      typeof selectedAttachment.uri === "string"
+        ? (selectedAttachment as Attachment)
+        : null;
+
+    const hasContent = content.trim().length > 0;
+    const hasAttachment = validAttachment !== null;
+
+    if (!hasContent && !hasAttachment) {
+      Alert.alert(
+        "Aviso",
+        "Digite uma mensagem ou insira um anexo antes de agendar."
+      );
+      return;
+    }
+
+    const capturedContent = content;
+    const capturedAttachment = validAttachment;
+    const scheduledFor = Date.now() + delayMs;
+    const tempScheduledId = "scheduled-" + Math.random().toString(36).substring(2, 9);
+
+    const localScheduledMsg: Message = {
+      id: tempScheduledId,
+      chat_id: chatId,
+      sender_id: user?.user_id || "",
+      sender_username: user?.username || "",
+      content: capturedContent || null,
+      local_file_path: capturedAttachment?.uri || null,
+      created_at: new Date().toISOString(),
+      status: "scheduled",
+      scheduled_for: scheduledFor,
+      attachments: capturedAttachment
+        ? [
+            {
+              id: tempScheduledId + "_att",
+              message_id: tempScheduledId,
+              type: capturedAttachment.type,
+              remote_url: "",
+              local_path: capturedAttachment.uri,
+              mime_type: capturedAttachment.mimeType,
+              size: capturedAttachment.size || 0,
+            },
+          ]
+        : undefined,
+    };
+
+    setContent("");
+    setSelectedAttachment(null);
+
+    try {
+      await insertMessageLocal(localScheduledMsg);
+      setMessages((prev) => [...prev, localScheduledMsg]);
+      syncWorker.notifyMessagesChanged(chatId);
+    } catch (dbErr) {
+      console.error("Failed to save scheduled message to local SQLite:", dbErr);
+    }
+
+    const timerId = setTimeout(async () => {
+      try {
+        scheduledTimersRef.current.delete(tempScheduledId);
+        await deleteMessageLocal(tempScheduledId);
+        setMessages((prev) => prev.filter((m) => m.id !== tempScheduledId));
+        syncWorker.notifyMessagesChanged(chatId);
+        // Dispatch the actual message
+        handleSend(capturedAttachment, capturedContent || undefined);
+      } catch (err) {
+        console.error("Failed to send scheduled message:", err);
+      }
+    }, delayMs);
+    scheduledTimersRef.current.set(tempScheduledId, timerId);
+  }, [content, selectedAttachment, chatId, user, handleSend]);
 
   const handlePickFromGallery = useCallback(async () => {
     try {
@@ -1471,5 +1590,7 @@ export function useChat() {
     participantStoreId,
     user,
     token,
+    setMessages,
+    handleScheduleMessage,
   };
 }

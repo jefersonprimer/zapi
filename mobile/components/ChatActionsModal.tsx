@@ -32,6 +32,7 @@ interface ChatActionsModalProps {
   onDocumentosPress: () => void;
   onSearchWebPress: () => void;
   onLocationPress: () => void;
+  onSendLaterPress: () => void;
 }
 
 const ITEM_HEIGHT = 58;
@@ -42,6 +43,7 @@ const DEFAULT_ORDER = [
   "documentos",
   "location",
   "searchWeb",
+  "sendLater",
 ];
 
 export function ChatActionsModal({
@@ -53,6 +55,7 @@ export function ChatActionsModal({
   onDocumentosPress,
   onSearchWebPress,
   onLocationPress,
+  onSendLaterPress,
 }: ChatActionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const actionsAnimation = useRef(new Animated.Value(0)).current;
@@ -153,6 +156,11 @@ export function ChatActionsModal({
       label: "Pesquisar na Web",
       icon: "earth",
       onPress: () => hideActionsModal(onSearchWebPress),
+    },
+    sendLater: {
+      label: "Enviar mais tarde",
+      icon: "clock-outline",
+      onPress: () => hideActionsModal(onSendLaterPress),
     },
   };
 

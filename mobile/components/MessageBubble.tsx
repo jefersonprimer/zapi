@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -45,6 +45,52 @@ interface MessageBubbleProps {
   currentUserId?: string;
   isGroup?: boolean;
   onLongPress?: () => void;
+}
+
+function formatRemainingTime(totalSeconds: number) {
+  if (totalSeconds <= 0) return "Enviando...";
+
+  const d = Math.floor(totalSeconds / 86400);
+  const h = Math.floor((totalSeconds % 86400) / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+
+  const parts = [];
+  if (d > 0) parts.push(`${d}d`);
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0 || (d === 0 && h === 0)) parts.push(`${m}m`);
+  // Only display seconds if there's less than 5 minutes left
+  if (d === 0 && h === 0 && m < 5 && s > 0) {
+    parts.push(`${s}s`);
+  }
+
+  return `Envia em ${parts.join(" ")}`;
+}
+
+function ScheduledCountdown({ targetTime }: { targetTime: number }) {
+  const [timeLeft, setTimeLeft] = useState(
+    Math.max(0, Math.round((targetTime - Date.now()) / 1000))
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const remaining = Math.max(0, Math.round((targetTime - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timer);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [targetTime]);
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, opacity: 0.85 }}>
+      <Clock size={12} color="rgba(255,255,255,0.7)" style={{ marginRight: 4 }} />
+      <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.9)", fontWeight: "600" }}>
+        {formatRemainingTime(timeLeft)}
+      </Text>
+    </View>
+  );
 }
 
 const isImageUrl = (url: string) =>
@@ -363,7 +409,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     <View style={styles.statusIconContainer}>
       {(item.status === "pending" ||
         item.status === "uploading" ||
-        item.status === "sending") && (
+        item.status === "sending" ||
+        item.status === "scheduled") && (
         <Clock size={13} color="rgba(255,255,255,0.7)" />
       )}
       {(item.status === "failed" ||
@@ -1213,6 +1260,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             (isImage || isVideo || (!!fullUrl && !isAudio)) &&
               !messageContent &&
               !commentText && { padding: 4 },
+            item.status === "scheduled" && {
+              opacity: 0.7,
+              borderStyle: "dashed",
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.6)",
+            },
           ]}
         >
         {isGroup && !isMine && item.sender_username ? (
@@ -1374,6 +1427,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {commentText}
           </Text>
         ) : null}
+
+        {item.status === "scheduled" && item.scheduled_for && (
+          <ScheduledCountdown targetTime={item.scheduled_for} />
+        )}
 
         <View style={styles.timeContainer}>
           <Text

@@ -36,6 +36,8 @@ import { ChatActionsModal } from "@/components/ChatActionsModal";
 import { LocationPickerModal } from "@/components/LocationPickerModal";
 import { ChatMessageOptionsModal } from "@/components/ChatMessageOptionsModal";
 import { WebSearchBottomSheet } from "@/components/WebSearchBottomSheet";
+import { SendLaterModal } from "@/components/SendLaterModal";
+import { SendLaterPreviewBar } from "@/components/SendLaterPreviewBar";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useChat } from "@/hooks/useChat";
@@ -115,6 +117,8 @@ export default function ChatScreen() {
     user,
     handleReact,
     messages,
+    setMessages,
+    handleScheduleMessage,
   } = useChat();
 
   const flatListRef = useRef<FlatList>(null);
@@ -122,6 +126,8 @@ export default function ChatScreen() {
   const shouldStickToBottomRef = useRef(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
+  const [sendLaterVisible, setSendLaterVisible] = useState(false);
+  const [scheduledDelayMs, setScheduledDelayMs] = useState<number | null>(null);
   const [webSearchVisible, setWebSearchVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [msgOptionsVisible, setMsgOptionsVisible] = useState(false);
@@ -562,6 +568,8 @@ export default function ChatScreen() {
           position: "absolute",
           bottom: showEmojiPicker
             ? 280 + (insets.bottom > 0 ? insets.bottom : 16)
+            : sendLaterVisible
+            ? 280 + (insets.bottom > 0 ? insets.bottom : 16)
             : 0,
           left: 0,
           right: 0,
@@ -587,7 +595,7 @@ export default function ChatScreen() {
             styles.inputContainer,
             {
               paddingBottom:
-                isKeyboardVisible || showEmojiPicker || attachSheetVisible
+                isKeyboardVisible || showEmojiPicker || attachSheetVisible || sendLaterVisible
                   ? 6
                   : insets.bottom,
               backgroundColor: "transparent",
@@ -637,40 +645,77 @@ export default function ChatScreen() {
                             ? "rgba(255, 255, 255, 0.12)"
                             : "rgba(0, 0, 0, 0.08)",
                         },
+                        scheduledDelayMs !== null && {
+                          flexDirection: "column",
+                          alignItems: "stretch",
+                          borderRadius: 20,
+                          paddingHorizontal: 0,
+                          paddingVertical: 0,
+                          overflow: "hidden",
+                        },
                       ]
                 }
                 pointerEvents={isRecording ? "none" : "auto"}
               >
-                <TouchableOpacity
-                  style={[
-                    styles.actionMenuButton,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.05)",
-                    },
-                  ]}
-                  onPress={() => {
-                    setShowEmojiPicker(false);
-                    setActionsModalVisible(true);
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="plus"
-                    size={24}
-                    color={colors.icon}
+                {scheduledDelayMs !== null && (
+                  <SendLaterPreviewBar
+                    delayMs={scheduledDelayMs}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setSendLaterVisible(true);
+                    }}
+                    onClear={() => setScheduledDelayMs(null)}
                   />
-                </TouchableOpacity>
+                )}
 
-                <ChatInput
-                  ref={inputRef}
-                  value={content}
-                  onChangeText={setContent}
-                  onFocus={() => {
-                    setShowEmojiPicker(false);
-                    setAttachSheetVisible(false);
-                  }}
-                />
+                <View
+                  style={
+                    scheduledDelayMs !== null
+                      ? {
+                          flexDirection: "row",
+                          alignItems: "flex-end",
+                          paddingHorizontal: 4,
+                          paddingVertical: 4,
+                        }
+                      : {
+                          flexDirection: "row",
+                          alignItems: "flex-end",
+                          flex: 1,
+                        }
+                  }
+                >
+                  <TouchableOpacity
+                    style={[
+                      styles.actionMenuButton,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(0, 0, 0, 0.05)",
+                      },
+                    ]}
+                    onPress={() => {
+                      setShowEmojiPicker(false);
+                      setActionsModalVisible(true);
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="plus"
+                      size={24}
+                      color={colors.icon}
+                    />
+                  </TouchableOpacity>
+
+                  <ChatInput
+                    ref={inputRef}
+                    value={content}
+                    onChangeText={setContent}
+                    onFocus={() => {
+                      setShowEmojiPicker(false);
+                      setAttachSheetVisible(false);
+                      setSendLaterVisible(false);
+                    }}
+                  />
+                </View>
               </View>
 
               {!isRecording && (
@@ -681,7 +726,14 @@ export default function ChatScreen() {
                     forwardingMessage !== null
                   }
                   sending={sending}
-                  onSend={() => handleSend()}
+                  onSend={() => {
+                    if (scheduledDelayMs !== null) {
+                      handleScheduleMessage(scheduledDelayMs);
+                      setScheduledDelayMs(null);
+                    } else {
+                      handleSend();
+                    }
+                  }}
                   onStartRecording={startRecording}
                 />
               )}
@@ -700,6 +752,16 @@ export default function ChatScreen() {
             setShowEmojiPicker(false);
           }}
           height={280}
+        />
+      )}
+
+      {sendLaterVisible && (
+        <SendLaterModal
+          initialDelayMs={scheduledDelayMs || undefined}
+          onClose={() => setSendLaterVisible(false)}
+          onSchedule={(delayMs) => {
+            setScheduledDelayMs(delayMs);
+          }}
         />
       )}
 
@@ -851,6 +913,10 @@ export default function ChatScreen() {
           onDocumentosPress={handlePickFile}
           onSearchWebPress={() => setWebSearchVisible(true)}
           onLocationPress={() => setLocationPickerVisible(true)}
+          onSendLaterPress={() => {
+            setShowEmojiPicker(false);
+            setScheduledDelayMs(60000); // 1 minute default delay
+          }}
         />
       )}
 

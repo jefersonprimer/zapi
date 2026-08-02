@@ -78,7 +78,8 @@ export interface Message {
   image_url: string | null;
   order_id?: string | null;
   local_file_path?: string | null; // Local cached file URI
-  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked"; // Delivery status
+  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked" | "scheduled"; // Delivery status
+  scheduled_for?: number; // Target timestamp for scheduled sending
   created_at: string;
   deleted_for_everyone?: boolean;
   deleted_at?: string | null;

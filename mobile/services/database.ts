@@ -52,6 +52,11 @@ export async function initializeDatabase() {
   } catch (e) {
     // Ignore error if column already exists
   }
+  try {
+    await db.execAsync("ALTER TABLE messages ADD COLUMN scheduled_for INTEGER DEFAULT NULL;");
+  } catch (e) {
+    // Ignore error if column already exists
+  }
 
   await db.execAsync(`
 
@@ -89,10 +94,11 @@ export async function initializeDatabase() {
       image_url TEXT,
       local_file_path TEXT,
       created_at TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'sent', -- 'pending', 'uploading', 'uploaded', 'sending', 'sent', 'delivered', 'read', 'failed'
+      status TEXT NOT NULL DEFAULT 'sent', -- 'pending', 'uploading', 'uploaded', 'sending', 'sent', 'delivered', 'read', 'failed', 'scheduled'
       deleted_for_everyone INTEGER DEFAULT 0,
       deleted_at TEXT DEFAULT NULL,
-      reaction TEXT DEFAULT NULL
+      reaction TEXT DEFAULT NULL,
+      scheduled_for INTEGER DEFAULT NULL
     );
 
     CREATE TABLE IF NOT EXISTS attachments (
@@ -443,6 +449,7 @@ export async function getMessagesFromLocal(
       deleted_at: r.deleted_at || null,
       attachments,
       reaction: r.reaction || null,
+      scheduled_for: r.scheduled_for || undefined,
     });
   }
 
@@ -458,15 +465,16 @@ export async function insertMessageLocal(msg: {
   image_url: string | null;
   local_file_path?: string | null;
   created_at: string;
-  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked";
+  status?: "pending" | "uploading" | "uploaded" | "sending" | "sent" | "delivered" | "read" | "failed" | "privacy_messages_nobody" | "privacy_messages_contacts" | "chat_blocked" | "scheduled";
   attachments?: Attachment[];
   reaction?: string | null;
+  scheduled_for?: number;
 }) {
   const db = await getDatabase();
   await db.runAsync(
     `INSERT INTO messages (
-      id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, reaction
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, reaction, scheduled_for
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       msg.id,
       msg.chat_id,
@@ -478,6 +486,7 @@ export async function insertMessageLocal(msg: {
       msg.created_at,
       msg.status || "sent",
       msg.reaction || null,
+      msg.scheduled_for || null,
     ]
   );
 
