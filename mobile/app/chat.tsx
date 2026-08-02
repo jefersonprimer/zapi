@@ -583,13 +583,6 @@ export default function ChatScreen() {
           />
         )}
 
-        {selectedAttachment && (
-          <AttachmentPreviewBar
-            attachment={selectedAttachment}
-            onClear={() => setSelectedAttachment(null)}
-          />
-        )}
-
         <View
           style={[
             styles.inputContainer,
@@ -645,7 +638,7 @@ export default function ChatScreen() {
                             ? "rgba(255, 255, 255, 0.12)"
                             : "rgba(0, 0, 0, 0.08)",
                         },
-                        scheduledDelayMs !== null && {
+                        (scheduledDelayMs !== null || selectedAttachment !== null) && {
                           flexDirection: "column",
                           alignItems: "stretch",
                           borderRadius: 20,
@@ -668,9 +661,16 @@ export default function ChatScreen() {
                   />
                 )}
 
+                {selectedAttachment && (
+                  <AttachmentPreviewBar
+                    attachment={selectedAttachment}
+                    onClear={() => setSelectedAttachment(null)}
+                  />
+                )}
+
                 <View
                   style={
-                    scheduledDelayMs !== null
+                    (scheduledDelayMs !== null || selectedAttachment !== null)
                       ? {
                           flexDirection: "row",
                           alignItems: "flex-end",
