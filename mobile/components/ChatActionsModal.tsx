@@ -10,6 +10,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  ScrollView,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Haptics from "expo-haptics";
@@ -63,13 +64,16 @@ export function ChatActionsModal({
   const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const dragY = useRef(new Animated.Value(0)).current;
-  
+
   const orderRef = useRef(order);
   const activeIdRef = useRef<string | null>(null);
   const currentDragIndex = useRef<number>(-1);
   const dragStartIndex = useRef<number>(-1);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressed = useRef<boolean>(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const scrollStartVal = useRef(0);
 
   useEffect(() => {
     orderRef.current = order;
@@ -158,7 +162,7 @@ export function ChatActionsModal({
       onPress: () => hideActionsModal(onSearchWebPress),
     },
     sendLater: {
-      label: "Enviar mais tarde",
+      label: "Agendar Mensagem",
       icon: "clock-outline",
       onPress: () => hideActionsModal(onSendLaterPress),
     },
@@ -177,6 +181,7 @@ export function ChatActionsModal({
 
           activeIdRef.current = key;
           isLongPressed.current = false;
+          scrollStartVal.current = scrollY.current;
 
           // Start long press timer (300ms)
           timerRef.current = setTimeout(() => {
@@ -192,31 +197,38 @@ export function ChatActionsModal({
           if (activeIdRef.current !== key) return;
 
           if (!isLongPressed.current) {
-            const dy = Math.abs(gestureState.dy);
-            const dx = Math.abs(gestureState.dx);
-            if (dy > 8 || dx > 8) {
+            const dy = gestureState.dy;
+            const dx = gestureState.dx;
+            if (Math.abs(dy) > 8 || Math.abs(dx) > 8) {
               if (timerRef.current) {
                 clearTimeout(timerRef.current);
                 timerRef.current = null;
               }
+              const targetScrollY = scrollStartVal.current - dy;
+              scrollViewRef.current?.scrollTo({
+                y: targetScrollY,
+                animated: false,
+              });
             }
             return;
           }
 
-          if (dragStartIndex.current === -1 || currentDragIndex.current === -1) return;
+          if (dragStartIndex.current === -1 || currentDragIndex.current === -1)
+            return;
 
           // Update translateY translation directly with dy
           dragY.setValue(gestureState.dy);
 
           // Calculate current visual Y position relative to container
-          const currentY = (dragStartIndex.current * ITEM_HEIGHT) + gestureState.dy;
+          const currentY =
+            dragStartIndex.current * ITEM_HEIGHT + gestureState.dy;
 
           const targetIndex = Math.max(
             0,
             Math.min(
               orderRef.current.length - 1,
-              Math.round(currentY / ITEM_HEIGHT)
-            )
+              Math.round(currentY / ITEM_HEIGHT),
+            ),
           );
 
           if (targetIndex !== currentDragIndex.current) {
@@ -227,7 +239,9 @@ export function ChatActionsModal({
             orderRef.current = newOrder;
             currentDragIndex.current = targetIndex;
 
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
             setOrder(newOrder);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }
@@ -239,9 +253,13 @@ export function ChatActionsModal({
           }
 
           if (!isLongPressed.current) {
-            const action = actionsMap[key];
-            if (action) {
-              action.onPress();
+            const isTap =
+              Math.abs(gestureState.dx) < 10 && Math.abs(gestureState.dy) < 10;
+            if (isTap) {
+              const action = actionsMap[key];
+              if (action) {
+                action.onPress();
+              }
             }
             setDraggingId(null);
             activeIdRef.current = null;
@@ -250,7 +268,10 @@ export function ChatActionsModal({
             return;
           }
 
-          if (dragStartIndex.current === -1 || currentDragIndex.current === -1) {
+          if (
+            dragStartIndex.current === -1 ||
+            currentDragIndex.current === -1
+          ) {
             setDraggingId(null);
             activeIdRef.current = null;
             dragStartIndex.current = -1;
@@ -259,7 +280,8 @@ export function ChatActionsModal({
           }
 
           // Target translation relative to the drag start position
-          const targetTranslation = (currentDragIndex.current - dragStartIndex.current) * ITEM_HEIGHT;
+          const targetTranslation =
+            (currentDragIndex.current - dragStartIndex.current) * ITEM_HEIGHT;
 
           Animated.spring(dragY, {
             toValue: targetTranslation,
@@ -271,9 +293,13 @@ export function ChatActionsModal({
             activeIdRef.current = null;
             dragStartIndex.current = -1;
             currentDragIndex.current = -1;
-            setStorageItem("chat_actions_order", JSON.stringify(orderRef.current));
+            setStorageItem(
+              "chat_actions_order",
+              JSON.stringify(orderRef.current),
+            );
           });
         },
+        onPanResponderTerminationRequest: () => !isLongPressed.current,
         onPanResponderTerminate: () => {
           if (timerRef.current) {
             clearTimeout(timerRef.current);
@@ -335,11 +361,23 @@ export function ChatActionsModal({
             borderColor: colors.border,
             opacity: modalOpacity,
             transform: [{ scale: modalScale }, { translateY: modalTranslateY }],
-            height: order.length * ITEM_HEIGHT + 16,
           },
         ]}
       >
-        <View style={styles.listContainer}>
+        <ScrollView
+          ref={scrollViewRef}
+          scrollEnabled={draggingId === null}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.listContainer,
+            { height: order.length * ITEM_HEIGHT },
+          ]}
+          showsVerticalScrollIndicator={true}
+          onScroll={(event) => {
+            scrollY.current = event.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
+        >
           {order.map((key, index) => {
             const action = actionsMap[key];
             if (!action) return null;
@@ -359,16 +397,7 @@ export function ChatActionsModal({
                   {
                     top: topPosition,
                     zIndex: isDragging ? 100 : 1,
-                    backgroundColor: isDragging
-                      ? isDark
-                        ? "rgba(45, 45, 45, 0.95)"
-                        : "rgba(240, 240, 240, 0.95)"
-                      : "transparent",
-                    shadowColor: isDragging ? "#000" : "transparent",
-                    shadowOffset: isDragging ? { width: 0, height: 4 } : { width: 0, height: 0 },
-                    shadowOpacity: isDragging ? 0.15 : 0,
-                    shadowRadius: isDragging ? 6 : 0,
-                    elevation: isDragging ? 5 : 0,
+                    backgroundColor: "transparent",
                     transform: [
                       { scale: isDragging ? 1.02 : 1 },
                       { translateY: isDragging ? dragY : 0 },
@@ -396,7 +425,7 @@ export function ChatActionsModal({
               </Animated.View>
             );
           })}
-        </View>
+        </ScrollView>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -412,6 +441,7 @@ const styles = StyleSheet.create({
   },
   actionsModalCard: {
     width: "70%",
+    height: 400,
     borderRadius: 32,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
@@ -420,11 +450,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 24,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
+  scrollView: {
+    width: "100%",
   },
   listContainer: {
     width: "100%",
-    height: "100%",
     position: "relative",
   },
   modalRowOption: {
@@ -434,8 +467,9 @@ const styles = StyleSheet.create({
     height: ITEM_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    borderRadius: 50,
+    overflow: "hidden",
   },
   modalRowClickable: {
     flex: 1,
