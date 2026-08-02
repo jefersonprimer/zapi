@@ -24,7 +24,12 @@ interface WheelPickerProps {
   label: string;
 }
 
-function WheelPicker({ options, selectedValue, onChange, label }: WheelPickerProps) {
+function WheelPicker({
+  options,
+  selectedValue,
+  onChange,
+  label,
+}: WheelPickerProps) {
   const { colors, isDark } = useAppTheme();
   const scrollViewRef = useRef<ScrollView>(null);
   const isInitialRender = useRef(true);
@@ -85,16 +90,15 @@ function WheelPicker({ options, selectedValue, onChange, label }: WheelPickerPro
         >
           {paddedOptions.map((item, idx) => {
             if (item === null) {
-              return <View key={`pad-${idx}`} style={{ height: ITEM_HEIGHT }} />;
+              return (
+                <View key={`pad-${idx}`} style={{ height: ITEM_HEIGHT }} />
+              );
             }
             const isSelected = item === selectedValue;
             return (
               <View
                 key={item}
-                style={[
-                  styles.itemWrapper,
-                  { height: ITEM_HEIGHT },
-                ]}
+                style={[styles.itemWrapper, { height: ITEM_HEIGHT }]}
               >
                 <Text
                   style={[
@@ -103,8 +107,8 @@ function WheelPicker({ options, selectedValue, onChange, label }: WheelPickerPro
                       color: isSelected
                         ? colors.text
                         : isDark
-                        ? "#666"
-                        : "#AAA",
+                          ? "#666"
+                          : "#AAA",
                       fontWeight: isSelected ? "bold" : "normal",
                       fontSize: isSelected ? 18 : 14,
                     },
@@ -134,10 +138,12 @@ export function SendLaterModal({
 }: SendLaterModalProps) {
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
-  
+
   const bottomPadding = insets.bottom > 0 ? insets.bottom + 12 : 28;
-  
-  const initialSeconds = initialDelayMs ? Math.floor(initialDelayMs / 1000) : 60;
+
+  const initialSeconds = initialDelayMs
+    ? Math.floor(initialDelayMs / 1000)
+    : 60;
   const initialDays = Math.floor(initialSeconds / 86400);
   const remainingSecs1 = initialSeconds % 86400;
   const initialHours = Math.floor(remainingSecs1 / 3600);
@@ -168,19 +174,6 @@ export function SendLaterModal({
         },
       ]}
     >
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Agendar Envio
-        </Text>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <MaterialCommunityIcons
-            name="close-circle"
-            size={24}
-            color={isDark ? "#8E8E93" : "#AEAEB2"}
-          />
-        </TouchableOpacity>
-      </View>
-
       {/* Wheel Pickers Row */}
       <View
         style={[
@@ -224,28 +217,15 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: Platform.OS === "ios" ? 34 : 20,
     borderTopWidth: StyleSheet.hairlineWidth,
+    justifyContent: "center",
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  closeButton: {
-    padding: 2,
-  },
+
   pickersRow: {
     flexDirection: "row",
     justifyContent: "space-evenly",
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 4,
-    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
