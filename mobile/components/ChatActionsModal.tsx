@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,9 +6,22 @@ import {
   StyleSheet,
   Keyboard,
   Animated,
+  PanResponder,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/context/ThemeContext";
+import { getStorageItem, setStorageItem } from "@/context/AuthContext";
+
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface ChatActionsModalProps {
   visible: boolean;
@@ -20,6 +33,16 @@ interface ChatActionsModalProps {
   onSearchWebPress: () => void;
   onLocationPress: () => void;
 }
+
+const ITEM_HEIGHT = 58;
+const DEFAULT_ORDER = [
+  "emoji",
+  "fotos",
+  "camera",
+  "documentos",
+  "location",
+  "searchWeb",
+];
 
 export function ChatActionsModal({
   visible,
@@ -33,6 +56,39 @@ export function ChatActionsModal({
 }: ChatActionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const actionsAnimation = useRef(new Animated.Value(0)).current;
+
+  const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const dragY = useRef(new Animated.Value(0)).current;
+  
+  const orderRef = useRef(order);
+  const activeIdRef = useRef<string | null>(null);
+  const currentDragIndex = useRef<number>(-1);
+  const dragStartIndex = useRef<number>(-1);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressed = useRef<boolean>(false);
+
+  useEffect(() => {
+    orderRef.current = order;
+  }, [order]);
+
+  // Load saved order on mount
+  useEffect(() => {
+    const loadOrder = async () => {
+      const saved = await getStorageItem("chat_actions_order");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length === DEFAULT_ORDER.length) {
+            setOrder(parsed);
+          }
+        } catch (e) {
+          console.error("Failed to load chat actions order:", e);
+        }
+      }
+    };
+    loadOrder();
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -55,6 +111,174 @@ export function ChatActionsModal({
       onClose();
       if (callback) callback();
     });
+  };
+
+  const actionsMap: Record<
+    string,
+    {
+      label: string;
+      icon: keyof typeof MaterialCommunityIcons.glyphMap;
+      onPress: () => void;
+    }
+  > = {
+    emoji: {
+      label: "Emoji",
+      icon: "emoticon-happy-outline",
+      onPress: () => {
+        Keyboard.dismiss();
+        hideActionsModal(onEmojiPress);
+      },
+    },
+    fotos: {
+      label: "Fotos",
+      icon: "image-outline",
+      onPress: () => hideActionsModal(onFotosPress),
+    },
+    camera: {
+      label: "Câmera",
+      icon: "camera-outline",
+      onPress: () => hideActionsModal(onCameraPress),
+    },
+    documentos: {
+      label: "Documentos",
+      icon: "file-document-outline",
+      onPress: () => hideActionsModal(onDocumentosPress),
+    },
+    location: {
+      label: "Localização",
+      icon: "map-marker-outline",
+      onPress: () => hideActionsModal(onLocationPress),
+    },
+    searchWeb: {
+      label: "Pesquisar na Web",
+      icon: "earth",
+      onPress: () => hideActionsModal(onSearchWebPress),
+    },
+  };
+
+  const panResponders = useRef<Record<string, any>>({});
+
+  const getPanResponder = (key: string) => {
+    if (!panResponders.current[key]) {
+      panResponders.current[key] = PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (evt, gestureState) => {
+          const index = orderRef.current.indexOf(key);
+          if (index === -1) return;
+
+          activeIdRef.current = key;
+          isLongPressed.current = false;
+
+          // Start long press timer (300ms)
+          timerRef.current = setTimeout(() => {
+            isLongPressed.current = true;
+            setDraggingId(key);
+            dragStartIndex.current = index;
+            currentDragIndex.current = index;
+            dragY.setValue(0); // translateY starts at 0
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          }, 300);
+        },
+        onPanResponderMove: (evt, gestureState) => {
+          if (activeIdRef.current !== key) return;
+
+          if (!isLongPressed.current) {
+            const dy = Math.abs(gestureState.dy);
+            const dx = Math.abs(gestureState.dx);
+            if (dy > 8 || dx > 8) {
+              if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+              }
+            }
+            return;
+          }
+
+          if (dragStartIndex.current === -1 || currentDragIndex.current === -1) return;
+
+          // Update translateY translation directly with dy
+          dragY.setValue(gestureState.dy);
+
+          // Calculate current visual Y position relative to container
+          const currentY = (dragStartIndex.current * ITEM_HEIGHT) + gestureState.dy;
+
+          const targetIndex = Math.max(
+            0,
+            Math.min(
+              orderRef.current.length - 1,
+              Math.round(currentY / ITEM_HEIGHT)
+            )
+          );
+
+          if (targetIndex !== currentDragIndex.current) {
+            const newOrder = [...orderRef.current];
+            const [removed] = newOrder.splice(currentDragIndex.current, 1);
+            newOrder.splice(targetIndex, 0, removed);
+
+            orderRef.current = newOrder;
+            currentDragIndex.current = targetIndex;
+
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setOrder(newOrder);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
+        },
+        onPanResponderRelease: (evt, gestureState) => {
+          if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+          }
+
+          if (!isLongPressed.current) {
+            const action = actionsMap[key];
+            if (action) {
+              action.onPress();
+            }
+            setDraggingId(null);
+            activeIdRef.current = null;
+            dragStartIndex.current = -1;
+            currentDragIndex.current = -1;
+            return;
+          }
+
+          if (dragStartIndex.current === -1 || currentDragIndex.current === -1) {
+            setDraggingId(null);
+            activeIdRef.current = null;
+            dragStartIndex.current = -1;
+            currentDragIndex.current = -1;
+            return;
+          }
+
+          // Target translation relative to the drag start position
+          const targetTranslation = (currentDragIndex.current - dragStartIndex.current) * ITEM_HEIGHT;
+
+          Animated.spring(dragY, {
+            toValue: targetTranslation,
+            useNativeDriver: true, // Now we can use native driver!
+            tension: 80,
+            friction: 8,
+          }).start(() => {
+            setDraggingId(null);
+            activeIdRef.current = null;
+            dragStartIndex.current = -1;
+            currentDragIndex.current = -1;
+            setStorageItem("chat_actions_order", JSON.stringify(orderRef.current));
+          });
+        },
+        onPanResponderTerminate: () => {
+          if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+          }
+          setDraggingId(null);
+          activeIdRef.current = null;
+          dragStartIndex.current = -1;
+          currentDragIndex.current = -1;
+        },
+      });
+    }
+    return panResponders.current[key];
   };
 
   if (!visible) return null;
@@ -103,147 +327,68 @@ export function ChatActionsModal({
             borderColor: colors.border,
             opacity: modalOpacity,
             transform: [{ scale: modalScale }, { translateY: modalTranslateY }],
+            height: order.length * ITEM_HEIGHT + 16,
           },
         ]}
       >
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => {
-            Keyboard.dismiss();
-            hideActionsModal(onEmojiPress);
-          }}
-        >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="emoticon-happy-outline"
-              size={24}
-              color={colors.text}
-            />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Emoji
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.listContainer}>
+          {order.map((key, index) => {
+            const action = actionsMap[key];
+            if (!action) return null;
 
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => {
-            hideActionsModal(onFotosPress);
-          }}
-        >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="image-outline"
-              size={24}
-              color={colors.text}
-            />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Fotos
-          </Text>
-        </TouchableOpacity>
+            const isDragging = draggingId === key;
+            const topPosition = isDragging
+              ? dragStartIndex.current * ITEM_HEIGHT
+              : index * ITEM_HEIGHT;
+            const responder = getPanResponder(key);
 
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => {
-            hideActionsModal(onCameraPress);
-          }}
-        >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="camera-outline"
-              size={24}
-              color={colors.text}
-            />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Câmera
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => {
-            hideActionsModal(onDocumentosPress);
-          }}
-        >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="file-document-outline"
-              size={24}
-              color={colors.text}
-            />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Documentos
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => {
-            hideActionsModal(onLocationPress);
-          }}
-        >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="map-marker-outline"
-              size={24}
-              color={colors.text}
-            />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Localização
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.modalRowOption}
-          onPress={() => {
-            hideActionsModal(onSearchWebPress);
-          }}
-        >
-          <View
-            style={[
-              styles.modalRowIconContainer,
-              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="earth"
-              size={24}
-              color={colors.text}
-            />
-          </View>
-          <Text style={[styles.modalRowText, { color: colors.text }]}>
-            Pesquisar na Web
-          </Text>
-        </TouchableOpacity>
+            return (
+              <Animated.View
+                key={key}
+                {...responder.panHandlers}
+                style={[
+                  styles.modalRowOption,
+                  {
+                    top: topPosition,
+                    zIndex: isDragging ? 100 : 1,
+                    backgroundColor: isDragging
+                      ? isDark
+                        ? "rgba(45, 45, 45, 0.95)"
+                        : "rgba(240, 240, 240, 0.95)"
+                      : "transparent",
+                    shadowColor: isDragging ? "#000" : "transparent",
+                    shadowOffset: isDragging ? { width: 0, height: 4 } : { width: 0, height: 0 },
+                    shadowOpacity: isDragging ? 0.15 : 0,
+                    shadowRadius: isDragging ? 6 : 0,
+                    elevation: isDragging ? 5 : 0,
+                    transform: [
+                      { scale: isDragging ? 1.02 : 1 },
+                      { translateY: isDragging ? dragY : 0 },
+                    ],
+                  },
+                ]}
+              >
+                <View style={styles.modalRowClickable}>
+                  <View
+                    style={[
+                      styles.modalRowIconContainer,
+                      { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={action.icon}
+                      size={24}
+                      color={colors.text}
+                    />
+                  </View>
+                  <Text style={[styles.modalRowText, { color: colors.text }]}>
+                    {action.label}
+                  </Text>
+                </View>
+              </Animated.View>
+            );
+          })}
+        </View>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -269,11 +414,26 @@ const styles = StyleSheet.create({
     elevation: 24,
     paddingVertical: 8,
   },
+  listContainer: {
+    width: "100%",
+    height: "100%",
+    position: "relative",
+  },
   modalRowOption: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: ITEM_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
     paddingHorizontal: 20,
+    borderRadius: 16,
+  },
+  modalRowClickable: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    height: "100%",
   },
   modalRowIconContainer: {
     width: 36,
@@ -285,5 +445,11 @@ const styles = StyleSheet.create({
   },
   modalRowText: {
     fontSize: 16,
+  },
+  dragHandle: {
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
