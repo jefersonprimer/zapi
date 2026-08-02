@@ -405,8 +405,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     flexDirection: "column",
     width: "100%",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    maxHeight: "34%",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     overflow: "hidden",
   },
   contentPane: {

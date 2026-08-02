@@ -112,8 +112,8 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
         style={[
           styles.mainContainer,
           {
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#F2F2F7",
-            borderColor: colors.border,
+            backgroundColor: isDark ? "rgba(30, 30, 30, 0.85)" : "rgba(255, 255, 255, 0.85)",
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
           },
         ]}
       >
@@ -188,8 +188,8 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
           styles.mainContainer,
           {
             flex: 1,
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#F2F2F7",
-            borderColor: colors.border,
+            backgroundColor: isDark ? "rgba(30, 30, 30, 0.85)" : "rgba(255, 255, 255, 0.85)",
+            borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
           },
         ]}
       >
