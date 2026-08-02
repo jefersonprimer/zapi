@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useState } from "react";
 import { TextInput, StyleSheet, Platform } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -11,11 +11,12 @@ interface ChatInputProps {
 export const ChatInput = forwardRef<TextInput, ChatInputProps>(
   ({ value, onChangeText, onFocus }, ref) => {
     const { colors } = useAppTheme();
+    const [inputHeight, setInputHeight] = useState(36);
 
     return (
       <TextInput
         ref={ref}
-        style={[styles.input, { color: colors.text }]}
+        style={[styles.input, { color: colors.text, height: Math.max(36, Math.min(120, inputHeight)) }]}
         placeholder="Mensagem..."
         placeholderTextColor={colors.textSecondary}
         value={value}
@@ -23,6 +24,9 @@ export const ChatInput = forwardRef<TextInput, ChatInputProps>(
         onFocus={onFocus}
         multiline
         underlineColorAndroid="transparent"
+        onContentSizeChange={(e) => {
+          setInputHeight(e.nativeEvent.contentSize.height);
+        }}
       />
     );
   }
@@ -38,13 +42,11 @@ const styles = StyleSheet.create({
       web: {
         outlineStyle: "none",
         margin: 0,
-        height: 36,
         paddingTop: 6,
         paddingBottom: 6,
         lineHeight: 24,
       } as any,
       default: {
-        height: 36,
         paddingTop: 6,
         paddingBottom: 6,
         textAlignVertical: "center",

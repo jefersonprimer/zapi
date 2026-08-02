@@ -642,7 +642,14 @@ export default function ChatScreen() {
                 pointerEvents={isRecording ? "none" : "auto"}
               >
                 <TouchableOpacity
-                  style={styles.actionMenuButton}
+                  style={[
+                    styles.actionMenuButton,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.05)",
+                    },
+                  ]}
                   onPress={() => {
                     setShowEmojiPicker(false);
                     setActionsModalVisible(true);
@@ -911,7 +918,7 @@ const styles = StyleSheet.create({
   messageList: { flex: 1 },
   inputContainer: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     justifyContent: "space-between",
     padding: 12,
   },
@@ -949,11 +956,11 @@ const styles = StyleSheet.create({
   inputContainerMessage: {
     flex: 1,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     backgroundColor: "#ffffff",
     borderRadius: 40,
     borderWidth: 1,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingVertical: 4,
     marginRight: 8,
     shadowColor: "#000",
@@ -1026,8 +1033,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   actionMenuButton: {
-    width: 36,
+    width: 46,
     height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 4,
