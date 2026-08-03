@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { BellOff, Pin } from "lucide-react-native";
+import { BellOff } from "lucide-react-native";
 import { ChatListItem as ChatListItemType, API_URL } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -101,20 +101,6 @@ export default function ChatListItemPinned({
               ]}
             >
               <BellOff color={colors.textSecondary} size={10} />
-            </View>
-          )}
-          {item.is_pinned && (
-            <View
-              style={[
-                styles.statusIconBg,
-                { backgroundColor: colors.background },
-              ]}
-            >
-              <Pin
-                color={colors.tint}
-                size={10}
-                style={{ transform: [{ rotate: "45deg" }] }}
-              />
             </View>
           )}
         </View>

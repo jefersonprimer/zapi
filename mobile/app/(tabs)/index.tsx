@@ -1042,16 +1042,6 @@ export default function ChatListScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIcon}
-              onPress={() => router.push("/link-device")}
-            >
-              <MaterialCommunityIcons
-                name="camera-outline"
-                color={colors.headerText}
-                size={24}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerIcon}
               onPress={() => setMenuVisible(true)}
             >
               <MaterialCommunityIcons

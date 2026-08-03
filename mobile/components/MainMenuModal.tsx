@@ -105,6 +105,17 @@ export default function MainMenuModal({
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => {
+            hideMenu(() => router.push("/link-device"));
+          }}
+        >
+          <Text style={[styles.menuItemText, { color: colors.text }]}>
+            Câmera
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => {
             hideMenu(() => router.push("/new-group"));
           }}
         >
