@@ -32,8 +32,25 @@ export function getLocalPathForUrl(remoteUrl: string): string | null {
 
   let ext = filename.split(".").pop()?.toLowerCase() || "bin";
 
-  // If the filename has no valid extension (e.g. Google gstatic /images URL)
-  if (!["jpg", "jpeg", "png", "gif", "webp", "mp4", "mov", "webm", "mp3", "wav", "m4a", "pdf", "txt"].includes(ext)) {
+  // Known file extensions — anything NOT in this list will be treated as an
+  // unrecognisable web URL and have its filename hashed to a generic image/video name.
+  const knownExtensions = new Set([
+    // images
+    "jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "svg", "bmp", "ico",
+    // videos
+    "mp4", "mov", "webm", "mkv", "avi", "3gp", "m4v", "flv", "wmv", "mpg", "mpeg",
+    // audio
+    "mp3", "wav", "m4a", "caf", "ogg", "aac", "opus", "3gp",
+    // documents
+    "pdf", "txt", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv", "rtf",
+    // archives / packages
+    "apk", "zip", "rar", "7z", "tar", "gz", "xapk", "aab",
+    // other
+    "json", "xml", "html",
+  ]);
+
+  // If the filename has no recognised extension (e.g. Google gstatic /images URL)
+  if (!knownExtensions.has(ext)) {
     const hash = simpleHash(remoteUrl);
     const isVid = remoteUrl.toLowerCase().includes("video") || remoteUrl.toLowerCase().includes("mp4");
     ext = isVid ? "mp4" : "jpg";
@@ -42,11 +59,11 @@ export function getLocalPathForUrl(remoteUrl: string): string | null {
 
   let subfolder = "documents";
 
-  if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
+  if (["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "svg", "bmp", "ico"].includes(ext)) {
     subfolder = "images";
-  } else if (["mp4", "mov", "webm", "mkv", "avi"].includes(ext)) {
+  } else if (["mp4", "mov", "webm", "mkv", "avi", "3gp", "m4v", "flv", "wmv", "mpg", "mpeg"].includes(ext)) {
     subfolder = "videos";
-  } else if (["mp3", "wav", "caf", "ogg", "3gp", "aac", "m4a", "opus"].includes(ext)) {
+  } else if (["mp3", "wav", "caf", "ogg", "aac", "m4a", "opus"].includes(ext)) {
     subfolder = "audio";
   }
 

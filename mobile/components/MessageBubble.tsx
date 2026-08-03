@@ -94,7 +94,7 @@ function ScheduledCountdown({ targetTime }: { targetTime: number }) {
 }
 
 const isImageUrl = (url: string) =>
-  /\.(jpg|jpeg|png|gif|webp)/i.test(url) ||
+  /\.(jpg|jpeg|png|gif|webp)$/i.test(url.split("?")[0]) ||
   url.includes("gstatic.com") ||
   url.includes("google.com/images") ||
   url.includes("googleusercontent.com") ||
@@ -111,12 +111,12 @@ const getYoutubeId = (url: string) => {
 };
 
 const isAudioUrl = (url: string) =>
-  /\.(m4a|mp3|wav|caf|ogg|3gp|opus)/i.test(url) ||
+  /\.(m4a|mp3|wav|caf|ogg|3gp|opus)$/i.test(url.split("?")[0]) ||
   url.includes("data:audio/") ||
   url.includes("/uploads/audio");
 
 const isVideoUrl = (url: string) =>
-  /\.(mp4|mov|webm|mkv|avi|quicktime|qt|3gp|m4v|flv|wmv|mpg|mpeg)/i.test(url) ||
+  /\.(mp4|mov|webm|mkv|avi|quicktime|qt|3gp|m4v|flv|wmv|mpg|mpeg)$/i.test(url.split("?")[0]) ||
   url.includes("data:video/") ||
   url.includes("/uploads/videos");
 
