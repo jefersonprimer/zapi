@@ -21,10 +21,12 @@ interface ChatMessageOptionsModalProps {
   onReply: () => void;
   onForward: () => void;
   onCopy: () => void;
+  onEdit?: () => void;
   onDelete: () => void;
   onSelect: () => void;
   layout?: { x: number; y: number; width: number; height: number } | null;
   isMine?: boolean;
+  canEdit?: boolean;
   reaction?: string | null;
   onReact?: (reactionEmoji: string | null) => void;
   currentUserAvatarUrl?: string | null;
@@ -83,10 +85,12 @@ export function ChatMessageOptionsModal({
   onReply,
   onForward,
   onCopy,
+  onEdit,
   onDelete,
   onSelect,
   layout,
   isMine = false,
+  canEdit = false,
   reaction,
   onReact,
   currentUserAvatarUrl,
@@ -149,7 +153,7 @@ export function ChatMessageOptionsModal({
   });
 
   // Calculate coordinates dynamically based on message bubble layout
-  const menuHeight = 270;
+  const menuHeight = canEdit ? 326 : 270;
   const reactionsHeight = 56;
   const detailHeight = 36;
 
@@ -425,6 +429,29 @@ export function ChatMessageOptionsModal({
                 Copiar
               </Text>
             </TouchableOpacity>
+
+            {canEdit && onEdit && (
+              <TouchableOpacity
+                style={styles.modalRowOption}
+                onPress={() => hideModal(onEdit)}
+              >
+                <View
+                  style={[
+                    styles.modalRowIconContainer,
+                    { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil-outline"
+                    size={24}
+                    color={colors.text}
+                  />
+                </View>
+                <Text style={[styles.modalRowText, { color: colors.text }]}>
+                  Editar
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.modalRowOption}

@@ -788,6 +788,11 @@ export async function deleteMessageLocal(messageId: string) {
   );
 }
 
+export async function removeMessageLocal(messageId: string) {
+  const db = await getDatabase();
+  await db.runAsync("DELETE FROM messages WHERE id = ?", [messageId]);
+}
+
 export async function deleteMessageForMeLocal(messageId: string) {
   const db = await getDatabase();
   await db.runAsync(

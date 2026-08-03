@@ -32,6 +32,7 @@ import {
   markSentMessagesDeliveredLocal,
   deleteMessageLocal,
   deleteMessageForMeLocal,
+  removeMessageLocal,
   clearChatMessagesLocal,
   updateMessageReactionLocal,
 } from "@/services/database";
@@ -301,11 +302,16 @@ export function useChat() {
     try {
       if (selectedMessageIds.length > 0) {
         for (const id of selectedMessageIds) {
-          await deleteMessageForMeLocal(id);
+          const selectedMessage = messages.find((msg) => msg.id === id);
+          if (selectedMessage?.status === "scheduled") {
+            await removeScheduledMessage(id);
+          } else {
+            await deleteMessageForMeLocal(id);
+          }
         }
         setMessages((prev) =>
           prev.map((msg) =>
-            selectedMessageIds.includes(msg.id)
+            selectedMessageIds.includes(msg.id) && msg.status !== "scheduled"
               ? { ...msg, deleted_at: new Date().toISOString() }
               : msg,
           ),
@@ -325,18 +331,23 @@ export function useChat() {
     }
     clearSelection();
     setDeleteModalVisible(false);
-  }, [selectedCount, selectedMessageIds, selectedCallIds, token, clearSelection]);
+  }, [selectedCount, selectedMessageIds, selectedCallIds, token, clearSelection, messages, removeScheduledMessage]);
 
   const handleDeleteForEveryone = useCallback(async () => {
     if (selectedMessageIds.length === 0 || selectedCallIds.length > 0 || !token)
       return;
     try {
       for (const id of selectedMessageIds) {
-        await deleteMessageForEveryone(token, chatId, id);
+        const selectedMessage = messages.find((msg) => msg.id === id);
+        if (selectedMessage?.status === "scheduled") {
+          await removeScheduledMessage(id);
+        } else {
+          await deleteMessageForEveryone(token, chatId, id);
+        }
       }
       setMessages((prev) =>
         prev.map((msg) =>
-          selectedMessageIds.includes(msg.id)
+          selectedMessageIds.includes(msg.id) && msg.status !== "scheduled"
             ? {
                 ...msg,
                 deleted_for_everyone: true,
@@ -354,7 +365,7 @@ export function useChat() {
     }
     clearSelection();
     setDeleteModalVisible(false);
-  }, [selectedMessageIds, selectedCallIds.length, token, chatId, clearSelection]);
+  }, [selectedMessageIds, selectedCallIds.length, token, chatId, clearSelection, messages, removeScheduledMessage]);
 
   const handleCopy = useCallback(() => {
     const messageToCopy =
@@ -551,6 +562,85 @@ export function useChat() {
     (customAttachment?: any, customText?: string) => Promise<void>
   >(async () => {});
 
+  function getAttachmentFromScheduledMessage(msg: Message): Attachment | null {
+    const firstAttachment = msg.attachments?.[0];
+    if (firstAttachment) {
+      return {
+        uri:
+          firstAttachment.local_path ||
+          firstAttachment.remote_url ||
+          msg.local_file_path ||
+          "",
+        name:
+          firstAttachment.remote_url.split("/").pop() ||
+          firstAttachment.local_path?.split("/").pop() ||
+          `${firstAttachment.type}_attachment`,
+        type: firstAttachment.type,
+        mimeType: firstAttachment.mime_type || undefined,
+        size: firstAttachment.size || undefined,
+        duration: firstAttachment.duration || undefined,
+      };
+    }
+
+    if (msg.local_file_path) {
+      const fileName = msg.local_file_path.split("/").pop() || "attachment";
+      const ext = fileName.split(".").pop()?.toLowerCase();
+      let type: Attachment["type"] = "document";
+
+      if (ext && ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext)) {
+        type = "image";
+      } else if (ext && ["mp4", "mov", "webm", "mkv", "avi", "m4v", "3gp"].includes(ext)) {
+        type = "video";
+      } else if (ext && ["mp3", "wav", "m4a", "caf", "ogg", "opus"].includes(ext)) {
+        type = "audio";
+      }
+
+      return {
+        uri: msg.local_file_path,
+        name: fileName,
+        type,
+      };
+    }
+
+    return null;
+  }
+
+  async function removeScheduledMessage(messageId: string) {
+    const scheduledMessage = messages.find(
+      (msg) => msg.id === messageId && msg.status === "scheduled",
+    );
+
+    if (!scheduledMessage) {
+      return null;
+    }
+
+    const timerId = scheduledTimersRef.current.get(messageId);
+    if (timerId && timerId !== true) {
+      clearTimeout(timerId);
+    }
+    scheduledTimersRef.current.delete(messageId);
+
+    await removeMessageLocal(messageId);
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+    syncWorker.notifyMessagesChanged(chatId);
+
+    return scheduledMessage;
+  }
+
+  async function restoreScheduledMessageToComposer(messageId: string) {
+    const scheduledMessage = await removeScheduledMessage(messageId);
+    if (!scheduledMessage) {
+      return null;
+    }
+
+    const scheduledFor = scheduledMessage.scheduled_for || Date.now() + 60_000;
+    return {
+      content: scheduledMessage.content || "",
+      attachment: getAttachmentFromScheduledMessage(scheduledMessage),
+      delayMs: Math.max(1000, scheduledFor - Date.now()),
+    };
+  }
+
   useEffect(() => {
     return () => {
       if (recordingTimerRef.current) {
@@ -614,14 +704,14 @@ export function useChat() {
 
           if (delayMs <= 0) {
             scheduledTimersRef.current.set(msg.id, true);
-            await deleteMessageLocal(msg.id);
+            await removeMessageLocal(msg.id);
             setMessages((prev) => prev.filter((m) => m.id !== msg.id));
             handleSend(capturedAttachment, capturedContent || undefined);
             scheduledTimersRef.current.delete(msg.id);
           } else {
             const timerId = setTimeout(async () => {
               scheduledTimersRef.current.delete(msg.id);
-              await deleteMessageLocal(msg.id);
+              await removeMessageLocal(msg.id);
               setMessages((prev) => prev.filter((m) => m.id !== msg.id));
               handleSendRef.current(capturedAttachment, capturedContent || undefined);
             }, delayMs);
@@ -1038,7 +1128,7 @@ export function useChat() {
     const timerId = setTimeout(async () => {
       try {
         scheduledTimersRef.current.delete(tempScheduledId);
-        await deleteMessageLocal(tempScheduledId);
+        await removeMessageLocal(tempScheduledId);
         setMessages((prev) => prev.filter((m) => m.id !== tempScheduledId));
         syncWorker.notifyMessagesChanged(chatId);
         // Dispatch the actual message
@@ -1484,6 +1574,7 @@ export function useChat() {
     const now = Date.now();
     return selectedMessages.every((msg) => {
       if (msg.sender_id !== user?.user_id) return false;
+      if (msg.status === "scheduled") return false;
       const sentTime = new Date(msg.created_at).getTime();
       const ageInHours = (now - sentTime) / (1000 * 60 * 60);
       return ageInHours < 24;
@@ -1491,6 +1582,16 @@ export function useChat() {
   }, [selectedMessages, selectedCallIds.length, user?.user_id]);
 
   const deleteModalTitle = useMemo(() => {
+    const hasOnlyScheduledMessagesSelected =
+      selectedMessages.length > 0 &&
+      selectedMessages.every((msg) => msg.status === "scheduled");
+
+    if (hasOnlyScheduledMessagesSelected) {
+      return selectedMessageIds.length === 1
+        ? "Deseja cancelar o agendamento?"
+        : `Deseja cancelar ${selectedMessageIds.length} agendamentos?`;
+    }
+
     if (hasOnlyCallsSelected) {
       return selectedCallIds.length === 1
         ? "Deseja apagar a ligação?"
@@ -1543,6 +1644,7 @@ export function useChat() {
 
   return {
     handleReact,
+    restoreScheduledMessageToComposer,
     chatId,
     participantId,
     participantUsername,

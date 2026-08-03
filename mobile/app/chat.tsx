@@ -117,8 +117,8 @@ export default function ChatScreen() {
     participantStoreId,
     user,
     handleReact,
+    restoreScheduledMessageToComposer,
     messages,
-    setMessages,
     handleScheduleMessage,
   } = useChat();
 
@@ -262,6 +262,35 @@ export default function ChatScreen() {
   const selectedMsg = messages.find((m) => selectedMessageIds.includes(m.id));
   const isMine = selectedMsg ? selectedMsg.sender_id === user?.user_id : false;
   const currentReaction = selectedMsg ? selectedMsg.reaction : null;
+  const isScheduledSelected =
+    selectedMsg?.status === "scheduled" &&
+    selectedMsg.sender_id === user?.user_id;
+
+  const handleEditScheduledMessage = useCallback(async () => {
+    if (!selectedMsg || !isScheduledSelected) return;
+
+    const draft = await restoreScheduledMessageToComposer(selectedMsg.id);
+    if (!draft) return;
+
+    setContent(draft.content);
+    setSelectedAttachment(draft.attachment);
+    setScheduledDelayMs(draft.delayMs);
+    setMsgOptionsVisible(false);
+    setOnlyReactionsMode(false);
+    setShowEmojiPicker(false);
+    setAttachSheetVisible(false);
+    inputRef.current?.focus();
+    clearSelection();
+  }, [
+    selectedMsg,
+    isScheduledSelected,
+    restoreScheduledMessageToComposer,
+    setContent,
+    setSelectedAttachment,
+    setAttachSheetVisible,
+    setShowEmojiPicker,
+    clearSelection,
+  ]);
 
   return (
     <KeyboardAvoidingView
@@ -962,6 +991,7 @@ export default function ChatScreen() {
           isMine={isMine}
           reaction={currentReaction}
           onlyReactions={onlyReactionsMode}
+          canEdit={isScheduledSelected}
           onReact={(reactionEmoji) => {
             handleReact(selectedMsg.id, reactionEmoji);
             setReactionsByMe((prev) => ({
@@ -994,6 +1024,7 @@ export default function ChatScreen() {
           onCopy={() => {
             handleCopy();
           }}
+          onEdit={handleEditScheduledMessage}
           onDelete={() => {
             setDeleteModalVisible(true);
           }}
