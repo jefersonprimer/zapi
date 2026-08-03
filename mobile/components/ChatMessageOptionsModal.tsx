@@ -166,30 +166,40 @@ export function ChatMessageOptionsModal({
     const bubbleBottom = layout.y + layout.height;
     const spaceBelow = screenHeight - bubbleBottom;
 
-    if (spaceBelow > menuHeight + 30) {
-      // Place menu below, reactions above
-      menuTop = bubbleBottom + 8;
+    if (onlyReactions) {
+      // Place reactions above the bubble by default
       reactionsTop = bubbleTop - reactionsHeight - 8;
       
       if (reactionsTop < 60) {
-        // Fallback: put both below message
+        // Fallback: place reactions below the bubble if there is not enough space above
         reactionsTop = bubbleBottom + 8;
-        menuTop = reactionsTop + reactionsHeight + 8;
       }
     } else {
-      // Place menu above, reactions above menu or below bubble
-      menuTop = bubbleTop - menuHeight - 8;
-      reactionsTop = menuTop - reactionsHeight - 8;
-
-      if (menuTop < 60) {
-        // Fallback: menu below
+      if (spaceBelow > menuHeight + 30) {
+        // Place menu below, reactions above
         menuTop = bubbleBottom + 8;
         reactionsTop = bubbleTop - reactionsHeight - 8;
-      }
-      
-      if (reactionsTop < 60) {
-        reactionsTop = bubbleBottom + 8;
-        menuTop = reactionsTop + reactionsHeight + 8;
+        
+        if (reactionsTop < 60) {
+          // Fallback: put both below message
+          reactionsTop = bubbleBottom + 8;
+          menuTop = reactionsTop + reactionsHeight + 8;
+        }
+      } else {
+        // Place menu above, reactions above menu or below bubble
+        menuTop = bubbleTop - menuHeight - 8;
+        reactionsTop = menuTop - reactionsHeight - 8;
+
+        if (menuTop < 60) {
+          // Fallback: menu below
+          menuTop = bubbleBottom + 8;
+          reactionsTop = bubbleTop - reactionsHeight - 8;
+        }
+        
+        if (reactionsTop < 60) {
+          reactionsTop = bubbleBottom + 8;
+          menuTop = reactionsTop + reactionsHeight + 8;
+        }
       }
     }
 
