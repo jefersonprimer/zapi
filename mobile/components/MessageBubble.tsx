@@ -118,7 +118,9 @@ const isAudioUrl = (url: string) =>
 const isVideoUrl = (url: string) =>
   /\.(mp4|mov|webm|mkv|avi|quicktime|qt|3gp|m4v|flv|wmv|mpg|mpeg)$/i.test(url.split("?")[0]) ||
   url.includes("data:video/") ||
-  url.includes("/uploads/videos");
+  url.includes("/uploads/videos") ||
+  url.includes("gstatic.com/video") ||
+  url.includes("video?q=tbn");
 
 const formatFileSize = (bytes: number | null | undefined): string => {
   if (bytes === null || bytes === undefined || bytes === 0) return "";
@@ -1226,7 +1228,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   }
 
-  const isFileMessage = !!fullUrl && !isAudio && !youtubeId;
+  const isFileMessage = (!!fullUrl && !isAudio) || !!youtubeId;
 
   return (
     <View
@@ -1271,7 +1273,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               : [styles.theirMessage, { backgroundColor: colors.surface }],
             { marginBottom: 0, flexShrink: 1 },
             isAudio && { padding: 4 },
-            (isImage || isVideo || (!!fullUrl && !isAudio)) && { padding: 4 },
+            (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && { padding: 4 },
             item.status === "scheduled" && {
               opacity: 0.7,
               borderStyle: "dashed",
@@ -1285,7 +1287,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             style={[
               styles.senderUsername,
               { color: colors.tint },
-              (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+              (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
                 marginHorizontal: 8,
                 marginTop: 6,
                 marginBottom: 4,
@@ -1300,7 +1302,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           <View
             style={[
               styles.forwardHeaderRow,
-              (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+              (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
                 marginHorizontal: 8,
                 marginTop: 4,
               },
@@ -1446,7 +1448,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               isMine
                 ? styles.myMessageText
                 : [styles.messageText, { color: colors.text }],
-              (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+              (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
                 marginHorizontal: 8,
                 marginTop: 6,
                 marginBottom: 2,
@@ -1463,7 +1465,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 ? styles.myMessageText
                 : [styles.messageText, { color: colors.text }],
               { marginTop: messageContent ? 4 : 0 },
-              (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+              (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
                 marginHorizontal: 8,
                 marginBottom: 2,
               },
@@ -1480,7 +1482,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <View
           style={[
             styles.timeContainer,
-            (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+            (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
               marginHorizontal: 6,
               marginBottom: 2,
             },
@@ -1582,11 +1584,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
 const styles = StyleSheet.create({
   youtubeThumbnailContainer: {
-    width: 240,
-    height: 135,
+    width: 260,
+    height: 180,
     borderRadius: 12,
     overflow: "hidden",
-    marginBottom: 8,
+    marginBottom: 4,
     position: "relative",
     backgroundColor: "#000",
   },
