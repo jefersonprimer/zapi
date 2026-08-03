@@ -132,7 +132,9 @@ export default function ChatScreen() {
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [msgOptionsVisible, setMsgOptionsVisible] = useState(false);
   const [onlyReactionsMode, setOnlyReactionsMode] = useState(false);
-  const [reactionsByMe, setReactionsByMe] = useState<Record<string, boolean>>({});
+  const [reactionsByMe, setReactionsByMe] = useState<Record<string, boolean>>(
+    {},
+  );
   const [selectedMessageLayout, setSelectedMessageLayout] = useState<{
     x: number;
     y: number;
@@ -572,8 +574,8 @@ export default function ChatScreen() {
           bottom: showEmojiPicker
             ? 280 + (insets.bottom > 0 ? insets.bottom : 16)
             : sendLaterVisible
-            ? 280 + (insets.bottom > 0 ? insets.bottom : 16)
-            : 0,
+              ? 280 + (insets.bottom > 0 ? insets.bottom : 16)
+              : 0,
           left: 0,
           right: 0,
           zIndex: 10,
@@ -584,7 +586,10 @@ export default function ChatScreen() {
             styles.inputContainer,
             {
               paddingBottom:
-                isKeyboardVisible || showEmojiPicker || attachSheetVisible || sendLaterVisible
+                isKeyboardVisible ||
+                showEmojiPicker ||
+                attachSheetVisible ||
+                sendLaterVisible
                   ? 6
                   : insets.bottom,
               backgroundColor: "transparent",
@@ -634,7 +639,9 @@ export default function ChatScreen() {
                             ? "rgba(255, 255, 255, 0.12)"
                             : "rgba(0, 0, 0, 0.08)",
                         },
-                        (scheduledDelayMs !== null || selectedAttachment !== null || forwardingMessage !== null) && {
+                        (scheduledDelayMs !== null ||
+                          selectedAttachment !== null ||
+                          forwardingMessage !== null) && {
                           flexDirection: "column",
                           alignItems: "stretch",
                           borderRadius: 20,
@@ -673,7 +680,9 @@ export default function ChatScreen() {
 
                 <View
                   style={
-                    (scheduledDelayMs !== null || selectedAttachment !== null || forwardingMessage !== null)
+                    scheduledDelayMs !== null ||
+                    selectedAttachment !== null ||
+                    forwardingMessage !== null
                       ? {
                           flexDirection: "row",
                           alignItems: "flex-end",
@@ -692,8 +701,8 @@ export default function ChatScreen() {
                       styles.actionMenuButton,
                       {
                         backgroundColor: isDark
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "rgba(0, 0, 0, 0.05)",
+                          ? "rgba(255, 255, 255, 0.15)"
+                          : "rgba(0, 0, 0, 0.06)",
                       },
                     ]}
                     onPress={() => {
@@ -704,7 +713,7 @@ export default function ChatScreen() {
                     <MaterialCommunityIcons
                       name="plus"
                       size={24}
-                      color={colors.icon}
+                      color={colors.text}
                     />
                   </TouchableOpacity>
 
@@ -1042,10 +1051,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     backgroundColor: "#ffffff",
-    borderRadius: 40,
+    borderRadius: 28,
     borderWidth: 1,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
     marginRight: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
@@ -1117,11 +1126,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   actionMenuButton: {
-    width: 46,
+    width: 44,
     height: 36,
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 4,
   },
 });

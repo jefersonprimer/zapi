@@ -43,8 +43,8 @@ export const SendOrMicButton: React.FC<SendOrMicButtonProps> = ({
 
 const styles = StyleSheet.create({
   sendButtonCircle: {
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   micButton: {
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
