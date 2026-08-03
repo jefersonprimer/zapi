@@ -25,7 +25,7 @@ interface ChatItemRowProps {
   participantUsername: string;
   participantAvatarUrl: string;
   onSwipeRight: (msg: Message) => void;
-  onToggleMessageSelection: (msg: Message, layout?: { x: number; y: number; width: number; height: number }) => void;
+  onToggleMessageSelection: (msg: Message, layout?: { x: number; y: number; width: number; height: number }, onlyReactions?: boolean) => void;
   onToggleCallSelection: (callId: string) => void;
 }
 
@@ -47,6 +47,7 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
 }) => {
   const { colors, isDark } = useAppTheme();
   const bubbleRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
+  const lastPressRef = useRef<number>(0);
 
   const itemDate =
     item.type === "message"
@@ -63,12 +64,12 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
   if (item.type === "message") {
     const msg = item.data;
     const isSelected = selectedMessageIds.includes(msg.id);
-    const handleLongPress = () => {
+    const handleLongPress = (onlyReactions = false) => {
       if (isSelectionMode) {
         onToggleMessageSelection(msg);
       } else {
         bubbleRef.current?.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
-          onToggleMessageSelection(msg, { x: pageX, y: pageY, width, height });
+          onToggleMessageSelection(msg, { x: pageX, y: pageY, width, height }, onlyReactions);
         });
       }
     };
@@ -107,9 +108,18 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
           <TouchableOpacity
             ref={bubbleRef}
             onPress={() => {
-              if (isSelectionMode) onToggleMessageSelection(msg);
+              if (isSelectionMode) {
+                onToggleMessageSelection(msg);
+              } else {
+                const now = Date.now();
+                const DOUBLE_PRESS_DELAY = 300;
+                if (now - lastPressRef.current < DOUBLE_PRESS_DELAY) {
+                  handleLongPress(true);
+                }
+                lastPressRef.current = now;
+              }
             }}
-            onLongPress={handleLongPress}
+            onLongPress={() => handleLongPress(false)}
             delayLongPress={500}
             style={styles.messageRow}
             activeOpacity={0.8}

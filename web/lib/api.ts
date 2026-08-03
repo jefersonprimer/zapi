@@ -1133,6 +1133,7 @@ export interface Message {
   deleted_for_everyone?: boolean;
   deleted_at?: string | null;
   attachments?: Attachment[];
+  reaction?: string | null;
 }
 
 export interface UserSearchResult {
@@ -1381,5 +1382,18 @@ export async function listStoreReviews(
 ): Promise<{ reviews: StoreReviewWithUser[] }> {
   return authFetch(`${API_URL}/delivery/stores/${storeId}/reviews`, token);
 }
+
+export async function reactToMessage(
+  token: string,
+  chatId: string,
+  messageId: string,
+  reaction: string | null
+): Promise<void> {
+  return authFetch(`${API_URL}/chats/${chatId}/messages/${messageId}/react`, token, {
+    method: "POST",
+    body: JSON.stringify({ reaction }),
+  });
+}
+
 
 

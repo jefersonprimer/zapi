@@ -131,6 +131,7 @@ export default function ChatScreen() {
   const [webSearchVisible, setWebSearchVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [msgOptionsVisible, setMsgOptionsVisible] = useState(false);
+  const [onlyReactionsMode, setOnlyReactionsMode] = useState(false);
   const [reactionsByMe, setReactionsByMe] = useState<Record<string, boolean>>({});
   const [selectedMessageLayout, setSelectedMessageLayout] = useState<{
     x: number;
@@ -539,12 +540,13 @@ export default function ChatScreen() {
             participantUsername={participantUsername}
             participantAvatarUrl={participantAvatarUrl}
             onSwipeRight={handleReencaminhar}
-            onToggleMessageSelection={(msg, layout) => {
+            onToggleMessageSelection={(msg, layout, onlyReactions) => {
               if (selectedMessageIds.length > 0) {
                 toggleMessageSelection(msg);
               } else {
                 setSelectedMessageIds([msg.id]);
                 setSelectedMessageLayout(layout || null);
+                setOnlyReactionsMode(!!onlyReactions);
                 setMsgOptionsVisible(true);
               }
             }}
@@ -937,6 +939,7 @@ export default function ChatScreen() {
           layout={selectedMessageLayout}
           isMine={isMine}
           reaction={currentReaction}
+          onlyReactions={onlyReactionsMode}
           onReact={(reactionEmoji) => {
             handleReact(selectedMsg.id, reactionEmoji);
             setReactionsByMe((prev) => ({
@@ -955,6 +958,7 @@ export default function ChatScreen() {
           }
           onClose={(shouldClear) => {
             setMsgOptionsVisible(false);
+            setOnlyReactionsMode(false);
             if (shouldClear) {
               clearSelection();
             }
