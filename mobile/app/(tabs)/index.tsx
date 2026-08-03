@@ -51,6 +51,7 @@ import MuteModal from "@/components/MuteModal";
 import MainMenuModal from "@/components/MainMenuModal";
 import CreateListModal from "@/components/CreateListModal";
 import ChatListItemComponent from "@/components/ChatListItem";
+import ChatListItemPinned from "@/components/ChatListItemPinned";
 import ChatSelectorModal from "@/components/ChatSelectorModal";
 import ListSelectorModal from "@/components/ListSelectorModal";
 import ListMenuModal from "@/components/ListMenuModal";
@@ -282,6 +283,9 @@ export default function ChatListScreen() {
       return true;
     }
   });
+
+  const pinnedChats = filteredChats.filter((c) => c.is_pinned);
+  const unpinnedChats = filteredChats.filter((c) => !c.is_pinned);
 
   const archivedChatsCount = chats.filter((c) => c.is_archived).length;
 
@@ -1144,41 +1148,63 @@ export default function ChatListScreen() {
             </View>
           ) : (
             <FlatList
-              data={filteredChats}
+              data={unpinnedChats}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ paddingBottom: 100 }}
               onScroll={handleScroll}
               scrollEventThrottle={16}
               ListHeaderComponent={
-                archivedChatsCount > 0 && activeFilterId === "all" ? (
-                  <TouchableOpacity
-                    style={[
-                      styles.archivedRow,
-                      {
-                        borderBottomColor: colors.border,
-                      },
-                    ]}
-                    onPress={() => router.push("/archived" as any)}
-                  >
-                    <View style={styles.archivedLeft}>
-                      <View style={[styles.archivedIconContainer]}>
-                        <MaterialCommunityIcons
-                          name="archive-arrow-down-outline"
-                          color={colors.textSecondary}
-                          size={24}
-                        />
+                <View>
+                  {archivedChatsCount > 0 && activeFilterId === "all" && (
+                    <TouchableOpacity
+                      style={[
+                        styles.archivedRow,
+                        {
+                          borderBottomColor: colors.border,
+                        },
+                      ]}
+                      onPress={() => router.push("/archived" as any)}
+                    >
+                      <View style={styles.archivedLeft}>
+                        <View style={[styles.archivedIconContainer]}>
+                          <MaterialCommunityIcons
+                            name="archive-arrow-down-outline"
+                            color={colors.textSecondary}
+                            size={24}
+                          />
+                        </View>
+                        <Text
+                          style={[
+                            styles.archivedText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          Conversas Arquivadas
+                        </Text>
                       </View>
-                      <Text
-                        style={[
-                          styles.archivedText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        Conversas Arquivadas
-                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {pinnedChats.length > 0 && (
+                    <View style={styles.pinnedSection}>
+                      <FlatList
+                        key="pinned-3"
+                        numColumns={3}
+                        data={pinnedChats.slice(0, 9)}
+                        keyExtractor={(item) => item.id}
+                        contentContainerStyle={styles.pinnedList}
+                        columnWrapperStyle={styles.pinnedRow}
+                        renderItem={({ item }) => (
+                          <ChatListItemPinned
+                            item={item}
+                            isSelected={selectedChatIds.includes(item.id)}
+                            onPress={handlePress}
+                            onLongPress={handleLongPress}
+                          />
+                        )}
+                      />
                     </View>
-                  </TouchableOpacity>
-                ) : null
+                  )}
+                </View>
               }
               ListFooterComponent={
                 <View>
@@ -1200,12 +1226,14 @@ export default function ChatListScreen() {
                 </View>
               }
               renderItem={({ item }) => (
-                <ChatListItemComponent
-                  item={item}
-                  isSelected={selectedChatIds.includes(item.id)}
-                  onPress={handlePress}
-                  onLongPress={handleLongPress}
-                />
+                <View style={styles.chatListItemContainer}>
+                  <ChatListItemComponent
+                    item={item}
+                    isSelected={selectedChatIds.includes(item.id)}
+                    onPress={handlePress}
+                    onLongPress={handleLongPress}
+                  />
+                </View>
               )}
             />
           )}
@@ -1408,5 +1436,20 @@ const styles = StyleSheet.create({
   },
   archivedText: {
     fontSize: 16,
+  },
+  pinnedSection: {
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+  },
+  pinnedList: {
+    paddingHorizontal: 12,
+    gap: 12,
+  },
+  pinnedRow: {
+    justifyContent: "flex-start",
+    gap: 12,
+  },
+  chatListItemContainer: {
+    paddingHorizontal: 12,
   },
 });
