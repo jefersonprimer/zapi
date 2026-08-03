@@ -13,7 +13,6 @@ import { Image } from "expo-image";
 import * as FileSystem from "expo-file-system/legacy";
 import {
   Smile,
-  Film,
   Sticker as StickerIcon,
   Search,
 } from "lucide-react-native";
@@ -150,16 +149,6 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
             size={20}
             color={activeTab === "emoji" ? colors.brandGreen : colors.icon}
           />
-          <Text
-            style={[
-              styles.tabLabel,
-              {
-                color: activeTab === "emoji" ? colors.brandGreen : colors.icon,
-              },
-            ]}
-          >
-            Emoji
-          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -172,10 +161,6 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
           ]}
           onPress={() => setActiveTab("gif")}
         >
-          <Film
-            size={20}
-            color={activeTab === "gif" ? colors.brandGreen : colors.icon}
-          />
           <Text
             style={[
               styles.tabLabel,
@@ -200,17 +185,6 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
             size={20}
             color={activeTab === "sticker" ? colors.brandGreen : colors.icon}
           />
-          <Text
-            style={[
-              styles.tabLabel,
-              {
-                color:
-                  activeTab === "sticker" ? colors.brandGreen : colors.icon,
-              },
-            ]}
-          >
-            Sticker
-          </Text>
         </TouchableOpacity>
       </View>
 
@@ -235,6 +209,15 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
               "symbols",
               "flags",
             ]}
+            categoryPosition="bottom"
+            styles={{
+              category: {
+                container: {
+                  width: "100%",
+                  borderRadius: 0,
+                },
+              },
+            }}
             theme={{
               backdrop: "transparent",
               knob: colors.brandGreen,
