@@ -38,6 +38,7 @@ import {
 } from "@/utils/forwardMessage";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { SvgUri } from "react-native-svg";
 import { WebView } from "react-native-webview";
 
 interface MessageBubbleProps {
@@ -94,13 +95,19 @@ function ScheduledCountdown({ targetTime }: { targetTime: number }) {
 }
 
 const isImageUrl = (url: string) =>
-  /\.(jpg|jpeg|png|gif|webp)$/i.test(url.split("?")[0]) ||
+  /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url.split("?")[0]) ||
   url.includes("gstatic.com") ||
   url.includes("google.com/images") ||
   url.includes("googleusercontent.com") ||
   url.includes("data:image/") ||
+  url.includes("data:image/svg+xml") ||
   url.includes("tbn:") ||
   url.includes("/uploads/images");
+
+const isSvgUrl = (url: string) =>
+  /\.(svg)$/i.test(url.split("?")[0]) ||
+  url.includes("image/svg+xml") ||
+  url.includes("data:image/svg+xml");
 
 const getYoutubeId = (url: string) => {
   if (!url) return null;
@@ -325,13 +332,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         ? isAudioUrl(mediaUrl) || mediaUrl.toLowerCase().includes("audio")
         : false;
 
+  const isSvgMedia =
+    (mediaUrl ? isSvgUrl(mediaUrl) : false) ||
+    attachment?.mime_type === "image/svg+xml";
+
   const isImage = isForwarded
     ? forwarded?.attachment_type === "image" ||
       (mediaUrl
         ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
         : false)
     : attachment
-      ? attachment.type === "image" && !isVideo
+      ? (attachment.type === "image" ||
+          isSvgMedia ||
+          (mediaUrl ? isImageUrl(mediaUrl) : false)) &&
+        !isVideo
       : mediaUrl
         ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
         : false;
@@ -1334,15 +1348,31 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           <>
             {isImage ? (
               <TouchableOpacity
+                style={styles.mediaTouchable}
                 onPress={() => setIsFullScreen(true)}
                 onLongPress={onLongPress}
                 activeOpacity={0.9}
               >
-                <Image
-                  source={{ uri: fullUrl }}
-                  style={styles.messageImage}
-                  resizeMode="cover"
-                />
+                <View style={styles.mediaFrame}>
+                  {isSvgMedia ? (
+                    <SvgUri
+                      style={[
+                        StyleSheet.absoluteFillObject,
+                        styles.mediaSvg,
+                      ]}
+                      uri={fullUrl}
+                      width="100%"
+                      height="100%"
+                      preserveAspectRatio="xMidYMid slice"
+                    />
+                  ) : (
+                    <Image
+                      source={{ uri: fullUrl }}
+                      style={StyleSheet.absoluteFillObject}
+                      resizeMode="cover"
+                    />
+                  )}
+                </View>
               </TouchableOpacity>
             ) : isAudio ? (
               <AudioPlayer uri={fullUrl} isMine={isMine} onLongPress={onLongPress} />
@@ -1523,11 +1553,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   </TouchableOpacity>
                   <TouchableWithoutFeedback>
                     <View style={styles.imageContainer}>
-                      <Image
-                        source={{ uri: fullUrl }}
-                        style={styles.fullImage}
-                        resizeMode="contain"
-                      />
+                      {isSvgMedia ? (
+                        <SvgUri uri={fullUrl} width="100%" height="100%" />
+                      ) : (
+                        <Image
+                          source={{ uri: fullUrl }}
+                          style={styles.fullImage}
+                          resizeMode="contain"
+                        />
+                      )}
                     </View>
                   </TouchableWithoutFeedback>
                 </SafeAreaView>
@@ -1627,8 +1661,21 @@ const styles = StyleSheet.create({
   messageImage: {
     width: 240,
     height: 300,
-    borderRadius: 12,
     marginBottom: 4,
+  },
+  mediaTouchable: {
+    width: 240,
+    alignSelf: "flex-start",
+  },
+  mediaFrame: {
+    width: 240,
+    height: 300,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
+  },
+  mediaSvg: {
+    borderRadius: 12,
   },
   messageText: { fontSize: 16 },
   myMessageText: { fontSize: 16, color: "#fff" },

@@ -4,6 +4,7 @@ import { Attachment } from "./AttachCameraButton";
 import { AudioPlayer } from "./AudioPlayer";
 import { useAppTheme } from "@/context/ThemeContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { SvgXml } from "react-native-svg";
 
 interface AttachmentPreviewBarProps {
   attachment: Attachment;
@@ -21,7 +22,13 @@ export const AttachmentPreviewBar: React.FC<AttachmentPreviewBarProps> = ({
     return (
       <View style={styles.mediaContainer}>
         <View style={styles.mediaWrapper}>
-          <Image source={{ uri: attachment.uri }} style={styles.mediaImage} />
+          {attachment.mimeType === "image/svg+xml" && attachment.previewSvg ? (
+            <View style={styles.svgPreviewWrap}>
+              <SvgXml xml={attachment.previewSvg} width="100%" height="100%" />
+            </View>
+          ) : (
+            <Image source={{ uri: attachment.uri }} style={styles.mediaImage} />
+          )}
           {attachment.type === "video" && (
             <View style={styles.playIconOverlay}>
               <MaterialCommunityIcons name="play" size={20} color="#FFF" />
@@ -169,6 +176,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 10,
+  },
+  svgPreviewWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
   },
   playIconOverlay: {
     ...StyleSheet.absoluteFillObject,

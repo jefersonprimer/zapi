@@ -12,6 +12,7 @@ export interface Attachment {
   mimeType?: string;
   size?: number;
   duration?: number;
+  previewSvg?: string;
 }
 
 interface AttachCameraButtonProps {

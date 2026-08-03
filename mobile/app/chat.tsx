@@ -33,6 +33,7 @@ import { VoiceNoteRecorderBar } from "@/components/VoiceNoteRecorderBar";
 import { AttachmentPreviewBar } from "@/components/AttachmentPreviewBar";
 import { ForwardPreviewBar } from "@/components/ForwardPreviewBar";
 import { ChatActionsModal } from "@/components/ChatActionsModal";
+import { DrawingCanvasModal } from "@/components/DrawingCanvasModal";
 import { LocationPickerModal } from "@/components/LocationPickerModal";
 import { ChatMessageOptionsModal } from "@/components/ChatMessageOptionsModal";
 import { WebSearchBottomSheet } from "@/components/WebSearchBottomSheet";
@@ -130,6 +131,7 @@ export default function ChatScreen() {
   const [scheduledDelayMs, setScheduledDelayMs] = useState<number | null>(null);
   const [webSearchVisible, setWebSearchVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+  const [drawingVisible, setDrawingVisible] = useState(false);
   const [msgOptionsVisible, setMsgOptionsVisible] = useState(false);
   const [onlyReactionsMode, setOnlyReactionsMode] = useState(false);
   const [reactionsByMe, setReactionsByMe] = useState<Record<string, boolean>>(
@@ -923,6 +925,7 @@ export default function ChatScreen() {
           onFotosPress={handlePickFromGallery}
           onCameraPress={handleTakePhoto}
           onDocumentosPress={handlePickFile}
+          onDrawPress={() => setDrawingVisible(true)}
           onSearchWebPress={() => setWebSearchVisible(true)}
           onLocationPress={() => setLocationPickerVisible(true)}
           onSendLaterPress={() => {
@@ -938,6 +941,16 @@ export default function ChatScreen() {
           onClose={() => setLocationPickerVisible(false)}
           onSendLocation={(locationData) => {
             handleSend(null, JSON.stringify(locationData));
+          }}
+        />
+      )}
+
+      {drawingVisible && (
+        <DrawingCanvasModal
+          visible={drawingVisible}
+          onClose={() => setDrawingVisible(false)}
+          onSave={(attachment) => {
+            setSelectedAttachment(attachment);
           }}
         />
       )}

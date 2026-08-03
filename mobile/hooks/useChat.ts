@@ -547,6 +547,9 @@ export function useChat() {
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
   const scheduledTimersRef = useRef<Map<string, any>>(new Map());
+  const handleSendRef = useRef<
+    (customAttachment?: any, customText?: string) => Promise<void>
+  >(async () => {});
 
   useEffect(() => {
     return () => {
@@ -620,7 +623,7 @@ export function useChat() {
               scheduledTimersRef.current.delete(msg.id);
               await deleteMessageLocal(msg.id);
               setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-              handleSend(capturedAttachment, capturedContent || undefined);
+              handleSendRef.current(capturedAttachment, capturedContent || undefined);
             }, delayMs);
             scheduledTimersRef.current.set(msg.id, timerId);
           }
@@ -644,7 +647,7 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [chatId, token, cacheMediaForMessages, handleSend]);
+  }, [chatId, token, cacheMediaForMessages]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -961,6 +964,10 @@ export function useChat() {
     }
   }, [content, selectedAttachment, forwardingMessage, token, chatId, user, sending]);
 
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  }, [handleSend]);
+
   const handleScheduleMessage = useCallback(async (delayMs: number) => {
     const validAttachment =
       selectedAttachment &&
@@ -991,6 +998,7 @@ export function useChat() {
       sender_id: user?.user_id || "",
       sender_username: user?.username || "",
       content: capturedContent || null,
+      image_url: null,
       local_file_path: capturedAttachment?.uri || null,
       created_at: new Date().toISOString(),
       status: "scheduled",
@@ -1004,8 +1012,14 @@ export function useChat() {
               remote_url: "",
               local_path: capturedAttachment.uri,
               mime_type: capturedAttachment.mimeType,
+              width: null,
+              height: null,
+              duration: capturedAttachment.duration || null,
               size: capturedAttachment.size || 0,
-            },
+              sha256: null,
+              thumbnail_path: null,
+              download_status: "downloaded",
+            } as any,
           ]
         : undefined,
     };
@@ -1028,7 +1042,7 @@ export function useChat() {
         setMessages((prev) => prev.filter((m) => m.id !== tempScheduledId));
         syncWorker.notifyMessagesChanged(chatId);
         // Dispatch the actual message
-        handleSend(capturedAttachment, capturedContent || undefined);
+        handleSendRef.current(capturedAttachment, capturedContent || undefined);
       } catch (err) {
         console.error("Failed to send scheduled message:", err);
       }

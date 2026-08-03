@@ -11,6 +11,25 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   return dbInstance;
 }
 
+function normalizeAttachmentType(
+  attType: Attachment["type"] | string,
+  mimeType: string | null | undefined,
+  remoteUrl: string | null | undefined,
+  localPath: string | null | undefined,
+): Attachment["type"] {
+  const mime = (mimeType || "").toLowerCase();
+  const url = `${remoteUrl || ""} ${localPath || ""}`.toLowerCase();
+  const isSvg = mime === "image/svg+xml" || url.includes(".svg");
+  if (isSvg) return "image";
+  if (attType === "image" || attType === "video" || attType === "audio" || attType === "document") {
+    return attType;
+  }
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return "document";
+}
+
 export async function initializeDatabase() {
   const db = await getDatabase();
   await db.execAsync("PRAGMA foreign_keys = ON;");
@@ -295,6 +314,12 @@ export async function saveMessages(messages: Message[]) {
     // Save attachments if they are present in the message payload
     if (msg.attachments && msg.attachments.length > 0) {
       for (const att of msg.attachments) {
+        const normalizedType = normalizeAttachmentType(
+          att.type,
+          att.mime_type,
+          att.remote_url,
+          att.local_path,
+        );
         await db.runAsync(
           `INSERT INTO attachments (
             id, message_id, type, remote_url, local_path, mime_type, 
@@ -308,7 +333,7 @@ export async function saveMessages(messages: Message[]) {
           [
             att.id,
             att.message_id,
-            att.type,
+            normalizedType,
             att.remote_url,
             att.local_path || null,
             att.mime_type || null,
@@ -412,7 +437,7 @@ export async function getMessagesFromLocal(
         attachmentsByMsgId[a.message_id].push({
           id: a.id,
           message_id: a.message_id,
-          type: a.type,
+          type: normalizeAttachmentType(a.type, a.mime_type, a.remote_url, a.local_path),
           remote_url: a.remote_url,
           local_path: a.local_path,
           mime_type: a.mime_type,
@@ -645,9 +670,15 @@ export async function updateMessageStatusLocal(
   }
 
   // Update attachments if they are included in the updates
-  if (updates?.attachments && updates.attachments.length > 0) {
+    if (updates?.attachments && updates.attachments.length > 0) {
     const msgId = updates.serverId || id;
     for (const att of updates.attachments) {
+      const normalizedType = normalizeAttachmentType(
+        att.type,
+        att.mime_type,
+        att.remote_url,
+        att.local_path,
+      );
       await db.runAsync(
         `INSERT INTO attachments (
           id, message_id, type, remote_url, local_path, mime_type, 
@@ -661,7 +692,7 @@ export async function updateMessageStatusLocal(
         [
           att.id,
           msgId,
-          att.type,
+          normalizedType,
           att.remote_url,
           att.local_path || null,
           att.mime_type || null,
@@ -687,7 +718,7 @@ export async function getAttachmentsForMessage(messageId: string): Promise<Attac
   return rows.map((a) => ({
     id: a.id,
     message_id: a.message_id,
-    type: a.type,
+    type: normalizeAttachmentType(a.type, a.mime_type, a.remote_url, a.local_path),
     remote_url: a.remote_url,
     local_path: a.local_path,
     mime_type: a.mime_type,

@@ -31,6 +31,7 @@ interface ChatActionsModalProps {
   onFotosPress: () => void;
   onCameraPress: () => void;
   onDocumentosPress: () => void;
+  onDrawPress: () => void;
   onSearchWebPress: () => void;
   onLocationPress: () => void;
   onSendLaterPress: () => void;
@@ -41,6 +42,7 @@ const DEFAULT_ORDER = [
   "emoji",
   "fotos",
   "camera",
+  "draw",
   "documentos",
   "location",
   "searchWeb",
@@ -54,6 +56,7 @@ export function ChatActionsModal({
   onFotosPress,
   onCameraPress,
   onDocumentosPress,
+  onDrawPress,
   onSearchWebPress,
   onLocationPress,
   onSendLaterPress,
@@ -69,7 +72,7 @@ export function ChatActionsModal({
   const activeIdRef = useRef<string | null>(null);
   const currentDragIndex = useRef<number>(-1);
   const dragStartIndex = useRef<number>(-1);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressed = useRef<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
@@ -86,8 +89,14 @@ export function ChatActionsModal({
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length === DEFAULT_ORDER.length) {
-            setOrder(parsed);
+          if (Array.isArray(parsed)) {
+            const normalized = [
+              ...parsed.filter((item) => DEFAULT_ORDER.includes(item)),
+              ...DEFAULT_ORDER.filter((item) => !parsed.includes(item)),
+            ];
+            if (normalized.length === DEFAULT_ORDER.length) {
+              setOrder(normalized);
+            }
           }
         } catch (e) {
           console.error("Failed to load chat actions order:", e);
@@ -150,6 +159,11 @@ export function ChatActionsModal({
       label: "Documentos",
       icon: "file-document-outline",
       onPress: () => hideActionsModal(onDocumentosPress),
+    },
+    draw: {
+      label: "Desenhar",
+      icon: "brush",
+      onPress: () => hideActionsModal(onDrawPress),
     },
     location: {
       label: "Localização",

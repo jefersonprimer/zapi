@@ -17,6 +17,7 @@ function mimeToExt(mimeType: string | null | undefined): string {
   if (mime === "image/png") return "png";
   if (mime === "image/gif") return "gif";
   if (mime === "image/webp") return "webp";
+  if (mime === "image/svg+xml") return "svg";
   if (mime === "video/mp4") return "mp4";
   if (mime === "video/quicktime") return "mov";
   if (mime === "video/x-matroska") return "mkv";
