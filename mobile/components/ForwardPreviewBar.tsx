@@ -54,20 +54,38 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
     IconComponent = Paperclip;
   }
 
+  const getThemeColors = () => {
+    if (noteShare) {
+      return {
+        border: isDark ? "rgba(245, 166, 35, 0.4)" : "rgba(217, 119, 6, 0.4)", // Amber/Orange
+        bg: isDark ? "rgba(245, 166, 35, 0.08)" : "rgba(217, 119, 6, 0.08)",
+        text: isDark ? "#F5A623" : "#D97706",
+      };
+    }
+    // Default forward
+    const tintColor = colors.tint || "#007AFF";
+    return {
+      border: isDark ? "rgba(59, 130, 246, 0.4)" : "rgba(37, 99, 235, 0.4)",
+      bg: isDark ? "rgba(59, 130, 246, 0.08)" : "rgba(37, 99, 235, 0.08)",
+      text: tintColor,
+    };
+  };
+
+  const themeColors = getThemeColors();
+
   return (
     <View
       style={[
         styles.container,
         {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderLeftColor: noteShare ? "#F5A623" : colors.tint,
+          borderColor: themeColors.border,
+          backgroundColor: themeColors.bg,
         },
       ]}
     >
       {noteShare ? (
         <View style={styles.noteRow}>
-          <View style={[styles.noteIconCircle, { backgroundColor: "#FFF3B0" }]}>
+          <View style={[styles.noteIconCircle, { backgroundColor: isDark ? "rgba(245, 166, 35, 0.15)" : "#FFF3B0" }]}>
             <StickyNote size={18} color="#F5A623" />
           </View>
           <View style={styles.content}>
@@ -78,7 +96,7 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
               {displayName}
             </Text>
             <Text
-              style={[styles.noteTitle, { color: colors.text }]}
+              style={[styles.noteTitle, { color: themeColors.text }]}
               numberOfLines={1}
             >
               {noteShare.title}
@@ -121,9 +139,10 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
       <TouchableOpacity
         style={[
           styles.closeBtn,
-          { backgroundColor: isDark ? "#2C2C2E" : "#e0e0e0" },
+          { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" },
         ]}
         onPress={onClear}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
         <XIcon size={14} color={colors.textSecondary} />
       </TouchableOpacity>
@@ -135,9 +154,14 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderLeftWidth: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    alignSelf: "stretch",
+    marginVertical: 8,
+    marginHorizontal: 12,
   },
   noteRow: {
     flex: 1,
@@ -155,11 +179,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 2,
   },
   sender: {
     fontSize: 13,

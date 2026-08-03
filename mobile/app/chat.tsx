@@ -579,13 +579,6 @@ export default function ChatScreen() {
           zIndex: 10,
         }}
       >
-        {forwardingMessage && (
-          <ForwardPreviewBar
-            forwarded={forwardingMessage}
-            onClear={() => setForwardingMessage(null)}
-          />
-        )}
-
         <View
           style={[
             styles.inputContainer,
@@ -641,7 +634,7 @@ export default function ChatScreen() {
                             ? "rgba(255, 255, 255, 0.12)"
                             : "rgba(0, 0, 0, 0.08)",
                         },
-                        (scheduledDelayMs !== null || selectedAttachment !== null) && {
+                        (scheduledDelayMs !== null || selectedAttachment !== null || forwardingMessage !== null) && {
                           flexDirection: "column",
                           alignItems: "stretch",
                           borderRadius: 20,
@@ -671,9 +664,16 @@ export default function ChatScreen() {
                   />
                 )}
 
+                {forwardingMessage && (
+                  <ForwardPreviewBar
+                    forwarded={forwardingMessage}
+                    onClear={() => setForwardingMessage(null)}
+                  />
+                )}
+
                 <View
                   style={
-                    (scheduledDelayMs !== null || selectedAttachment !== null)
+                    (scheduledDelayMs !== null || selectedAttachment !== null || forwardingMessage !== null)
                       ? {
                           flexDirection: "row",
                           alignItems: "flex-end",

@@ -275,8 +275,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     item.content &&
     (item.content.startsWith("http://") || item.content.startsWith("https://"));
 
+  const forwardedContentIsLink = !!(
+    forwarded?.content &&
+    (forwarded.content.startsWith("http://") || forwarded.content.startsWith("https://"))
+  );
+
   const mediaUrl = isForwarded
-    ? forwarded?.local_file_path || forwarded?.image_url
+    ? forwarded?.local_file_path ||
+      forwarded?.image_url ||
+      (forwardedContentIsLink ? forwarded.content : null)
     : item.local_file_path ||
       item.image_url ||
       (contentIsLink ? item.content : null);
@@ -351,7 +358,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     isContactShare ||
     isPixShare ||
     isLocationShare ||
-    (contentIsLink && (isImage || isVideo || youtubeId))
+    ((contentIsLink || forwardedContentIsLink) && (isImage || isVideo || youtubeId))
       ? null
       : isForwarded
         ? forwarded?.content
