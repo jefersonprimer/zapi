@@ -17,6 +17,7 @@ import { registerForPushNotifications, notifications as Notifications } from "@/
 import { authFetch, API_URL } from "@/services/api";
 import { initializeDatabase } from "@/services/database";
 import { syncWorker } from "@/services/syncWorker";
+import { notificationManager } from "@/services/notificationManager";
 import CallOverlay from "@/components/CallOverlay";
 import { useCallStore } from "@/store/useCallStore";
 
@@ -48,31 +49,24 @@ function InitialLayout() {
       voiceCallManager.init(token, user.user_id);
 
       // Listen for global message notifications when the app is in the foreground
-      // but the user is not actively inside the chat screen for this message
-      const unsub = wsClient.on("new_message_notification", async (data) => {
+      // but the user is not actively inside the chat screen for this message.
+      // Uses NotificationManager for WhatsApp-style aggregation:
+      // - 1 notification per chat (updated, never duplicated)
+      // - Debounce for rapid-fire messages
+      // - Auto-dismiss when user opens that chat
+      const unsub = wsClient.on("new_message_notification", (data) => {
         const chatId = data.chat_id;
         const message = data.message;
-        const currentChatId = wsClient.activeChatId;
 
-        // If we are already in this chat, do not display a notification
-        if (chatId && currentChatId && chatId === currentChatId) {
-          return;
-        }
-
-        try {
-          if (Platform.OS !== "web" && Notifications) {
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: message.sender_username || "Nova mensagem",
-                body: message.content || "Mídia",
-                data: { chatId },
-                sound: "default",
-              },
-              trigger: null,
-            });
-          }
-        } catch (err) {
-          console.warn("Failed to schedule local notification:", err);
+        if (Platform.OS !== "web") {
+          notificationManager.handleIncomingMessage({
+            chatId,
+            senderName: message.sender_username || "Nova mensagem",
+            senderAvatarUrl: data.sender_avatar_url || null,
+            content: message.content || (message.image_url ? "📷 Mídia" : "Mensagem"),
+            isGroup: !!message.is_group,
+            groupName: message.group_name,
+          });
         }
       });
 
@@ -298,4 +292,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

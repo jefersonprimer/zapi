@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Switch,
   Platform,
   Clipboard,
+  Dimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -40,6 +41,113 @@ import * as updatesApi from "@/services/updatesApi";
 import CreateListModal from "@/components/CreateListModal";
 import MuteModal from "@/components/MuteModal";
 import ListSelectorModal from "@/components/ListSelectorModal";
+import { getFullRemoteUrl } from "@/services/mediaCache";
+import FeedPost from "@/components/FeedPost";
+
+const COLS = 3;
+const GAP = 2;
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const GRID_ITEM_SIZE = (SCREEN_WIDTH - GAP * (COLS + 1)) / COLS;
+const GRID_ITEM_HEIGHT = GRID_ITEM_SIZE * 1.35;
+
+function formatFollowers(count: number): string {
+  if (count === 1) return "1 seguidor";
+  return `${count.toLocaleString("pt-BR")} seguidores`;
+}
+
+function formatFollowing(count: number): string {
+  if (count === 1) return "1 seguindo";
+  return `${count.toLocaleString("pt-BR")} seguindo`;
+}
+
+function formatPostsCount(count: number): string {
+  if (count === 1) return "1 publicação";
+  return `${count} publicações`;
+}
+
+function getPreviewAttachment(post: updatesApi.FeedPost) {
+  return post.attachments.find(
+    (a) =>
+      a.type === "image" ||
+      a.type === "gif" ||
+      a.type === "video" ||
+      a.mime_type?.startsWith("image/") ||
+      a.mime_type?.startsWith("video/"),
+  );
+}
+
+function isVideoAttachment(type: string, mimeType: string | null) {
+  return type === "video" || mimeType?.startsWith("video/") === true;
+}
+
+function PostGridItem({
+  post,
+  onPress,
+  colors,
+}: {
+  post: updatesApi.FeedPost;
+  onPress: () => void;
+  colors: { textSecondary: string; surface: string };
+}) {
+  const att = getPreviewAttachment(post);
+  const isVideo = att ? isVideoAttachment(att.type, att.mime_type) : false;
+  const previewUri = att
+    ? getFullRemoteUrl(
+        isVideo && att.thumbnail_url ? att.thumbnail_url : att.url,
+      )
+    : null;
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.gridItem,
+        { width: GRID_ITEM_SIZE, height: GRID_ITEM_HEIGHT },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      {previewUri ? (
+        <>
+          <Image
+            source={{ uri: previewUri }}
+            style={styles.gridImage}
+            resizeMode="cover"
+          />
+          {isVideo && (
+            <View style={styles.videoBadge}>
+              <MaterialCommunityIcons name="play" size={16} color="#fff" />
+            </View>
+          )}
+          {post.attachments.length > 1 && (
+            <View style={styles.multiBadge}>
+              <Text style={styles.multiBadgeText}>
+                {post.attachments.length}
+              </Text>
+            </View>
+          )}
+        </>
+      ) : (
+        <View
+          style={[styles.textPlaceholder, { backgroundColor: colors.surface }]}
+        >
+          <MaterialCommunityIcons name="file-document-outline" size={24} color={colors.textSecondary} />
+          {post.content ? (
+            <Text
+              style={[
+                styles.textPlaceholderLabel,
+                { color: colors.textSecondary },
+              ]}
+              numberOfLines={4}
+            >
+              {post.content}
+            </Text>
+          ) : null}
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
 
 export default function ContactDetailScreen() {
   const router = useRouter();
@@ -77,6 +185,115 @@ export default function ContactDetailScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showHeaderProfile, setShowHeaderProfile] = useState(false);
   const [pixKey, setPixKey] = useState<PixKeyData | null>(null);
+
+  // Publisher and updates state
+  const [publisher, setPublisher] = useState<updatesApi.Publisher | null>(null);
+  const [posts, setPosts] = useState<updatesApi.FeedPost[]>([]);
+  const [selectedPost, setSelectedPost] = useState<updatesApi.FeedPost | null>(null);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [activeTab, setActiveTab] = useState<"contato" | "atualizacoes">("contato");
+  const [publisherSubTab, setPublisherSubTab] = useState<"posts" | "clips">("posts");
+
+  const displayedPosts = useMemo(() => {
+    return posts.filter((p) => {
+      if (publisherSubTab === "clips") {
+        return p.type === "clip";
+      }
+      return p.type !== "clip";
+    });
+  }, [posts, publisherSubTab]);
+
+  const loadPublisherPosts = useCallback(
+    async (id: string, pageNum: number, replace: boolean) => {
+      if (!token || !id) return;
+      if (pageNum === 1) {
+        setPostsLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      try {
+        const PAGE_SIZE = 12;
+        const data = await updatesApi.getPublisherPosts(
+          token,
+          id,
+          pageNum,
+          PAGE_SIZE,
+        );
+        setPosts((prev) => (replace ? data : [...prev, ...data]));
+        setHasMore(data.length === PAGE_SIZE);
+        setPage(pageNum);
+      } catch (err) {
+        console.error("Failed to load publisher posts:", err);
+      } finally {
+        setPostsLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [token],
+  );
+
+  const handleLoadMorePosts = useCallback(() => {
+    if (loadingMore || !hasMore || postsLoading || !publisherId) return;
+    loadPublisherPosts(publisherId, page + 1, false);
+  }, [loadingMore, hasMore, postsLoading, page, publisherId, loadPublisherPosts]);
+
+  const handlePostLike = async (postId: string) => {
+    if (!token) return;
+    const prev = posts.find((p) => p.id === postId);
+    if (!prev) return;
+    const nextLiked = !prev.liked_by_me;
+    setPosts((list) =>
+      list.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              liked_by_me: nextLiked,
+              likes_count: p.likes_count + (nextLiked ? 1 : -1),
+            }
+          : p,
+      ),
+    );
+    if (selectedPost?.id === postId) {
+      setSelectedPost((p) =>
+        p
+          ? {
+              ...p,
+              liked_by_me: nextLiked,
+              likes_count: p.likes_count + (nextLiked ? 1 : -1),
+            }
+          : p,
+      );
+    }
+    try {
+      await updatesApi.toggleLike(token, postId);
+    } catch {
+      setPosts((list) => list.map((p) => (p.id === postId ? prev : p)));
+      if (selectedPost?.id === postId) setSelectedPost(prev);
+    }
+  };
+
+  const handlePostSave = async (postId: string) => {
+    if (!token) return;
+    const prev = posts.find((p) => p.id === postId);
+    if (!prev) return;
+    const nextSaved = !prev.saved_by_me;
+    setPosts((list) =>
+      list.map((p) => (p.id === postId ? { ...p, saved_by_me: nextSaved } : p)),
+    );
+    if (selectedPost?.id === postId) {
+      setSelectedPost((p) => (p ? { ...p, saved_by_me: nextSaved } : p));
+    }
+    try {
+      await updatesApi.toggleSave(token, postId);
+    } catch {
+      setPosts((list) => list.map((p) => (p.id === postId ? prev : p)));
+      if (selectedPost?.id === postId) setSelectedPost(prev);
+    }
+  };
+
   const {
     listSelectorVisible,
     setListSelectorVisible,
@@ -310,12 +527,14 @@ export default function ContactDetailScreen() {
       }
 
       try {
-        const publisher = await updatesApi.getPublisherByUser(
+        const publisherData = await updatesApi.getPublisherByUser(
           token,
           participantId,
         );
-        setPublisherId(publisher.id);
-        setIsFollowing(!!publisher.is_following);
+        setPublisherId(publisherData.id);
+        setIsFollowing(!!publisherData.is_following);
+        setPublisher(publisherData);
+        loadPublisherPosts(publisherData.id, 1, true);
       } catch (err) {
         console.error("Error fetching publisher follow state:", err);
       }
@@ -324,7 +543,7 @@ export default function ContactDetailScreen() {
     } finally {
       setLoading(false);
     }
-  }, [token, participantId]);
+  }, [token, participantId, loadPublisherPosts]);
 
   useEffect(() => {
     fetchContactDetails();
@@ -356,6 +575,15 @@ export default function ContactDetailScreen() {
     try {
       const res = await updatesApi.toggleFollowByUser(token, participantId);
       setIsFollowing(res.following);
+      if (publisher) {
+        setPublisher({
+          ...publisher,
+          followers_count: Math.max(
+            0,
+            (publisher.followers_count ?? 0) + (res.following ? 1 : -1),
+          ),
+        });
+      }
     } catch (err) {
       console.error("Error toggling follow:", err);
       setIsFollowing(prev);
@@ -580,11 +808,22 @@ export default function ContactDetailScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           onScroll={(event) => {
-            const y = event.nativeEvent.contentOffset.y;
+            const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+            const y = contentOffset.y;
+            
+            // Header animation
             if (y > 100) {
               if (!showHeaderProfile) setShowHeaderProfile(true);
             } else {
               if (showHeaderProfile) setShowHeaderProfile(false);
+            }
+
+            // Infinite scroll check for updates tab
+            if (activeTab === "atualizacoes") {
+              const isCloseToBottom = layoutMeasurement.height + y >= contentSize.height - 100;
+              if (isCloseToBottom) {
+                handleLoadMorePosts();
+              }
             }
           }}
           scrollEventThrottle={16}
@@ -638,445 +877,556 @@ export default function ContactDetailScreen() {
             )}
           </View>
 
-          <View
-            style={[styles.sectionDivider, { backgroundColor: colors.border }]}
-          />
-
-          {/* Quick Call Action Row */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
-              ]}
-              onPress={handleVoiceCall}
-            >
-              <MaterialCommunityIcons
-                name="phone"
-                size={20}
-                color={colors.text}
-              />
-              <Text style={[styles.actionButtonText, { color: colors.text }]}>
-                Ligar
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
-              ]}
-              onPress={handleVideoCall}
-            >
-              <MaterialCommunityIcons
-                name="video"
-                size={20}
-                color={colors.text}
-              />
-              <Text style={[styles.actionButtonText, { color: colors.text }]}>
-                Vídeo
-              </Text>
-            </TouchableOpacity>
-
-            {pixKey && (
+          {/* Main Tab Bar (Contato vs Atualizações) */}
+          {publisherId && (
+            <View style={[styles.mainTabBar, { backgroundColor: isDark ? "#1C1C1E" : "#E5E5EA" }]}>
               <TouchableOpacity
                 style={[
-                  styles.actionButton,
-                  { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
+                  styles.mainTabItem,
+                  activeTab === "contato" && { backgroundColor: colors.tint }
                 ]}
-                onPress={() => {
-                  Clipboard.setString(pixKey.pix_value);
-                  Alert.alert("Copiado", "Chave Pix copiada com sucesso!");
-                }}
+                onPress={() => setActiveTab("contato")}
               >
-                <Svg
-                  width={20}
-                  height={20}
-                  viewBox="0 0 24 24"
-                  fill={colors.text}
+                <Text
+                  style={[
+                    styles.mainTabText,
+                    { color: activeTab === "contato" ? "#FFFFFF" : colors.textSecondary },
+                  ]}
                 >
-                  <Path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156" />
-                </Svg>
-                <Text style={[styles.actionButtonText, { color: colors.text }]}>
-                  Pix
+                  Contato
                 </Text>
               </TouchableOpacity>
-            )}
-          </View>
-
-          <View
-            style={[styles.sectionDivider, { backgroundColor: colors.border }]}
-          />
-
-          {/* Informações Section (Telegram style: value-first, label-second, copy on press) */}
-          <View style={styles.infoSection}>
-            {/* Recado Item */}
-            <TouchableOpacity
-              activeOpacity={0.6}
-              onPress={handleCopyRecado}
-              style={styles.infoItem}
-            >
-              <Text style={[styles.infoValueText, { color: colors.text }]}>
-                {contact?.about || "Sem recado"}
-              </Text>
-              <Text
-                style={[styles.infoLabelText, { color: colors.textSecondary }]}
+              <TouchableOpacity
+                style={[
+                  styles.mainTabItem,
+                  activeTab === "atualizacoes" && { backgroundColor: colors.tint }
+                ]}
+                onPress={() => setActiveTab("atualizacoes")}
               >
-                Recado
-              </Text>
-            </TouchableOpacity>
-
-            {/* Email Item */}
-            {!!displayEmail && (
-              <>
-                <View
+                <Text
                   style={[
-                    styles.innerDivider,
-                    { backgroundColor: colors.border },
+                    styles.mainTabText,
+                    { color: activeTab === "atualizacoes" ? "#FFFFFF" : colors.textSecondary },
                   ]}
-                />
+                >
+                  Atualizações
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {activeTab === "contato" ? (
+            <>
+              <View
+                style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+              />
+
+              {/* Quick Call Action Row */}
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
+                  ]}
+                  onPress={handleVoiceCall}
+                >
+                  <MaterialCommunityIcons
+                    name="phone"
+                    size={20}
+                    color={colors.text}
+                  />
+                  <Text style={[styles.actionButtonText, { color: colors.text }]}>
+                    Ligar
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
+                  ]}
+                  onPress={handleVideoCall}
+                >
+                  <MaterialCommunityIcons
+                    name="video"
+                    size={20}
+                    color={colors.text}
+                  />
+                  <Text style={[styles.actionButtonText, { color: colors.text }]}>
+                    Vídeo
+                  </Text>
+                </TouchableOpacity>
+
+                {pixKey && (
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
+                    ]}
+                    onPress={() => {
+                      Clipboard.setString(pixKey.pix_value);
+                      Alert.alert("Copiado", "Chave Pix copiada com sucesso!");
+                    }}
+                  >
+                    <Svg
+                      width={20}
+                      height={20}
+                      viewBox="0 0 24 24"
+                      fill={colors.text}
+                    >
+                      <Path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156" />
+                    </Svg>
+                    <Text style={[styles.actionButtonText, { color: colors.text }]}>
+                      Pix
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View
+                style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+              />
+
+              {/* Informações Section (Telegram style: value-first, label-second, copy on press) */}
+              <View style={styles.infoSection}>
+                {/* Recado Item */}
                 <TouchableOpacity
                   activeOpacity={0.6}
-                  onPress={handleCopyEmail}
+                  onPress={handleCopyRecado}
                   style={styles.infoItem}
                 >
                   <Text style={[styles.infoValueText, { color: colors.text }]}>
-                    {displayEmail}
+                    {contact?.about || "Sem recado"}
                   </Text>
                   <Text
-                    style={[
-                      styles.infoLabelText,
-                      { color: colors.textSecondary },
-                    ]}
+                    style={[styles.infoLabelText, { color: colors.textSecondary }]}
                   >
-                    E-mail
+                    Recado
                   </Text>
                 </TouchableOpacity>
-              </>
-            )}
-          </View>
 
-          <View
-            style={[styles.sectionDivider, { backgroundColor: colors.border }]}
-          />
-
-          {/* Options Section */}
-          <View style={styles.optionsSection}>
-            {/* Notificações */}
-            <View style={styles.optionRow}>
-              <View style={styles.optionLeft}>
-                {isMuted ? (
-                  <MaterialCommunityIcons
-                    name="bell-off"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="bell"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                )}
-                <View style={styles.optionTextContainer}>
-                  <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    Notificações
-                  </Text>
-                  <Text
-                    style={[styles.optionSub, { color: colors.textSecondary }]}
-                  >
-                    {getMuteStatusLabel()}
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={!isMuted}
-                onValueChange={handleToggleMuteSwitch}
-                trackColor={{
-                  false: isDark ? "#2C2C2E" : "#E5E5EA",
-                  true: isDark ? "#48484A" : "#C7C7CC",
-                }}
-                thumbColor={
-                  Platform.OS === "android"
-                    ? !isMuted
-                      ? isDark
-                        ? "#D1D1D6"
-                        : "#FFFFFF"
-                      : "#F4F3F4"
-                    : undefined
-                }
-              />
-            </View>
-
-            {/* Favorito */}
-            <View style={styles.optionRow}>
-              <View style={styles.optionLeft}>
-                {isFavorite ? (
-                  <MaterialCommunityIcons
-                    name="heart-off"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="heart"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                )}
-                <View style={styles.optionTextContainer}>
-                  <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    {isFavorite
-                      ? "Remover dos favoritos"
-                      : "Adicionar aos favoritos"}
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={isFavorite}
-                onValueChange={handleToggleFavorite}
-                trackColor={{
-                  false: isDark ? "#2C2C2E" : "#E5E5EA",
-                  true: isDark ? "#48484A" : "#C7C7CC",
-                }}
-                thumbColor={
-                  Platform.OS === "android"
-                    ? isFavorite
-                      ? isDark
-                        ? "#D1D1D6"
-                        : "#FFFFFF"
-                      : "#F4F3F4"
-                    : undefined
-                }
-              />
-            </View>
-
-            {/* Seguir atualizações */}
-            <View style={styles.optionRow}>
-              <View style={styles.optionLeft}>
-                {isFollowing ? (
-                  <MaterialCommunityIcons
-                    name="account-check"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="account-plus"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                )}
-                <View style={styles.optionTextContainer}>
-                  <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    {isFollowing
-                      ? "Seguindo atualizações"
-                      : "Seguir atualizações"}
-                  </Text>
-                  <Text
-                    style={[styles.optionSub, { color: colors.textSecondary }]}
-                  >
-                    Ver stories e posts deste contato
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={isFollowing}
-                onValueChange={handleToggleFollow}
-                disabled={followLoading}
-                trackColor={{
-                  false: isDark ? "#2C2C2E" : "#E5E5EA",
-                  true: isDark ? "#48484A" : "#C7C7CC",
-                }}
-                thumbColor={
-                  Platform.OS === "android"
-                    ? isFollowing
-                      ? isDark
-                        ? "#D1D1D6"
-                        : "#FFFFFF"
-                      : "#F4F3F4"
-                    : undefined
-                }
-              />
-            </View>
-
-            {/* Ver perfil de atualizações */}
-            {publisherId && (
-              <TouchableOpacity
-                style={styles.optionRowClickable}
-                onPress={handleOpenPublisherProfile}
-              >
-                <View style={styles.optionLeft}>
-                  <View style={styles.optionTextContainer}>
-                    <Text style={[styles.optionTitle, { color: colors.text }]}>
-                      Ver perfil de atualizações
-                    </Text>
-                  </View>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            )}
-
-            {/* Adicionar à lista */}
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={handleOpenListSelector}
-            >
-              <View style={styles.optionLeft}>
-                <MaterialCommunityIcons
-                  name="playlist-plus"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-                <View style={styles.optionTextContainer}>
-                  <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    Adicionar à lista
-                  </Text>
-                  {selectedListIds.length > 0 && (
-                    <Text
-                      style={[
-                        styles.optionSub,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {getSelectedListsLabel()}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {/* Mídias compartilhadas */}
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={() =>
-                Alert.alert(
-                  "Mídias Compartilhadas",
-                  "Essa funcionalidade estará disponível em breve!",
-                )
-              }
-            >
-              <View style={styles.optionLeft}>
-                <MaterialCommunityIcons
-                  name="image"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-                <View style={styles.optionTextContainer}>
-                  <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    Mídias compartilhadas
-                  </Text>
-                </View>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {/* Buscar nesta conversa */}
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={() =>
-                Alert.alert(
-                  "Buscar na conversa",
-                  "Essa funcionalidade estará disponível em breve!",
-                )
-              }
-            >
-              <View style={styles.optionLeft}>
-                <MaterialCommunityIcons
-                  name="magnify"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-                <View style={styles.optionTextContainer}>
-                  <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    Buscar nesta conversa
-                  </Text>
-                </View>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View
-            style={[styles.sectionDivider, { backgroundColor: colors.border }]}
-          />
-
-          {/* Danger Zone Options */}
-          <View style={styles.optionsSection}>
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={handleClearChat}
-            >
-              <View style={styles.optionLeft}>
-                <MaterialCommunityIcons
-                  name="trash-can-outline"
-                  size={20}
-                  color={colors.danger}
-                />
-                <View style={styles.optionTextContainer}>
-                  <Text style={[styles.optionTitle, { color: colors.danger }]}>
-                    Limpar conversa
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={handleToggleBlock}
-            >
-              <View style={styles.optionLeft}>
-                {isBlocked ? (
+                {/* Email Item */}
+                {!!displayEmail && (
                   <>
-                    <MaterialCommunityIcons
-                      name="shield-check"
-                      size={20}
-                      color={colors.tint}
+                    <View
+                      style={[
+                        styles.innerDivider,
+                        { backgroundColor: colors.border },
+                      ]}
                     />
-                    <View style={styles.optionTextContainer}>
+                    <TouchableOpacity
+                      activeOpacity={0.6}
+                      onPress={handleCopyEmail}
+                      style={styles.infoItem}
+                    >
+                      <Text style={[styles.infoValueText, { color: colors.text }]}>
+                        {displayEmail}
+                      </Text>
                       <Text
-                        style={[styles.optionTitle, { color: colors.tint }]}
+                        style={[
+                          styles.infoLabelText,
+                          { color: colors.textSecondary },
+                        ]}
                       >
-                        Desbloquear contato
+                        E-mail
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+
+              <View
+                style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+              />
+
+              {/* Options Section */}
+              <View style={styles.optionsSection}>
+                {/* Notificações */}
+                <View style={styles.optionRow}>
+                  <View style={styles.optionLeft}>
+                    {isMuted ? (
+                      <MaterialCommunityIcons
+                        name="bell-off"
+                        size={20}
+                        color={colors.textSecondary}
+                      />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name="bell"
+                        size={20}
+                        color={colors.textSecondary}
+                      />
+                    )}
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                        Notificações
+                      </Text>
+                      <Text
+                        style={[styles.optionSub, { color: colors.textSecondary }]}
+                      >
+                        {getMuteStatusLabel()}
                       </Text>
                     </View>
-                  </>
-                ) : (
-                  <>
+                  </View>
+                  <Switch
+                    value={!isMuted}
+                    onValueChange={handleToggleMuteSwitch}
+                    trackColor={{
+                      false: isDark ? "#2C2C2E" : "#E5E5EA",
+                      true: isDark ? "#48484A" : "#C7C7CC",
+                    }}
+                    thumbColor={
+                      Platform.OS === "android"
+                        ? !isMuted
+                          ? isDark
+                            ? "#D1D1D6"
+                            : "#FFFFFF"
+                          : "#F4F3F4"
+                        : undefined
+                    }
+                  />
+                </View>
+
+                {/* Favorito */}
+                <View style={styles.optionRow}>
+                  <View style={styles.optionLeft}>
+                    {isFavorite ? (
+                      <MaterialCommunityIcons
+                        name="heart-off"
+                        size={20}
+                        color={colors.textSecondary}
+                      />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name="heart"
+                        size={20}
+                        color={colors.textSecondary}
+                      />
+                    )}
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                        {isFavorite
+                          ? "Remover dos favoritos"
+                          : "Adicionar aos favoritos"}
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={isFavorite}
+                    onValueChange={handleToggleFavorite}
+                    trackColor={{
+                      false: isDark ? "#2C2C2E" : "#E5E5EA",
+                      true: isDark ? "#48484A" : "#C7C7CC",
+                    }}
+                    thumbColor={
+                      Platform.OS === "android"
+                        ? isFavorite
+                          ? isDark
+                            ? "#D1D1D6"
+                            : "#FFFFFF"
+                          : "#F4F3F4"
+                        : undefined
+                    }
+                  />
+                </View>
+
+                {/* Seguir atualizações */}
+                <View style={styles.optionRow}>
+                  <View style={styles.optionLeft}>
+                    {isFollowing ? (
+                      <MaterialCommunityIcons
+                        name="account-check"
+                        size={20}
+                        color={colors.textSecondary}
+                      />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name="account-plus"
+                        size={20}
+                        color={colors.textSecondary}
+                      />
+                    )}
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                        {isFollowing
+                          ? "Seguindo atualizações"
+                          : "Seguir atualizações"}
+                      </Text>
+                      <Text
+                        style={[styles.optionSub, { color: colors.textSecondary }]}
+                      >
+                        Ver stories e posts deste contato
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={isFollowing}
+                    onValueChange={handleToggleFollow}
+                    disabled={followLoading}
+                    trackColor={{
+                      false: isDark ? "#2C2C2E" : "#E5E5EA",
+                      true: isDark ? "#48484A" : "#C7C7CC",
+                    }}
+                    thumbColor={
+                      Platform.OS === "android"
+                        ? isFollowing
+                          ? isDark
+                            ? "#D1D1D6"
+                            : "#FFFFFF"
+                          : "#F4F3F4"
+                        : undefined
+                    }
+                  />
+                </View>
+
+                {/* Adicionar à lista */}
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={handleOpenListSelector}
+                >
+                  <View style={styles.optionLeft}>
                     <MaterialCommunityIcons
-                      name="block-helper"
+                      name="playlist-plus"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                        Adicionar à lista
+                      </Text>
+                      {selectedListIds.length > 0 && (
+                        <Text
+                          style={[
+                            styles.optionSub,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {getSelectedListsLabel()}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                {/* Mídias compartilhadas */}
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={() =>
+                    Alert.alert(
+                      "Mídias Compartilhadas",
+                      "Essa funcionalidade estará disponível em breve!",
+                    )
+                  }
+                >
+                  <View style={styles.optionLeft}>
+                    <MaterialCommunityIcons
+                      name="image"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                        Mídias compartilhadas
+                      </Text>
+                    </View>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                {/* Buscar nesta conversa */}
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={() =>
+                    Alert.alert(
+                      "Buscar na conversa",
+                      "Essa funcionalidade estará disponível em breve!",
+                    )
+                  }
+                >
+                  <View style={styles.optionLeft}>
+                    <MaterialCommunityIcons
+                      name="magnify"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                        Buscar nesta conversa
+                      </Text>
+                    </View>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View
+                style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+              />
+
+              {/* Danger Zone Options */}
+              <View style={styles.optionsSection}>
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={handleClearChat}
+                >
+                  <View style={styles.optionLeft}>
+                    <MaterialCommunityIcons
+                      name="trash-can-outline"
                       size={20}
                       color={colors.danger}
                     />
                     <View style={styles.optionTextContainer}>
-                      <Text
-                        style={[styles.optionTitle, { color: colors.danger }]}
-                      >
-                        Bloquear contato
+                      <Text style={[styles.optionTitle, { color: colors.danger }]}>
+                        Limpar conversa
                       </Text>
                     </View>
-                  </>
-                )}
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={handleToggleBlock}
+                >
+                  <View style={styles.optionLeft}>
+                    {isBlocked ? (
+                      <>
+                        <MaterialCommunityIcons
+                          name="shield-check"
+                          size={20}
+                          color={colors.tint}
+                        />
+                        <View style={styles.optionTextContainer}>
+                          <Text
+                            style={[styles.optionTitle, { color: colors.tint }]}
+                          >
+                            Desbloquear contato
+                          </Text>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons
+                          name="block-helper"
+                          size={20}
+                          color={colors.danger}
+                        />
+                        <View style={styles.optionTextContainer}>
+                          <Text
+                            style={[styles.optionTitle, { color: colors.danger }]}
+                          >
+                            Bloquear contato
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
-          </View>
+            </>
+          ) : (
+            /* Publisher Updates View */
+            <View style={styles.updatesContainer}>
+              {/* Followers Stats Header */}
+              {publisher && (
+                <View style={styles.publisherStatsSection}>
+                  <Text style={[styles.followersCountText, { color: colors.text }]}>
+                    {formatPostsCount(posts.length)} ·{" "}
+                    {formatFollowers(publisher.followers_count ?? 0)} ·{" "}
+                    {formatFollowing(publisher.following_count ?? 0)}
+                  </Text>
+                </View>
+              )}
+
+              {/* Publisher Sub-Tabs: Publicações / Clips */}
+              <View style={[styles.subTabBar, { borderBottomColor: colors.border }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.subTabItem,
+                    publisherSubTab === "posts" && styles.activeSubTabItem,
+                  ]}
+                  onPress={() => setPublisherSubTab("posts")}
+                >
+                  <Text
+                    style={[
+                      styles.subTabText,
+                      {
+                        color:
+                          publisherSubTab === "posts"
+                            ? colors.text
+                            : colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    Publicações
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.subTabItem,
+                    publisherSubTab === "clips" && styles.activeSubTabItem,
+                  ]}
+                  onPress={() => setPublisherSubTab("clips")}
+                >
+                  <Text
+                    style={[
+                      styles.subTabText,
+                      {
+                        color:
+                          publisherSubTab === "clips"
+                            ? colors.text
+                            : colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    Clips
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Grid of posts */}
+              {postsLoading ? (
+                <View style={styles.loaderContainer}>
+                  <ActivityIndicator size="large" color={colors.tint} />
+                </View>
+              ) : displayedPosts.length > 0 ? (
+                <View style={styles.gridContainer}>
+                  {displayedPosts.map((post) => (
+                    <PostGridItem
+                      key={post.id}
+                      post={post}
+                      colors={colors}
+                      onPress={() => setSelectedPost(post)}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <Text style={[styles.emptyPosts, { color: colors.textSecondary }]}>
+                  {publisherSubTab === "posts"
+                    ? "Nenhuma publicação ainda"
+                    : "Nenhum clip ainda"}
+                </Text>
+              )}
+
+              {loadingMore && (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator size="small" color={colors.tint} />
+                </View>
+              )}
+            </View>
+          )}
         </ScrollView>
       )}
 
@@ -1186,6 +1536,56 @@ export default function ContactDetailScreen() {
         }}
         onSubmit={handleCreateList}
       />
+
+      {/* Selected Post Detail Modal */}
+      <Modal
+        visible={!!selectedPost}
+        animationType="slide"
+        onRequestClose={() => setSelectedPost(null)}
+      >
+        <View
+          style={[
+            styles.postModalContainer,
+            { backgroundColor: colors.background },
+          ]}
+        >
+          <View
+            style={[
+              styles.postModalHeader,
+              {
+                paddingTop: insets.top + 8,
+                backgroundColor: colors.headerBackground,
+                borderBottomColor: colors.border,
+              },
+            ]}
+          >
+            <TouchableOpacity onPress={() => setSelectedPost(null)}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.postModalTitle, { color: colors.text }]}>
+              Publicação
+            </Text>
+            <View style={{ width: 24 }} />
+          </View>
+          {selectedPost && (
+            <FeedPost
+              post={selectedPost}
+              onHeaderPress={() => {}}
+              onMenuPress={() => {}}
+              onLike={() => handlePostLike(selectedPost.id)}
+              onComment={() =>
+                router.push({
+                  pathname: "/comments-modal",
+                  params: { postId: selectedPost.id },
+                })
+              }
+              onShare={() => {}}
+              onSave={() => handlePostSave(selectedPost.id)}
+              onVote={() => {}}
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1476,5 +1876,133 @@ const styles = StyleSheet.create({
   menuDivider: {
     height: StyleSheet.hairlineWidth,
     marginHorizontal: 12,
+  },
+  mainTabBar: {
+    flexDirection: "row",
+    marginHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: 10,
+    padding: 4,
+  },
+  mainTabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  mainTabText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  subTabBar: {
+    flexDirection: "row",
+    width: "100%",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  subTabItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  activeSubTabItem: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#07C160",
+  },
+  subTabText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  updatesContainer: {
+    flex: 1,
+  },
+  publisherStatsSection: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  followersCountText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  loaderContainer: {
+    paddingVertical: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: GAP,
+    paddingHorizontal: GAP,
+    marginTop: 8,
+  },
+  gridItem: {
+    overflow: "hidden",
+    backgroundColor: "#000",
+    borderRadius: 8,
+  },
+  gridImage: {
+    width: "100%",
+    height: "100%",
+  },
+  videoBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 12,
+    padding: 4,
+  },
+  multiBadge: {
+    position: "absolute",
+    top: 8,
+    right: 32,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  multiBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  textPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+    gap: 6,
+  },
+  textPlaceholderLabel: {
+    fontSize: 11,
+    textAlign: "center",
+  },
+  emptyPosts: {
+    textAlign: "center",
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+  },
+  postModalContainer: {
+    flex: 1,
+  },
+  postModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  postModalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
   },
 });

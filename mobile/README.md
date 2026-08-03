@@ -16,6 +16,25 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+   For push notifications on a physical device, use the development client:
+
+   ```bash
+   npm run start:dev-client
+   ```
+
+3. Build and install the development client once
+
+   ```bash
+   eas build --profile development --platform android
+   ```
+
+   Then open the installed app and connect it to the Metro server started by `npm run start:dev-client`.
+
+## Notifications
+
+- Expo Go on Android does not support remote push notifications on SDK 53+.
+- Local notifications still work in Expo Go, but lock screen/background push requires a development build or release build.
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

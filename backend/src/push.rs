@@ -8,6 +8,7 @@ pub async fn send_push_notification(
     chat_id: Uuid,
     sender_name: &str,
     content: &str,
+    sender_avatar_url: Option<&str>,
     offline_user_ids: Vec<Uuid>,
 ) {
     if offline_user_ids.is_empty() {
@@ -48,17 +49,19 @@ pub async fn send_push_notification(
 
         let data_payload = json!({
             "chat_id": chat_id.to_string(),
+            "sender_avatar_url": sender_avatar_url,
         });
 
         let _ = sqlx::query(
-            "INSERT INTO notification_queue (user_id, device_token, title, body, data_payload) \
-             VALUES ($1, $2, $3, $4, $5)",
+            "INSERT INTO notification_queue (user_id, device_token, title, body, data_payload, channel_id) \
+             VALUES ($1, $2, $3, $4, $5, $6)",
         )
         .bind(user_id)
         .bind(token)
         .bind(sender_name)
         .bind(&body_text)
         .bind(data_payload)
+        .bind("messages")
         .execute(pool)
         .await;
     }
@@ -120,14 +123,15 @@ pub async fn send_community_push_notification(
         });
 
         let _ = sqlx::query(
-            "INSERT INTO notification_queue (user_id, device_token, title, body, data_payload) \
-             VALUES ($1, $2, $3, $4, $5)",
+            "INSERT INTO notification_queue (user_id, device_token, title, body, data_payload, channel_id) \
+             VALUES ($1, $2, $3, $4, $5, $6)",
         )
         .bind(user_id)
         .bind(token)
         .bind(sender_name)
         .bind(&body_text)
         .bind(data_payload)
+        .bind("messages")
         .execute(pool)
         .await;
     }
@@ -171,14 +175,15 @@ pub async fn send_call_push_notification(
 
     for (token,) in devices {
         let _ = sqlx::query(
-            "INSERT INTO notification_queue (user_id, device_token, title, body, data_payload) \
-             VALUES ($1, $2, $3, $4, $5)",
+            "INSERT INTO notification_queue (user_id, device_token, title, body, data_payload, channel_id) \
+             VALUES ($1, $2, $3, $4, $5, $6)",
         )
         .bind(recipient_id)
         .bind(token)
         .bind(caller_name)
         .bind(body)
         .bind(data_payload.clone())
+        .bind("calls")
         .execute(pool)
         .await;
     }
@@ -205,6 +210,7 @@ struct PendingNotification {
     title: String,
     body: String,
     data_payload: Option<serde_json::Value>,
+    channel_id: String,
     retry_count: i32,
     max_retries: i32,
 }
@@ -213,7 +219,7 @@ async fn process_notification_queue(pool: &PgPool) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
 
     let pending_rows: Vec<PendingNotification> = sqlx::query_as(
-        "SELECT id, user_id, device_token, title, body, data_payload, retry_count, max_retries \
+        "SELECT id, user_id, device_token, title, body, data_payload, channel_id, retry_count, max_retries \
          FROM notification_queue \
          WHERE status = 'pending' AND run_at <= NOW() \
          LIMIT 20 \
@@ -252,6 +258,8 @@ async fn process_notification_queue(pool: &PgPool) -> Result<(), sqlx::Error> {
                 "sound": "default",
                 "ttl": 86400,
                 "priority": "high",
+                "channelId": row.channel_id,
+                "_contentAvailable": true,
             });
 
             match client_clone

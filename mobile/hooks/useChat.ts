@@ -39,6 +39,7 @@ import { syncWorker } from "@/services/syncWorker";
 import { cacheMediaFile } from "@/services/mediaCache";
 import { wsClient } from "@/services/ws";
 import { generateUUIDv7 } from "@/services/uuidv7";
+import { notificationManager } from "@/services/notificationManager";
 import {
   getCallHistory,
   deleteCallHistoryItem,
@@ -654,6 +655,18 @@ export function useChat() {
       loadMessages();
       loadChatDetails();
     }, [loadMessages, loadChatDetails])
+  );
+
+  // Track which chat is active for notification suppression + dismissal.
+  // When the user opens a chat, any pending notification for it is dismissed
+  // and new messages in this chat won't trigger notifications.
+  useFocusEffect(
+    useCallback(() => {
+      notificationManager.setActiveChat(chatId);
+      return () => {
+        notificationManager.setActiveChat(null);
+      };
+    }, [chatId])
   );
 
   useEffect(() => {

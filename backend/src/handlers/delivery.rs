@@ -3885,7 +3885,15 @@ async fn send_delivery_chat_message(
     let pool_clone = pool.clone();
     if !offline_user_ids.is_empty() {
         tokio::spawn(async move {
-            crate::push::send_push_notification(&pool_clone, chat_id, &sender_name, &push_text, offline_user_ids).await;
+            crate::push::send_push_notification(
+                &pool_clone,
+                chat_id,
+                &sender_name,
+                &push_text,
+                None,
+                offline_user_ids,
+            )
+            .await;
         });
     }
 

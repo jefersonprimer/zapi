@@ -254,6 +254,14 @@ pub async fn send_message(
 
     msg.status = Some("sent".to_string());
 
+    let sender_avatar_url: Option<String> = sqlx::query_scalar(
+        "SELECT avatar_url FROM users WHERE id = $1",
+    )
+    .bind(auth.0)
+    .fetch_one(&pool)
+    .await
+    .unwrap_or(None);
+
     let _ = ws_state
         .broadcast(chat_id, &serde_json::to_string(&json!({"type": "new_message", "message": msg})).unwrap())
         .await;
@@ -289,7 +297,8 @@ pub async fn send_message(
                     let ws_notif = json!({
                         "type": "new_message_notification",
                         "chat_id": chat_id,
-                        "message": msg.clone()
+                        "message": msg.clone(),
+                        "sender_avatar_url": sender_avatar_url.clone()
                     }).to_string();
                     call_manager.send_to_user(p_id, &ws_notif);
                 }
@@ -298,7 +307,8 @@ pub async fn send_message(
                     let ws_notif = json!({
                         "type": "new_message_notification",
                         "chat_id": chat_id,
-                        "message": msg.clone()
+                        "message": msg.clone(),
+                        "sender_avatar_url": sender_avatar_url.clone()
                     }).to_string();
                     call_manager.send_to_user(p_id, &ws_notif);
                     if !is_muted {
@@ -376,8 +386,17 @@ pub async fn send_message(
     };
 
     if !offline_user_ids.is_empty() {
+        let sender_avatar_url_for_push = sender_avatar_url.clone();
         tokio::spawn(async move {
-            crate::push::send_push_notification(&pool, chat_id, &sender_name, &push_text, offline_user_ids).await;
+            crate::push::send_push_notification(
+                &pool,
+                chat_id,
+                &sender_name,
+                &push_text,
+                sender_avatar_url_for_push.as_deref(),
+                offline_user_ids,
+            )
+            .await;
         });
     }
 
@@ -848,5 +867,4 @@ pub async fn react_to_message(
 
     Ok(Json(json!({ "status": "success", "message_id": message_id, "reaction": body.reaction })))
 }
-
 
