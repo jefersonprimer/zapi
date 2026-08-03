@@ -129,6 +129,13 @@ const formatFileSize = (bytes: number | null | undefined): string => {
   return `${mb.toFixed(1)} MB`;
 };
 
+const getFileExtensionLabel = (name: string | null | undefined): string => {
+  if (!name) return "";
+  const dotIndex = name.lastIndexOf(".");
+  if (dotIndex === -1 || dotIndex === name.length - 1) return "";
+  return name.substring(dotIndex + 1).toUpperCase();
+};
+
 interface MessageVideoProps {
   uri: string;
   isFullScreen: boolean;
@@ -1395,7 +1402,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         : [styles.docSubTheir, { color: colors.textSecondary }],
                     ]}
                   >
-                    {fileSizeStr ? fileSizeStr : "Tap to open"}
+                    {(() => {
+                      const ext = getFileExtensionLabel(fileName || (mediaUrl ? mediaUrl.split("/").pop() : null));
+                      const parts: string[] = [];
+                      if (fileSizeStr) parts.push(fileSizeStr);
+                      if (ext) parts.push(ext);
+                      return parts.length > 0 ? parts.join(" · ") : "Tap to open";
+                    })()}
                   </Text>
                 </View>
               </TouchableOpacity>

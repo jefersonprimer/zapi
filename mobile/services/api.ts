@@ -212,24 +212,49 @@ export async function uploadFile(
   type?: string
 ): Promise<{ url: string }> {
   const formData = new FormData();
+  // Extract filename and extension from uri to use as fallbacks
+  const uriParts = uri.split("/");
+  const fallbackName = uriParts[uriParts.length - 1] || "file";
+  const ext = fallbackName.split(".").pop()?.toLowerCase();
+  
+  let fallbackType = "application/octet-stream";
+  if (ext) {
+    if (["jpg", "jpeg"].includes(ext)) fallbackType = "image/jpeg";
+    else if (ext === "png") fallbackType = "image/png";
+    else if (ext === "gif") fallbackType = "image/gif";
+    else if (ext === "webp") fallbackType = "image/webp";
+    else if (ext === "mp4") fallbackType = "video/mp4";
+    else if (ext === "mov") fallbackType = "video/quicktime";
+    else if (ext === "mkv") fallbackType = "video/x-matroska";
+    else if (ext === "avi") fallbackType = "video/x-msvideo";
+    else if (ext === "mp3") fallbackType = "audio/mpeg";
+    else if (ext === "wav") fallbackType = "audio/wav";
+    else if (ext === "m4a") fallbackType = "audio/mp4";
+    else if (ext === "pdf") fallbackType = "application/pdf";
+    else if (ext === "apk") fallbackType = "application/vnd.android.package-archive";
+  }
+
+  const finalName = name || fallbackName;
+  const finalType = type || fallbackType;
+
   if (Platform.OS === "web") {
     try {
       const response = await fetch(uri);
       const blob = await response.blob();
-      formData.append("file", blob, name || "file");
+      formData.append("file", blob, finalName);
     } catch (err) {
       console.error("Failed to fetch blob from URI on web:", err);
       formData.append("file", {
         uri,
-        type: type || "image/jpeg",
-        name: name || "photo.jpg",
+        type: finalType,
+        name: finalName,
       } as any);
     }
   } else {
     formData.append("file", {
       uri,
-      type: type || "image/jpeg",
-      name: name || "photo.jpg",
+      type: finalType,
+      name: finalName,
     } as any);
   }
 

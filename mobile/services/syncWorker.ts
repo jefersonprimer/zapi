@@ -26,6 +26,9 @@ function mimeToExt(mimeType: string | null | undefined): string {
   if (mime === "audio/wav" || mime === "audio/x-wav") return "wav";
   if (mime === "audio/mp4" || mime === "audio/m4a") return "m4a";
   if (mime === "application/pdf") return "pdf";
+  if (mime === "application/vnd.android.package-archive") return "apk";
+  if (mime === "application/zip") return "zip";
+  if (mime === "text/plain") return "txt";
   
   const ext = mime.split("/")[1];
   if (ext === "quicktime") return "mov";
@@ -362,6 +365,9 @@ class SyncWorker {
                 else if (ext === "wav") uploadType = "audio/wav";
                 else if (ext === "m4a") uploadType = "audio/mp4";
                 else if (ext === "pdf") uploadType = "application/pdf";
+                else if (ext === "apk") uploadType = "application/vnd.android.package-archive";
+                else if (ext === "zip") uploadType = "application/zip";
+                else if (ext === "txt") uploadType = "text/plain";
               }
             }
 
