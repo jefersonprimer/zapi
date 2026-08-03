@@ -131,6 +131,7 @@ export default function ChatScreen() {
   const [webSearchVisible, setWebSearchVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [msgOptionsVisible, setMsgOptionsVisible] = useState(false);
+  const [reactionsByMe, setReactionsByMe] = useState<Record<string, boolean>>({});
   const [selectedMessageLayout, setSelectedMessageLayout] = useState<{
     x: number;
     y: number;
@@ -938,7 +939,20 @@ export default function ChatScreen() {
           reaction={currentReaction}
           onReact={(reactionEmoji) => {
             handleReact(selectedMsg.id, reactionEmoji);
+            setReactionsByMe((prev) => ({
+              ...prev,
+              [selectedMsg.id]: reactionEmoji !== null,
+            }));
           }}
+          currentUserAvatarUrl={user?.avatar_url}
+          currentUsername={user?.username || "Você"}
+          participantAvatarUrl={participantAvatarUrl}
+          participantUsername={participantUsername || "Outro"}
+          reactionByMe={
+            reactionsByMe[selectedMsg.id] !== undefined
+              ? reactionsByMe[selectedMsg.id]
+              : selectedMsg.sender_id !== user?.user_id
+          }
           onClose={(shouldClear) => {
             setMsgOptionsVisible(false);
             if (shouldClear) {

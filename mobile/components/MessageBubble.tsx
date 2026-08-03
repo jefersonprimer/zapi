@@ -1257,9 +1257,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               : [styles.theirMessage, { backgroundColor: colors.surface }],
             { marginBottom: 0, flexShrink: 1 },
             isAudio && { padding: 4 },
-            (isImage || isVideo || (!!fullUrl && !isAudio)) &&
-              !messageContent &&
-              !commentText && { padding: 4 },
+            (isImage || isVideo || (!!fullUrl && !isAudio)) && { padding: 4 },
             item.status === "scheduled" && {
               opacity: 0.7,
               borderStyle: "dashed",
@@ -1269,13 +1267,31 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ]}
         >
         {isGroup && !isMine && item.sender_username ? (
-          <Text style={[styles.senderUsername, { color: colors.tint }]}>
+          <Text
+            style={[
+              styles.senderUsername,
+              { color: colors.tint },
+              (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+                marginHorizontal: 8,
+                marginTop: 6,
+                marginBottom: 4,
+              },
+            ]}
+          >
             {item.sender_username}
           </Text>
         ) : null}
 
         {isForwarded && forwarded && (
-          <View style={styles.forwardHeaderRow}>
+          <View
+            style={[
+              styles.forwardHeaderRow,
+              (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+                marginHorizontal: 8,
+                marginTop: 4,
+              },
+            ]}
+          >
             <MaterialCommunityIcons
               name="share"
               size={14}
@@ -1406,11 +1422,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         ) : null}
         {messageContent && !(mediaUrl && isAudioUrl(mediaUrl)) ? (
           <Text
-            style={
+            style={[
               isMine
                 ? styles.myMessageText
-                : [styles.messageText, { color: colors.text }]
-            }
+                : [styles.messageText, { color: colors.text }],
+              (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+                marginHorizontal: 8,
+                marginTop: 6,
+                marginBottom: 2,
+              },
+            ]}
           >
             {messageContent}
           </Text>
@@ -1422,6 +1443,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 ? styles.myMessageText
                 : [styles.messageText, { color: colors.text }],
               { marginTop: messageContent ? 4 : 0 },
+              (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+                marginHorizontal: 8,
+                marginBottom: 2,
+              },
             ]}
           >
             {commentText}
@@ -1432,7 +1457,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           <ScheduledCountdown targetTime={item.scheduled_for} />
         )}
 
-        <View style={styles.timeContainer}>
+        <View
+          style={[
+            styles.timeContainer,
+            (isImage || isVideo || (!!fullUrl && !isAudio)) && {
+              marginHorizontal: 6,
+              marginBottom: 2,
+            },
+          ]}
+        >
           <Text
             style={[
               styles.messageTime,

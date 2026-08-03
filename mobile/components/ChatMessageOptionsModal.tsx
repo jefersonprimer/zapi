@@ -7,11 +7,13 @@ import {
   Animated,
   useWindowDimensions,
   Modal,
+  Image,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { EmojiKeyboard } from "rn-emoji-keyboard";
 import * as SecureStore from "expo-secure-store";
+import { API_URL } from "@/services/api";
 
 interface ChatMessageOptionsModalProps {
   visible: boolean;
@@ -25,6 +27,11 @@ interface ChatMessageOptionsModalProps {
   isMine?: boolean;
   reaction?: string | null;
   onReact?: (reactionEmoji: string | null) => void;
+  currentUserAvatarUrl?: string | null;
+  currentUsername?: string;
+  participantAvatarUrl?: string | null;
+  participantUsername?: string;
+  reactionByMe?: boolean;
 }
 
 const HISTORY_KEY = "zapi_reactions_history";
@@ -81,6 +88,11 @@ export function ChatMessageOptionsModal({
   isMine = false,
   reaction,
   onReact,
+  currentUserAvatarUrl,
+  currentUsername = "Você",
+  participantAvatarUrl,
+  participantUsername = "Outro",
+  reactionByMe = false,
 }: ChatMessageOptionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const { height: screenHeight, width: screenWidth } = useWindowDimensions();
@@ -137,6 +149,7 @@ export function ChatMessageOptionsModal({
   // Calculate coordinates dynamically based on message bubble layout
   const menuHeight = 270;
   const reactionsHeight = 56;
+  const detailHeight = 36;
 
   let menuTop = screenHeight / 2 - 130;
   let menuLeft: number | undefined = screenWidth / 2 - 120;
@@ -191,6 +204,34 @@ export function ChatMessageOptionsModal({
     }
   }
 
+  // Calculate detail position above reactions bar
+  let detailTop = reactionsTop - detailHeight - 8;
+  if (detailTop < 40) {
+    // If detail top goes too high, place it below reactions bar instead
+    detailTop = reactionsTop + reactionsHeight + 8;
+  }
+  let detailLeft = reactionsLeft;
+  let detailRight = reactionsRight;
+
+  const renderAvatar = (avatarUrl: string | null | undefined, name: string) => {
+    const avatarUri = avatarUrl
+      ? avatarUrl.startsWith("http")
+        ? avatarUrl
+        : `${API_URL}${avatarUrl.startsWith("/") ? "" : "/"}${avatarUrl}`
+      : null;
+    const initial = name[0]?.toUpperCase() || "?";
+
+    return (
+      <View style={[styles.detailAvatar, { backgroundColor: isDark ? "#2D2D2D" : "#E5E5EA" }]}>
+        {avatarUri ? (
+          <Image source={{ uri: avatarUri }} style={styles.detailAvatarImage} />
+        ) : (
+          <Text style={[styles.detailAvatarText, { color: colors.text }]}>{initial}</Text>
+        )}
+      </View>
+    );
+  };
+
   return (
     <>
       <TouchableOpacity
@@ -211,6 +252,32 @@ export function ChatMessageOptionsModal({
             },
           ]}
         />
+
+        {/* Reaction Info Card (shows who reacted above the reactions bar - Avatar and Reaction only) */}
+        {reaction && (
+          <Animated.View
+            style={[
+              styles.reactionDetailCard,
+              {
+                backgroundColor: isDark
+                  ? "rgba(30, 30, 30, 0.95)"
+                  : "rgba(255, 255, 255, 0.95)",
+                borderColor: colors.border,
+                top: detailTop,
+                left: detailLeft,
+                right: detailRight,
+                opacity: modalOpacity,
+                transform: [{ scale: modalScale }],
+              },
+            ]}
+          >
+            {renderAvatar(
+              reactionByMe ? currentUserAvatarUrl : participantAvatarUrl,
+              reactionByMe ? currentUsername : participantUsername
+            )}
+            <Text style={styles.reactionDetailEmoji}>{reaction}</Text>
+          </Animated.View>
+        )}
 
         {/* Reactions Bar */}
         <Animated.View
@@ -374,13 +441,13 @@ export function ChatMessageOptionsModal({
             <View
               style={[
                 styles.modalRowIconContainer,
-                { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                { backgroundColor: isDark ? "#2D2D2D" : "#FF3B30" },
               ]}
             >
               <MaterialCommunityIcons
                 name="delete-outline"
                 size={24}
-                color="#FF3B30"
+                color={isDark ? "#FF3B30" : "#FFFFFF"}
               />
             </View>
             <Text
@@ -545,5 +612,40 @@ const styles = StyleSheet.create({
   emojiSheetTitle: {
     fontSize: 18,
     fontWeight: "bold",
+  },
+  reactionDetailCard: {
+    position: "absolute",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 8,
+    zIndex: 1001,
+  },
+  detailAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 6,
+    overflow: "hidden",
+  },
+  detailAvatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  detailAvatarText: {
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  reactionDetailEmoji: {
+    fontSize: 15,
   },
 });
