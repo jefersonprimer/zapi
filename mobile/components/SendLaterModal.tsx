@@ -13,7 +13,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const ITEM_HEIGHT = 40;
+const ITEM_HEIGHT = 48;
 const VISIBLE_ITEMS = 3;
 const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
 
@@ -163,12 +163,16 @@ export function SendLaterModal({
     onSchedule(delayMs);
   }, [days, hours, minutes, onSchedule]);
 
+  const modalBgColor = isDark
+    ? "rgba(28, 28, 30, 0.85)"
+    : "rgba(255, 255, 255, 0.85)";
+
   return (
     <View
       style={[
         styles.sheetContainer,
         {
-          backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7",
+          backgroundColor: modalBgColor,
           borderTopColor: colors.border,
           paddingBottom: bottomPadding,
         },
@@ -179,8 +183,7 @@ export function SendLaterModal({
         style={[
           styles.pickersRow,
           {
-            backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-            borderRadius: 16,
+            backgroundColor: "transparent",
           },
         ]}
       >
@@ -211,8 +214,8 @@ const styles = StyleSheet.create({
   sheetContainer: {
     width: "100%",
     height: "34%",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === "ios" ? 34 : 20,
@@ -226,11 +229,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   pickerContainer: {
     flex: 1,
