@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Clipboard,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -90,6 +91,75 @@ function ScheduledCountdown({ targetTime }: { targetTime: number }) {
       <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.9)", fontWeight: "600" }}>
         {formatRemainingTime(timeLeft)}
       </Text>
+    </View>
+  );
+}
+
+function UploadProgressLine({
+  label,
+  isMine,
+  trackColor,
+  accentColor,
+}: {
+  label: string;
+  isMine: boolean;
+  trackColor: string;
+  accentColor: string;
+}) {
+  const shimmer = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmer, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    loop.start();
+    return () => loop.stop();
+  }, [shimmer]);
+
+  const translateX = shimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-56, 112],
+  });
+
+  return (
+    <View
+      style={[
+        styles.uploadStatusContainer,
+        isMine ? styles.uploadStatusMine : styles.uploadStatusTheirs,
+      ]}
+    >
+      <Text
+        style={[
+          styles.uploadStatusText,
+          { color: isMine ? "rgba(255,255,255,0.72)" : "#64748B" },
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      <View style={[styles.uploadTrack, { backgroundColor: trackColor }]}>
+        <Animated.View
+          style={[
+            styles.uploadShimmer,
+            {
+              backgroundColor: accentColor,
+              transform: [{ translateX }],
+            },
+          ]}
+        />
+      </View>
     </View>
   );
 }
@@ -1243,6 +1313,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   }
 
   const isFileMessage = (!!fullUrl && !isAudio) || !!youtubeId;
+  const isUploadingAttachment =
+    isMine &&
+    !!attachment &&
+    ["pending", "uploading", "sending"].includes(item.status || "");
+  const uploadStatusLabel =
+    item.status === "sending"
+      ? "Enviando arquivo"
+      : item.status === "uploading"
+        ? "Carregando arquivo"
+        : "Preparando envio";
 
   return (
     <View
@@ -1534,6 +1614,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {isMine ? renderStatusIcons() : null}
         </View>
 
+        {isUploadingAttachment && (
+          <UploadProgressLine
+            label={uploadStatusLabel}
+            isMine={isMine}
+            trackColor={isMine ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.08)"}
+            accentColor={isMine ? "#FFFFFF" : colors.tint}
+          />
+        )}
+
         {fullUrl && isImage && (
           <Modal
             visible={isFullScreen}
@@ -1789,6 +1878,35 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     justifyContent: "center",
     alignItems: "center",
+  },
+  uploadStatusContainer: {
+    alignSelf: "flex-end",
+    width: 124,
+    marginTop: 6,
+    marginRight: 2,
+  },
+  uploadStatusMine: {},
+  uploadStatusTheirs: {},
+  uploadStatusText: {
+    fontSize: 10,
+    fontWeight: "600",
+    marginBottom: 4,
+    letterSpacing: 0.2,
+  },
+  uploadTrack: {
+    height: 3,
+    borderRadius: 999,
+    overflow: "hidden",
+    position: "relative",
+  },
+  uploadShimmer: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 52,
+    borderRadius: 999,
+    opacity: 0.9,
   },
   contactShareCard: {
     borderWidth: 1,
