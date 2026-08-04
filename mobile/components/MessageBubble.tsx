@@ -1540,69 +1540,151 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   </View>
                 </TouchableOpacity>
               ) : youtubeId ? null : (
-                <TouchableOpacity
-                  style={[
-                    styles.docBubble,
-                    isMine ? styles.docBubbleMine : styles.docBubbleTheir,
-                  ]}
-                  onPress={() => {
-                    if (
-                      fullUrl.startsWith("http://") ||
-                      fullUrl.startsWith("https://")
-                    ) {
-                      router.push({
-                        pathname: "/browser",
-                        params: { url: fullUrl },
-                      });
-                    } else {
-                      Linking.openURL(fullUrl);
-                    }
-                  }}
-                  onLongPress={onLongPress}
-                >
-                  <FileIcon
-                    size={18}
-                    color={isMine ? "#fff" : colors.text}
-                    style={{ marginRight: 10 }}
-                  />
-                  <View style={styles.docInfo}>
-                    <Text
-                      numberOfLines={1}
+                (() => {
+                  const ext = getFileExtensionLabel(
+                    fileName || (mediaUrl ? mediaUrl.split("/").pop() : null),
+                  ).toUpperCase();
+
+                  return (
+                    <TouchableOpacity
                       style={[
-                        styles.docName,
-                        isMine
-                          ? styles.docNameMine
-                          : [styles.docNameTheir, { color: colors.text }],
+                        styles.docBubble,
+                        isMine ? styles.docBubbleMine : styles.docBubbleTheir,
                       ]}
+                      onPress={() => {
+                        if (
+                          fullUrl.startsWith("http://") ||
+                          fullUrl.startsWith("https://")
+                        ) {
+                          router.push({
+                            pathname: "/browser",
+                            params: { url: fullUrl },
+                          });
+                        } else {
+                          Linking.openURL(fullUrl);
+                        }
+                      }}
+                      onLongPress={onLongPress}
                     >
-                      {fileName}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.docSubtitle,
-                        isMine
-                          ? styles.docSubMine
-                          : [
-                              styles.docSubTheir,
-                              { color: colors.textSecondary },
-                            ],
-                      ]}
-                    >
-                      {(() => {
-                        const ext = getFileExtensionLabel(
-                          fileName ||
-                            (mediaUrl ? mediaUrl.split("/").pop() : null),
-                        );
-                        const parts: string[] = [];
-                        if (fileSizeStr) parts.push(fileSizeStr);
-                        if (ext) parts.push(ext);
-                        return parts.length > 0
-                          ? parts.join(" · ")
-                          : "Tap to open";
-                      })()}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                      {ext === "PDF" ? (
+                        <View
+                          style={{
+                            marginRight: 10,
+                            position: "relative",
+                            width: 30,
+                            height: 32,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <MaterialCommunityIcons
+                            name="file"
+                            size={32}
+                            color="#FF3B30"
+                          />
+                          <View
+                            style={{
+                              position: "absolute",
+                              top: 9,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              justifyContent: "center",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 8,
+                                fontWeight: "500",
+                                color: "#FFF",
+                              }}
+                            >
+                              PDF
+                            </Text>
+                          </View>
+                        </View>
+                      ) : ext === "APK" ? (
+                        <View
+                          style={{
+                            marginRight: 10,
+                            position: "relative",
+                            width: 30,
+                            height: 32,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <MaterialCommunityIcons
+                            name="file"
+                            size={32}
+                            color="#8E8E93"
+                          />
+                          <View
+                            style={{
+                              position: "absolute",
+                              top: 9,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              justifyContent: "center",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 8,
+                                fontWeight: "500",
+                                color: "#FFF",
+                              }}
+                            >
+                              APK
+                            </Text>
+                          </View>
+                        </View>
+                      ) : (
+                        <FileIcon
+                          size={18}
+                          color={isMine ? "#fff" : colors.text}
+                          style={{ marginRight: 10 }}
+                        />
+                      )}
+                      <View style={styles.docInfo}>
+                        <Text
+                          numberOfLines={1}
+                          style={[
+                            styles.docName,
+                            isMine
+                              ? styles.docNameMine
+                              : [styles.docNameTheir, { color: colors.text }],
+                          ]}
+                        >
+                          {fileName}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.docSubtitle,
+                            isMine
+                              ? styles.docSubMine
+                              : [
+                                  styles.docSubTheir,
+                                  { color: colors.textSecondary },
+                                ],
+                          ]}
+                        >
+                          {(() => {
+                            const parts: string[] = [];
+                            if (fileSizeStr) parts.push(fileSizeStr);
+                            if (ext) parts.push(ext);
+                            return parts.length > 0
+                              ? parts.join(" · ")
+                              : "Tap to open";
+                          })()}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })()
               )}
             </>
           )}
@@ -2034,7 +2116,7 @@ const styles = StyleSheet.create({
   },
   contactShareName: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "400",
     marginTop: 2,
   },
   contactShareButton: {
