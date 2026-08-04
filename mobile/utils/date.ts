@@ -83,3 +83,24 @@ export function getDateLabel(dateStr: string): string {
   ];
   return `${dMsg.getDate()} de ${months[dMsg.getMonth()]} de ${dMsg.getFullYear()}`;
 }
+
+export function formatRemainingTime(totalSeconds: number): string {
+  if (totalSeconds <= 0) return "Enviando...";
+
+  const d = Math.floor(totalSeconds / 86400);
+  const h = Math.floor((totalSeconds % 86400) / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+
+  const parts = [];
+  if (d > 0) parts.push(`${d}d`);
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0 || (d === 0 && h === 0)) parts.push(`${m}m`);
+  // Only display seconds if there's less than 5 minutes left
+  if (d === 0 && h === 0 && m < 5 && s > 0) {
+    parts.push(`${s}s`);
+  }
+
+  return `Envia em ${parts.join(" ")}`;
+}
+

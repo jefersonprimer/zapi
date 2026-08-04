@@ -53,3 +53,57 @@ export function validateAttachmentSize(
     label,
   };
 }
+
+export const isImageUrl = (url: string): boolean =>
+  /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url.split("?")[0]) ||
+  url.includes("gstatic.com") ||
+  url.includes("google.com/images") ||
+  url.includes("googleusercontent.com") ||
+  url.includes("data:image/") ||
+  url.includes("data:image/svg+xml") ||
+  url.includes("tbn:") ||
+  url.includes("/uploads/images");
+
+export const isSvgUrl = (url: string): boolean =>
+  /\.(svg)$/i.test(url.split("?")[0]) ||
+  url.includes("image/svg+xml") ||
+  url.includes("data:image/svg+xml");
+
+export const getYoutubeId = (url: string): string | null => {
+  if (!url) return null;
+  const regExp =
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+};
+
+export const isAudioUrl = (url: string): boolean =>
+  /\.(m4a|mp3|wav|caf|ogg|3gp|opus)$/i.test(url.split("?")[0]) ||
+  url.includes("data:audio/") ||
+  url.includes("/uploads/audio");
+
+export const isVideoUrl = (url: string): boolean =>
+  /\.(mp4|mov|webm|mkv|avi|quicktime|qt|3gp|m4v|flv|wmv|mpg|mpeg)$/i.test(
+    url.split("?")[0],
+  ) ||
+  url.includes("data:video/") ||
+  url.includes("/uploads/videos") ||
+  url.includes("gstatic.com/video") ||
+  url.includes("video?q=tbn");
+
+export const formatFileSize = (bytes: number | null | undefined): string => {
+  if (bytes === null || bytes === undefined || bytes === 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+};
+
+export const getFileExtensionLabel = (name: string | null | undefined): string => {
+  if (!name) return "";
+  const dotIndex = name.lastIndexOf(".");
+  if (dotIndex === -1 || dotIndex === name.length - 1) return "";
+  return name.substring(dotIndex + 1).toUpperCase();
+};
+

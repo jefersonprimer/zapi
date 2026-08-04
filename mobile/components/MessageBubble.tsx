@@ -37,6 +37,17 @@ import {
   parseForwardContent,
   extractForwardData,
 } from "@/utils/forwardMessage";
+import { formatRemainingTime } from "@/utils/date";
+import {
+  isImageUrl,
+  isSvgUrl,
+  getYoutubeId,
+  isAudioUrl,
+  isVideoUrl,
+  formatFileSize,
+  getFileExtensionLabel,
+} from "@/utils/file";
+import { UploadProgressLine } from "./UploadProgressLine";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SvgUri } from "react-native-svg";
@@ -47,26 +58,6 @@ interface MessageBubbleProps {
   currentUserId?: string;
   isGroup?: boolean;
   onLongPress?: () => void;
-}
-
-function formatRemainingTime(totalSeconds: number) {
-  if (totalSeconds <= 0) return "Enviando...";
-
-  const d = Math.floor(totalSeconds / 86400);
-  const h = Math.floor((totalSeconds % 86400) / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-
-  const parts = [];
-  if (d > 0) parts.push(`${d}d`);
-  if (h > 0) parts.push(`${h}h`);
-  if (m > 0 || (d === 0 && h === 0)) parts.push(`${m}m`);
-  // Only display seconds if there's less than 5 minutes left
-  if (d === 0 && h === 0 && m < 5 && s > 0) {
-    parts.push(`${s}s`);
-  }
-
-  return `Envia em ${parts.join(" ")}`;
 }
 
 function ScheduledCountdown({ targetTime }: { targetTime: number }) {
@@ -115,127 +106,6 @@ function ScheduledCountdown({ targetTime }: { targetTime: number }) {
   );
 }
 
-function UploadProgressLine({
-  label,
-  isMine,
-  trackColor,
-  accentColor,
-}: {
-  label: string;
-  isMine: boolean;
-  trackColor: string;
-  accentColor: string;
-}) {
-  const shimmer = React.useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmer, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    loop.start();
-    return () => loop.stop();
-  }, [shimmer]);
-
-  const translateX = shimmer.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-56, 112],
-  });
-
-  return (
-    <View
-      style={[
-        styles.uploadStatusContainer,
-        isMine ? styles.uploadStatusMine : styles.uploadStatusTheirs,
-      ]}
-    >
-      <Text
-        style={[
-          styles.uploadStatusText,
-          { color: isMine ? "rgba(255,255,255,0.72)" : "#64748B" },
-        ]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-      <View style={[styles.uploadTrack, { backgroundColor: trackColor }]}>
-        <Animated.View
-          style={[
-            styles.uploadShimmer,
-            {
-              backgroundColor: accentColor,
-              transform: [{ translateX }],
-            },
-          ]}
-        />
-      </View>
-    </View>
-  );
-}
-
-const isImageUrl = (url: string) =>
-  /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url.split("?")[0]) ||
-  url.includes("gstatic.com") ||
-  url.includes("google.com/images") ||
-  url.includes("googleusercontent.com") ||
-  url.includes("data:image/") ||
-  url.includes("data:image/svg+xml") ||
-  url.includes("tbn:") ||
-  url.includes("/uploads/images");
-
-const isSvgUrl = (url: string) =>
-  /\.(svg)$/i.test(url.split("?")[0]) ||
-  url.includes("image/svg+xml") ||
-  url.includes("data:image/svg+xml");
-
-const getYoutubeId = (url: string) => {
-  if (!url) return null;
-  const regExp =
-    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return match && match[2].length === 11 ? match[2] : null;
-};
-
-const isAudioUrl = (url: string) =>
-  /\.(m4a|mp3|wav|caf|ogg|3gp|opus)$/i.test(url.split("?")[0]) ||
-  url.includes("data:audio/") ||
-  url.includes("/uploads/audio");
-
-const isVideoUrl = (url: string) =>
-  /\.(mp4|mov|webm|mkv|avi|quicktime|qt|3gp|m4v|flv|wmv|mpg|mpeg)$/i.test(
-    url.split("?")[0],
-  ) ||
-  url.includes("data:video/") ||
-  url.includes("/uploads/videos") ||
-  url.includes("gstatic.com/video") ||
-  url.includes("video?q=tbn");
-
-const formatFileSize = (bytes: number | null | undefined): string => {
-  if (bytes === null || bytes === undefined || bytes === 0) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
-  const mb = kb / 1024;
-  return `${mb.toFixed(1)} MB`;
-};
-
-const getFileExtensionLabel = (name: string | null | undefined): string => {
-  if (!name) return "";
-  const dotIndex = name.lastIndexOf(".");
-  if (dotIndex === -1 || dotIndex === name.length - 1) return "";
-  return name.substring(dotIndex + 1).toUpperCase();
-};
 
 interface MessageVideoProps {
   uri: string;
