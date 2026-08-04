@@ -16,7 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { updateProfile } from "@/services/api";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 const ABOUT_MAX_LEN = 139;
 
@@ -222,8 +222,8 @@ export default function EditProfileScreen() {
             style={styles.backBtn}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons
-              name="arrow-left"
+            <Ionicons
+              name="chevron-back-outline"
               size={24}
               color={colors.headerText}
             />

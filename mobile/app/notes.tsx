@@ -20,6 +20,7 @@ import {
   updateNote,
   type Note,
 } from "@/services/notesApi";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function NotesScreen() {
   const router = useRouter();
@@ -124,7 +125,11 @@ export default function NotesScreen() {
           }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <MaterialCommunityIcons name="dots-horizontal" size={20} color={colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="dots-horizontal"
+            size={20}
+            color={colors.textSecondary}
+          />
         </TouchableOpacity>
       </View>
       <Text
@@ -154,7 +159,11 @@ export default function NotesScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={[styles.headerTitle, { color: colors.headerText }]}>
@@ -207,7 +216,11 @@ export default function NotesScreen() {
         activeOpacity={0.8}
         onPress={() => router.push({ pathname: "/note-editor" })}
       >
-        <MaterialCommunityIcons name="note-plus-outline" size={24} color={isDark ? "#121212" : "#FFFFFF"} />
+        <Ionicons
+          name="create-outline"
+          size={24}
+          color={isDark ? "#121212" : "#FFFFFF"}
+        />
       </TouchableOpacity>
 
       <Modal
@@ -223,7 +236,10 @@ export default function NotesScreen() {
         >
           <TouchableOpacity
             activeOpacity={1}
-            style={[styles.bottomSheet, { backgroundColor: colors.cardBackground }]}
+            style={[
+              styles.bottomSheet,
+              { backgroundColor: colors.cardBackground },
+            ]}
           >
             <View style={styles.sheetIndicator} />
             <Text style={[styles.sheetTitle, { color: colors.text }]}>
@@ -239,10 +255,14 @@ export default function NotesScreen() {
               <MaterialCommunityIcons
                 name={selectedNote?.is_favorite ? "star" : "star-outline"}
                 size={20}
-                color={selectedNote?.is_favorite ? "#FFD60A" : colors.textSecondary}
+                color={
+                  selectedNote?.is_favorite ? "#FFD60A" : colors.textSecondary
+                }
               />
               <Text style={[styles.sheetOptionText, { color: colors.text }]}>
-                {selectedNote?.is_favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                {selectedNote?.is_favorite
+                  ? "Remover dos favoritos"
+                  : "Adicionar aos favoritos"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -262,7 +282,11 @@ export default function NotesScreen() {
                 }
               }}
             >
-              <MaterialCommunityIcons name="share-variant-outline" size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="share-variant-outline"
+                size={20}
+                color={colors.textSecondary}
+              />
               <Text style={[styles.sheetOptionText, { color: colors.text }]}>
                 Compartilhar
               </Text>
@@ -274,7 +298,11 @@ export default function NotesScreen() {
                 if (selectedNote) handleDelete(selectedNote);
               }}
             >
-              <MaterialCommunityIcons name="delete-outline" size={20} color={colors.danger} />
+              <MaterialCommunityIcons
+                name="delete-outline"
+                size={20}
+                color={colors.danger}
+              />
               <Text style={[styles.sheetOptionText, { color: colors.danger }]}>
                 Excluir nota
               </Text>

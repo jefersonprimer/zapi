@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { Calendar, MapPin, Clock, Plus, ArrowLeft, Users } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { communityApi, CommunityEvent, CommunityChannel, EventRsvpStatus } from "@/services/communityApi";
 
@@ -103,9 +103,9 @@ export function CommunityEventsView({
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <ArrowLeft size={24} color={colors.text} />
+          <Ionicons name="arrow-back-outline" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Calendar size={20} color={colors.brandGreen} style={{ marginRight: 6 }} />
+        <Ionicons name="calendar-outline" size={20} color={colors.brandGreen} style={{ marginRight: 6 }} />
         <View style={{ flex: 1 }}>
           <Text style={[styles.channelName, { color: colors.text }]} numberOfLines={1}>
             {channel.name}
@@ -118,7 +118,7 @@ export function CommunityEventsView({
           onPress={onCreateEventClick}
           style={[styles.createBtn, { backgroundColor: colors.brandGreen }]}
         >
-          <Plus size={16} color="#fff" />
+          <Ionicons name="add-outline" size={16} color="#fff" />
           <Text style={styles.createBtnText}>Criar Evento</Text>
         </TouchableOpacity>
       </View>
@@ -130,7 +130,7 @@ export function CommunityEventsView({
         </View>
       ) : events.length === 0 ? (
         <View style={styles.center}>
-          <Calendar size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
+          <Ionicons name="calendar-outline" size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhum evento agendado</Text>
           <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>Planeje uma reunião ou evento online com os membros!</Text>
           <TouchableOpacity
@@ -155,7 +155,7 @@ export function CommunityEventsView({
             return (
               <View style={[styles.eventCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.cardHeader}>
-                  <Calendar size={24} color={colors.brandGreen} />
+                  <Ionicons name="calendar-outline" size={24} color={colors.brandGreen} />
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.eventTitle, { color: colors.text }]}>{item.title}</Text>
                     <Text style={[styles.eventCreator, { color: colors.textSecondary }]}>Criado por {item.creator_username || "Organizador"}</Text>
@@ -168,19 +168,19 @@ export function CommunityEventsView({
 
                 <View style={styles.detailsList}>
                   <View style={styles.detailRow}>
-                    <Clock size={16} color={colors.textSecondary} />
+                    <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
                     <Text style={[styles.detailText, { color: colors.text }]}>
                       {formatDate(item.start_time)} às {formatTime(item.start_time)}
                     </Text>
                   </View>
                   <View style={styles.detailRow}>
-                    <MapPin size={16} color={colors.textSecondary} />
+                    <Ionicons name="location-outline" size={16} color={colors.textSecondary} />
                     <Text style={[styles.detailText, { color: colors.text }]} numberOfLines={1}>
                       {item.location || "Zapi Voice Lounge"}
                     </Text>
                   </View>
                   <View style={styles.detailRow}>
-                    <Users size={16} color={colors.textSecondary} />
+                    <Ionicons name="people-outline" size={16} color={colors.textSecondary} />
                     <Text style={[styles.detailText, { color: colors.text }]}>
                       {item.attendee_count} {item.attendee_count === 1 ? "confirmado" : "confirmados"}
                     </Text>

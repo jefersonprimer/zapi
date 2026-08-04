@@ -15,7 +15,7 @@ import {
   Dimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Svg, Path } from "react-native-svg";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -130,7 +130,11 @@ function PostGridItem({
         <View
           style={[styles.textPlaceholder, { backgroundColor: colors.surface }]}
         >
-          <MaterialCommunityIcons name="file-document-outline" size={24} color={colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="file-document-outline"
+            size={24}
+            color={colors.textSecondary}
+          />
           {post.content ? (
             <Text
               style={[
@@ -147,7 +151,6 @@ function PostGridItem({
     </TouchableOpacity>
   );
 }
-
 
 export default function ContactDetailScreen() {
   const router = useRouter();
@@ -189,13 +192,19 @@ export default function ContactDetailScreen() {
   // Publisher and updates state
   const [publisher, setPublisher] = useState<updatesApi.Publisher | null>(null);
   const [posts, setPosts] = useState<updatesApi.FeedPost[]>([]);
-  const [selectedPost, setSelectedPost] = useState<updatesApi.FeedPost | null>(null);
+  const [selectedPost, setSelectedPost] = useState<updatesApi.FeedPost | null>(
+    null,
+  );
   const [postsLoading, setPostsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [activeTab, setActiveTab] = useState<"contato" | "atualizacoes">("contato");
-  const [publisherSubTab, setPublisherSubTab] = useState<"posts" | "clips">("posts");
+  const [activeTab, setActiveTab] = useState<"contato" | "atualizacoes">(
+    "contato",
+  );
+  const [publisherSubTab, setPublisherSubTab] = useState<"posts" | "clips">(
+    "posts",
+  );
 
   const displayedPosts = useMemo(() => {
     return posts.filter((p) => {
@@ -238,7 +247,14 @@ export default function ContactDetailScreen() {
   const handleLoadMorePosts = useCallback(() => {
     if (loadingMore || !hasMore || postsLoading || !publisherId) return;
     loadPublisherPosts(publisherId, page + 1, false);
-  }, [loadingMore, hasMore, postsLoading, page, publisherId, loadPublisherPosts]);
+  }, [
+    loadingMore,
+    hasMore,
+    postsLoading,
+    page,
+    publisherId,
+    loadPublisherPosts,
+  ]);
 
   const handlePostLike = async (postId: string) => {
     if (!token) return;
@@ -724,8 +740,8 @@ export default function ContactDetailScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <MaterialCommunityIcons
-              name="arrow-left"
+            <Ionicons
+              name="chevron-back-outline"
               size={24}
               color={colors.headerText}
             />
@@ -808,9 +824,10 @@ export default function ContactDetailScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           onScroll={(event) => {
-            const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+            const { layoutMeasurement, contentOffset, contentSize } =
+              event.nativeEvent;
             const y = contentOffset.y;
-            
+
             // Header animation
             if (y > 100) {
               if (!showHeaderProfile) setShowHeaderProfile(true);
@@ -820,7 +837,8 @@ export default function ContactDetailScreen() {
 
             // Infinite scroll check for updates tab
             if (activeTab === "atualizacoes") {
-              const isCloseToBottom = layoutMeasurement.height + y >= contentSize.height - 100;
+              const isCloseToBottom =
+                layoutMeasurement.height + y >= contentSize.height - 100;
               if (isCloseToBottom) {
                 handleLoadMorePosts();
               }
@@ -879,18 +897,28 @@ export default function ContactDetailScreen() {
 
           {/* Main Tab Bar (Contato vs Atualizações) */}
           {publisherId && (
-            <View style={[styles.mainTabBar, { backgroundColor: isDark ? "#1C1C1E" : "#E5E5EA" }]}>
+            <View
+              style={[
+                styles.mainTabBar,
+                { backgroundColor: isDark ? "#1C1C1E" : "#E5E5EA" },
+              ]}
+            >
               <TouchableOpacity
                 style={[
                   styles.mainTabItem,
-                  activeTab === "contato" && { backgroundColor: colors.tint }
+                  activeTab === "contato" && { backgroundColor: colors.tint },
                 ]}
                 onPress={() => setActiveTab("contato")}
               >
                 <Text
                   style={[
                     styles.mainTabText,
-                    { color: activeTab === "contato" ? "#FFFFFF" : colors.textSecondary },
+                    {
+                      color:
+                        activeTab === "contato"
+                          ? "#FFFFFF"
+                          : colors.textSecondary,
+                    },
                   ]}
                 >
                   Contato
@@ -899,14 +927,21 @@ export default function ContactDetailScreen() {
               <TouchableOpacity
                 style={[
                   styles.mainTabItem,
-                  activeTab === "atualizacoes" && { backgroundColor: colors.tint }
+                  activeTab === "atualizacoes" && {
+                    backgroundColor: colors.tint,
+                  },
                 ]}
                 onPress={() => setActiveTab("atualizacoes")}
               >
                 <Text
                   style={[
                     styles.mainTabText,
-                    { color: activeTab === "atualizacoes" ? "#FFFFFF" : colors.textSecondary },
+                    {
+                      color:
+                        activeTab === "atualizacoes"
+                          ? "#FFFFFF"
+                          : colors.textSecondary,
+                    },
                   ]}
                 >
                   Atualizações
@@ -918,7 +953,10 @@ export default function ContactDetailScreen() {
           {activeTab === "contato" ? (
             <>
               <View
-                style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+                style={[
+                  styles.sectionDivider,
+                  { backgroundColor: colors.border },
+                ]}
               />
 
               {/* Quick Call Action Row */}
@@ -930,12 +968,10 @@ export default function ContactDetailScreen() {
                   ]}
                   onPress={handleVoiceCall}
                 >
-                  <MaterialCommunityIcons
-                    name="phone"
-                    size={20}
-                    color={colors.text}
-                  />
-                  <Text style={[styles.actionButtonText, { color: colors.text }]}>
+                  <Ionicons name="call-outline" size={24} color={colors.text} />
+                  <Text
+                    style={[styles.actionButtonText, { color: colors.text }]}
+                  >
                     Ligar
                   </Text>
                 </TouchableOpacity>
@@ -947,12 +983,14 @@ export default function ContactDetailScreen() {
                   ]}
                   onPress={handleVideoCall}
                 >
-                  <MaterialCommunityIcons
-                    name="video"
-                    size={20}
+                  <Ionicons
+                    name="videocam-outline"
+                    size={24}
                     color={colors.text}
                   />
-                  <Text style={[styles.actionButtonText, { color: colors.text }]}>
+                  <Text
+                    style={[styles.actionButtonText, { color: colors.text }]}
+                  >
                     Vídeo
                   </Text>
                 </TouchableOpacity>
@@ -976,7 +1014,9 @@ export default function ContactDetailScreen() {
                     >
                       <Path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156" />
                     </Svg>
-                    <Text style={[styles.actionButtonText, { color: colors.text }]}>
+                    <Text
+                      style={[styles.actionButtonText, { color: colors.text }]}
+                    >
                       Pix
                     </Text>
                   </TouchableOpacity>
@@ -984,7 +1024,10 @@ export default function ContactDetailScreen() {
               </View>
 
               <View
-                style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+                style={[
+                  styles.sectionDivider,
+                  { backgroundColor: colors.border },
+                ]}
               />
 
               {/* Informações Section (Telegram style: value-first, label-second, copy on press) */}
@@ -999,7 +1042,10 @@ export default function ContactDetailScreen() {
                     {contact?.about || "Sem recado"}
                   </Text>
                   <Text
-                    style={[styles.infoLabelText, { color: colors.textSecondary }]}
+                    style={[
+                      styles.infoLabelText,
+                      { color: colors.textSecondary },
+                    ]}
                   >
                     Recado
                   </Text>
@@ -1019,7 +1065,9 @@ export default function ContactDetailScreen() {
                       onPress={handleCopyEmail}
                       style={styles.infoItem}
                     >
-                      <Text style={[styles.infoValueText, { color: colors.text }]}>
+                      <Text
+                        style={[styles.infoValueText, { color: colors.text }]}
+                      >
                         {displayEmail}
                       </Text>
                       <Text
@@ -1036,7 +1084,10 @@ export default function ContactDetailScreen() {
               </View>
 
               <View
-                style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+                style={[
+                  styles.sectionDivider,
+                  { backgroundColor: colors.border },
+                ]}
               />
 
               {/* Options Section */}
@@ -1058,11 +1109,16 @@ export default function ContactDetailScreen() {
                       />
                     )}
                     <View style={styles.optionTextContainer}>
-                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
                         Notificações
                       </Text>
                       <Text
-                        style={[styles.optionSub, { color: colors.textSecondary }]}
+                        style={[
+                          styles.optionSub,
+                          { color: colors.textSecondary },
+                        ]}
                       >
                         {getMuteStatusLabel()}
                       </Text>
@@ -1104,7 +1160,9 @@ export default function ContactDetailScreen() {
                       />
                     )}
                     <View style={styles.optionTextContainer}>
-                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
                         {isFavorite
                           ? "Remover dos favoritos"
                           : "Adicionar aos favoritos"}
@@ -1147,13 +1205,18 @@ export default function ContactDetailScreen() {
                       />
                     )}
                     <View style={styles.optionTextContainer}>
-                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
                         {isFollowing
                           ? "Seguindo atualizações"
                           : "Seguir atualizações"}
                       </Text>
                       <Text
-                        style={[styles.optionSub, { color: colors.textSecondary }]}
+                        style={[
+                          styles.optionSub,
+                          { color: colors.textSecondary },
+                        ]}
                       >
                         Ver stories e posts deste contato
                       </Text>
@@ -1191,7 +1254,9 @@ export default function ContactDetailScreen() {
                       color={colors.textSecondary}
                     />
                     <View style={styles.optionTextContainer}>
-                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
                         Adicionar à lista
                       </Text>
                       {selectedListIds.length > 0 && (
@@ -1230,7 +1295,9 @@ export default function ContactDetailScreen() {
                       color={colors.textSecondary}
                     />
                     <View style={styles.optionTextContainer}>
-                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
                         Mídias compartilhadas
                       </Text>
                     </View>
@@ -1259,7 +1326,9 @@ export default function ContactDetailScreen() {
                       color={colors.textSecondary}
                     />
                     <View style={styles.optionTextContainer}>
-                      <Text style={[styles.optionTitle, { color: colors.text }]}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
                         Buscar nesta conversa
                       </Text>
                     </View>
@@ -1273,7 +1342,10 @@ export default function ContactDetailScreen() {
               </View>
 
               <View
-                style={[styles.sectionDivider, { backgroundColor: colors.border }]}
+                style={[
+                  styles.sectionDivider,
+                  { backgroundColor: colors.border },
+                ]}
               />
 
               {/* Danger Zone Options */}
@@ -1289,7 +1361,9 @@ export default function ContactDetailScreen() {
                       color={colors.danger}
                     />
                     <View style={styles.optionTextContainer}>
-                      <Text style={[styles.optionTitle, { color: colors.danger }]}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.danger }]}
+                      >
                         Limpar conversa
                       </Text>
                     </View>
@@ -1325,7 +1399,10 @@ export default function ContactDetailScreen() {
                         />
                         <View style={styles.optionTextContainer}>
                           <Text
-                            style={[styles.optionTitle, { color: colors.danger }]}
+                            style={[
+                              styles.optionTitle,
+                              { color: colors.danger },
+                            ]}
                           >
                             Bloquear contato
                           </Text>
@@ -1342,7 +1419,9 @@ export default function ContactDetailScreen() {
               {/* Followers Stats Header */}
               {publisher && (
                 <View style={styles.publisherStatsSection}>
-                  <Text style={[styles.followersCountText, { color: colors.text }]}>
+                  <Text
+                    style={[styles.followersCountText, { color: colors.text }]}
+                  >
                     {formatPostsCount(posts.length)} ·{" "}
                     {formatFollowers(publisher.followers_count ?? 0)} ·{" "}
                     {formatFollowing(publisher.following_count ?? 0)}
@@ -1351,7 +1430,9 @@ export default function ContactDetailScreen() {
               )}
 
               {/* Publisher Sub-Tabs: Publicações / Clips */}
-              <View style={[styles.subTabBar, { borderBottomColor: colors.border }]}>
+              <View
+                style={[styles.subTabBar, { borderBottomColor: colors.border }]}
+              >
                 <TouchableOpacity
                   style={[
                     styles.subTabItem,
@@ -1413,7 +1494,9 @@ export default function ContactDetailScreen() {
                   ))}
                 </View>
               ) : (
-                <Text style={[styles.emptyPosts, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.emptyPosts, { color: colors.textSecondary }]}
+                >
                   {publisherSubTab === "posts"
                     ? "Nenhuma publicação ainda"
                     : "Nenhum clip ainda"}
@@ -1560,7 +1643,11 @@ export default function ContactDetailScreen() {
             ]}
           >
             <TouchableOpacity onPress={() => setSelectedPost(null)}>
-              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={colors.text}
+              />
             </TouchableOpacity>
             <Text style={[styles.postModalTitle, { color: colors.text }]}>
               Publicação

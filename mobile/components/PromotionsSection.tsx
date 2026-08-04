@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Store, Tag } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { listPromotions, PromotionalProduct } from "@/services/deliveryApi";
@@ -107,7 +107,7 @@ export default function PromotionsSection() {
                     />
                   ) : (
                     <View style={[styles.storeAvatarPlaceholder, { backgroundColor: colors.surface }]}>
-                      <Store size={12} color={colors.textSecondary} />
+                      <Ionicons name="storefront-outline" size={12} color={colors.textSecondary} />
                     </View>
                   )}
                   <Text
@@ -128,7 +128,7 @@ export default function PromotionsSection() {
                     />
                   ) : (
                     <View style={[styles.productImagePlaceholder, { backgroundColor: colors.surface }]}>
-                      <Tag size={24} color={colors.icon} />
+                      <Ionicons name="pricetag-outline" size={24} color={colors.icon} />
                     </View>
                   )}
 

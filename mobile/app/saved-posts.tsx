@@ -13,7 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import FeedPostCard from "@/components/FeedPost";
 import * as updatesApi from "@/services/updatesApi";
 import type { FeedPost } from "@/services/updatesApi";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function SavedPostsScreen() {
   const { colors } = useAppTheme();
@@ -64,8 +64,8 @@ export default function SavedPostsScreen() {
           },
         ]}
       >
-        <MaterialCommunityIcons
-          name="arrow-left"
+        <Ionicons
+          name="chevron-back-outline"
           size={24}
           color={colors.text}
           onPress={() => router.back()}

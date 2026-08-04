@@ -24,6 +24,7 @@ import {
   type ForwardedMessageData,
 } from "@/utils/forwardMessage";
 import { UserContactCard } from "@/components/UserContactCard";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ShareContactScreen() {
   const router = useRouter();
@@ -356,8 +357,8 @@ export default function ShareContactScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <MaterialCommunityIcons
-              name="arrow-left"
+            <Ionicons
+              name="chevron-back-outline"
               size={24}
               color={colors.headerText}
             />

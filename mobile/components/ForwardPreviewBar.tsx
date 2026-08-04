@@ -1,15 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import {
-  StickyNote,
-  X as XIcon,
-  Camera,
-  Video,
-  Music,
-  FileText,
-  Paperclip,
-  MessageSquare,
-} from "lucide-react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -35,7 +26,8 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
   const displayName = isMe ? "Você" : forwarded.sender_username;
 
   // Determine icon based on attachment type
-  let IconComponent = MessageSquare;
+  let iconName = "chatbubble-outline";
+  let iconLibrary: "ionicons" | "mci" = "ionicons";
   const hasAttachment = !!(
     forwarded.attachment_type ||
     forwarded.image_url ||
@@ -43,15 +35,16 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
   );
 
   if (forwarded.attachment_type === "image") {
-    IconComponent = Camera;
+    iconName = "camera-outline";
   } else if (forwarded.attachment_type === "video") {
-    IconComponent = Video;
+    iconName = "videocam-outline";
   } else if (forwarded.attachment_type === "audio") {
-    IconComponent = Music;
+    iconName = "musical-notes-outline";
   } else if (forwarded.attachment_type === "document") {
-    IconComponent = FileText;
+    iconName = "document-text-outline";
   } else if (forwarded.image_url || forwarded.local_file_path) {
-    IconComponent = Paperclip;
+    iconName = "paperclip";
+    iconLibrary = "mci";
   }
 
   const getThemeColors = () => {
@@ -86,7 +79,7 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
       {noteShare ? (
         <View style={styles.noteRow}>
           <View style={[styles.noteIconCircle, { backgroundColor: isDark ? "rgba(245, 166, 35, 0.15)" : "#FFF3B0" }]}>
-            <StickyNote size={18} color="#F5A623" />
+            <MaterialCommunityIcons name="note-outline" size={18} color="#F5A623" />
           </View>
           <View style={styles.content}>
             <Text
@@ -121,11 +114,21 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
           </Text>
           <View style={styles.previewRow}>
             {hasAttachment && (
-              <IconComponent
-                size={14}
-                color={colors.textSecondary}
-                style={styles.previewIcon}
-              />
+              iconLibrary === "ionicons" ? (
+                <Ionicons
+                  name={iconName}
+                  size={14}
+                  color={colors.textSecondary}
+                  style={styles.previewIcon}
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  name={iconName}
+                  size={14}
+                  color={colors.textSecondary}
+                  style={styles.previewIcon}
+                />
+              )
             )}
             <Text
               style={[styles.preview, { color: colors.textSecondary }]}
@@ -144,7 +147,7 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
         onPress={onClear}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <XIcon size={14} color={colors.textSecondary} />
+        <Ionicons name="close-outline" size={14} color={colors.textSecondary} />
       </TouchableOpacity>
     </View>
   );

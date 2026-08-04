@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { Check, CheckCircle } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { LocalChatList } from "@/services/database";
 
@@ -130,7 +130,7 @@ export default function ListSelectorModal({
                         },
                       ]}
                     >
-                      {isChecked && <Check size={14} color="#fff" />}
+                      {isChecked && <Ionicons name="checkmark-outline" size={14} color="#fff" />}
                     </View>
                   </TouchableOpacity>
                 );

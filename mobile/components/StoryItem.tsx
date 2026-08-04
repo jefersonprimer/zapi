@@ -1,6 +1,6 @@
 import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
-import { CheckCircle } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { getFullRemoteUrl } from "@/services/mediaCache";
 
 interface StoryItemProps {
@@ -37,7 +37,8 @@ export default function StoryItem({
           style={styles.avatar}
         />
         {isVerified && (
-          <CheckCircle
+          <Ionicons
+            name="checkmark-circle"
             size={15}
             color={isDark ? "#60A5FA" : "#3B82F6"}
             style={styles.verifiedBadge}

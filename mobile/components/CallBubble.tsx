@@ -1,11 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import {
-  PhoneIncoming,
-  PhoneOutgoing,
-  PhoneMissed,
-  PhoneOff,
-} from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { getDateLabel } from "@/utils/date";
@@ -41,7 +36,7 @@ export function CallBubble({
   const { colors, isDark } = useAppTheme();
   const isOutgoing = call.caller_id === currentUserId;
 
-  let StatusIcon = PhoneIncoming;
+  let statusIconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"] = "phone-incoming";
   let iconColor = "#34C759"; // Green
   let statusText = isOutgoing ? "Ligação efetuada" : "Ligação recebida";
   let bubbleBg = isDark ? "#1E293B" : "#f1f0f0";
@@ -49,7 +44,7 @@ export function CallBubble({
   let timeColor = colors.textSecondary;
 
   if (isOutgoing) {
-    StatusIcon = PhoneOutgoing;
+    statusIconName = "phone-outgoing";
     bubbleBg = isDark ? "#1E293B" : "#e1f5fe"; // light blue
     textColor = isDark ? "#0A84FF" : "#01579b";
     timeColor = isDark
@@ -63,11 +58,11 @@ export function CallBubble({
         ? "rgba(48, 209, 88, 0.7)"
         : "rgba(27, 94, 32, 0.6)";
     } else {
-      StatusIcon = PhoneMissed;
+      statusIconName = "phone-missed";
       iconColor = "#FF3B30"; // Red
       statusText = "Chamada perdida";
       if (call.status === "failed") {
-        StatusIcon = PhoneOff;
+        statusIconName = "phone-off";
         iconColor = "#FF9500"; // Orange
       }
       bubbleBg = isDark ? "#1E293B" : "#ffebee"; // light red
@@ -126,7 +121,7 @@ export function CallBubble({
           <View style={[styles.callBubble, { backgroundColor: bubbleBg }]}>
             <View style={styles.callBubbleContent}>
               <View style={styles.callIconContainer}>
-                <StatusIcon size={20} color={iconColor} />
+                <MaterialCommunityIcons name={statusIconName} size={20} color={iconColor} />
               </View>
               <View style={styles.callTextContainer}>
                 <Text style={[styles.callStatusText, { color: textColor }]} numberOfLines={1}>

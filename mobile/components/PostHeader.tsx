@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { TouchableOpacity, View, Text, Image, StyleSheet, Alert } from "react-native";
-import { CheckCircle, MoreHorizontal, UserPlus, UserMinus } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/context/ThemeContext";
 import { getFullRemoteUrl } from "@/services/mediaCache";
@@ -92,7 +92,7 @@ export default function PostHeader({
               {publisherName}
             </Text>
             {isVerified && (
-              <CheckCircle size={14} color={isDark ? "#60A5FA" : "#3B82F6"} style={styles.verifiedIcon} />
+              <Ionicons name="checkmark-circle" size={14} color={isDark ? "#60A5FA" : "#3B82F6"} style={styles.verifiedIcon} />
             )}
             {typeLabel && (
               <Text style={[styles.typeLabel, { color: colors.textSecondary }]}>{typeLabel}</Text>
@@ -101,7 +101,7 @@ export default function PostHeader({
           <Text style={[styles.time, { color: colors.textSecondary }]}>{timeAgo(createdAt)}</Text>
         </View>
         <TouchableOpacity onPress={handleMenuPress} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <MoreHorizontal size={20} color={colors.icon} />
+          <Ionicons name="ellipsis-horizontal" size={20} color={colors.icon} />
         </TouchableOpacity>
       </TouchableOpacity>
 
@@ -119,9 +119,9 @@ export default function PostHeader({
             disabled={isToggling}
           >
             {isFollowing ? (
-              <UserMinus size={20} color={colors.text} style={styles.menuIcon} />
+              <Ionicons name="person-remove-outline" size={20} color={colors.text} style={styles.menuIcon} />
             ) : (
-              <UserPlus size={20} color={colors.text} style={styles.menuIcon} />
+              <Ionicons name="person-add-outline" size={20} color={colors.text} style={styles.menuIcon} />
             )}
             <Text style={[styles.menuText, { color: colors.text }]}>
               {isFollowing ? `Deixar de seguir ${publisherName}` : `Seguir ${publisherName}`}

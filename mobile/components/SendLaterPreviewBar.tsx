@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { ChevronRight, Clock, X as XIcon } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface SendLaterPreviewBarProps {
@@ -83,7 +83,7 @@ export const SendLaterPreviewBar: React.FC<SendLaterPreviewBarProps> = ({
         },
       ]}
     >
-      <Clock size={16} color={iconColor} style={styles.clockIcon} />
+      <Ionicons name="time-outline" size={16} color={iconColor} style={styles.clockIcon} />
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={onPress}
@@ -96,7 +96,8 @@ export const SendLaterPreviewBar: React.FC<SendLaterPreviewBarProps> = ({
               {getScheduledDateTimeString(delayMs)}
             </Text>
           </Text>
-          <ChevronRight
+          <Ionicons
+            name="chevron-forward"
             size={16}
             color={greenColor}
             style={styles.chevronIcon}
@@ -108,7 +109,7 @@ export const SendLaterPreviewBar: React.FC<SendLaterPreviewBarProps> = ({
         onPress={onClear}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <XIcon size={20} color={colors.textSecondary} />
+        <Ionicons name="close" size={20} color={colors.textSecondary} />
       </TouchableOpacity>
     </View>
   );

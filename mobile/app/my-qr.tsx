@@ -2,9 +2,9 @@ import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import { ArrowLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function MyQrScreen() {
   const { user } = useAuth();
@@ -23,7 +23,7 @@ export default function MyQrScreen() {
         onPress={() => router.back()}
         style={[styles.backBtn, { top: insets.top + 16 }]}
       >
-        <ArrowLeft size={24} color={colors.text} />
+        <Ionicons name="chevron-back-outline" size={24} color={colors.text} />
       </TouchableOpacity>
 
       <Text style={[styles.title, { color: colors.text }]}>Meu QR Code</Text>

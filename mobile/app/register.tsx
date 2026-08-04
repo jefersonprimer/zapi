@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { register } from "@/services/api";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -94,7 +95,7 @@ export default function RegisterScreen() {
           style={{ padding: 8, marginLeft: 4 }}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="arrow-left" color={textColor} size={24} />
+          <Ionicons name="chevron-back-outline" color={textColor} size={24} />
         </TouchableOpacity>
       </View>
 
@@ -219,9 +220,17 @@ export default function RegisterScreen() {
                   activeOpacity={0.7}
                 >
                   {showPassword ? (
-                    <MaterialCommunityIcons name="eye-off-outline" size={18} color={textSecondary} />
+                    <MaterialCommunityIcons
+                      name="eye-off-outline"
+                      size={18}
+                      color={textSecondary}
+                    />
                   ) : (
-                    <MaterialCommunityIcons name="eye-outline" size={18} color={textSecondary} />
+                    <MaterialCommunityIcons
+                      name="eye-outline"
+                      size={18}
+                      color={textSecondary}
+                    />
                   )}
                 </TouchableOpacity>
               </View>
@@ -255,10 +264,7 @@ export default function RegisterScreen() {
             <Text style={[styles.linkText, { color: textSecondary }]}>
               Já tem uma conta?{" "}
               <Text
-                style={[
-                  styles.linkHighlight,
-                  { color: colors.brandGreen },
-                ]}
+                style={[styles.linkHighlight, { color: colors.brandGreen }]}
               >
                 Entrar
               </Text>

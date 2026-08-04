@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
-import { Phone, PhoneOff, Video } from "lucide-react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useCallStore } from "../store/useCallStore";
 import { API_URL } from "../services/api";
 
@@ -53,7 +53,7 @@ export default function IncomingCallScreen({
           onPress={onDecline}
           style={[styles.actionButton, styles.declineButton]}
         >
-          <PhoneOff size={28} color="#ffffff" />
+          <MaterialCommunityIcons name="phone-off" size={28} color="#ffffff" />
         </TouchableOpacity>
 
         {/* Accept Button */}
@@ -63,9 +63,9 @@ export default function IncomingCallScreen({
           style={[styles.actionButton, styles.acceptButton]}
         >
           {isVideo ? (
-            <Video size={28} color="#ffffff" />
+            <Ionicons name="videocam-outline" size={28} color="#ffffff" />
           ) : (
-            <Phone size={28} color="#ffffff" />
+            <Ionicons name="call-outline" size={28} color="#ffffff" />
           )}
         </TouchableOpacity>
       </View>

@@ -1216,7 +1216,7 @@ export default function ChatListScreen() {
                 </View>
               }
               renderItem={({ item }) => (
-                <View style={styles.chatListItemContainer}>
+                <View>
                   <ChatListItemComponent
                     item={item}
                     isSelected={selectedChatIds.includes(item.id)}
@@ -1410,8 +1410,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 28,
+    marginHorizontal: 18,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   archivedLeft: {
@@ -1429,7 +1428,6 @@ const styles = StyleSheet.create({
   },
   pinnedSection: {
     paddingVertical: 16,
-    paddingHorizontal: 12,
   },
   pinnedList: {
     paddingHorizontal: 12,
@@ -1438,8 +1436,5 @@ const styles = StyleSheet.create({
   pinnedRow: {
     justifyContent: "flex-start",
     gap: 12,
-  },
-  chatListItemContainer: {
-    paddingHorizontal: 12,
   },
 });

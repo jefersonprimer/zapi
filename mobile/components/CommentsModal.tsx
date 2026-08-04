@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import { TextInput as GestureHandlerTextInput } from "react-native-gesture-handler";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { X, Heart, Send, Smile, MessageSquare } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BottomSheetBackdrop,
@@ -236,7 +236,7 @@ function OutsidePreview({
             )
           ) : (
             <View style={styles.previewEmptyOutside}>
-              <MessageSquare size={22} color="rgba(255,255,255,0.7)" />
+              <Ionicons name="chatbubble-outline" size={22} color="rgba(255,255,255,0.7)" />
             </View>
           )}
         </Animated.View>
@@ -297,7 +297,7 @@ function CommentsSheetFooter(props: BottomSheetFooterProps) {
               Respondendo para {state.replyTo.name}
             </Text>
             <TouchableOpacity onPress={() => state.setReplyTo(null)}>
-              <X size={16} color={colors.textSecondary} />
+              <Ionicons name="close-outline" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
@@ -348,7 +348,8 @@ function CommentsSheetFooter(props: BottomSheetFooterProps) {
                 onPress={state.onToggleEmojiPicker}
                 style={styles.pillActionButton}
               >
-                <Smile
+                <Ionicons
+                  name="happy-outline"
                   size={18}
                   color={state.showEmojiPicker ? colors.tint : colors.icon}
                 />
@@ -379,7 +380,7 @@ function CommentsSheetFooter(props: BottomSheetFooterProps) {
                   },
                 ]}
               >
-                <Send size={18} color="#fff" />
+                <Ionicons name="send-outline" size={18} color="#fff" />
               </TouchableOpacity>
             )}
           </View>
@@ -753,10 +754,10 @@ export default function CommentsModal({
                   onPress={() => handleLike(item.id)}
                   style={styles.likeBtn}
                 >
-                  <Heart
+                  <Ionicons
+                    name={item.liked_by_me ? "heart" : "heart-outline"}
                     size={14}
                     color={item.liked_by_me ? colors.danger : colors.icon}
-                    fill={item.liked_by_me ? colors.danger : "transparent"}
                   />
                   {item.likes_count > 0 && (
                     <Text
@@ -849,13 +850,11 @@ export default function CommentsModal({
                           onPress={() => handleLike(reply.id)}
                           style={styles.likeBtn}
                         >
-                          <Heart
+                          <Ionicons
+                            name={reply.liked_by_me ? "heart" : "heart-outline"}
                             size={14}
                             color={
                               reply.liked_by_me ? colors.danger : colors.icon
-                            }
-                            fill={
-                              reply.liked_by_me ? colors.danger : "transparent"
                             }
                           />
                           {reply.likes_count > 0 && (
@@ -927,7 +926,7 @@ export default function CommentsModal({
           </View>
 
           <TouchableOpacity onPress={handleDismiss} hitSlop={12}>
-            <X size={22} color={colors.text} />
+            <Ionicons name="close-outline" size={22} color={colors.text} />
           </TouchableOpacity>
         </View>
 

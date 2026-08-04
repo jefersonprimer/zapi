@@ -17,6 +17,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { type Attachment } from "./AttachCameraButton";
 
+import { DRAWING_COLORS } from "./ColorModal";
+
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -56,50 +58,7 @@ const TOOL_CONFIG: Record<
   eraser: { label: "Borracha", icon: "eraser", width: 18 },
 };
 
-const COLORS = [
-  // Neutros / Escuros
-  "#000000",
-  "#111827",
-  "#4B5563",
-  "#9CA3AF",
-  "#D1D5DB",
-  "#FFFFFF",
-  // Vermelhos / Rosas
-  "#E11D48",
-  "#EF4444",
-  "#F43F5E",
-  "#FDA4AF",
-  "#F472B6",
-  "#EC4899",
-  // Laranjas / Amarelos
-  "#D97706",
-  "#F59E0B",
-  "#F97316",
-  "#FDBA74",
-  "#EAB308",
-  "#FEF08A",
-  // Verdes
-  "#15803D",
-  "#22C55E",
-  "#4ADE80",
-  "#059669",
-  "#10B981",
-  "#6EE7B7",
-  // Azuis / Cianos
-  "#1D4ED8",
-  "#3B82F6",
-  "#60A5FA",
-  "#0891B2",
-  "#06B6D4",
-  "#67E8F9",
-  // Roxos
-  "#6D28D9",
-  "#8B5CF6",
-  "#C084FC",
-  "#4F46E5",
-  "#6366F1",
-  "#A5B4FC",
-];
+const COLORS = DRAWING_COLORS;
 
 function escapeXml(value: string) {
   return value

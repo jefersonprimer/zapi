@@ -1,7 +1,7 @@
 import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
-import { Plus } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { getFullRemoteUrl } from "@/services/mediaCache";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface MyStoryItemProps {
   avatarUrl: string | null;
@@ -13,7 +13,11 @@ export default function MyStoryItem({ avatarUrl, onPress }: MyStoryItemProps) {
   const avatarUri = avatarUrl ? getFullRemoteUrl(avatarUrl) : null;
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={[styles.ring, { borderColor: colors.tint }]}>
         <Image
           source={
@@ -22,7 +26,12 @@ export default function MyStoryItem({ avatarUrl, onPress }: MyStoryItemProps) {
           style={styles.avatar}
         />
         <View style={[styles.plusBadge, { backgroundColor: colors.tint }]}>
-          <Plus size={14} color="white" strokeWidth={2.5} />
+          <MaterialCommunityIcons
+            name="plus"
+            size={14}
+            color="white"
+            strokeWidth={2.5}
+          />
         </View>
       </View>
       <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>

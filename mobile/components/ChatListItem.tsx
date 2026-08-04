@@ -1,20 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import {
-  Camera,
-  Mic,
-  Video,
-  FileText,
-  Ban,
-  PhoneOutgoing,
-  PhoneIncoming,
-  PhoneMissed,
-  User,
-  BellOff,
-  Pin,
-  StickyNote,
-  MapPin,
-} from "lucide-react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { ChatListItem as ChatListItemType, API_URL } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
 import { resolveLastMessagePreview } from "@/utils/forwardMessage";
@@ -103,7 +89,10 @@ export default function ChatListItem({
       </View>
       <View style={styles.chatInfo}>
         <View style={styles.headerRow}>
-          <Text style={[styles.chatName, { color: colors.text }]} numberOfLines={1}>
+          <Text
+            style={[styles.chatName, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {item.name ??
               item.participant_name ??
               item.participant_username ??
@@ -128,7 +117,10 @@ export default function ChatListItem({
               if (item.is_blocked_by_me) {
                 return (
                   <Text
-                    style={[styles.lastMessage, { color: colors.textSecondary }]}
+                    style={[
+                      styles.lastMessage,
+                      { color: colors.textSecondary },
+                    ]}
                     numberOfLines={1}
                   >
                     Você bloqueou esse contato
@@ -139,7 +131,10 @@ export default function ChatListItem({
               if (!item.last_message) {
                 return (
                   <Text
-                    style={[styles.lastMessage, { color: colors.textSecondary }]}
+                    style={[
+                      styles.lastMessage,
+                      { color: colors.textSecondary },
+                    ]}
                     numberOfLines={1}
                   >
                     Nenhuma mensagem ainda
@@ -167,7 +162,8 @@ export default function ChatListItem({
                 }
                 displayMessage = `Mensagem de voz ${durationStr}`;
                 iconElement = (
-                  <Mic
+                  <Ionicons
+                    name="mic-outline"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}
@@ -176,16 +172,21 @@ export default function ChatListItem({
               } else if (lastMessage === "Photo" || lastMessage === "📷 Foto") {
                 displayMessage = "Foto";
                 iconElement = (
-                  <Camera
+                  <Ionicons
+                    name="camera-outline"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}
                   />
                 );
-              } else if (lastMessage === "Video" || lastMessage === "🎥 Vídeo") {
+              } else if (
+                lastMessage === "Video" ||
+                lastMessage === "🎥 Vídeo"
+              ) {
                 displayMessage = "Vídeo";
                 iconElement = (
-                  <Video
+                  <Ionicons
+                    name="videocam-outline"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}
@@ -209,7 +210,9 @@ export default function ChatListItem({
                 }
 
                 if (rawFileName) {
-                  const match = rawFileName.match(/^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/);
+                  const match = rawFileName.match(
+                    /^[^_]+_[0-9a-fA-F\-]{36}_(.+)$/,
+                  );
                   if (match) {
                     fileName = match[1];
                   } else {
@@ -222,7 +225,8 @@ export default function ChatListItem({
 
                 displayMessage = fileName;
                 iconElement = (
-                  <FileText
+                  <Ionicons
+                    name="document-text-outline"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}
@@ -231,7 +235,8 @@ export default function ChatListItem({
               } else if (lastMessage === "Message deleted") {
                 displayMessage = "Mensagem apagada";
                 iconElement = (
-                  <Ban
+                  <MaterialCommunityIcons
+                    name="ban"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}
@@ -240,7 +245,8 @@ export default function ChatListItem({
               } else if (lastMessage === "Chamada efetuada") {
                 displayMessage = "Chamada efetuada";
                 iconElement = (
-                  <PhoneOutgoing
+                  <MaterialCommunityIcons
+                    name="phone-outgoing"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}
@@ -249,7 +255,8 @@ export default function ChatListItem({
               } else if (lastMessage === "Chamada recebida") {
                 displayMessage = "Chamada recebida";
                 iconElement = (
-                  <PhoneIncoming
+                  <MaterialCommunityIcons
+                    name="phone-incoming"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}
@@ -258,7 +265,8 @@ export default function ChatListItem({
               } else if (lastMessage === "Chamada perdida") {
                 displayMessage = "Chamada perdida";
                 iconElement = (
-                  <PhoneMissed
+                  <MaterialCommunityIcons
+                    name="phone-missed"
                     size={15}
                     color={colors.danger}
                     style={{ marginRight: 4 }}
@@ -279,7 +287,8 @@ export default function ChatListItem({
                   displayMessage = "Localização";
                 }
                 iconElement = (
-                  <MapPin
+                  <Ionicons
+                    name="location-outline"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}
@@ -293,7 +302,8 @@ export default function ChatListItem({
                   displayMessage = "Contato";
                 }
                 iconElement = (
-                  <User
+                  <Ionicons
+                    name="person-outline"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}
@@ -317,13 +327,16 @@ export default function ChatListItem({
                 );
               } else if (
                 lastMessage.startsWith("Nota:") ||
-                item.last_message?.trimStart().startsWith('{"type":"note_share"')
+                item.last_message
+                  ?.trimStart()
+                  .startsWith('{"type":"note_share"')
               ) {
                 displayMessage = lastMessage.startsWith("Nota:")
                   ? lastMessage.slice(5).trimStart()
                   : "Nota";
                 iconElement = (
-                  <StickyNote
+                  <MaterialCommunityIcons
+                    name="note-outline"
                     size={15}
                     color="#F5A623"
                     style={{ marginRight: 4 }}
@@ -365,10 +378,15 @@ export default function ChatListItem({
           </View>
           <View style={styles.rightIconsRow}>
             {isChatMuted(item) && (
-              <BellOff color={colors.textSecondary} size={14} />
+              <Ionicons
+                name="notifications-off-outline"
+                color={colors.textSecondary}
+                size={14}
+              />
             )}
             {item.is_pinned && (
-              <Pin
+              <Ionicons
+                name="pin-outline"
                 color={colors.textSecondary}
                 size={14}
                 style={[styles.pinIcon, { transform: [{ rotate: "45deg" }] }]}
@@ -393,7 +411,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 50,
+    borderRadius: 24,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatar: {
     width: 48,

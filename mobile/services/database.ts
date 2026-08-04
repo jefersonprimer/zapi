@@ -141,9 +141,15 @@ export async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status);
     CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
 
-     -- Indices for attachments lookup optimization
+    -- Indices for attachments lookup optimization
     CREATE INDEX IF NOT EXISTS idx_attachments_message_id ON attachments(message_id);
     CREATE INDEX IF NOT EXISTS idx_attachments_download_status ON attachments(download_status);
+
+    CREATE TABLE IF NOT EXISTS search_history (
+      id TEXT PRIMARY KEY,
+      query TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL
+    );
   `);
 
   try {
@@ -971,3 +977,42 @@ export async function updateMessageReactionLocal(messageId: string, reaction: st
     [reaction, messageId]
   );
 }
+
+export interface SearchHistoryItem {
+  id: string;
+  query: string;
+  created_at: string;
+}
+
+export async function addSearchHistoryLocal(query: string): Promise<void> {
+  const trimmed = query.trim();
+  if (!trimmed) return;
+  const db = await getDatabase();
+  const id = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `INSERT INTO search_history (id, query, created_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(query) DO UPDATE SET created_at = excluded.created_at`,
+    [id, trimmed, now]
+  );
+}
+
+export async function getSearchHistoryLocal(limit = 10): Promise<SearchHistoryItem[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<SearchHistoryItem>(
+    "SELECT * FROM search_history ORDER BY created_at DESC LIMIT ?",
+    [limit]
+  );
+}
+
+export async function removeSearchHistoryLocal(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync("DELETE FROM search_history WHERE id = ?", [id]);
+}
+
+export async function clearSearchHistoryLocal(): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync("DELETE FROM search_history;");
+}
+

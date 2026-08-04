@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
-import { Volume2, Volume1 } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface SpeakerButtonProps {
   isSpeakerEnabled: boolean;
@@ -16,9 +16,9 @@ export default function SpeakerButton({ isSpeakerEnabled, onPress, size = 24 }: 
       style={[styles.button, isSpeakerEnabled ? styles.buttonEnabled : styles.buttonDisabled]}
     >
       {isSpeakerEnabled ? (
-        <Volume2 size={size} color="#ffffff" />
+        <Ionicons name="volume-high" size={size} color="#ffffff" />
       ) : (
-        <Volume1 size={size} color="rgba(255, 255, 255, 0.6)" />
+        <Ionicons name="volume-medium-outline" size={size} color="rgba(255, 255, 255, 0.6)" />
       )}
     </TouchableOpacity>
   );

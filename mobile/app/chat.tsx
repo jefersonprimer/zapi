@@ -43,6 +43,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useChat } from "@/hooks/useChat";
 import { useChatLists } from "@/hooks/useChatLists";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
@@ -328,8 +329,8 @@ export default function ChatScreen() {
               }
               style={styles.headerBackBtn}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
+              <Ionicons
+                name="chevron-back-outline"
                 size={24}
                 color={colors.text}
               />
@@ -499,8 +500,8 @@ export default function ChatScreen() {
                     }
                     style={styles.headerActionBtn}
                   >
-                    <MaterialCommunityIcons
-                      name="video-outline"
+                    <Ionicons
+                      name="videocam-outline"
                       size={24}
                       color={colors.text}
                     />
@@ -517,11 +518,7 @@ export default function ChatScreen() {
                   }
                   style={styles.headerActionBtn}
                 >
-                  <MaterialCommunityIcons
-                    name="phone-outline"
-                    size={24}
-                    color={colors.text}
-                  />
+                  <Ionicons name="call-outline" size={22} color={colors.text} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setMenuVisible(true)}

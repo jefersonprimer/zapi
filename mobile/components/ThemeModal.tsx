@@ -1,5 +1,5 @@
 import { Modal, TouchableOpacity, View, Text, StyleSheet } from "react-native";
-import { Sun, Moon, Laptop, Check } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ThemeModalProps {
@@ -46,7 +46,8 @@ export default function ThemeModal({ visible, onClose }: ThemeModalProps) {
             }}
           >
             <View style={styles.dialogOptionLabel}>
-              <Sun
+              <Ionicons
+                name="sunny-outline"
                 size={20}
                 color={
                   themePreference === "light"
@@ -68,7 +69,7 @@ export default function ThemeModal({ visible, onClose }: ThemeModalProps) {
               </Text>
             </View>
             {themePreference === "light" && (
-              <Check size={18} color={colors.tint} />
+              <Ionicons name="checkmark" size={18} color={colors.tint} />
             )}
           </TouchableOpacity>
 
@@ -80,7 +81,8 @@ export default function ThemeModal({ visible, onClose }: ThemeModalProps) {
             }}
           >
             <View style={styles.dialogOptionLabel}>
-              <Moon
+              <Ionicons
+                name="moon-outline"
                 size={20}
                 color={
                   themePreference === "dark"
@@ -102,7 +104,7 @@ export default function ThemeModal({ visible, onClose }: ThemeModalProps) {
               </Text>
             </View>
             {themePreference === "dark" && (
-              <Check size={18} color={colors.tint} />
+              <Ionicons name="checkmark" size={18} color={colors.tint} />
             )}
           </TouchableOpacity>
 
@@ -114,7 +116,8 @@ export default function ThemeModal({ visible, onClose }: ThemeModalProps) {
             }}
           >
             <View style={styles.dialogOptionLabel}>
-              <Laptop
+              <Ionicons
+                name="desktop-outline"
                 size={20}
                 color={
                   themePreference === "system"
@@ -136,7 +139,7 @@ export default function ThemeModal({ visible, onClose }: ThemeModalProps) {
               </Text>
             </View>
             {themePreference === "system" && (
-              <Check size={18} color={colors.tint} />
+              <Ionicons name="checkmark" size={18} color={colors.tint} />
             )}
           </TouchableOpacity>
 

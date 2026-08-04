@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Image,
 } from "react-native";
-import { MessageSquare, Plus, ArrowLeft } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { communityApi, CommunityPost, CommunityChannel } from "@/services/communityApi";
 
@@ -68,9 +68,9 @@ export function CommunityPostsView({
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <ArrowLeft size={24} color={colors.text} />
+          <Ionicons name="arrow-back-outline" size={24} color={colors.text} />
         </TouchableOpacity>
-        <MessageSquare size={20} color={colors.brandGreen} style={{ marginRight: 6 }} />
+        <Ionicons name="chatbubble-outline" size={20} color={colors.brandGreen} style={{ marginRight: 6 }} />
         <View style={{ flex: 1 }}>
           <Text style={[styles.channelName, { color: colors.text }]} numberOfLines={1}>
             {channel.name}
@@ -83,7 +83,7 @@ export function CommunityPostsView({
           onPress={onCreatePostClick}
           style={[styles.createBtn, { backgroundColor: colors.brandGreen }]}
         >
-          <Plus size={16} color="#fff" />
+          <Ionicons name="add-outline" size={16} color="#fff" />
           <Text style={styles.createBtnText}>Novo Post</Text>
         </TouchableOpacity>
       </View>
@@ -95,7 +95,7 @@ export function CommunityPostsView({
         </View>
       ) : posts.length === 0 ? (
         <View style={styles.center}>
-          <MessageSquare size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
+          <Ionicons name="chatbubble-outline" size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhum post ainda</Text>
           <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>Seja o primeiro a publicar alguma coisa neste fórum!</Text>
           <TouchableOpacity
@@ -141,7 +141,7 @@ export function CommunityPostsView({
 
               <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
                 <View style={styles.footerStat}>
-                  <MessageSquare size={16} color={colors.textSecondary} />
+                  <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
                   <Text style={[styles.footerStatText, { color: colors.textSecondary }]}>
                     {item.comment_count} {item.comment_count === 1 ? "Comentário" : "Comentários"}
                   </Text>

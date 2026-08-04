@@ -8,7 +8,7 @@ import {
   Animated,
   Modal,
 } from "react-native";
-import { GripVertical, Trash2 } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ReorderListsModalProps {
@@ -211,7 +211,7 @@ export default function ReorderListsModal({
                         onPress={() => onDeleteList(item.id)}
                         hitSlop={8}
                       >
-                        <Trash2 size={18} color={colors.danger} />
+                        <Ionicons name="trash-outline" size={18} color={colors.danger} />
                       </TouchableOpacity>
                     ) : null}
 
@@ -226,7 +226,7 @@ export default function ReorderListsModal({
                       }
                       onResponderRelease={handleTouchEnd}
                     >
-                      <GripVertical size={20} color={colors.textSecondary} />
+                      <Ionicons name="reorder-two-outline" size={20} color={colors.textSecondary} />
                     </View>
                   </View>
                 </View>

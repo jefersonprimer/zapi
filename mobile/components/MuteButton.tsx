@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
-import { Mic, MicOff } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface MuteButtonProps {
   isMuted: boolean;
@@ -8,17 +8,24 @@ interface MuteButtonProps {
   size?: number;
 }
 
-export default function MuteButton({ isMuted, onPress, size = 24 }: MuteButtonProps) {
+export default function MuteButton({
+  isMuted,
+  onPress,
+  size = 24,
+}: MuteButtonProps) {
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPress}
-      style={[styles.button, isMuted ? styles.buttonMuted : styles.buttonActive]}
+      style={[
+        styles.button,
+        isMuted ? styles.buttonMuted : styles.buttonActive,
+      ]}
     >
       {isMuted ? (
-        <MicOff size={size} color="#ffffff" />
+        <Ionicons name="mic-off" size={size} color="#ffffff" />
       ) : (
-        <Mic size={size} color="#ffffff" />
+        <Ionicons name="mic" size={size} color="#ffffff" />
       )}
     </TouchableOpacity>
   );

@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { login } from "@/services/api";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -94,7 +95,7 @@ export default function LoginScreen() {
           style={{ padding: 8, marginLeft: 4 }}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="arrow-left" color={textColor} size={24} />
+          <Ionicons name="chevron-back-outline" color={textColor} size={24} />
         </TouchableOpacity>
       </View>
 
@@ -193,9 +194,17 @@ export default function LoginScreen() {
                   activeOpacity={0.7}
                 >
                   {showPassword ? (
-                    <MaterialCommunityIcons name="eye-off-outline" size={18} color={textSecondary} />
+                    <MaterialCommunityIcons
+                      name="eye-off-outline"
+                      size={18}
+                      color={textSecondary}
+                    />
                   ) : (
-                    <MaterialCommunityIcons name="eye-outline" size={18} color={textSecondary} />
+                    <MaterialCommunityIcons
+                      name="eye-outline"
+                      size={18}
+                      color={textSecondary}
+                    />
                   )}
                 </TouchableOpacity>
               </View>

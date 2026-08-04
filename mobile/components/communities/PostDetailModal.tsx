@@ -13,9 +13,13 @@ import {
   Image,
   SafeAreaView,
 } from "react-native";
-import { X, Send, MessageSquare } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
-import { communityApi, CommunityPost, CommunityComment } from "@/services/communityApi";
+import {
+  communityApi,
+  CommunityPost,
+  CommunityComment,
+} from "@/services/communityApi";
+import { Ionicons } from "@expo/vector-icons";
 
 interface PostDetailModalProps {
   visible: boolean;
@@ -25,7 +29,13 @@ interface PostDetailModalProps {
   communityId: string;
 }
 
-export function PostDetailModal({ visible, onClose, post, token, communityId }: PostDetailModalProps) {
+export function PostDetailModal({
+  visible,
+  onClose,
+  post,
+  token,
+  communityId,
+}: PostDetailModalProps) {
   const { colors } = useAppTheme();
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +49,11 @@ export function PostDetailModal({ visible, onClose, post, token, communityId }: 
         .listComments(token, communityId, post.id)
         .then((data) => {
           // Sort comments by created_at ascending
-          const sorted = data.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          const sorted = data.sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime(),
+          );
           setComments(sorted);
         })
         .catch(console.warn)
@@ -55,7 +69,12 @@ export function PostDetailModal({ visible, onClose, post, token, communityId }: 
     const content = commentText;
     setCommentText("");
     try {
-      const newComment = await communityApi.createComment(token, communityId, post.id, content);
+      const newComment = await communityApi.createComment(
+        token,
+        communityId,
+        post.id,
+        content,
+      );
       setComments((prev) => [...prev, newComment]);
       // Update post comment count locally
       post.comment_count += 1;
@@ -69,22 +88,45 @@ export function PostDetailModal({ visible, onClose, post, token, communityId }: 
   const formatDate = (isoString: string) => {
     try {
       const d = new Date(isoString);
-      return d.toLocaleDateString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+      return d.toLocaleDateString([], {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     } catch {
       return "";
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+        <View
+          style={[
+            styles.header,
+            {
+              borderBottomColor: colors.border,
+              backgroundColor: colors.surface,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             Post de {post.author_username}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <X size={24} color={colors.text} />
+            <Ionicons name="close-outline" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
 
@@ -94,26 +136,61 @@ export function PostDetailModal({ visible, onClose, post, token, communityId }: 
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 24 }}
           ListHeaderComponent={
-            <View style={[styles.postDetail, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+            <View
+              style={[
+                styles.postDetail,
+                {
+                  backgroundColor: colors.surface,
+                  borderBottomColor: colors.border,
+                },
+              ]}
+            >
               <View style={styles.authorRow}>
-                <View style={[styles.avatar, { backgroundColor: colors.background }]}>
+                <View
+                  style={[
+                    styles.avatar,
+                    { backgroundColor: colors.background },
+                  ]}
+                >
                   {post.author_avatar_url ? (
-                    <Image source={{ uri: post.author_avatar_url }} style={styles.avatarImg} />
+                    <Image
+                      source={{ uri: post.author_avatar_url }}
+                      style={styles.avatarImg}
+                    />
                   ) : (
-                    <Text style={[styles.avatarText, { color: colors.textSecondary }]}>
-                      {(post.author_username || "U").substring(0, 1).toUpperCase()}
+                    <Text
+                      style={[
+                        styles.avatarText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {(post.author_username || "U")
+                        .substring(0, 1)
+                        .toUpperCase()}
                     </Text>
                   )}
                 </View>
                 <View>
-                  <Text style={[styles.authorName, { color: colors.text }]}>{post.author_username || "Membro"}</Text>
-                  <Text style={[styles.postDate, { color: colors.textSecondary }]}>{formatDate(post.created_at)}</Text>
+                  <Text style={[styles.authorName, { color: colors.text }]}>
+                    {post.author_username || "Membro"}
+                  </Text>
+                  <Text
+                    style={[styles.postDate, { color: colors.textSecondary }]}
+                  >
+                    {formatDate(post.created_at)}
+                  </Text>
                 </View>
               </View>
-              <Text style={[styles.postTitle, { color: colors.text }]}>{post.title}</Text>
-              <Text style={[styles.postContent, { color: colors.text }]}>{post.content}</Text>
+              <Text style={[styles.postTitle, { color: colors.text }]}>
+                {post.title}
+              </Text>
+              <Text style={[styles.postContent, { color: colors.text }]}>
+                {post.content}
+              </Text>
 
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <View
+                style={[styles.divider, { backgroundColor: colors.border }]}
+              />
               <Text style={[styles.commentsHeader, { color: colors.text }]}>
                 Respostas ({comments.length})
               </Text>
@@ -126,53 +203,111 @@ export function PostDetailModal({ visible, onClose, post, token, communityId }: 
               </View>
             ) : (
               <View style={styles.center}>
-                <MessageSquare size={36} color={colors.textSecondary} style={{ marginBottom: 8 }} />
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Nenhum comentário ainda.</Text>
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={36}
+                  color={colors.textSecondary}
+                  style={{ marginBottom: 8 }}
+                />
+                <Text
+                  style={[styles.emptyText, { color: colors.textSecondary }]}
+                >
+                  Nenhum comentário ainda.
+                </Text>
               </View>
             )
           }
           renderItem={({ item }) => (
-            <View style={[styles.commentRow, { borderBottomColor: colors.border }]}>
-              <View style={[styles.avatarMini, { backgroundColor: colors.border }]}>
+            <View
+              style={[styles.commentRow, { borderBottomColor: colors.border }]}
+            >
+              <View
+                style={[styles.avatarMini, { backgroundColor: colors.border }]}
+              >
                 {item.author_avatar_url ? (
-                  <Image source={{ uri: item.author_avatar_url }} style={styles.avatarImgMini} />
+                  <Image
+                    source={{ uri: item.author_avatar_url }}
+                    style={styles.avatarImgMini}
+                  />
                 ) : (
-                  <Text style={[styles.avatarTextMini, { color: colors.textSecondary }]}>
-                    {(item.author_username || "U").substring(0, 1).toUpperCase()}
+                  <Text
+                    style={[
+                      styles.avatarTextMini,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {(item.author_username || "U")
+                      .substring(0, 1)
+                      .toUpperCase()}
                   </Text>
                 )}
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.commentMeta}>
-                  <Text style={[styles.commentAuthor, { color: colors.text }]}>{item.author_username || "Membro"}</Text>
-                  <Text style={[styles.commentTime, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
+                  <Text style={[styles.commentAuthor, { color: colors.text }]}>
+                    {item.author_username || "Membro"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.commentTime,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {formatDate(item.created_at)}
+                  </Text>
                 </View>
-                <Text style={[styles.commentText, { color: colors.text }]}>{item.content}</Text>
+                <Text style={[styles.commentText, { color: colors.text }]}>
+                  {item.content}
+                </Text>
               </View>
             </View>
           )}
         />
 
         {/* Comment Input */}
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View
+            style={[
+              styles.inputContainer,
+              {
+                backgroundColor: colors.surface,
+                borderTopColor: colors.border,
+              },
+            ]}
+          >
             <TextInput
               value={commentText}
               onChangeText={setCommentText}
               placeholder="Escreva um comentário..."
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
               multiline
             />
             <TouchableOpacity
               onPress={handleSendComment}
               disabled={!commentText.trim() || sending}
-              style={[styles.sendBtn, { backgroundColor: commentText.trim() ? colors.brandGreen : colors.border }]}
+              style={[
+                styles.sendBtn,
+                {
+                  backgroundColor: commentText.trim()
+                    ? colors.brandGreen
+                    : colors.border,
+                },
+              ]}
             >
               {sending ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Send size={18} color="#fff" />
+                <Ionicons name="send-outline" size={18} color="#fff" />
               )}
             </TouchableOpacity>
           </View>

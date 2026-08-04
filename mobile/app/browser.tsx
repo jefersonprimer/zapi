@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useBrowserStore } from "@/store/useBrowserStore";
 import { getAdblockScript } from "@/utils/adblockScript";
@@ -254,8 +254,8 @@ export default function BrowserScreen() {
           onPress={() => router.back()}
           style={[styles.headerButton, { backgroundColor: inputBackground }]}
         >
-          <MaterialCommunityIcons
-            name="chevron-left"
+          <Ionicons
+            name="chevron-back-outline"
             size={24}
             color={isIncognito ? "#FFFFFF" : colors.text}
           />
@@ -268,7 +268,12 @@ export default function BrowserScreen() {
           ]}
         >
           {isIncognito && (
-            <MaterialCommunityIcons name="eye-off" size={14} color="#A5B4FC" style={{ marginRight: 6 }} />
+            <MaterialCommunityIcons
+              name="eye-off"
+              size={14}
+              color="#A5B4FC"
+              style={{ marginRight: 6 }}
+            />
           )}
           <TextInput
             style={[styles.addressInput, { color: inputTextColor }]}
@@ -426,7 +431,9 @@ export default function BrowserScreen() {
         zoom={activeTab.zoom || 100}
         onZoomIn={() => {
           const currentZoom = activeTab.zoom || 100;
-          updateTabState(activeTabId, { zoom: Math.min(currentZoom + 10, 200) });
+          updateTabState(activeTabId, {
+            zoom: Math.min(currentZoom + 10, 200),
+          });
         }}
         onZoomOut={() => {
           const currentZoom = activeTab.zoom || 100;

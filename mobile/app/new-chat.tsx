@@ -18,7 +18,7 @@ import { createChat, searchUsers, type UserSearchResult } from "@/services/api";
 import { UserContactCard } from "@/components/UserContactCard";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function NewChatScreen() {
   const router = useRouter();
@@ -116,8 +116,8 @@ export default function NewChatScreen() {
               onPress={() => router.back()}
               style={styles.backBtn}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
+              <Ionicons
+                name="chevron-back-outline"
                 size={24}
                 color={colors.text}
               />

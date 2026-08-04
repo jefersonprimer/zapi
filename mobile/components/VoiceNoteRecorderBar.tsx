@@ -8,13 +8,7 @@ import {
   LayoutAnimation,
   UIManager,
 } from "react-native";
-import {
-  Trash2 as TrashIcon,
-  Pause as PauseIcon,
-  Play as PlayIcon,
-  Square as SquareIcon,
-  SendHorizonal,
-} from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -157,7 +151,7 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
             style={[styles.stopBtn, { backgroundColor: colors.danger }]}
             onPress={onStopAndPreview}
           >
-            <SquareIcon size={18} color="#fff" fill="#fff" />
+            <Ionicons name="stop" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -179,7 +173,7 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
         ]}
         onPress={onStopRecording}
       >
-        <TrashIcon size={20} color="#EF4444" />
+        <Ionicons name="trash-outline" size={20} color="#EF4444" />
       </TouchableOpacity>
 
       {/* Main controls container */}
@@ -207,12 +201,12 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
             }
           >
             {status.playing ? (
-              <PauseIcon size={16} color="#fff" fill="#fff" />
+              <Ionicons name="pause" size={16} color="#fff" />
             ) : (
-              <PlayIcon
+              <Ionicons
+                name="play"
                 size={16}
                 color="#fff"
-                fill="#fff"
                 style={{ marginLeft: 1 }}
               />
             )}
@@ -267,7 +261,7 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
             style={[styles.sendBtn, { backgroundColor: "#34C759" }]}
             onPress={onSendAudio}
           >
-            <SendHorizonal size={20} color="#fff" style={{ marginLeft: 1 }} />
+            <Ionicons name="send" size={18} color="#fff" style={{ marginLeft: 1 }} />
           </TouchableOpacity>
         </View>
       </View>

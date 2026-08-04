@@ -25,6 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { uploadFile } from "@/services/api";
 import * as updatesApi from "@/services/updatesApi";
+import { Ionicons } from "@expo/vector-icons";
 
 const MAX_ATTACHMENTS = 4;
 
@@ -289,7 +290,7 @@ export default function CreatePostScreen() {
         ]}
       >
         <TouchableOpacity onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+          <Ionicons name="chevron-back-outline" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }} />
         <TouchableOpacity onPress={handleSend} disabled={sending || !canSend}>
@@ -325,7 +326,11 @@ export default function CreatePostScreen() {
                 <Image source={{ uri: item.uri }} style={styles.mediaImage} />
                 {item.type === "video" && (
                   <View style={styles.videoBadge}>
-                    <MaterialCommunityIcons name="video" size={14} color="white" />
+                    <MaterialCommunityIcons
+                      name="video"
+                      size={14}
+                      color="white"
+                    />
                   </View>
                 )}
                 <TouchableOpacity
@@ -333,7 +338,11 @@ export default function CreatePostScreen() {
                   onPress={() => removeMedia(index)}
                   hitSlop={8}
                 >
-                  <MaterialCommunityIcons name="close" size={14} color="white" />
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={14}
+                    color="white"
+                  />
                 </TouchableOpacity>
               </View>
             ))}
@@ -349,7 +358,11 @@ export default function CreatePostScreen() {
             onPress={openGallery}
             disabled={media.length >= MAX_ATTACHMENTS}
           >
-            <MaterialCommunityIcons name="image-outline" size={20} color={colors.icon} />
+            <MaterialCommunityIcons
+              name="image-outline"
+              size={20}
+              color={colors.icon}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -359,7 +372,11 @@ export default function CreatePostScreen() {
             onPress={handleSelectMediaOption}
             disabled={media.length >= MAX_ATTACHMENTS}
           >
-            <MaterialCommunityIcons name="camera" size={20} color={colors.icon} />
+            <MaterialCommunityIcons
+              name="camera"
+              size={20}
+              color={colors.icon}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -371,7 +388,11 @@ export default function CreatePostScreen() {
             ]}
             onPress={() => setIsPoll(!isPoll)}
           >
-            <MaterialCommunityIcons name="chart-bar" size={20} color={isPoll ? "white" : colors.icon} />
+            <MaterialCommunityIcons
+              name="chart-bar"
+              size={20}
+              color={isPoll ? "white" : colors.icon}
+            />
           </TouchableOpacity>
         </View>
 
@@ -456,7 +477,12 @@ export default function CreatePostScreen() {
               openCamera();
             }}
           >
-            <MaterialCommunityIcons name="camera" size={20} color={colors.text} style={styles.optionIcon} />
+            <MaterialCommunityIcons
+              name="camera"
+              size={20}
+              color={colors.text}
+              style={styles.optionIcon}
+            />
             <Text style={[styles.optionText, { color: colors.text }]}>
               Câmera
             </Text>
@@ -501,7 +527,12 @@ export default function CreatePostScreen() {
               })();
             }}
           >
-            <MaterialCommunityIcons name="video" size={20} color={colors.text} style={styles.optionIcon} />
+            <MaterialCommunityIcons
+              name="video"
+              size={20}
+              color={colors.text}
+              style={styles.optionIcon}
+            />
             <Text style={[styles.optionText, { color: colors.text }]}>
               Vídeo
             </Text>

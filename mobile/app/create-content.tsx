@@ -1,14 +1,10 @@
 import { useCallback } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const OPTIONS = [
   {
@@ -54,10 +50,15 @@ export default function CreateContentScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, paddingTop: insets.top },
+      ]}
+    >
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+          <Ionicons name="chevron-back-outline" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           Criar conteúdo
@@ -73,18 +74,40 @@ export default function CreateContentScreen() {
         {OPTIONS.map((option) => (
           <TouchableOpacity
             key={option.label}
-            style={[styles.option, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[
+              styles.option,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
             activeOpacity={0.7}
-            onPress={() => handleOptionPress(option.route, option.params as Record<string, unknown> | undefined)}
+            onPress={() =>
+              handleOptionPress(
+                option.route,
+                option.params as Record<string, unknown> | undefined,
+              )
+            }
           >
-            <View style={[styles.iconContainer, { backgroundColor: option.color + "18" }]}>
-              <MaterialCommunityIcons name={option.icon} size={28} color={option.color} />
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: option.color + "18" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name={option.icon}
+                size={28}
+                color={option.color}
+              />
             </View>
             <View style={styles.optionText}>
               <Text style={[styles.optionLabel, { color: colors.text }]}>
                 {option.label}
               </Text>
-              <Text style={[styles.optionDescription, { color: colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.optionDescription,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 {option.description}
               </Text>
             </View>
@@ -105,11 +128,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "500",
   },
   content: {
     flex: 1,

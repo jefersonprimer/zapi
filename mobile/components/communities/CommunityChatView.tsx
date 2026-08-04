@@ -12,7 +12,7 @@ import {
   RefreshControl,
   Image,
 } from "react-native";
-import { Send, ArrowLeft, Hash } from "lucide-react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { communityApi, CommunityMessage, CommunityChannel } from "@/services/communityApi";
 
@@ -84,9 +84,9 @@ export function CommunityChatView({ token, communityId, channel, onBack, current
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <ArrowLeft size={24} color={colors.text} />
+          <Ionicons name="arrow-back-outline" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Hash size={20} color={colors.brandGreen} style={{ marginRight: 6 }} />
+        <MaterialCommunityIcons name="pound" size={20} color={colors.brandGreen} style={{ marginRight: 6 }} />
         <View style={{ flex: 1 }}>
           <Text style={[styles.channelName, { color: colors.text }]} numberOfLines={1}>
             {channel.name}
@@ -177,7 +177,7 @@ export function CommunityChatView({ token, communityId, channel, onBack, current
             {sending ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Send size={18} color="#fff" />
+              <Ionicons name="send-outline" size={18} color="#fff" />
             )}
           </TouchableOpacity>
         </View>

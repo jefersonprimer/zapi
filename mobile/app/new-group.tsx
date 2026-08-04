@@ -23,6 +23,7 @@ import { UserContactCard } from "@/components/UserContactCard";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Ionicons } from "@expo/vector-icons";
 
 // Helper to get consistent background color for avatars based on user's name
 function getAvatarColor(name: string) {
@@ -191,8 +192,8 @@ export default function NewGroupScreen() {
               onPress={() => router.back()}
               style={styles.backBtn}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
+              <Ionicons
+                name="chevron-back-outline"
                 size={24}
                 color={colors.text}
               />

@@ -13,24 +13,17 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { EmojiKeyboard } from "rn-emoji-keyboard";
-import { Smile, Keyboard as KeyboardIcon, X } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
+import ColorModal, { DRAWING_COLORS } from "./ColorModal";
 
 const SCREEN = Dimensions.get("screen");
 const SCREEN_HEIGHT = SCREEN.height;
 const SCREEN_WIDTH = SCREEN.width;
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.9;
-const SHEET_TOP = SCREEN_HEIGHT * 0.1;
 const EMOJI_SHEET_HEIGHT = 400;
 
-const COLOR_OPTIONS = [
-  { emoji: "🔴", hex: "#ef4444" },
-  { emoji: "🟠", hex: "#f97316" },
-  { emoji: "🟡", hex: "#eab308" },
-  { emoji: "🟢", hex: "#22c55e" },
-  { emoji: "🔵", hex: "#3b82f6" },
-  { emoji: "🟣", hex: "#a855f7" },
-];
+const DEFAULT_COLOR = DRAWING_COLORS[6]; // #E11D48
 
 interface CreateListModalProps {
   visible: boolean;
@@ -48,33 +41,41 @@ export default function CreateListModal({
   onSubmit,
   mode = "create",
   initialName = "",
-  initialColor = COLOR_OPTIONS[0].emoji,
+  initialColor = DEFAULT_COLOR,
   initialIcon = "",
 }: CreateListModalProps) {
   const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const [name, setName] = useState("");
-  const [color, setColor] = useState(COLOR_OPTIONS[0].emoji);
+  const [color, setColor] = useState(DEFAULT_COLOR);
   const [icon, setIcon] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showColorModal, setShowColorModal] = useState(false);
 
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const emojiSheetAnim = useRef(new Animated.Value(0)).current;
 
+  const [isFocused, setIsFocused] = useState(false);
+
   const isEditMode = mode === "edit";
+  const sheetTopInset = Math.max(insets.top, 12);
+  const sheetBottomInset = Math.max(insets.bottom, 24);
+  const sheetHeight = SCREEN_HEIGHT - sheetTopInset;
 
   const resetForm = useCallback(() => {
     if (isEditMode) {
       setName(initialName);
-      setColor(initialColor || COLOR_OPTIONS[0].emoji);
+      setColor(initialColor || DEFAULT_COLOR);
       setIcon(initialIcon);
     } else {
       setName("");
-      setColor(COLOR_OPTIONS[0].emoji);
+      setColor(DEFAULT_COLOR);
       setIcon("");
     }
     setShowEmojiPicker(false);
+    setShowColorModal(false);
   }, [isEditMode, initialName, initialColor, initialIcon]);
 
   const openSheet = useCallback(() => {
@@ -204,36 +205,75 @@ export default function CreateListModal({
             styles.sheet,
             {
               backgroundColor: isDark
-                ? "rgba(30, 30, 30, 0.95)"
-                : "rgba(255, 255, 255, 0.95)",
+                ? "rgba(30, 30, 30, 0.98)"
+                : "rgba(255, 255, 255, 0.98)",
+              top: sheetTopInset,
+              height: sheetHeight,
+              paddingBottom: sheetBottomInset,
               transform: [{ translateY: sheetAnim }],
             },
           ]}
         >
           <View style={styles.handle} />
-          <Text style={[styles.title, { color: colors.text }]}>
-            {isEditMode ? "Editar Tag" : "Nova Tag"}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() => closeSheet()}
+              style={[styles.headerButton, { borderColor: colors.border }]}
+            >
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {isEditMode ? "Editar Tag" : "Nova Tag"}
+            </Text>
+            <TouchableOpacity
+              onPress={handleSubmit}
+              style={[
+                styles.headerButton,
+                { backgroundColor: "#34C759", borderColor: "#34C759" },
+              ]}
+            >
+              <Ionicons name="checkmark" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+
+          <Text
+            style={{
+              color: colors.textSecondary,
+              marginBottom: 8,
+              fontSize: 14,
+              fontWeight: "400",
+            }}
+          >
+            Nome da Tag
           </Text>
 
           <View style={styles.inputRow}>
             <View
-              style={[styles.inputWithIcon, { borderBottomColor: colors.tint }]}
+              style={[
+                styles.inputWithIcon,
+                {
+                  borderColor: isFocused ? colors.brandGreen : colors.border,
+                  borderWidth: isFocused ? 2 : 1.5,
+                },
+              ]}
             >
               {icon ? <Text style={styles.selectedIcon}>{icon}</Text> : null}
               <TextInput
                 ref={inputRef}
-                placeholder="Nome da tag"
+                placeholder="Trabalho, Faculdade"
                 placeholderTextColor={colors.textSecondary}
                 style={[styles.nameInput, { color: colors.text }]}
                 value={name}
                 onChangeText={setName}
                 autoFocus
                 onFocus={() => {
+                  setIsFocused(true);
                   if (showEmojiPicker) {
                     emojiSheetAnim.setValue(SCREEN_HEIGHT);
                     setShowEmojiPicker(false);
                   }
                 }}
+                onBlur={() => setIsFocused(false)}
               />
             </View>
             <TouchableOpacity
@@ -243,14 +283,27 @@ export default function CreateListModal({
               }
             >
               {showEmojiPicker ? (
-                <KeyboardIcon size={22} color={colors.text} />
+                <Ionicons name="keyboard-outline" size={24} color={colors.text} />
               ) : icon ? (
                 <Text style={styles.emojiButtonIcon}>{icon}</Text>
               ) : (
-                <Smile size={22} color={colors.textSecondary} />
+                <Ionicons name="happy-outline" size={22} color={colors.textSecondary} />
               )}
             </TouchableOpacity>
           </View>
+
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: 12,
+              marginTop: -12,
+              marginBottom: 20,
+              lineHeight: 16,
+            }}
+          >
+            As tags que você cria ficarão na parte de cima da aba de contatos na
+            tela inicial.
+          </Text>
 
           <Text
             style={{
@@ -261,58 +314,49 @@ export default function CreateListModal({
           >
             Cor
           </Text>
-          <View
+          <TouchableOpacity
+            activeOpacity={0.8}
             style={{
               flexDirection: "row",
-              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              padding: 12,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
               marginBottom: 20,
             }}
+            onPress={() => setShowColorModal(true)}
           >
-            {COLOR_OPTIONS.map((c) => (
-              <TouchableOpacity
-                key={c.hex}
-                style={[
-                  { padding: 8, borderRadius: 20 },
-                  color === c.emoji && { backgroundColor: colors.border },
-                ]}
-                onPress={() => setColor(c.emoji)}
-              >
-                <View
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 12,
-                    backgroundColor: c.hex,
-                  }}
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: color,
+                borderWidth: color.toUpperCase() === "#FFFFFF" ? 1 : 0,
+                borderColor: colors.border,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            />
+            <Text style={{ flex: 1, fontSize: 15, color: colors.text }}>
+              {color}
+            </Text>
+            <Ionicons
+              name="color-palette-outline"
+              size={22}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
 
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "flex-end",
-              gap: 12,
-            }}
-          >
-            <TouchableOpacity onPress={() => closeSheet()}>
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  fontSize: 16,
-                  padding: 8,
-                }}
-              >
-                Cancelar
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleSubmit}>
-              <Text style={{ color: colors.tint, fontSize: 16, padding: 8 }}>
-                {isEditMode ? "Salvar" : "Criar"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <ColorModal
+            visible={showColorModal}
+            selectedColor={color}
+            onSelectColor={(selectedHex) => setColor(selectedHex)}
+            onClose={() => setShowColorModal(false)}
+          />
         </Animated.View>
 
         {/* Emoji picker overlay — replaces keyboard without resizing the sheet */}
@@ -324,6 +368,7 @@ export default function CreateListModal({
                 backgroundColor: isDark
                   ? "rgba(30, 30, 30, 0.95)"
                   : "rgba(255, 255, 255, 0.95)",
+                paddingBottom: sheetBottomInset,
                 transform: [{ translateY: emojiSheetAnim }],
               },
             ]}
@@ -331,7 +376,7 @@ export default function CreateListModal({
             <View style={styles.handle} />
             <View style={styles.emojiHeader}>
               <TouchableOpacity onPress={() => closeEmojiPicker()}>
-                <X size={22} color={colors.text} />
+                <Ionicons name="close-outline" size={22} color={colors.text} />
               </TouchableOpacity>
               <Text
                 style={[styles.title, { color: colors.text, marginBottom: 0 }]}
@@ -409,18 +454,15 @@ const styles = StyleSheet.create({
     left: 0,
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.7)",
   },
   sheet: {
     position: "absolute",
     left: 0,
     right: 0,
-    top: SHEET_TOP,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
-    paddingBottom: 40,
-    height: SHEET_HEIGHT,
   },
   emojiSheet: {
     position: "absolute",
@@ -441,11 +483,24 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 16,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   title: {
     fontSize: 20,
     fontWeight: "500",
     textAlign: "center",
-    marginBottom: 16,
   },
   inputRow: {
     flexDirection: "row",
@@ -457,7 +512,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 1,
+    borderWidth: 1.5,
+    borderRadius: 8,
+    paddingHorizontal: 12,
     gap: 8,
   },
   selectedIcon: {

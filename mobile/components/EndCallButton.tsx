@@ -1,20 +1,23 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
-import { PhoneOff } from "lucide-react-native";
 
 interface EndCallButtonProps {
   onPress: () => void;
   size?: number;
 }
 
-export default function EndCallButton({ onPress, size = 26 }: EndCallButtonProps) {
+export default function EndCallButton({
+  onPress,
+  size = 26,
+}: EndCallButtonProps) {
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPress}
       style={styles.button}
     >
-      <PhoneOff size={size} color="#ffffff" />
+      <Feather name="phone-off" size={size} color="#ffffff" />
     </TouchableOpacity>
   );
 }

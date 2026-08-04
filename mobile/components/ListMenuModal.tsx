@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Animated,
 } from "react-native";
-import { Bell, Pencil, GripVertical, Trash2 } from "lucide-react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ListMenuModalProps {
@@ -128,7 +128,7 @@ export default function ListMenuModal({
           onPress={() => handleClose(onMuteChats)}
         >
           <View style={styles.dialogOptionLabel}>
-            <Bell size={20} color={colors.textSecondary} />
+            <Ionicons name="notifications-outline" size={20} color={colors.textSecondary} />
             <Text style={[styles.dialogOptionText, { color: colors.text }]}>
               Silenciar conversas
             </Text>
@@ -141,7 +141,7 @@ export default function ListMenuModal({
             onPress={() => handleClose(onEditList)}
           >
             <View style={styles.dialogOptionLabel}>
-              <Pencil size={20} color={colors.textSecondary} />
+              <Ionicons name="pencil-outline" size={20} color={colors.textSecondary} />
               <Text style={[styles.dialogOptionText, { color: colors.text }]}>
                 Editar lista
               </Text>
@@ -154,7 +154,7 @@ export default function ListMenuModal({
           onPress={() => handleClose(onReorderLists)}
         >
           <View style={styles.dialogOptionLabel}>
-            <GripVertical size={20} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="drag-vertical" size={20} color={colors.textSecondary} />
             <Text style={[styles.dialogOptionText, { color: colors.text }]}>
               Reorganizar listas
             </Text>
@@ -174,7 +174,7 @@ export default function ListMenuModal({
               onPress={() => handleClose(onDeleteList)}
             >
               <View style={styles.dialogOptionLabel}>
-                <Trash2 size={20} color={colors.danger} />
+                <Ionicons name="trash-outline" size={20} color={colors.danger} />
                 <Text
                   style={[styles.dialogOptionText, { color: colors.danger }]}
                 >

@@ -12,7 +12,6 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, Trash2 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +22,7 @@ import {
   deleteNote,
   type Note,
 } from "@/services/notesApi";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function NoteEditorScreen() {
   const router = useRouter();
@@ -130,7 +130,11 @@ export default function NoteEditorScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <ArrowLeft size={24} color={colors.headerText} />
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.headerText }]}>
             {noteId ? "Editar nota" : "Nova nota"}
@@ -142,7 +146,11 @@ export default function NoteEditorScreen() {
                 style={styles.headerBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Trash2 size={20} color={colors.headerText} />
+                <Ionicons
+                  name="trash-outline"
+                  size={20}
+                  color={colors.headerText}
+                />
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -154,8 +162,15 @@ export default function NoteEditorScreen() {
               {saving ? (
                 <ActivityIndicator size="small" color={colors.tint} />
               ) : (
-                <Text style={[styles.saveText, { color: colors.tint }]}>
-                  Salvar
+                <Text
+                  style={[
+                    styles.saveText,
+                    { color: colors.tint },
+
+                    { backgroundColor: "#34C759", borderColor: "#34C759" },
+                  ]}
+                >
+                  <Ionicons name="checkmark" size={24} color="#ffffff" />
                 </Text>
               )}
             </TouchableOpacity>
@@ -232,6 +247,8 @@ const styles = StyleSheet.create({
   saveText: {
     fontSize: 16,
     fontWeight: "600",
+    borderRadius: 50,
+    padding: 1,
   },
   editor: {
     flex: 1,

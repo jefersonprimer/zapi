@@ -19,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { uploadFile } from "@/services/api";
 import * as updatesApi from "@/services/updatesApi";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -60,21 +61,15 @@ export default function CreateStoryScreen() {
 
   const applyAsset = useCallback((asset: ImagePicker.ImagePickerAsset) => {
     const isVideo =
-      asset.type === "video" ||
-      asset.mimeType?.startsWith("video/") === true;
+      asset.type === "video" || asset.mimeType?.startsWith("video/") === true;
     setMedia({
       uri: asset.uri,
       type: isVideo ? "video" : "image",
-      mimeType:
-        asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg"),
-      name: isVideo
-        ? `story_${Date.now()}.mp4`
-        : `story_${Date.now()}.jpg`,
+      mimeType: asset.mimeType || (isVideo ? "video/mp4" : "image/jpeg"),
+      name: isVideo ? `story_${Date.now()}.mp4` : `story_${Date.now()}.jpg`,
       width: asset.width,
       height: asset.height,
-      duration: asset.duration
-        ? Math.round(asset.duration / 1000)
-        : undefined,
+      duration: asset.duration ? Math.round(asset.duration / 1000) : undefined,
       size: asset.fileSize,
     });
     setMode("media");
@@ -98,9 +93,7 @@ export default function CreateStoryScreen() {
             mimeType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
             name:
               file.name ||
-              (isVideo
-                ? `story_${Date.now()}.mp4`
-                : `story_${Date.now()}.jpg`),
+              (isVideo ? `story_${Date.now()}.mp4` : `story_${Date.now()}.jpg`),
             size: file.size,
           });
           setMode("media");
@@ -113,7 +106,7 @@ export default function CreateStoryScreen() {
       if (status !== "granted") {
         Alert.alert(
           "Permissão necessária",
-          "Precisamos de acesso à câmera para tirar foto ou gravar vídeo."
+          "Precisamos de acesso à câmera para tirar foto ou gravar vídeo.",
         );
         return;
       }
@@ -138,7 +131,7 @@ export default function CreateStoryScreen() {
           { text: "Gravar Vídeo", onPress: () => launch("videos") },
           { text: "Cancelar", style: "cancel" },
         ],
-        { cancelable: true }
+        { cancelable: true },
       );
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível abrir a câmera.");
@@ -152,7 +145,7 @@ export default function CreateStoryScreen() {
       if (status !== "granted") {
         Alert.alert(
           "Permissão necessária",
-          "Precisamos de acesso à galeria para escolher foto ou vídeo."
+          "Precisamos de acesso à galeria para escolher foto ou vídeo.",
         );
         return;
       }
@@ -206,7 +199,7 @@ export default function CreateStoryScreen() {
           token,
           media.uri,
           media.name,
-          media.mimeType
+          media.mimeType,
         );
         attachments.push({
           url: uploaded.url,
@@ -242,7 +235,7 @@ export default function CreateStoryScreen() {
           style={styles.headerBtn}
         >
           {mode === "choose" ? (
-            <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
+            <Ionicons name="chevron-back-outline" size={24} color="white" />
           ) : (
             <MaterialCommunityIcons name="close" size={24} color="white" />
           )}
@@ -260,7 +253,11 @@ export default function CreateStoryScreen() {
             {sending ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <MaterialCommunityIcons name="send" size={22} color={canPublish ? colors.tint : "#666"} />
+              <MaterialCommunityIcons
+                name="send"
+                size={22}
+                color={canPublish ? colors.tint : "#666"}
+              />
             )}
           </TouchableOpacity>
         ) : (
@@ -292,7 +289,11 @@ export default function CreateStoryScreen() {
             onPress={openGallery}
             activeOpacity={0.85}
           >
-            <MaterialCommunityIcons name="image-outline" size={28} color="white" />
+            <MaterialCommunityIcons
+              name="image-outline"
+              size={28}
+              color="white"
+            />
             <View style={styles.optionTextWrap}>
               <Text style={styles.optionTitle}>Galeria</Text>
               <Text style={styles.optionDesc}>Escolher foto ou vídeo</Text>
@@ -304,7 +305,11 @@ export default function CreateStoryScreen() {
             onPress={startText}
             activeOpacity={0.85}
           >
-            <MaterialCommunityIcons name="format-text" size={28} color="white" />
+            <MaterialCommunityIcons
+              name="format-text"
+              size={28}
+              color="white"
+            />
             <View style={styles.optionTextWrap}>
               <Text style={styles.optionTitle}>Texto</Text>
               <Text style={styles.optionDesc}>Status com cor de fundo</Text>
@@ -400,8 +405,8 @@ const styles = StyleSheet.create({
   headerBtnDisabled: { opacity: 0.5 },
   headerTitle: {
     color: "white",
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "500",
   },
   chooseBody: {
     flex: 1,

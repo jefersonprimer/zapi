@@ -1,8 +1,9 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { BellOff } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { ChatListItem as ChatListItemType, API_URL } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
+import { resolveLastMessagePreview } from "@/utils/forwardMessage";
 
 interface ChatListItemPinnedProps {
   item: ChatListItemType;
@@ -100,10 +101,103 @@ export default function ChatListItemPinned({
                 { backgroundColor: colors.background },
               ]}
             >
-              <BellOff color={colors.textSecondary} size={10} />
+              <Ionicons
+                name="notifications-off-outline"
+                color={colors.textSecondary}
+                size={10}
+              />
             </View>
           )}
         </View>
+
+        {/* Last message bubble */}
+        {(() => {
+          let displayMessage = "";
+          if (item.is_blocked_by_me) {
+            displayMessage = "Bloqueado";
+          } else if (!item.last_message) {
+            displayMessage = "";
+          } else {
+            const lastMessage = resolveLastMessagePreview(item.last_message);
+            if (
+              lastMessage.startsWith("Audio") ||
+              lastMessage.startsWith("🎵 Áudio")
+            ) {
+              displayMessage = "🎙️ Áudio";
+            } else if (lastMessage === "Photo" || lastMessage === "📷 Foto") {
+              displayMessage = "📷 Foto";
+            } else if (lastMessage === "Video" || lastMessage === "🎥 Vídeo") {
+              displayMessage = "🎥 Vídeo";
+            } else if (
+              lastMessage === "File" ||
+              lastMessage.startsWith("File|") ||
+              lastMessage === "📁 Arquivo" ||
+              lastMessage.startsWith("📁 Arquivo|") ||
+              lastMessage.startsWith("Arquivo|")
+            ) {
+              displayMessage = "📁 Doc";
+            } else if (lastMessage === "Message deleted") {
+              displayMessage = "🚫 Apagada";
+            } else if (lastMessage === "Chamada efetuada") {
+              displayMessage = "📞 Ligação";
+            } else if (lastMessage === "Chamada recebida") {
+              displayMessage = "📞 Ligação";
+            } else if (lastMessage === "Chamada perdida") {
+              displayMessage = "📞 Perdida";
+            } else if (
+              lastMessage.startsWith('{"type":"location"') ||
+              item.last_message?.trimStart().startsWith('{"type":"location"')
+            ) {
+              displayMessage = "📍 Local";
+            } else if (lastMessage.startsWith('{"type":"contact_share"')) {
+              displayMessage = "👤 Contato";
+            } else if (
+              lastMessage.startsWith("Pix:") ||
+              item.last_message?.trimStart().startsWith('{"type":"pix_share"')
+            ) {
+              displayMessage = "💸 Pix";
+            } else if (
+              lastMessage.startsWith("Nota:") ||
+              item.last_message?.trimStart().startsWith('{"type":"note_share"')
+            ) {
+              displayMessage = "📝 Nota";
+            } else {
+              displayMessage = lastMessage;
+            }
+          }
+
+          if (!displayMessage) return null;
+
+          return (
+            <View
+              style={[
+                styles.bubble,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[styles.bubbleText, { color: colors.text }]}
+                numberOfLines={3}
+                ellipsizeMode="tail"
+              >
+                {displayMessage}
+              </Text>
+              <View
+                style={[
+                  styles.bubbleTail,
+                  {
+                    backgroundColor: colors.surface,
+                    borderRightColor: colors.border,
+                    borderBottomColor: colors.border,
+                  },
+                ]}
+              />
+            </View>
+          );
+        })()}
       </View>
 
       {/* Name below the avatar */}
@@ -132,7 +226,7 @@ const styles = StyleSheet.create({
   chatName: {
     fontSize: 12,
     fontWeight: "500",
-    marginTop: 6,
+    marginTop: 16,
     textAlign: "center",
     maxWidth: 100,
   },
@@ -193,5 +287,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
     elevation: 1,
+  },
+  bubble: {
+    position: "absolute",
+    bottom: -12,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
+  },
+  bubbleText: {
+    fontSize: 12,
+    fontWeight: "400",
+    textAlign: "center",
+  },
+  bubbleTail: {
+    position: "absolute",
+    bottom: -5,
+    right: 15,
+    width: 8,
+    height: 8,
+    transform: [{ rotate: "45deg" }],
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
   },
 });

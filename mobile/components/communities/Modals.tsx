@@ -11,8 +11,8 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { X, Globe, Lock, Hash, MessageSquare, Calendar } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface ModalProps {
   visible: boolean;
@@ -21,10 +21,19 @@ interface ModalProps {
 
 // 1. CREATE COMMUNITY MODAL
 interface CreateCommunityModalProps extends ModalProps {
-  onSubmit: (payload: { name: string; description: string; visibility: "public" | "private"; category: string }) => Promise<void>;
+  onSubmit: (payload: {
+    name: string;
+    description: string;
+    visibility: "public" | "private";
+    category: string;
+  }) => Promise<void>;
 }
 
-export function CreateCommunityModal({ visible, onClose, onSubmit }: CreateCommunityModalProps) {
+export function CreateCommunityModal({
+  visible,
+  onClose,
+  onSubmit,
+}: CreateCommunityModalProps) {
   const { colors } = useAppTheme();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -51,26 +60,50 @@ export function CreateCommunityModal({ visible, onClose, onSubmit }: CreateCommu
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.overlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.overlay}
+      >
+        <View
+          style={[
+            styles.modalContent,
+            { backgroundColor: colors.cardBackground },
+          ]}
+        >
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text }]}>Nova Comunidade</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Nova Comunidade
+            </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={24} color={colors.text} />
+              <Ionicons name="close-outline" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 24 }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Nome da Comunidade</Text>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={{ paddingBottom: 24 }}
+          >
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Nome da Comunidade
+            </Text>
             <TextInput
               value={name}
               onChangeText={setName}
               placeholder="Ex: Desenvolvedores JS"
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Descrição</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Descrição
+            </Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
@@ -78,52 +111,140 @@ export function CreateCommunityModal({ visible, onClose, onSubmit }: CreateCommu
               placeholderTextColor={colors.textSecondary}
               multiline
               numberOfLines={3}
-              style={[styles.input, styles.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Categoria</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Categoria
+            </Text>
             <TextInput
               value={category}
               onChangeText={setCategory}
               placeholder="Ex: Tecnologia, Jogos, Esportes"
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Privacidade</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Privacidade
+            </Text>
             <View style={styles.row}>
               <TouchableOpacity
                 onPress={() => setVisibility("public")}
                 style={[
                   styles.optionCard,
-                  { borderColor: visibility === "public" ? colors.brandGreen : colors.border },
-                  visibility === "public" && { backgroundColor: colors.listBgGreen },
+                  {
+                    borderColor:
+                      visibility === "public"
+                        ? colors.brandGreen
+                        : colors.border,
+                  },
+                  visibility === "public" && {
+                    backgroundColor: colors.listBgGreen,
+                  },
                 ]}
               >
-                <Globe size={20} color={visibility === "public" ? colors.brandGreen : colors.textSecondary} />
-                <Text style={[styles.optionText, { color: colors.text, fontWeight: visibility === "public" ? "600" : "400" }]}>Pública</Text>
+                <Ionicons
+                  name="globe-outline"
+                  size={20}
+                  color={
+                    visibility === "public"
+                      ? colors.brandGreen
+                      : colors.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.optionText,
+                    {
+                      color: colors.text,
+                      fontWeight: visibility === "public" ? "600" : "400",
+                    },
+                  ]}
+                >
+                  Pública
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => setVisibility("private")}
                 style={[
                   styles.optionCard,
-                  { borderColor: visibility === "private" ? colors.brandGreen : colors.border },
-                  visibility === "private" && { backgroundColor: colors.listBgGreen },
+                  {
+                    borderColor:
+                      visibility === "private"
+                        ? colors.brandGreen
+                        : colors.border,
+                  },
+                  visibility === "private" && {
+                    backgroundColor: colors.listBgGreen,
+                  },
                 ]}
               >
-                <Lock size={20} color={visibility === "private" ? colors.brandGreen : colors.textSecondary} />
-                <Text style={[styles.optionText, { color: colors.text, fontWeight: visibility === "private" ? "600" : "400" }]}>Privada</Text>
+                <Ionicons
+                  name="lock-outline"
+                  size={20}
+                  color={
+                    visibility === "private"
+                      ? colors.brandGreen
+                      : colors.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.optionText,
+                    {
+                      color: colors.text,
+                      fontWeight: visibility === "private" ? "600" : "400",
+                    },
+                  ]}
+                >
+                  Privada
+                </Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
 
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <TouchableOpacity onPress={onClose} style={[styles.btn, styles.btnSec, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[
+                styles.btn,
+                styles.btnSec,
+                { borderColor: colors.border },
+              ]}
+            >
               <Text style={{ color: colors.text }}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleSub} disabled={!name.trim() || loading} style={[styles.btn, styles.btnPri, { backgroundColor: colors.brandGreen }]}>
-              {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.btnPriText}>Criar</Text>}
+            <TouchableOpacity
+              onPress={handleSub}
+              disabled={!name.trim() || loading}
+              style={[
+                styles.btn,
+                styles.btnPri,
+                { backgroundColor: colors.brandGreen },
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.btnPriText}>Criar</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -137,7 +258,11 @@ interface JoinCommunityModalProps extends ModalProps {
   onSubmit: (code: string) => Promise<void>;
 }
 
-export function JoinCommunityModal({ visible, onClose, onSubmit }: JoinCommunityModalProps) {
+export function JoinCommunityModal({
+  visible,
+  onClose,
+  onSubmit,
+}: JoinCommunityModalProps) {
   const { colors } = useAppTheme();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -158,36 +283,75 @@ export function JoinCommunityModal({ visible, onClose, onSubmit }: JoinCommunity
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.overlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.overlay}
+      >
+        <View
+          style={[
+            styles.modalContent,
+            { backgroundColor: colors.cardBackground },
+          ]}
+        >
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text }]}>Entrar em Comunidade</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Entrar em Comunidade
+            </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={24} color={colors.text} />
+              <Ionicons name="close-outline" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.body}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Código de Convite</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Código de Convite
+            </Text>
             <TextInput
               value={code}
               onChangeText={setCode}
               placeholder="Ex: ZAPI-XXXXX"
               autoCapitalize="characters"
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
             <Text style={[styles.hint, { color: colors.textSecondary }]}>
-              Peça a um administrador de comunidade para gerar um código de convite para você.
+              Peça a um administrador de comunidade para gerar um código de
+              convite para você.
             </Text>
           </View>
 
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <TouchableOpacity onPress={onClose} style={[styles.btn, styles.btnSec, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[
+                styles.btn,
+                styles.btnSec,
+                { borderColor: colors.border },
+              ]}
+            >
               <Text style={{ color: colors.text }}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleSub} disabled={!code.trim() || loading} style={[styles.btn, styles.btnPri, { backgroundColor: colors.brandGreen }]}>
-              {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.btnPriText}>Entrar</Text>}
+            <TouchableOpacity
+              onPress={handleSub}
+              disabled={!code.trim() || loading}
+              style={[
+                styles.btn,
+                styles.btnPri,
+                { backgroundColor: colors.brandGreen },
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.btnPriText}>Entrar</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -198,10 +362,18 @@ export function JoinCommunityModal({ visible, onClose, onSubmit }: JoinCommunity
 
 // 3. CREATE CHANNEL MODAL
 interface CreateChannelModalProps extends ModalProps {
-  onSubmit: (payload: { name: string; type: "text" | "forum" | "event"; description: string }) => Promise<void>;
+  onSubmit: (payload: {
+    name: string;
+    type: "text" | "forum" | "event";
+    description: string;
+  }) => Promise<void>;
 }
 
-export function CreateChannelModal({ visible, onClose, onSubmit }: CreateChannelModalProps) {
+export function CreateChannelModal({
+  visible,
+  onClose,
+  onSubmit,
+}: CreateChannelModalProps) {
   const { colors } = useAppTheme();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -226,49 +398,97 @@ export function CreateChannelModal({ visible, onClose, onSubmit }: CreateChannel
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.overlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.overlay}
+      >
+        <View
+          style={[
+            styles.modalContent,
+            { backgroundColor: colors.cardBackground },
+          ]}
+        >
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text }]}>Criar Canal</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Criar Canal
+            </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={24} color={colors.text} />
+              <Ionicons name="close-outline" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 24 }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Nome do Canal</Text>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={{ paddingBottom: 24 }}
+          >
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Nome do Canal
+            </Text>
             <TextInput
               value={name}
               onChangeText={setName}
               placeholder="Ex: anuncios"
               autoCapitalize="none"
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Descrição (Opcional)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Descrição (Opcional)
+            </Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
               placeholder="Do que se trata este canal?"
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Tipo de Canal</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Tipo de Canal
+            </Text>
             <View style={styles.col}>
               <TouchableOpacity
                 onPress={() => setType("text")}
                 style={[
                   styles.typeOption,
                   { borderColor: colors.border },
-                  type === "text" && { borderColor: colors.brandGreen, backgroundColor: colors.listBgGreen },
+                  type === "text" && {
+                    borderColor: colors.brandGreen,
+                    backgroundColor: colors.listBgGreen,
+                  },
                 ]}
               >
-                <Hash size={22} color={type === "text" ? colors.brandGreen : colors.textSecondary} />
+                <Feather
+                  name="hash"
+                  size={22}
+                  color={
+                    type === "text" ? colors.brandGreen : colors.textSecondary
+                  }
+                />
                 <View style={styles.typeInfo}>
-                  <Text style={[styles.typeTitle, { color: colors.text }]}>Texto</Text>
-                  <Text style={[styles.typeDesc, { color: colors.textSecondary }]}>Envie mensagens, imagens e converse em tempo real.</Text>
+                  <Text style={[styles.typeTitle, { color: colors.text }]}>
+                    Texto
+                  </Text>
+                  <Text
+                    style={[styles.typeDesc, { color: colors.textSecondary }]}
+                  >
+                    Envie mensagens, imagens e converse em tempo real.
+                  </Text>
                 </View>
               </TouchableOpacity>
 
@@ -277,13 +497,29 @@ export function CreateChannelModal({ visible, onClose, onSubmit }: CreateChannel
                 style={[
                   styles.typeOption,
                   { borderColor: colors.border },
-                  type === "forum" && { borderColor: colors.brandGreen, backgroundColor: colors.listBgGreen },
+                  type === "forum" && {
+                    borderColor: colors.brandGreen,
+                    backgroundColor: colors.listBgGreen,
+                  },
                 ]}
               >
-                <MessageSquare size={22} color={type === "forum" ? colors.brandGreen : colors.textSecondary} />
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={22}
+                  color={
+                    type === "forum" ? colors.brandGreen : colors.textSecondary
+                  }
+                />
                 <View style={styles.typeInfo}>
-                  <Text style={[styles.typeTitle, { color: colors.text }]}>Fórum</Text>
-                  <Text style={[styles.typeDesc, { color: colors.textSecondary }]}>Crie tópicos estruturados para posts e discussões organizadas.</Text>
+                  <Text style={[styles.typeTitle, { color: colors.text }]}>
+                    Fórum
+                  </Text>
+                  <Text
+                    style={[styles.typeDesc, { color: colors.textSecondary }]}
+                  >
+                    Crie tópicos estruturados para posts e discussões
+                    organizadas.
+                  </Text>
                 </View>
               </TouchableOpacity>
 
@@ -292,24 +528,58 @@ export function CreateChannelModal({ visible, onClose, onSubmit }: CreateChannel
                 style={[
                   styles.typeOption,
                   { borderColor: colors.border },
-                  type === "event" && { borderColor: colors.brandGreen, backgroundColor: colors.listBgGreen },
+                  type === "event" && {
+                    borderColor: colors.brandGreen,
+                    backgroundColor: colors.listBgGreen,
+                  },
                 ]}
               >
-                <Calendar size={22} color={type === "event" ? colors.brandGreen : colors.textSecondary} />
+                <Ionicons
+                  name="calendar-outline"
+                  size={22}
+                  color={
+                    type === "event" ? colors.brandGreen : colors.textSecondary
+                  }
+                />
                 <View style={styles.typeInfo}>
-                  <Text style={[styles.typeTitle, { color: colors.text }]}>Eventos</Text>
-                  <Text style={[styles.typeDesc, { color: colors.textSecondary }]}>Agende encontros, reuniões e veja quem vai comparecer.</Text>
+                  <Text style={[styles.typeTitle, { color: colors.text }]}>
+                    Eventos
+                  </Text>
+                  <Text
+                    style={[styles.typeDesc, { color: colors.textSecondary }]}
+                  >
+                    Agende encontros, reuniões e veja quem vai comparecer.
+                  </Text>
                 </View>
               </TouchableOpacity>
             </View>
           </ScrollView>
 
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <TouchableOpacity onPress={onClose} style={[styles.btn, styles.btnSec, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[
+                styles.btn,
+                styles.btnSec,
+                { borderColor: colors.border },
+              ]}
+            >
               <Text style={{ color: colors.text }}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleSub} disabled={!name.trim() || loading} style={[styles.btn, styles.btnPri, { backgroundColor: colors.brandGreen }]}>
-              {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.btnPriText}>Criar Canal</Text>}
+            <TouchableOpacity
+              onPress={handleSub}
+              disabled={!name.trim() || loading}
+              style={[
+                styles.btn,
+                styles.btnPri,
+                { backgroundColor: colors.brandGreen },
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.btnPriText}>Criar Canal</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -323,7 +593,11 @@ interface CreatePostModalProps extends ModalProps {
   onSubmit: (payload: { title: string; content: string }) => Promise<void>;
 }
 
-export function CreatePostModal({ visible, onClose, onSubmit }: CreatePostModalProps) {
+export function CreatePostModal({
+  visible,
+  onClose,
+  onSubmit,
+}: CreatePostModalProps) {
   const { colors } = useAppTheme();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -346,26 +620,50 @@ export function CreatePostModal({ visible, onClose, onSubmit }: CreatePostModalP
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.overlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.overlay}
+      >
+        <View
+          style={[
+            styles.modalContent,
+            { backgroundColor: colors.cardBackground },
+          ]}
+        >
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text }]}>Novo Post</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Novo Post
+            </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={24} color={colors.text} />
+              <Ionicons name="close-outline" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 24 }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Título do Post</Text>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={{ paddingBottom: 24 }}
+          >
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Título do Post
+            </Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
               placeholder="Escolha um título claro e objetivo"
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Conteúdo</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Conteúdo
+            </Text>
             <TextInput
               value={content}
               onChangeText={setContent}
@@ -373,20 +671,44 @@ export function CreatePostModal({ visible, onClose, onSubmit }: CreatePostModalP
               placeholderTextColor={colors.textSecondary}
               multiline
               numberOfLines={8}
-              style={[styles.input, styles.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, height: 180 }]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                  height: 180,
+                },
+              ]}
             />
           </ScrollView>
 
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <TouchableOpacity onPress={onClose} style={[styles.btn, styles.btnSec, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[
+                styles.btn,
+                styles.btnSec,
+                { borderColor: colors.border },
+              ]}
+            >
               <Text style={{ color: colors.text }}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSub}
               disabled={!title.trim() || !content.trim() || loading}
-              style={[styles.btn, styles.btnPri, { backgroundColor: colors.brandGreen }]}
+              style={[
+                styles.btn,
+                styles.btnPri,
+                { backgroundColor: colors.brandGreen },
+              ]}
             >
-              {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.btnPriText}>Publicar</Text>}
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.btnPriText}>Publicar</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -397,10 +719,19 @@ export function CreatePostModal({ visible, onClose, onSubmit }: CreatePostModalP
 
 // 5. CREATE EVENT MODAL
 interface CreateEventModalProps extends ModalProps {
-  onSubmit: (payload: { title: string; description: string; location: string; start_time: string }) => Promise<void>;
+  onSubmit: (payload: {
+    title: string;
+    description: string;
+    location: string;
+    start_time: string;
+  }) => Promise<void>;
 }
 
-export function CreateEventModal({ visible, onClose, onSubmit }: CreateEventModalProps) {
+export function CreateEventModal({
+  visible,
+  onClose,
+  onSubmit,
+}: CreateEventModalProps) {
   const { colors } = useAppTheme();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -412,7 +743,12 @@ export function CreateEventModal({ visible, onClose, onSubmit }: CreateEventModa
     if (!title.trim() || !startTime.trim()) return;
     setLoading(true);
     try {
-      await onSubmit({ title, description, location: location || "Zapi Voice Lounge", start_time: new Date(startTime).toISOString() });
+      await onSubmit({
+        title,
+        description,
+        location: location || "Zapi Voice Lounge",
+        start_time: new Date(startTime).toISOString(),
+      });
       setTitle("");
       setDescription("");
       setLocation("");
@@ -427,26 +763,50 @@ export function CreateEventModal({ visible, onClose, onSubmit }: CreateEventModa
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.overlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.overlay}
+      >
+        <View
+          style={[
+            styles.modalContent,
+            { backgroundColor: colors.cardBackground },
+          ]}
+        >
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text }]}>Agendar Evento</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Agendar Evento
+            </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <X size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 24 }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Título do Evento</Text>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={{ paddingBottom: 24 }}
+          >
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Título do Evento
+            </Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
               placeholder="Ex: Oficina de React Native"
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Descrição</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Descrição
+            </Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
@@ -454,38 +814,80 @@ export function CreateEventModal({ visible, onClose, onSubmit }: CreateEventModa
               placeholderTextColor={colors.textSecondary}
               multiline
               numberOfLines={4}
-              style={[styles.input, styles.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, height: 100 }]}
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                  height: 100,
+                },
+              ]}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Localização / Link</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Localização / Link
+            </Text>
             <TextInput
               value={location}
               onChangeText={setLocation}
               placeholder="Ex: Canal de Voz ou Zoom Link"
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Data e Hora de Início</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Data e Hora de Início
+            </Text>
             <TextInput
               value={startTime}
               onChangeText={setStartTime}
               placeholder="Ex: YYYY-MM-DD HH:MM (ex: 2026-08-30 18:00)"
               placeholderTextColor={colors.textSecondary}
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
             />
           </ScrollView>
 
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <TouchableOpacity onPress={onClose} style={[styles.btn, styles.btnSec, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[
+                styles.btn,
+                styles.btnSec,
+                { borderColor: colors.border },
+              ]}
+            >
               <Text style={{ color: colors.text }}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSub}
               disabled={!title.trim() || !startTime.trim() || loading}
-              style={[styles.btn, styles.btnPri, { backgroundColor: colors.brandGreen }]}
+              style={[
+                styles.btn,
+                styles.btnPri,
+                { backgroundColor: colors.brandGreen },
+              ]}
             >
-              {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.btnPriText}>Agendar</Text>}
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.btnPriText}>Agendar</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>

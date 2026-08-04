@@ -10,16 +10,12 @@ import {
   Clipboard,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  getMyPixKey,
-  deletePixKey,
-  type PixKeyData,
-} from "@/services/pixApi";
+import { getMyPixKey, deletePixKey, type PixKeyData } from "@/services/pixApi";
 import PixKeyModal from "@/components/PixKeyModal";
 
 export default function PaymentsScreen() {
@@ -99,7 +95,11 @@ export default function PaymentsScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.headerText }]}>
             Pagamentos
@@ -148,7 +148,10 @@ export default function PaymentsScreen() {
 
                 <View style={styles.keyContainer}>
                   <Text
-                    style={[styles.pixKeyValue, { color: colors.textSecondary }]}
+                    style={[
+                      styles.pixKeyValue,
+                      { color: colors.textSecondary },
+                    ]}
                     numberOfLines={1}
                   >
                     {pixKey.pix_value}
@@ -181,7 +184,11 @@ export default function PaymentsScreen() {
                   onPress={() => setModalVisible(true)}
                   activeOpacity={0.7}
                 >
-                  <MaterialCommunityIcons name="pencil" size={18} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="pencil"
+                    size={18}
+                    color={colors.textSecondary}
+                  />
                   <Text
                     style={[
                       styles.subActionText,
@@ -204,9 +211,15 @@ export default function PaymentsScreen() {
                   {deleting ? (
                     <ActivityIndicator size={16} color={colors.danger} />
                   ) : (
-                    <MaterialCommunityIcons name="delete-outline" size={18} color={colors.danger} />
+                    <MaterialCommunityIcons
+                      name="delete-outline"
+                      size={18}
+                      color={colors.danger}
+                    />
                   )}
-                  <Text style={[styles.subActionText, { color: colors.danger }]}>
+                  <Text
+                    style={[styles.subActionText, { color: colors.danger }]}
+                  >
                     Excluir
                   </Text>
                 </TouchableOpacity>
@@ -274,12 +287,13 @@ export default function PaymentsScreen() {
           }
           activeOpacity={0.85}
         >
-          <MaterialCommunityIcons name="hand-coin" size={20} color={isDark ? "#121212" : "#FFFFFF"} />
+          <MaterialCommunityIcons
+            name="hand-coin"
+            size={20}
+            color={isDark ? "#121212" : "#FFFFFF"}
+          />
           <Text
-            style={[
-              styles.fabLabel,
-              { color: isDark ? "#121212" : "#FFFFFF" },
-            ]}
+            style={[styles.fabLabel, { color: isDark ? "#121212" : "#FFFFFF" }]}
           >
             Cobrar
           </Text>

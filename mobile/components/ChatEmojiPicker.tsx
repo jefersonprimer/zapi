@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet } from "react-native";
-import { Smile, Keyboard } from "lucide-react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 interface ChatEmojiPickerProps {
@@ -15,14 +15,19 @@ export const ChatEmojiPicker: React.FC<ChatEmojiPickerProps> = ({
   const { colors } = useAppTheme();
 
   return (
-    <TouchableOpacity
-      style={styles.iconBtn}
-      onPress={onPress}
-    >
+    <TouchableOpacity style={styles.iconBtn} onPress={onPress}>
       {isEmojiOpen ? (
-        <Keyboard size={24} color={colors.icon} />
+        <MaterialCommunityIcons
+          name="keyboard-outline"
+          size={24}
+          color={colors.icon}
+        />
       ) : (
-        <Smile size={24} color={colors.icon} />
+        <MaterialCommunityIcons
+          name="sticker-emoji"
+          size={24}
+          color={colors.icon}
+        />
       )}
     </TouchableOpacity>
   );
@@ -36,4 +41,3 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
-

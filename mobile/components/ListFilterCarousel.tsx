@@ -1,17 +1,11 @@
 import React from "react";
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from "react-native";
-import {
-  Heart,
-  Star,
-  Briefcase,
-  Home,
-  Gamepad2,
-  BookOpen,
-  Folder,
-} from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 const getListColorHex = (colorEmoji: string | null | undefined): string | null => {
+  if (!colorEmoji) return null;
+  if (colorEmoji.startsWith("#")) return colorEmoji;
   if (colorEmoji === "🔴") return "#ef4444";
   if (colorEmoji === "🟠") return "#f97316";
   if (colorEmoji === "🟡") return "#eab308";
@@ -31,22 +25,22 @@ const renderListIcon = (
 
   switch (iconName) {
     case "❤️":
-      return <Heart size={size} color={hexColor} fill={hexColor + "22"} />;
+      return <Ionicons name="heart" size={size} color={hexColor} />;
     case "⭐":
-      return <Star size={size} color={hexColor} fill={hexColor + "22"} />;
+      return <Ionicons name="star" size={size} color={hexColor} />;
     case "💼":
-      return <Briefcase size={size} color={hexColor} fill={hexColor + "22"} />;
+      return <Ionicons name="briefcase" size={size} color={hexColor} />;
     case "🏠":
-      return <Home size={size} color={hexColor} fill={hexColor + "22"} />;
+      return <Ionicons name="home" size={size} color={hexColor} />;
     case "🎮":
-      return <Gamepad2 size={size} color={hexColor} fill={hexColor + "22"} />;
+      return <Ionicons name="game-controller" size={size} color={hexColor} />;
     case "📚":
-      return <BookOpen size={size} color={hexColor} fill={hexColor + "22"} />;
+      return <Ionicons name="book" size={size} color={hexColor} />;
     default:
       if (iconName) {
         return <Text style={{ fontSize: size }}>{iconName}</Text>;
       }
-      return <Folder size={size} color={hexColor} fill={hexColor + "22"} />;
+      return <Ionicons name="folder" size={size} color={hexColor} />;
   }
 };
 

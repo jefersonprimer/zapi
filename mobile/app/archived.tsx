@@ -25,6 +25,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { wsClient } from "@/services/ws";
 import { useAppTheme } from "@/context/ThemeContext";
 import ChatListItem from "@/components/ChatListItem";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ArchivedScreen() {
   const router = useRouter();
@@ -175,8 +176,8 @@ export default function ArchivedScreen() {
               style={styles.headerIcon}
               onPress={() => setSelectedChatIds([])}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
+              <Ionicons
+                name="chevron-back-outline"
                 color={colors.headerText}
                 size={24}
               />
@@ -243,10 +244,10 @@ export default function ArchivedScreen() {
               style={styles.headerIcon}
               onPress={() => router.back()}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
+              <Ionicons
+                name="chevron-back-outline"
                 color={colors.headerText}
-                size={22}
+                size={24}
               />
             </TouchableOpacity>
             <Text style={[styles.title, { color: colors.headerText }]}>

@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import ImagePickerModal from "@/components/ImagePickerModal";
+import { AddGroupMemberModal } from "@/components/AddGroupMemberModal";
 import {
   getGroupDetails,
   addParticipant,
@@ -29,6 +30,7 @@ import {
   createChat,
 } from "@/services/api";
 import { updateLocalGroupDetails } from "@/services/database";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function GroupDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -46,6 +48,8 @@ export default function GroupDetailScreen() {
   const [searchMemberQuery, setSearchMemberQuery] = useState("");
   const [searchingMembers, setSearchingMembers] = useState(false);
   const [searchedUsers, setSearchedUsers] = useState<UserSearchResult[]>([]);
+  const [addMemberModalVisible, setAddMemberModalVisible] = useState(false);
+  const [actionLoadingUserId, setActionLoadingUserId] = useState<string | null>(null);
 
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -161,17 +165,17 @@ export default function GroupDetailScreen() {
 
   const handleAddParticipant = async (userId: string) => {
     if (!token || !chatId) return;
+    setActionLoadingUserId(userId);
     try {
       await addParticipant(token, chatId, userId);
-      Alert.alert("Sucesso", "Membro adicionado com sucesso!");
-      setSearchMemberQuery("");
-      setSearchedUsers([]);
-      fetchGroupInfo();
+      await fetchGroupInfo();
     } catch (err: any) {
       Alert.alert(
         "Erro",
         err.message || "Não foi possível adicionar o membro.",
       );
+    } finally {
+      setActionLoadingUserId(null);
     }
   };
 
@@ -276,7 +280,11 @@ export default function GroupDetailScreen() {
           onPress={() => router.back()}
           style={{ padding: 4, marginRight: 16 }}
         >
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
+          <Ionicons
+            name="chevron-back-outline"
+            size={24}
+            color={colors.headerText}
+          />
         </TouchableOpacity>
         <Text
           style={{
@@ -351,7 +359,11 @@ export default function GroupDetailScreen() {
                     alignItems: "center",
                   }}
                 >
-                  <MaterialCommunityIcons name="camera" size={12} color="#fff" />
+                  <MaterialCommunityIcons
+                    name="camera"
+                    size={12}
+                    color="#fff"
+                  />
                 </View>
               )}
           </TouchableOpacity>
@@ -502,10 +514,13 @@ export default function GroupDetailScreen() {
           />
         ) : (
           <>
-            {/* Manage Members (Only for Creator) */}
+            {/* Manage Members Modal trigger (Only for Creator) */}
             {groupDetails && groupDetails.created_by === user?.user_id && (
               <View
                 style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                   backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
                   borderRadius: 16,
                   padding: 16,
@@ -514,123 +529,44 @@ export default function GroupDetailScreen() {
                   borderColor: colors.border,
                 }}
               >
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "bold",
-                    color: colors.text,
-                    marginBottom: 12,
-                  }}
-                >
-                  Adicionar Membro
-                </Text>
-                <View style={{ flexDirection: "row", gap: 8 }}>
-                  <TextInput
+                <View>
+                  <Text
                     style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      borderRadius: 8,
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
+                      fontSize: 16,
+                      fontWeight: "bold",
                       color: colors.text,
-                      backgroundColor: colors.background,
                     }}
-                    placeholder="Nome de usuário..."
-                    placeholderTextColor={colors.textSecondary}
-                    value={searchMemberQuery}
-                    onChangeText={setSearchMemberQuery}
-                    onSubmitEditing={handleSearchMembers}
-                  />
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: colors.tint,
-                      paddingHorizontal: 16,
-                      borderRadius: 8,
-                      justifyContent: "center",
-                    }}
-                    onPress={handleSearchMembers}
-                    disabled={searchingMembers}
                   >
-                    {searchingMembers ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={{ color: "#fff", fontWeight: "600" }}>
-                        Buscar
-                      </Text>
-                    )}
-                  </TouchableOpacity>
+                    Adicionar Membro
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.textSecondary,
+                      marginTop: 2,
+                    }}
+                  >
+                    Busque e gerencie participantes
+                  </Text>
                 </View>
 
-                {/* Search Results */}
-                {searchedUsers.length > 0 && (
-                  <View style={{ marginTop: 12 }}>
-                    {searchedUsers.map((item) => {
-                      const isAlreadyMember = groupDetails.participants.some(
-                        (p) => p.id === item.id,
-                      );
-                      return (
-                        <View
-                          key={item.id}
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            paddingVertical: 8,
-                            borderTopWidth: StyleSheet.hairlineWidth,
-                            borderTopColor: colors.border,
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <View style={{ flex: 1, marginRight: 8 }}>
-                            <Text
-                              style={{ color: colors.text, fontWeight: "500" }}
-                            >
-                              {item.name || item.username}
-                            </Text>
-                            <Text
-                              style={{
-                                color: colors.textSecondary,
-                                fontSize: 12,
-                              }}
-                            >
-                              @{item.username}
-                            </Text>
-                          </View>
-                          {isAlreadyMember ? (
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                color: colors.textSecondary,
-                              }}
-                            >
-                              Já é membro
-                            </Text>
-                          ) : (
-                            <TouchableOpacity
-                              style={{
-                                backgroundColor: colors.tint,
-                                paddingHorizontal: 10,
-                                paddingVertical: 4,
-                                borderRadius: 6,
-                              }}
-                              onPress={() => handleAddParticipant(item.id)}
-                            >
-                              <Text
-                                style={{
-                                  color: "#fff",
-                                  fontSize: 12,
-                                  fontWeight: "600",
-                                }}
-                              >
-                                Adicionar
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      );
-                    })}
-                  </View>
-                )}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: colors.tint,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                  onPress={() => setAddMemberModalVisible(true)}
+                >
+                  <Ionicons name="person-add-outline" size={18} color="#fff" />
+                  <Text style={{ color: "#fff", fontWeight: "600" }}>
+                    Adicionar
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -803,6 +739,20 @@ export default function GroupDetailScreen() {
         onRemoveImage={handleRemoveAvatar}
         hasImage={!!groupDetails?.avatar_url}
         title="Foto do grupo"
+      />
+
+      <AddGroupMemberModal
+        visible={addMemberModalVisible}
+        onClose={() => setAddMemberModalVisible(false)}
+        searchQuery={searchMemberQuery}
+        onSearchQueryChange={setSearchMemberQuery}
+        onSearch={handleSearchMembers}
+        searching={searchingMembers}
+        searchResults={searchedUsers}
+        groupParticipants={groupDetails?.participants || []}
+        onAddMember={handleAddParticipant}
+        onRemoveMember={handleRemoveParticipant}
+        actionLoadingUserId={actionLoadingUserId}
       />
     </View>
   );

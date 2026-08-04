@@ -21,6 +21,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { UserContactCard } from "@/components/UserContactCard";
 import { UserContactModal } from "@/components/UserContactModal";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ContactsScreen() {
   const router = useRouter();
@@ -106,11 +107,11 @@ export default function ContactsScreen() {
         style={[styles.actionItem, { borderBottomColor: colors.border }]}
         onPress={() => router.push("/new-group")}
       >
-        <View style={[styles.iconContainer, styles.groupBg]}>
-          <MaterialCommunityIcons name="account-group" color="#fff" size={24} />
+        <View style={[styles.iconContainer, styles.groupBg, { borderRadius: 50 }]}>
+          <Ionicons name="add" color="#fff" size={24} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
-          Conversas em Grupo
+          Nova conversa em grupo
         </Text>
       </TouchableOpacity>
 
@@ -176,8 +177,8 @@ export default function ContactsScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <MaterialCommunityIcons
-              name="arrow-left"
+            <Ionicons
+              name="chevron-back-outline"
               size={24}
               color={colors.headerText}
             />

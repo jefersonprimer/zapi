@@ -20,6 +20,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { uploadFile } from "@/services/api";
 import * as updatesApi from "@/services/updatesApi";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -305,7 +306,11 @@ export default function CreateClipScreen() {
   if (!permission.granted) {
     return (
       <View style={[styles.container, styles.center]}>
-        <MaterialCommunityIcons name="camera" size={64} color="rgba(255,255,255,0.3)" />
+        <MaterialCommunityIcons
+          name="camera"
+          size={64}
+          color="rgba(255,255,255,0.3)"
+        />
         <Text style={styles.permissionText}>
           Precisamos de acesso à sua câmera
         </Text>
@@ -344,7 +349,11 @@ export default function CreateClipScreen() {
             {sending ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <MaterialCommunityIcons name="send" size={22} color={canPublish ? "#07C160" : "#666"} />
+              <MaterialCommunityIcons
+                name="send"
+                size={22}
+                color={canPublish ? "#07C160" : "#666"}
+              />
             )}
           </TouchableOpacity>
         </View>
@@ -429,7 +438,7 @@ export default function CreateClipScreen() {
             onPress={() => router.back()}
             style={styles.headerBtn}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
+            <Ionicons name="chevron-back-outline" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Novo clip</Text>
           <TouchableOpacity
@@ -439,7 +448,11 @@ export default function CreateClipScreen() {
             {flashEnabled ? (
               <MaterialCommunityIcons name="flash" size={20} color="#FFD700" />
             ) : (
-              <MaterialCommunityIcons name="flash-off" size={20} color="white" />
+              <MaterialCommunityIcons
+                name="flash-off"
+                size={20}
+                color="white"
+              />
             )}
           </TouchableOpacity>
         </View>
@@ -455,10 +468,7 @@ export default function CreateClipScreen() {
         )}
 
         <View
-          style={[
-            styles.bottomControls,
-            { paddingBottom: insets.bottom + 10 },
-          ]}
+          style={[styles.bottomControls, { paddingBottom: insets.bottom + 10 }]}
         >
           {recentMedia.length > 0 && (
             <FlatList
@@ -489,10 +499,7 @@ export default function CreateClipScreen() {
                       });
                       setMode("preview");
                     } catch {
-                      Alert.alert(
-                        "Erro",
-                        "Não foi possível abrir a mídia.",
-                      );
+                      Alert.alert("Erro", "Não foi possível abrir a mídia.");
                     }
                   }}
                 >
@@ -560,7 +567,11 @@ export default function CreateClipScreen() {
                   style={styles.thumbnailImage}
                 />
               ) : (
-                  <MaterialCommunityIcons name="image-outline" size={22} color="#fff" />
+                <MaterialCommunityIcons
+                  name="image-outline"
+                  size={22}
+                  color="#fff"
+                />
               )}
             </TouchableOpacity>
 
@@ -589,7 +600,11 @@ export default function CreateClipScreen() {
               onPress={toggleFacing}
               disabled={isRecording}
             >
-              <MaterialCommunityIcons name="camera-flip" size={22} color="white" />
+              <MaterialCommunityIcons
+                name="camera-flip"
+                size={22}
+                color="white"
+              />
             </TouchableOpacity>
           </View>
         </View>

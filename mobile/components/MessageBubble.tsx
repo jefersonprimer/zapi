@@ -15,17 +15,7 @@ import {
   Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  FileText as FileIcon,
-  StickyNote,
-  Play as PlayIcon,
-  Clock,
-  Check,
-  CheckCheck,
-  AlertCircle,
-  Ban,
-  ArrowLeft,
-} from "lucide-react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { PIX_TYPE_LABELS } from "@/services/pixApi";
 import { type Message, API_URL, createChat } from "../services/api";
 import { AudioPlayer } from "./AudioPlayer";
@@ -88,7 +78,8 @@ function ScheduledCountdown({ targetTime }: { targetTime: number }) {
         opacity: 0.85,
       }}
     >
-      <Clock
+      <Ionicons
+        name="time-outline"
         size={12}
         color="rgba(255,255,255,0.7)"
         style={{ marginRight: 4 }}
@@ -369,7 +360,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         ]}
       >
         <View style={styles.deletedTextContainer}>
-          <Ban size={14} color={deletedColor} style={{ marginRight: 4 }} />
+          <Ionicons
+            name="ban-outline"
+            size={14}
+            color={deletedColor}
+            style={{ marginRight: 4 }}
+          />
           <Text
             style={[
               styles.deletedText,
@@ -405,22 +401,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         item.status === "uploading" ||
         item.status === "sending" ||
         item.status === "scheduled") && (
-        <Clock size={13} color="rgba(255,255,255,0.7)" />
+        <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.7)" />
       )}
       {(item.status === "failed" ||
         item.status === "privacy_messages_nobody" ||
         item.status === "privacy_messages_contacts" ||
         item.status === "chat_blocked") && (
-        <AlertCircle size={13} color="#FF3B30" />
+        <Ionicons name="alert-circle-outline" size={13} color="#FF3B30" />
       )}
       {item.status === "sent" && (
-        <Check size={14} color="rgba(255,255,255,0.8)" />
+        <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.8)" />
       )}
       {item.status === "delivered" && (
-        <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
+        <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.8)" />
       )}
-      {item.status === "read" && <CheckCheck size={14} color="#34B7F1" />}
-      {!item.status && <CheckCheck size={14} color="rgba(255,255,255,0.8)" />}
+      {item.status === "read" && (
+        <Ionicons name="checkmark-done" size={14} color="#34B7F1" />
+      )}
+      {!item.status && (
+        <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.8)" />
+      )}
     </View>
   );
 
@@ -726,33 +726,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 minute: "2-digit",
               })}
             </Text>
-            {isMine && (
-              <View style={styles.statusIconContainer}>
-                {(item.status === "pending" ||
-                  item.status === "uploading" ||
-                  item.status === "sending") && (
-                  <Clock size={13} color="rgba(255,255,255,0.7)" />
-                )}
-                {(item.status === "failed" ||
-                  item.status === "privacy_messages_nobody" ||
-                  item.status === "privacy_messages_contacts" ||
-                  item.status === "chat_blocked") && (
-                  <AlertCircle size={13} color="#FF3B30" />
-                )}
-                {item.status === "sent" && (
-                  <Check size={14} color="rgba(255,255,255,0.8)" />
-                )}
-                {item.status === "delivered" && (
-                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
-                )}
-                {item.status === "read" && (
-                  <CheckCheck size={14} color="#34B7F1" />
-                )}
-                {!item.status && (
-                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
-                )}
-              </View>
-            )}
+            {isMine && renderStatusIcons()}
           </View>
         </TouchableOpacity>
         {item.reaction && (
@@ -869,33 +843,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 minute: "2-digit",
               })}
             </Text>
-            {isMine && (
-              <View style={styles.statusIconContainer}>
-                {(item.status === "pending" ||
-                  item.status === "uploading" ||
-                  item.status === "sending") && (
-                  <Clock size={13} color="rgba(255,255,255,0.7)" />
-                )}
-                {(item.status === "failed" ||
-                  item.status === "privacy_messages_nobody" ||
-                  item.status === "privacy_messages_contacts" ||
-                  item.status === "chat_blocked") && (
-                  <AlertCircle size={13} color="#FF3B30" />
-                )}
-                {item.status === "sent" && (
-                  <Check size={14} color="rgba(255,255,255,0.8)" />
-                )}
-                {item.status === "delivered" && (
-                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
-                )}
-                {item.status === "read" && (
-                  <CheckCheck size={14} color="#34B7F1" />
-                )}
-                {!item.status && (
-                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
-                )}
-              </View>
-            )}
+            {isMine && renderStatusIcons()}
           </View>
         </TouchableOpacity>
         {item.reaction && (
@@ -1129,7 +1077,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 },
               ]}
             >
-              <StickyNote size={18} color={isMine ? "#fff" : "#F5A623"} />
+              <Ionicons
+                name="document-text-outline"
+                size={18}
+                color={isMine ? "#fff" : "#F5A623"}
+              />
             </View>
             <Text
               style={[
@@ -1195,33 +1147,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 minute: "2-digit",
               })}
             </Text>
-            {isMine && (
-              <View style={styles.statusIconContainer}>
-                {(item.status === "pending" ||
-                  item.status === "uploading" ||
-                  item.status === "sending") && (
-                  <Clock size={13} color="rgba(255,255,255,0.7)" />
-                )}
-                {(item.status === "failed" ||
-                  item.status === "privacy_messages_nobody" ||
-                  item.status === "privacy_messages_contacts" ||
-                  item.status === "chat_blocked") && (
-                  <AlertCircle size={13} color="#FF3B30" />
-                )}
-                {item.status === "sent" && (
-                  <Check size={14} color="rgba(255,255,255,0.8)" />
-                )}
-                {item.status === "delivered" && (
-                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
-                )}
-                {item.status === "read" && (
-                  <CheckCheck size={14} color="#34B7F1" />
-                )}
-                {!item.status && (
-                  <CheckCheck size={14} color="rgba(255,255,255,0.8)" />
-                )}
-              </View>
-            )}
+            {isMine && renderStatusIcons()}
           </View>
         </TouchableOpacity>
         {item.reaction && (
@@ -1406,7 +1332,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 >
                   <MessageVideo uri={fullUrl} isFullScreen={false} />
                   <View style={styles.videoPlayOverlay}>
-                    <PlayIcon size={32} color="#fff" fill="#fff" />
+                    <Ionicons name="play" size={32} color="#fff" />
                   </View>
                 </TouchableOpacity>
               ) : youtubeId ? null : (
@@ -1513,7 +1439,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                           </View>
                         </View>
                       ) : (
-                        <FileIcon
+                        <Ionicons
+                          name="document-text-outline"
                           size={18}
                           color={isMine ? "#fff" : colors.text}
                           style={{ marginRight: 10 }}
@@ -1579,7 +1506,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 resizeMode="cover"
               />
               <View style={styles.videoPlayOverlay}>
-                <PlayIcon size={40} color="#fff" fill="#fff" />
+                <Ionicons name="play" size={40} color="#fff" />
               </View>
             </TouchableOpacity>
           ) : null}
@@ -1677,7 +1604,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       onPress={() => setIsFullScreen(false)}
                       activeOpacity={0.7}
                     >
-                      <ArrowLeft size={24} color="#fff" />
+                      <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <TouchableWithoutFeedback>
                       <View style={styles.imageContainer}>
@@ -1712,7 +1639,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       onPress={() => setIsFullScreen(false)}
                       activeOpacity={0.7}
                     >
-                      <ArrowLeft size={24} color="#fff" />
+                      <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <TouchableWithoutFeedback>
                       <View style={styles.videoContainerFull}>

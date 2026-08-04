@@ -11,11 +11,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import * as FileSystem from "expo-file-system/legacy";
-import {
-  Smile,
-  Sticker as StickerIcon,
-  Search,
-} from "lucide-react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { EmojiKeyboard } from "rn-emoji-keyboard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -145,7 +141,8 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
           ]}
           onPress={() => setActiveTab("emoji")}
         >
-          <Smile
+          <Ionicons
+            name="happy-outline"
             size={20}
             color={activeTab === "emoji" ? colors.brandGreen : colors.icon}
           />
@@ -181,7 +178,8 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
           ]}
           onPress={() => setActiveTab("sticker")}
         >
-          <StickerIcon
+          <MaterialCommunityIcons
+            name="sticker-outline"
             size={20}
             color={activeTab === "sticker" ? colors.brandGreen : colors.icon}
           />
@@ -255,7 +253,8 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
                 },
               ]}
             >
-              <Search
+              <Ionicons
+                name="search-outline"
                 size={18}
                 color={colors.textSecondary}
                 style={{ marginRight: 8 }}

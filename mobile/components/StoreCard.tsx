@@ -8,14 +8,7 @@ import {
   Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
-import {
-  Store,
-  ChevronRight,
-  Clock,
-  Star,
-  Tag,
-  Motorbike,
-} from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { Store as StoreType } from "@/services/deliveryApi";
 import { getFullRemoteUrl } from "@/services/mediaCache";
@@ -98,7 +91,7 @@ export default function StoreCard({ item }: StoreCardProps) {
             { backgroundColor: colors.surface },
           ]}
         >
-          <Store color={colors.icon} size={32} />
+          <Ionicons name="storefront-outline" color={colors.icon} size={32} />
         </View>
       )}
       <View style={styles.storeInfo}>
@@ -147,7 +140,7 @@ export default function StoreCard({ item }: StoreCardProps) {
                 gap: 2,
               }}
             >
-              <Star size={11} color="#F59E0B" fill="#F59E0B" />
+              <Ionicons name="star" size={11} color="#F59E0B" />
               <Text
                 style={{
                   fontSize: 11,
@@ -172,7 +165,7 @@ export default function StoreCard({ item }: StoreCardProps) {
                   gap: 3,
                 }}
               >
-                <Tag size={10} color="#D97706" fill="#D97706" />
+                <Ionicons name="pricetag" size={10} color="#D97706" />
                 <Text
                   style={{
                     fontSize: 10,
@@ -190,7 +183,7 @@ export default function StoreCard({ item }: StoreCardProps) {
         <View style={styles.storeMeta}>
           {item.eta_min != null && (
             <View style={styles.metaItem}>
-              <Clock size={12} color={colors.textSecondary} />
+              <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
               <Text
                 style={[styles.storeFee, { color: colors.textSecondary }]}
               >
@@ -200,7 +193,7 @@ export default function StoreCard({ item }: StoreCardProps) {
           )}
           {item.distance_km != null && (
             <View style={styles.metaItem}>
-              <Motorbike size={12} color={colors.textSecondary} />
+              <Ionicons name="bicycle-outline" size={12} color={colors.textSecondary} />
               <Text
                 style={[styles.storeFee, { color: colors.textSecondary }]}
               >
@@ -210,7 +203,7 @@ export default function StoreCard({ item }: StoreCardProps) {
           )}
           <View style={styles.metaItem}>
             {item.delivery_fee === 0 && (
-              <Motorbike size={12} color={colors.textSecondary} />
+              <Ionicons name="bicycle-outline" size={12} color={colors.textSecondary} />
             )}
             <Text style={[styles.storeFee, { color: colors.textSecondary }]}>
               {item.delivery_fee === 0
@@ -220,7 +213,7 @@ export default function StoreCard({ item }: StoreCardProps) {
           </View>
         </View>
       </View>
-      <ChevronRight color={colors.icon} size={20} />
+      <Ionicons name="chevron-forward" color={colors.icon} size={20} />
     </TouchableOpacity>
   );
 }

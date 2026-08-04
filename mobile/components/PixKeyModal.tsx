@@ -10,7 +10,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import { ChevronDown } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -188,7 +188,8 @@ export default function PixKeyModal({ visible, onClose, onSaved }: PixKeyModalPr
                 <Text style={[styles.selectorText, { color: colors.text }]}>
                   {PIX_TYPE_LABELS[selectedType] || "Tipo"}
                 </Text>
-                <ChevronDown
+                <Ionicons
+                  name="chevron-down"
                   size={18}
                   color={colors.textSecondary}
                   style={{ transform: [{ rotate: showTypeSelector ? "180deg" : "0deg" }] }}
@@ -270,7 +271,8 @@ export default function PixKeyModal({ visible, onClose, onSaved }: PixKeyModalPr
                 <Text style={[styles.selectorText, { color: colors.text }]}>
                   {VISIBILITY_OPTIONS.find((o) => o.key === visibility)?.label || "Meus contatos"}
                 </Text>
-                <ChevronDown
+                <Ionicons
+                  name="chevron-down"
                   size={18}
                   color={colors.textSecondary}
                   style={{ transform: [{ rotate: showVisibilitySelector ? "180deg" : "0deg" }] }}

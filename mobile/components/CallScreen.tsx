@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
-import { Camera, CameraOff, RefreshCw, Mic, MicOff, Volume2, VolumeX, PhoneOff } from "lucide-react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import MuteButton from "../components/MuteButton";
 import SpeakerButton from "../components/SpeakerButton";
 import EndCallButton from "../components/EndCallButton";
@@ -112,16 +112,16 @@ export default function CallScreen({
             style={[styles.controlButton, !isCameraEnabled && styles.disabledButton]}
           >
             {isCameraEnabled ? (
-              <Camera size={22} color="#ffffff" />
+              <Ionicons name="videocam-outline" size={22} color="#ffffff" />
             ) : (
-              <CameraOff size={22} color="#ef4444" />
+              <Ionicons name="videocam-off-outline" size={22} color="#ef4444" />
             )}
           </TouchableOpacity>
 
           {/* Switch Camera */}
           {isCameraEnabled && (
             <TouchableOpacity onPress={onSwitchCamera} style={styles.controlButton}>
-              <RefreshCw size={22} color="#ffffff" />
+              <Ionicons name="camera-reverse-outline" size={22} color="#ffffff" />
             </TouchableOpacity>
           )}
 
@@ -131,9 +131,9 @@ export default function CallScreen({
             style={[styles.controlButton, isMuted && styles.disabledButton]}
           >
             {isMuted ? (
-              <MicOff size={22} color="#ef4444" />
+              <Ionicons name="mic-off-outline" size={22} color="#ef4444" />
             ) : (
-              <Mic size={22} color="#ffffff" />
+              <Ionicons name="mic-outline" size={22} color="#ffffff" />
             )}
           </TouchableOpacity>
 
@@ -143,9 +143,9 @@ export default function CallScreen({
             style={[styles.controlButton, isSpeakerEnabled && styles.activeSpeakerButton]}
           >
             {isSpeakerEnabled ? (
-              <Volume2 size={22} color="#10b981" />
+              <Ionicons name="volume-high-outline" size={22} color="#10b981" />
             ) : (
-              <VolumeX size={22} color="#ffffff" />
+              <Ionicons name="volume-mute-outline" size={22} color="#ffffff" />
             )}
           </TouchableOpacity>
 
@@ -154,7 +154,7 @@ export default function CallScreen({
             onPress={onEndCall}
             style={[styles.controlButton, styles.endButton]}
           >
-            <PhoneOff size={22} color="#ffffff" />
+            <MaterialCommunityIcons name="phone-off" size={22} color="#ffffff" />
           </TouchableOpacity>
         </View>
       </View>

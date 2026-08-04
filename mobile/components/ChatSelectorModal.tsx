@@ -9,9 +9,9 @@ import {
   Animated,
   Modal,
 } from "react-native";
-import { Check } from "lucide-react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { ChatListItem, API_URL } from "@/services/api";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ChatSelectorModalProps {
   visible: boolean;
@@ -236,7 +236,9 @@ export default function ChatSelectorModal({
                       },
                     ]}
                   >
-                    {isSelected && <Check size={14} color="#fff" />}
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={14} color="#fff" />
+                    )}
                   </View>
                 </TouchableOpacity>
               );

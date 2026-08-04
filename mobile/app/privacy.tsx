@@ -16,6 +16,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { updateProfile } from "@/services/api";
+import { Ionicons } from "@expo/vector-icons";
 
 const ACTIVE_GREEN = "#34C759"; // iOS Active Green
 
@@ -26,8 +27,15 @@ interface RadioButtonProps {
 }
 
 const RadioButton = ({ selected, activeColor, isDark }: RadioButtonProps) => (
-  <View style={[styles.radioOuter, { borderColor: selected ? activeColor : (isDark ? "#48484A" : "#C7C7CC") }]}>
-    {selected && <View style={[styles.radioInner, { backgroundColor: activeColor }]} />}
+  <View
+    style={[
+      styles.radioOuter,
+      { borderColor: selected ? activeColor : isDark ? "#48484A" : "#C7C7CC" },
+    ]}
+  >
+    {selected && (
+      <View style={[styles.radioInner, { backgroundColor: activeColor }]} />
+    )}
   </View>
 );
 
@@ -93,7 +101,7 @@ export default function PrivacyScreen() {
         undefined,
         undefined,
         privacyMessages,
-        privacyCalls
+        privacyCalls,
       );
       await updateUser({
         privacy_messages: privacyMessages,
@@ -101,7 +109,10 @@ export default function PrivacyScreen() {
       });
       router.back();
     } catch (err: any) {
-      Alert.alert("Erro", err.message || "Falha ao salvar configurações de privacidade");
+      Alert.alert(
+        "Erro",
+        err.message || "Falha ao salvar configurações de privacidade",
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -121,28 +132,43 @@ export default function PrivacyScreen() {
         ]}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.headerText} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={colors.headerText}
+            />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}>
+          <Text
+            style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
+          >
             Privacidade
           </Text>
-          <TouchableOpacity 
-            onPress={handleSavePrivacy} 
+          <TouchableOpacity
+            onPress={handleSavePrivacy}
             disabled={isUpdating}
             activeOpacity={0.7}
           >
             {isUpdating ? (
               <ActivityIndicator size="small" color={colors.tint} />
             ) : (
-              <Text style={[styles.saveText, { color: colors.tint }]}>Salvar</Text>
+              <Text style={[styles.saveText, { color: colors.tint }]}>
+                Salvar
+              </Text>
             )}
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 40 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Seção Mensagens */}
@@ -150,10 +176,21 @@ export default function PrivacyScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
             MENSAGENS
           </Text>
-          <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
-            Defina quem tem permissão para enviar novas mensagens diretas para você.
+          <Text
+            style={[styles.sectionSubtitle, { color: colors.textSecondary }]}
+          >
+            Defina quem tem permissão para enviar novas mensagens diretas para
+            você.
           </Text>
-          <View style={[styles.card, { backgroundColor: colors.menuBackground, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             {[
               { value: "all", label: "Todos" },
               { value: "contacts", label: "Somente contatos" },
@@ -164,7 +201,7 @@ export default function PrivacyScreen() {
                 style={[
                   styles.optionRow,
                   { borderBottomColor: colors.border },
-                  index === arr.length - 1 && { borderBottomWidth: 0 }
+                  index === arr.length - 1 && { borderBottomWidth: 0 },
                 ]}
                 activeOpacity={0.7}
                 onPress={() => setPrivacyMessages(opt.value)}
@@ -172,9 +209,9 @@ export default function PrivacyScreen() {
                 <Text style={[styles.optionText, { color: colors.text }]}>
                   {opt.label}
                 </Text>
-                <RadioButton 
-                  selected={privacyMessages === opt.value} 
-                  activeColor={ACTIVE_GREEN} 
+                <RadioButton
+                  selected={privacyMessages === opt.value}
+                  activeColor={ACTIVE_GREEN}
                   isDark={isDark}
                 />
               </TouchableOpacity>
@@ -187,10 +224,20 @@ export default function PrivacyScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
             LIGAÇÕES
           </Text>
-          <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.sectionSubtitle, { color: colors.textSecondary }]}
+          >
             Escolha quem pode iniciar chamadas de voz ou vídeo com você.
           </Text>
-          <View style={[styles.card, { backgroundColor: colors.menuBackground, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             {[
               { value: "all", label: "Todos" },
               { value: "contacts", label: "Somente contatos" },
@@ -201,7 +248,7 @@ export default function PrivacyScreen() {
                 style={[
                   styles.optionRow,
                   { borderBottomColor: colors.border },
-                  index === arr.length - 1 && { borderBottomWidth: 0 }
+                  index === arr.length - 1 && { borderBottomWidth: 0 },
                 ]}
                 activeOpacity={0.7}
                 onPress={() => setPrivacyCalls(opt.value)}
@@ -209,9 +256,9 @@ export default function PrivacyScreen() {
                 <Text style={[styles.optionText, { color: colors.text }]}>
                   {opt.label}
                 </Text>
-                <RadioButton 
-                  selected={privacyCalls === opt.value} 
-                  activeColor={ACTIVE_GREEN} 
+                <RadioButton
+                  selected={privacyCalls === opt.value}
+                  activeColor={ACTIVE_GREEN}
                   isDark={isDark}
                 />
               </TouchableOpacity>
@@ -224,15 +271,31 @@ export default function PrivacyScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
             SEGURANÇA E VISIBILIDADE
           </Text>
-          <View style={[styles.card, { backgroundColor: colors.menuBackground, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             {/* Toggle Read Receipts */}
-            <View style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
+            <View
+              style={[styles.toggleRow, { borderBottomColor: colors.border }]}
+            >
               <View style={styles.toggleTextContainer}>
                 <Text style={[styles.toggleTitle, { color: colors.text }]}>
                   Confirmações de leitura
                 </Text>
-                <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
-                  Se desativado, você não poderá ver nem enviar as confirmações de leitura (dois risquinhos azuis).
+                <Text
+                  style={[
+                    styles.toggleSubtitle,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Se desativado, você não poderá ver nem enviar as confirmações
+                  de leitura (dois risquinhos azuis).
                 </Text>
               </View>
               <Switch
@@ -247,13 +310,21 @@ export default function PrivacyScreen() {
             </View>
 
             {/* Toggle Online status */}
-            <View style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
+            <View
+              style={[styles.toggleRow, { borderBottomColor: colors.border }]}
+            >
               <View style={styles.toggleTextContainer}>
                 <Text style={[styles.toggleTitle, { color: colors.text }]}>
                   Visto por último e online
                 </Text>
-                <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
-                  Permite que outros contatos vejam se você está ativo ou a última vez que abriu o app.
+                <Text
+                  style={[
+                    styles.toggleSubtitle,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Permite que outros contatos vejam se você está ativo ou a
+                  última vez que abriu o app.
                 </Text>
               </View>
               <Switch
@@ -273,8 +344,14 @@ export default function PrivacyScreen() {
                 <Text style={[styles.toggleTitle, { color: colors.text }]}>
                   Manter conversas arquivadas
                 </Text>
-                <Text style={[styles.toggleSubtitle, { color: colors.textSecondary }]}>
-                  As conversas arquivadas continuarão ocultas e silenciadas mesmo ao receber novas mensagens.
+                <Text
+                  style={[
+                    styles.toggleSubtitle,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  As conversas arquivadas continuarão ocultas e silenciadas
+                  mesmo ao receber novas mensagens.
                 </Text>
               </View>
               <Switch

@@ -17,7 +17,7 @@ import {
   BottomSheetView,
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
-import { Link, Share2, PlusCircle, Search, Check } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -211,7 +211,8 @@ export const ShareBottomSheet = forwardRef<
               },
             ]}
           >
-            <Search
+            <Ionicons
+              name="search-outline"
               size={18}
               color={colors.textSecondary}
               style={styles.searchIcon}
@@ -303,7 +304,7 @@ export const ShareBottomSheet = forwardRef<
                               },
                             ]}
                           >
-                            <Check size={10} color="white" />
+                            <Ionicons name="checkmark" size={10} color="white" />
                           </View>
                         )}
                         {status === "sending" && (
@@ -363,7 +364,7 @@ export const ShareBottomSheet = forwardRef<
                   { backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6" },
                 ]}
               >
-                <PlusCircle size={24} color={colors.brandGreen || "#07C160"} />
+                <Ionicons name="add-circle-outline" size={24} color={colors.brandGreen || "#07C160"} />
               </View>
               <Text style={[styles.actionLabel, { color: colors.text }]}>
                 Meu Status
@@ -380,7 +381,7 @@ export const ShareBottomSheet = forwardRef<
                   { backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6" },
                 ]}
               >
-                <Link size={24} color={colors.text} />
+                <Ionicons name="link-outline" size={24} color={colors.text} />
               </View>
               <Text style={[styles.actionLabel, { color: colors.text }]}>
                 Copiar Link
@@ -397,7 +398,7 @@ export const ShareBottomSheet = forwardRef<
                   { backgroundColor: isDark ? "#2A2A2A" : "#F3F4F6" },
                 ]}
               >
-                <Share2 size={24} color={colors.text} />
+                <Ionicons name="share-social-outline" size={24} color={colors.text} />
               </View>
               <Text style={[styles.actionLabel, { color: colors.text }]}>
                 Compartilhar

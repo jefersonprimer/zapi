@@ -8,7 +8,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { CornerUpLeft } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 
 const SWIPE_THRESHOLD = 64;
@@ -91,7 +91,7 @@ export function SwipeableMessageRow({
     >
       <Animated.View style={[styles.iconContainer, iconStyle]}>
         <View style={[styles.iconCircle, { backgroundColor: colors.tint }]}>
-          <CornerUpLeft size={16} color="#fff" />
+          <Ionicons name="arrow-undo" size={16} color="#fff" />
         </View>
       </Animated.View>
       <GestureDetector gesture={pan}>

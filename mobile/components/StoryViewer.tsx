@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { X } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import type { Story } from "@/services/updatesApi";
 import { getFullRemoteUrl } from "@/services/mediaCache";
 
@@ -116,7 +116,7 @@ export default function StoryViewer({ stories, initialIndex = 0, onClose, onStor
       </View>
 
       <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <X size={24} color="white" />
+        <Ionicons name="close" size={24} color="white" />
       </TouchableOpacity>
 
       <TouchableOpacity
