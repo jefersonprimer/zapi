@@ -12,11 +12,7 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as FileSystem from "expo-file-system/legacy";
-import {
-  Path,
-  Rect,
-  Svg,
-} from "react-native-svg";
+import { Path, Rect, Svg } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { type Attachment } from "./AttachCameraButton";
@@ -36,6 +32,7 @@ type Stroke = {
   tool: Tool;
   color: string;
   width: number;
+  opacity: number;
   points: Point[];
 };
 
@@ -45,7 +42,14 @@ interface DrawingCanvasModalProps {
   onSave: (attachment: Attachment) => void;
 }
 
-const TOOL_CONFIG: Record<Tool, { label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; width: number }> = {
+const TOOL_CONFIG: Record<
+  Tool,
+  {
+    label: string;
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
+    width: number;
+  }
+> = {
   pencil: { label: "Lápis", icon: "lead-pencil", width: 2.5 },
   pen: { label: "Caneta", icon: "pencil", width: 4 },
   brush: { label: "Pincel", icon: "brush", width: 9 },
@@ -53,15 +57,48 @@ const TOOL_CONFIG: Record<Tool, { label: string; icon: keyof typeof MaterialComm
 };
 
 const COLORS = [
+  // Neutros / Escuros
+  "#000000",
   "#111827",
-  "#E11D48",
-  "#F97316",
-  "#EAB308",
-  "#22C55E",
-  "#06B6D4",
-  "#3B82F6",
-  "#8B5CF6",
+  "#4B5563",
+  "#9CA3AF",
+  "#D1D5DB",
   "#FFFFFF",
+  // Vermelhos / Rosas
+  "#E11D48",
+  "#EF4444",
+  "#F43F5E",
+  "#FDA4AF",
+  "#F472B6",
+  "#EC4899",
+  // Laranjas / Amarelos
+  "#D97706",
+  "#F59E0B",
+  "#F97316",
+  "#FDBA74",
+  "#EAB308",
+  "#FEF08A",
+  // Verdes
+  "#15803D",
+  "#22C55E",
+  "#4ADE80",
+  "#059669",
+  "#10B981",
+  "#6EE7B7",
+  // Azuis / Cianos
+  "#1D4ED8",
+  "#3B82F6",
+  "#60A5FA",
+  "#0891B2",
+  "#06B6D4",
+  "#67E8F9",
+  // Roxos
+  "#6D28D9",
+  "#8B5CF6",
+  "#C084FC",
+  "#4F46E5",
+  "#6366F1",
+  "#A5B4FC",
 ];
 
 function escapeXml(value: string) {
@@ -88,6 +125,94 @@ function pointsToPath(points: Point[]) {
   return d;
 }
 
+interface SliderProps {
+  value: number;
+  min: number;
+  max: number;
+  onChange: (val: number) => void;
+  step?: number;
+  width?: number;
+}
+
+function CustomSlider({
+  value,
+  min,
+  max,
+  onChange,
+  step = 1,
+  width = 100,
+}: SliderProps) {
+  const { colors } = useAppTheme();
+  const [sliderWidth, setSliderWidth] = useState(width);
+
+  const handleTouch = (event: any) => {
+    const x = event.nativeEvent.locationX;
+    const percentage = Math.max(0, Math.min(1, x / sliderWidth));
+    const rawValue = min + percentage * (max - min);
+    const steppedValue = Math.round(rawValue / step) * step;
+    onChange(Math.max(min, Math.min(max, parseFloat(steppedValue.toFixed(2)))));
+  };
+
+  const percentage = ((value - min) / (max - min)) * 100;
+
+  return (
+    <View
+      style={{
+        width: width,
+        height: 32,
+        justifyContent: "center",
+      }}
+      onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
+      onStartShouldSetResponder={() => true}
+      onMoveShouldSetResponder={() => true}
+      onResponderGrant={handleTouch}
+      onResponderMove={handleTouch}
+    >
+      <View
+        pointerEvents="none"
+        style={{
+          height: 4,
+          backgroundColor: colors.border,
+          borderRadius: 2,
+          position: "relative",
+        }}
+      >
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: 0,
+            width: `${percentage}%`,
+            height: "100%",
+            backgroundColor: colors.tint,
+            borderRadius: 2,
+          }}
+        />
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: `${percentage}%`,
+            marginLeft: -8,
+            top: -6,
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            backgroundColor: "#FFFFFF",
+            borderWidth: 2,
+            borderColor: colors.tint,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.16,
+            shadowRadius: 2,
+            elevation: 2,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
 export function DrawingCanvasModal({
   visible,
   onClose,
@@ -95,17 +220,27 @@ export function DrawingCanvasModal({
 }: DrawingCanvasModalProps) {
   const { colors, isDark } = useAppTheme();
   const [tool, setTool] = useState<Tool>("pen");
-  const [activeColor, setActiveColor] = useState(COLORS[0]);
+  const [activeColor, setActiveColor] = useState(COLORS[1]); // Começa com o preto suave index 1
   const [showPalette, setShowPalette] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [redoStack, setRedoStack] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
 
+  const [opacity, setOpacity] = useState(1.0);
+  const [toolWidths, setToolWidths] = useState<Record<Tool, number>>({
+    pencil: 2.5,
+    pen: 4,
+    brush: 9,
+    eraser: 18,
+  });
+
   const strokeIdRef = useRef(0);
   const currentStrokeRef = useRef<Stroke | null>(null);
   const toolRef = useRef<Tool>("pen");
-  const activeColorRef = useRef(COLORS[0]);
+  const activeColorRef = useRef(COLORS[1]);
+  const opacityRef = useRef(1.0);
+  const toolWidthsRef = useRef(toolWidths);
 
   useEffect(() => {
     toolRef.current = tool;
@@ -115,11 +250,16 @@ export function DrawingCanvasModal({
     activeColorRef.current = activeColor;
   }, [activeColor]);
 
+  useEffect(() => {
+    opacityRef.current = opacity;
+  }, [opacity]);
+
+  useEffect(() => {
+    toolWidthsRef.current = toolWidths;
+  }, [toolWidths]);
+
   const paletteShadow = useMemo(
-    () =>
-      isDark
-        ? "rgba(0,0,0,0.28)"
-        : "rgba(15, 23, 42, 0.12)",
+    () => (isDark ? "rgba(0,0,0,0.28)" : "rgba(15, 23, 42, 0.12)"),
     [isDark],
   );
 
@@ -130,13 +270,20 @@ export function DrawingCanvasModal({
 
   const resetCanvas = () => {
     setTool("pen");
-    setActiveColor(COLORS[0]);
+    setActiveColor(COLORS[1]);
     setShowPalette(false);
     setCanvasSize({ width: 0, height: 0 });
     setStrokes([]);
     setRedoStack([]);
     setCurrentStroke(null);
     currentStrokeRef.current = null;
+    setOpacity(1.0);
+    setToolWidths({
+      pencil: 2.5,
+      pen: 4,
+      brush: 9,
+      eraser: 18,
+    });
   };
 
   useEffect(() => {
@@ -154,6 +301,9 @@ export function DrawingCanvasModal({
         const isEraser = stroke.tool === "eraser";
         const strokeColor = isEraser ? "#FFFFFF" : stroke.color;
         const path = pointsToPath(stroke.points);
+        const opacityAttr = isEraser
+          ? ""
+          : `stroke-opacity="${stroke.opacity ?? 1}"`;
         return `
           <path
             d="${escapeXml(path)}"
@@ -162,6 +312,7 @@ export function DrawingCanvasModal({
             stroke-width="${stroke.width}"
             stroke-linecap="round"
             stroke-linejoin="round"
+            ${opacityAttr}
           />
         `;
       })
@@ -202,11 +353,14 @@ export function DrawingCanvasModal({
         const { locationX, locationY } = evt.nativeEvent;
         const currentTool = toolRef.current;
         const currentColor = activeColorRef.current;
+        const currentWidth = toolWidthsRef.current[currentTool];
+        const currentOpacity = opacityRef.current;
         const stroke: Stroke = {
           id: nextStrokeId(),
           tool: currentTool,
           color: currentColor,
-          width: TOOL_CONFIG[currentTool].width,
+          width: currentWidth,
+          opacity: currentOpacity,
           points: [{ x: locationX, y: locationY }],
         };
 
@@ -219,10 +373,7 @@ export function DrawingCanvasModal({
         if (!stroke) return;
 
         const { locationX, locationY } = evt.nativeEvent;
-        const nextPoints = [
-          ...stroke.points,
-          { x: locationX, y: locationY },
-        ];
+        const nextPoints = [...stroke.points, { x: locationX, y: locationY }];
         const nextStroke = { ...stroke, points: nextPoints };
         currentStrokeRef.current = nextStroke;
         setCurrentStroke(nextStroke);
@@ -258,24 +409,20 @@ export function DrawingCanvasModal({
   };
 
   const handleClear = () => {
-    Alert.alert(
-      "Apagar desenho",
-      "Deseja limpar toda a tela?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Limpar",
-          style: "destructive",
-          onPress: () => {
-            setStrokes([]);
-            setCurrentStroke(null);
-            currentStrokeRef.current = null;
-            setRedoStack([]);
-            setShowPalette(false);
-          },
+    Alert.alert("Apagar desenho", "Deseja limpar toda a tela?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Limpar",
+        style: "destructive",
+        onPress: () => {
+          setStrokes([]);
+          setCurrentStroke(null);
+          currentStrokeRef.current = null;
+          setRedoStack([]);
+          setShowPalette(false);
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const handleSave = async () => {
@@ -301,7 +448,10 @@ export function DrawingCanvasModal({
       });
       onClose();
     } catch (err: any) {
-      Alert.alert("Erro ao salvar", err?.message || "Não foi possível salvar o desenho.");
+      Alert.alert(
+        "Erro ao salvar",
+        err?.message || "Não foi possível salvar o desenho.",
+      );
     }
   };
 
@@ -319,6 +469,7 @@ export function DrawingCanvasModal({
         strokeWidth={stroke.width}
         strokeLinecap="round"
         strokeLinejoin="round"
+        strokeOpacity={isEraser ? 1 : stroke.opacity}
       />
     );
   };
@@ -326,11 +477,34 @@ export function DrawingCanvasModal({
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
-          <TouchableOpacity onPress={onClose} style={styles.headerButton} hitSlop={12}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+      >
+        <View
+          style={[
+            styles.header,
+            {
+              borderBottomColor: colors.border,
+              backgroundColor: colors.surface,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.headerButton}
+            hitSlop={12}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.text}
+            />
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
@@ -343,7 +517,9 @@ export function DrawingCanvasModal({
               <MaterialCommunityIcons
                 name="undo"
                 size={24}
-                color={strokes.length === 0 ? colors.textSecondary : colors.text}
+                color={
+                  strokes.length === 0 ? colors.textSecondary : colors.text
+                }
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -355,11 +531,21 @@ export function DrawingCanvasModal({
               <MaterialCommunityIcons
                 name="redo"
                 size={24}
-                color={redoStack.length === 0 ? colors.textSecondary : colors.text}
+                color={
+                  redoStack.length === 0 ? colors.textSecondary : colors.text
+                }
               />
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleSave} style={styles.headerButton} hitSlop={12}>
-              <MaterialCommunityIcons name="check" size={24} color={colors.tint} />
+            <TouchableOpacity
+              onPress={handleSave}
+              style={styles.headerButton}
+              hitSlop={12}
+            >
+              <MaterialCommunityIcons
+                name="check"
+                size={24}
+                color={colors.tint}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -387,7 +573,13 @@ export function DrawingCanvasModal({
                 height="100%"
                 viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
               >
-                <Rect x="0" y="0" width={canvasWidth} height={canvasHeight} fill="#FFFFFF" />
+                <Rect
+                  x="0"
+                  y="0"
+                  width={canvasWidth}
+                  height={canvasHeight}
+                  fill="#FFFFFF"
+                />
                 {strokes.map(renderStroke)}
                 {currentStroke ? renderStroke(currentStroke) : null}
               </Svg>
@@ -395,14 +587,88 @@ export function DrawingCanvasModal({
           </View>
         </View>
 
-        <View style={[styles.toolbarWrap, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <View
+          style={[
+            styles.toolbarWrap,
+            { backgroundColor: colors.surface, borderTopColor: colors.border },
+          ]}
+        >
+          {/* Controles de tamanho e opacidade */}
+          <View
+            style={[
+              styles.adjustmentsRow,
+              { borderBottomColor: colors.border },
+            ]}
+          >
+            <View style={styles.adjustmentItem}>
+              <Text
+                style={[
+                  styles.adjustmentLabel,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Tam: {toolWidths[tool]}px
+              </Text>
+              <CustomSlider
+                value={toolWidths[tool]}
+                min={1}
+                max={
+                  tool === "pencil"
+                    ? 15
+                    : tool === "pen"
+                      ? 30
+                      : tool === "brush"
+                        ? 60
+                        : 100
+                }
+                step={tool === "pencil" ? 0.5 : 1}
+                width={100}
+                onChange={(val) => {
+                  setToolWidths((prev) => ({
+                    ...prev,
+                    [tool]: val,
+                  }));
+                }}
+              />
+            </View>
+
+            {tool !== "eraser" && (
+              <View style={styles.adjustmentItem}>
+                <Text
+                  style={[
+                    styles.adjustmentLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Opac: {Math.round(opacity * 100)}%
+                </Text>
+                <CustomSlider
+                  value={opacity}
+                  min={0.1}
+                  max={1.0}
+                  step={0.05}
+                  width={100}
+                  onChange={(val) => {
+                    setOpacity(val);
+                  }}
+                />
+              </View>
+            )}
+          </View>
+
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.toolbarContent}
           >
             <TouchableOpacity
-              style={[styles.actionPill, { backgroundColor: showPalette ? colors.tint : "transparent", borderColor: colors.border }]}
+              style={[
+                styles.actionPill,
+                {
+                  backgroundColor: showPalette ? colors.tint : "transparent",
+                  borderColor: colors.border,
+                },
+              ]}
               onPress={() => setShowPalette((prev) => !prev)}
             >
               <MaterialCommunityIcons
@@ -434,7 +700,12 @@ export function DrawingCanvasModal({
                     size={20}
                     color={active ? "#fff" : colors.text}
                   />
-                  <Text style={[styles.toolLabel, { color: active ? "#fff" : colors.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.toolLabel,
+                      { color: active ? "#fff" : colors.textSecondary },
+                    ]}
+                  >
                     {TOOL_CONFIG[item].label}
                   </Text>
                 </TouchableOpacity>
@@ -445,38 +716,51 @@ export function DrawingCanvasModal({
               style={[styles.actionPill, { borderColor: colors.border }]}
               onPress={handleClear}
             >
-              <MaterialCommunityIcons name="delete-outline" size={22} color={colors.text} />
+              <MaterialCommunityIcons
+                name="delete-outline"
+                size={22}
+                color={colors.text}
+              />
             </TouchableOpacity>
           </ScrollView>
 
           {showPalette && (
-            <View style={[styles.paletteRow, { borderTopColor: colors.border }]}>
-              {COLORS.map((color) => {
-                const isActive = activeColor === color;
-                return (
-                  <TouchableOpacity
-                    key={color}
-                    onPress={() => {
-                      setActiveColor(color);
-                      setShowPalette(false);
-                    }}
-                    style={[
-                      styles.colorChip,
-                      {
-                        backgroundColor: color,
-                        borderColor: color === "#FFFFFF" ? colors.border : color,
-                        shadowColor: paletteShadow,
-                      },
-                      isActive && styles.colorChipActive,
-                    ]}
-                  >
-                    {color === "#FFFFFF" ? (
-                      <MaterialCommunityIcons name="check" size={14} color="#111827" />
-                    ) : null}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled>
+              <View
+                style={[styles.paletteRow, { borderTopColor: colors.border }]}
+              >
+                {COLORS.map((color) => {
+                  const isActive = activeColor === color;
+                  return (
+                    <TouchableOpacity
+                      key={color}
+                      onPress={() => {
+                        setActiveColor(color);
+                        setShowPalette(false);
+                      }}
+                      style={[
+                        styles.colorChip,
+                        {
+                          backgroundColor: color,
+                          borderColor:
+                            color === "#FFFFFF" ? colors.border : color,
+                          shadowColor: paletteShadow,
+                        },
+                        isActive && styles.colorChipActive,
+                      ]}
+                    >
+                      {isActive ? (
+                        <MaterialCommunityIcons
+                          name="check"
+                          size={14}
+                          color={color === "#FFFFFF" ? "#111827" : "#FFFFFF"}
+                        />
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
           )}
         </View>
       </SafeAreaView>
@@ -510,12 +794,10 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    padding: 16,
     justifyContent: "center",
   },
   canvasFrame: {
     flex: 1,
-    borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.06)",
@@ -557,18 +839,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   paletteRow: {
-    marginTop: 12,
     paddingHorizontal: 14,
     paddingTop: 12,
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "flex-start",
     gap: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   colorChip: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
@@ -579,5 +860,36 @@ const styles = StyleSheet.create({
   },
   colorChipActive: {
     transform: [{ scale: 1.08 }],
+  },
+  adjustmentsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginBottom: 8,
+  },
+  adjustmentItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  adjustmentLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  stepperContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  stepperButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
