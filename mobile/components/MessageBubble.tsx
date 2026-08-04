@@ -71,12 +71,15 @@ function formatRemainingTime(totalSeconds: number) {
 
 function ScheduledCountdown({ targetTime }: { targetTime: number }) {
   const [timeLeft, setTimeLeft] = useState(
-    Math.max(0, Math.round((targetTime - Date.now()) / 1000))
+    Math.max(0, Math.round((targetTime - Date.now()) / 1000)),
   );
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const remaining = Math.max(0, Math.round((targetTime - Date.now()) / 1000));
+      const remaining = Math.max(
+        0,
+        Math.round((targetTime - Date.now()) / 1000),
+      );
       setTimeLeft(remaining);
       if (remaining <= 0) {
         clearInterval(timer);
@@ -86,9 +89,26 @@ function ScheduledCountdown({ targetTime }: { targetTime: number }) {
   }, [targetTime]);
 
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, opacity: 0.85 }}>
-      <Clock size={12} color="rgba(255,255,255,0.7)" style={{ marginRight: 4 }} />
-      <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.9)", fontWeight: "600" }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 4,
+        opacity: 0.85,
+      }}
+    >
+      <Clock
+        size={12}
+        color="rgba(255,255,255,0.7)"
+        style={{ marginRight: 4 }}
+      />
+      <Text
+        style={{
+          fontSize: 11,
+          color: "rgba(255,255,255,0.9)",
+          fontWeight: "600",
+        }}
+      >
         {formatRemainingTime(timeLeft)}
       </Text>
     </View>
@@ -193,7 +213,9 @@ const isAudioUrl = (url: string) =>
   url.includes("/uploads/audio");
 
 const isVideoUrl = (url: string) =>
-  /\.(mp4|mov|webm|mkv|avi|quicktime|qt|3gp|m4v|flv|wmv|mpg|mpeg)$/i.test(url.split("?")[0]) ||
+  /\.(mp4|mov|webm|mkv|avi|quicktime|qt|3gp|m4v|flv|wmv|mpg|mpeg)$/i.test(
+    url.split("?")[0],
+  ) ||
   url.includes("data:video/") ||
   url.includes("/uploads/videos") ||
   url.includes("gstatic.com/video") ||
@@ -363,7 +385,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const forwardedContentIsLink = !!(
     forwarded?.content &&
-    (forwarded.content.startsWith("http://") || forwarded.content.startsWith("https://"))
+    (forwarded.content.startsWith("http://") ||
+      forwarded.content.startsWith("https://"))
   );
 
   const mediaUrl = isForwarded
@@ -451,7 +474,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     isContactShare ||
     isPixShare ||
     isLocationShare ||
-    ((contentIsLink || forwardedContentIsLink) && (isImage || isVideo || youtubeId))
+    ((contentIsLink || forwardedContentIsLink) &&
+      (isImage || isVideo || youtubeId))
       ? null
       : isForwarded
         ? forwarded?.content
@@ -555,7 +579,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               ? [styles.myMessage, { backgroundColor: colors.tint }]
               : [styles.theirMessage, { backgroundColor: colors.surface }],
             styles.locationShareCard,
-            { borderColor: colors.border, marginBottom: 0, padding: 0, overflow: "hidden" },
+            {
+              borderColor: colors.border,
+              marginBottom: 0,
+              padding: 0,
+              overflow: "hidden",
+            },
           ]}
           onPress={handleOpenMap}
           onLongPress={onLongPress}
@@ -565,14 +594,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <Text
               style={[
                 styles.senderUsername,
-                { color: colors.tint, marginTop: 8, marginLeft: 12, marginBottom: 4 },
+                {
+                  color: colors.tint,
+                  marginTop: 8,
+                  marginLeft: 12,
+                  marginBottom: 4,
+                },
               ]}
             >
               {item.sender_username}
             </Text>
           ) : null}
 
-          <View style={{ width: "100%", height: 120, backgroundColor: colors.border }} pointerEvents="none">
+          <View
+            style={{
+              width: "100%",
+              height: 120,
+              backgroundColor: colors.border,
+            }}
+            pointerEvents="none"
+          >
             <WebView
               originWhitelist={["*"]}
               source={{
@@ -607,7 +648,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   </script>
 </body>
 </html>
-                `
+                `,
               }}
               style={{ width: "100%", height: 120 }}
               scrollEnabled={false}
@@ -628,7 +669,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {locationShareData.address ? (
               <Text
                 style={{
-                  color: isMine ? "rgba(255, 255, 255, 0.85)" : colors.textSecondary,
+                  color: isMine
+                    ? "rgba(255, 255, 255, 0.85)"
+                    : colors.textSecondary,
                   fontSize: 12,
                   marginTop: 2,
                 }}
@@ -638,15 +681,24 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </Text>
             ) : null}
 
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", alignItems: "center", marginTop: 6 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                marginTop: 6,
+              }}
+            >
               <Text
                 style={[
                   styles.messageTime,
                   {
-                    color: isMine ? "rgba(255, 255, 255, 0.7)" : colors.textSecondary,
+                    color: isMine
+                      ? "rgba(255, 255, 255, 0.7)"
+                      : colors.textSecondary,
                     fontSize: 10,
                     marginRight: 4,
-                  }
+                  },
                 ]}
               >
                 {new Date(item.created_at).toLocaleTimeString([], {
@@ -659,16 +711,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </View>
         </TouchableOpacity>
         {item.reaction && (
-          <View style={[
-            styles.reactionPill,
-            {
-              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-              borderColor: colors.border,
-              alignSelf: "flex-start",
-              marginTop: 4,
-              marginBottom: 2,
-            }
-          ]}>
+          <View
+            style={[
+              styles.reactionPill,
+              {
+                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                borderColor: colors.border,
+                alignSelf: "flex-start",
+                marginTop: 4,
+                marginBottom: 2,
+              },
+            ]}
+          >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
           </View>
         )}
@@ -832,16 +886,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </View>
         </TouchableOpacity>
         {item.reaction && (
-          <View style={[
-            styles.reactionPill,
-            {
-              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-              borderColor: colors.border,
-              alignSelf: "flex-start",
-              marginTop: 4,
-              marginBottom: 2,
-            }
-          ]}>
+          <View
+            style={[
+              styles.reactionPill,
+              {
+                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                borderColor: colors.border,
+                alignSelf: "flex-start",
+                marginTop: 4,
+                marginBottom: 2,
+              },
+            ]}
+          >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
           </View>
         )}
@@ -973,16 +1029,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </View>
         </TouchableOpacity>
         {item.reaction && (
-          <View style={[
-            styles.reactionPill,
-            {
-              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-              borderColor: colors.border,
-              alignSelf: "flex-start",
-              marginTop: 4,
-              marginBottom: 2,
-            }
-          ]}>
+          <View
+            style={[
+              styles.reactionPill,
+              {
+                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                borderColor: colors.border,
+                alignSelf: "flex-start",
+                marginTop: 4,
+                marginBottom: 2,
+              },
+            ]}
+          >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
           </View>
         )}
@@ -1119,16 +1177,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </View>
         </View>
         {item.reaction && (
-          <View style={[
-            styles.reactionPill,
-            {
-              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-              borderColor: colors.border,
-              alignSelf: "flex-start",
-              marginTop: 4,
-              marginBottom: 2,
-            }
-          ]}>
+          <View
+            style={[
+              styles.reactionPill,
+              {
+                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                borderColor: colors.border,
+                alignSelf: "flex-start",
+                marginTop: 4,
+                marginBottom: 2,
+              },
+            ]}
+          >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
           </View>
         )}
@@ -1295,16 +1355,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </View>
         </TouchableOpacity>
         {item.reaction && (
-          <View style={[
-            styles.reactionPill,
-            {
-              backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-              borderColor: colors.border,
-              alignSelf: "flex-start",
-              marginTop: 4,
-              marginBottom: 2,
-            }
-          ]}>
+          <View
+            style={[
+              styles.reactionPill,
+              {
+                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                borderColor: colors.border,
+                alignSelf: "flex-start",
+                marginTop: 4,
+                marginBottom: 2,
+              },
+            ]}
+          >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
           </View>
         )}
@@ -1367,7 +1429,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               : [styles.theirMessage, { backgroundColor: colors.surface }],
             { marginBottom: 0, flexShrink: 1 },
             isAudio && { padding: 4 },
-            (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && { padding: 4 },
+            (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
+              padding: 4,
+            },
             item.status === "scheduled" && {
               opacity: 0.7,
               borderStyle: "dashed",
@@ -1376,330 +1440,355 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             },
           ]}
         >
-        {isGroup && !isMine && item.sender_username ? (
-          <Text
-            style={[
-              styles.senderUsername,
-              { color: colors.tint },
-              (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
-                marginHorizontal: 8,
-                marginTop: 6,
-                marginBottom: 4,
-              },
-            ]}
-          >
-            {item.sender_username}
-          </Text>
-        ) : null}
-
-        {isForwarded && forwarded && (
-          <View
-            style={[
-              styles.forwardHeaderRow,
-              (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
-                marginHorizontal: 8,
-                marginTop: 4,
-              },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="share"
-              size={14}
-              color={isMine ? "rgba(255,255,255,0.7)" : colors.textSecondary}
-              style={{ marginRight: 4 }}
-            />
+          {isGroup && !isMine && item.sender_username ? (
             <Text
               style={[
-                styles.forwardHeaderText,
-                {
-                  color: isMine
-                    ? "rgba(255,255,255,0.85)"
-                    : colors.textSecondary,
+                styles.senderUsername,
+                { color: colors.tint },
+                (isImage ||
+                  isVideo ||
+                  youtubeId ||
+                  (!!fullUrl && !isAudio)) && {
+                  marginHorizontal: 8,
+                  marginTop: 6,
+                  marginBottom: 4,
                 },
               ]}
-              numberOfLines={1}
             >
-              Encaminhada de {forwarded.sender_username}
+              {item.sender_username}
             </Text>
+          ) : null}
+
+          {isForwarded && forwarded && (
+            <View
+              style={[
+                styles.forwardHeaderRow,
+                (isImage ||
+                  isVideo ||
+                  youtubeId ||
+                  (!!fullUrl && !isAudio)) && {
+                  marginHorizontal: 8,
+                  marginTop: 4,
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="share"
+                size={14}
+                color={isMine ? "rgba(255,255,255,0.7)" : colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={[
+                  styles.forwardHeaderText,
+                  {
+                    color: isMine
+                      ? "rgba(255,255,255,0.85)"
+                      : colors.textSecondary,
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                Encaminhada de {forwarded.sender_username}
+              </Text>
+            </View>
+          )}
+
+          {fullUrl && (
+            <>
+              {isImage ? (
+                <TouchableOpacity
+                  style={styles.mediaTouchable}
+                  onPress={() => setIsFullScreen(true)}
+                  onLongPress={onLongPress}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.mediaFrame}>
+                    {isSvgMedia ? (
+                      <SvgUri
+                        style={[StyleSheet.absoluteFillObject, styles.mediaSvg]}
+                        uri={fullUrl}
+                        width="100%"
+                        height="100%"
+                        preserveAspectRatio="xMidYMid slice"
+                      />
+                    ) : (
+                      <Image
+                        source={{ uri: fullUrl }}
+                        style={StyleSheet.absoluteFillObject}
+                        resizeMode="cover"
+                      />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ) : isAudio ? (
+                <AudioPlayer
+                  uri={fullUrl}
+                  isMine={isMine}
+                  onLongPress={onLongPress}
+                />
+              ) : isVideo ? (
+                <TouchableOpacity
+                  style={styles.videoContainer}
+                  onPress={() => setIsFullScreen(true)}
+                  onLongPress={onLongPress}
+                  activeOpacity={0.9}
+                >
+                  <MessageVideo uri={fullUrl} isFullScreen={false} />
+                  <View style={styles.videoPlayOverlay}>
+                    <PlayIcon size={32} color="#fff" fill="#fff" />
+                  </View>
+                </TouchableOpacity>
+              ) : youtubeId ? null : (
+                <TouchableOpacity
+                  style={[
+                    styles.docBubble,
+                    isMine ? styles.docBubbleMine : styles.docBubbleTheir,
+                  ]}
+                  onPress={() => {
+                    if (
+                      fullUrl.startsWith("http://") ||
+                      fullUrl.startsWith("https://")
+                    ) {
+                      router.push({
+                        pathname: "/browser",
+                        params: { url: fullUrl },
+                      });
+                    } else {
+                      Linking.openURL(fullUrl);
+                    }
+                  }}
+                  onLongPress={onLongPress}
+                >
+                  <FileIcon
+                    size={18}
+                    color={isMine ? "#fff" : colors.text}
+                    style={{ marginRight: 10 }}
+                  />
+                  <View style={styles.docInfo}>
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.docName,
+                        isMine
+                          ? styles.docNameMine
+                          : [styles.docNameTheir, { color: colors.text }],
+                      ]}
+                    >
+                      {fileName}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.docSubtitle,
+                        isMine
+                          ? styles.docSubMine
+                          : [
+                              styles.docSubTheir,
+                              { color: colors.textSecondary },
+                            ],
+                      ]}
+                    >
+                      {(() => {
+                        const ext = getFileExtensionLabel(
+                          fileName ||
+                            (mediaUrl ? mediaUrl.split("/").pop() : null),
+                        );
+                        const parts: string[] = [];
+                        if (fileSizeStr) parts.push(fileSizeStr);
+                        if (ext) parts.push(ext);
+                        return parts.length > 0
+                          ? parts.join(" · ")
+                          : "Tap to open";
+                      })()}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+          {youtubeId ? (
+            <TouchableOpacity
+              style={styles.youtubeThumbnailContainer}
+              onPress={() => {
+                const youtubeUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+                router.push({
+                  pathname: "/browser",
+                  params: { url: youtubeUrl },
+                });
+              }}
+              onLongPress={onLongPress}
+              activeOpacity={0.9}
+            >
+              <Image
+                source={{
+                  uri: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`,
+                }}
+                style={styles.youtubeThumbnail}
+                resizeMode="cover"
+              />
+              <View style={styles.videoPlayOverlay}>
+                <PlayIcon size={40} color="#fff" fill="#fff" />
+              </View>
+            </TouchableOpacity>
+          ) : null}
+          {messageContent && !(mediaUrl && isAudioUrl(mediaUrl)) ? (
+            <Text
+              style={[
+                isMine
+                  ? styles.myMessageText
+                  : [styles.messageText, { color: colors.text }],
+                (isImage ||
+                  isVideo ||
+                  youtubeId ||
+                  (!!fullUrl && !isAudio)) && {
+                  marginHorizontal: 8,
+                  marginTop: 6,
+                  marginBottom: 2,
+                },
+              ]}
+            >
+              {messageContent}
+            </Text>
+          ) : null}
+          {commentText ? (
+            <Text
+              style={[
+                isMine
+                  ? styles.myMessageText
+                  : [styles.messageText, { color: colors.text }],
+                { marginTop: messageContent ? 4 : 0 },
+                (isImage ||
+                  isVideo ||
+                  youtubeId ||
+                  (!!fullUrl && !isAudio)) && {
+                  marginHorizontal: 8,
+                  marginBottom: 2,
+                },
+              ]}
+            >
+              {commentText}
+            </Text>
+          ) : null}
+
+          {item.status === "scheduled" && item.scheduled_for && (
+            <ScheduledCountdown targetTime={item.scheduled_for} />
+          )}
+
+          <View
+            style={[
+              styles.timeContainer,
+              (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
+                marginHorizontal: 6,
+                marginBottom: 2,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.messageTime,
+                isMine
+                  ? styles.myMessageTime
+                  : [styles.theirMessageTime, { color: colors.textSecondary }],
+              ]}
+            >
+              {new Date(item.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+            {isMine ? renderStatusIcons() : null}
+          </View>
+
+          {isUploadingAttachment && (
+            <UploadProgressLine
+              label={uploadStatusLabel}
+              isMine={isMine}
+              trackColor={
+                isMine ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.08)"
+              }
+              accentColor={isMine ? "#FFFFFF" : colors.tint}
+            />
+          )}
+
+          {fullUrl && isImage && (
+            <Modal
+              visible={isFullScreen}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setIsFullScreen(false)}
+            >
+              <TouchableWithoutFeedback onPress={() => setIsFullScreen(false)}>
+                <View style={styles.modalBackground}>
+                  <SafeAreaView style={styles.modalSafeArea}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setIsFullScreen(false)}
+                      activeOpacity={0.7}
+                    >
+                      <ArrowLeft size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableWithoutFeedback>
+                      <View style={styles.imageContainer}>
+                        {isSvgMedia ? (
+                          <SvgUri uri={fullUrl} width="100%" height="100%" />
+                        ) : (
+                          <Image
+                            source={{ uri: fullUrl }}
+                            style={styles.fullImage}
+                            resizeMode="contain"
+                          />
+                        )}
+                      </View>
+                    </TouchableWithoutFeedback>
+                  </SafeAreaView>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+          )}
+          {fullUrl && isVideo && isFullScreen && (
+            <Modal
+              visible={isFullScreen}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setIsFullScreen(false)}
+            >
+              <TouchableWithoutFeedback onPress={() => setIsFullScreen(false)}>
+                <View style={styles.modalBackground}>
+                  <SafeAreaView style={styles.modalSafeArea}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setIsFullScreen(false)}
+                      activeOpacity={0.7}
+                    >
+                      <ArrowLeft size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableWithoutFeedback>
+                      <View style={styles.videoContainerFull}>
+                        <MessageVideo uri={fullUrl} isFullScreen={true} />
+                      </View>
+                    </TouchableWithoutFeedback>
+                  </SafeAreaView>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+          )}
+        </View>
+        {item.reaction && (
+          <View
+            style={[
+              styles.reactionPill,
+              {
+                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                borderColor: colors.border,
+                alignSelf: "flex-start",
+                marginTop: 4,
+                marginBottom: 2,
+              },
+            ]}
+          >
+            <Text style={styles.reactionPillText}>{item.reaction}</Text>
           </View>
         )}
-
-        {fullUrl && (
-          <>
-            {isImage ? (
-              <TouchableOpacity
-                style={styles.mediaTouchable}
-                onPress={() => setIsFullScreen(true)}
-                onLongPress={onLongPress}
-                activeOpacity={0.9}
-              >
-                <View style={styles.mediaFrame}>
-                  {isSvgMedia ? (
-                    <SvgUri
-                      style={[
-                        StyleSheet.absoluteFillObject,
-                        styles.mediaSvg,
-                      ]}
-                      uri={fullUrl}
-                      width="100%"
-                      height="100%"
-                      preserveAspectRatio="xMidYMid slice"
-                    />
-                  ) : (
-                    <Image
-                      source={{ uri: fullUrl }}
-                      style={StyleSheet.absoluteFillObject}
-                      resizeMode="cover"
-                    />
-                  )}
-                </View>
-              </TouchableOpacity>
-            ) : isAudio ? (
-              <AudioPlayer uri={fullUrl} isMine={isMine} onLongPress={onLongPress} />
-            ) : isVideo ? (
-              <TouchableOpacity
-                style={styles.videoContainer}
-                onPress={() => setIsFullScreen(true)}
-                onLongPress={onLongPress}
-                activeOpacity={0.9}
-              >
-                <MessageVideo uri={fullUrl} isFullScreen={false} />
-                <View style={styles.videoPlayOverlay}>
-                  <PlayIcon size={32} color="#fff" fill="#fff" />
-                </View>
-              </TouchableOpacity>
-            ) : youtubeId ? null : (
-              <TouchableOpacity
-                style={[
-                  styles.docBubble,
-                  isMine ? styles.docBubbleMine : styles.docBubbleTheir,
-                ]}
-                onPress={() => {
-                  if (
-                    fullUrl.startsWith("http://") ||
-                    fullUrl.startsWith("https://")
-                  ) {
-                    router.push({
-                      pathname: "/browser",
-                      params: { url: fullUrl },
-                    });
-                  } else {
-                    Linking.openURL(fullUrl);
-                  }
-                }}
-                onLongPress={onLongPress}
-              >
-                <FileIcon
-                  size={18}
-                  color={isMine ? "#fff" : colors.text}
-                  style={{ marginRight: 10 }}
-                />
-                <View style={styles.docInfo}>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.docName,
-                      isMine
-                        ? styles.docNameMine
-                        : [styles.docNameTheir, { color: colors.text }],
-                    ]}
-                  >
-                    {fileName}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.docSubtitle,
-                      isMine
-                        ? styles.docSubMine
-                        : [styles.docSubTheir, { color: colors.textSecondary }],
-                    ]}
-                  >
-                    {(() => {
-                      const ext = getFileExtensionLabel(fileName || (mediaUrl ? mediaUrl.split("/").pop() : null));
-                      const parts: string[] = [];
-                      if (fileSizeStr) parts.push(fileSizeStr);
-                      if (ext) parts.push(ext);
-                      return parts.length > 0 ? parts.join(" · ") : "Tap to open";
-                    })()}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          </>
-        )}
-        {youtubeId ? (
-          <TouchableOpacity
-            style={styles.youtubeThumbnailContainer}
-            onPress={() => {
-              const youtubeUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
-              router.push({
-                pathname: "/browser",
-                params: { url: youtubeUrl },
-              });
-            }}
-            onLongPress={onLongPress}
-            activeOpacity={0.9}
-          >
-            <Image
-              source={{
-                uri: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`,
-              }}
-              style={styles.youtubeThumbnail}
-              resizeMode="cover"
-            />
-            <View style={styles.videoPlayOverlay}>
-              <PlayIcon size={40} color="#fff" fill="#fff" />
-            </View>
-          </TouchableOpacity>
-        ) : null}
-        {messageContent && !(mediaUrl && isAudioUrl(mediaUrl)) ? (
-          <Text
-            style={[
-              isMine
-                ? styles.myMessageText
-                : [styles.messageText, { color: colors.text }],
-              (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
-                marginHorizontal: 8,
-                marginTop: 6,
-                marginBottom: 2,
-              },
-            ]}
-          >
-            {messageContent}
-          </Text>
-        ) : null}
-        {commentText ? (
-          <Text
-            style={[
-              isMine
-                ? styles.myMessageText
-                : [styles.messageText, { color: colors.text }],
-              { marginTop: messageContent ? 4 : 0 },
-              (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
-                marginHorizontal: 8,
-                marginBottom: 2,
-              },
-            ]}
-          >
-            {commentText}
-          </Text>
-        ) : null}
-
-        {item.status === "scheduled" && item.scheduled_for && (
-          <ScheduledCountdown targetTime={item.scheduled_for} />
-        )}
-
-        <View
-          style={[
-            styles.timeContainer,
-            (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
-              marginHorizontal: 6,
-              marginBottom: 2,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageTime,
-              isMine
-                ? styles.myMessageTime
-                : [styles.theirMessageTime, { color: colors.textSecondary }],
-            ]}
-          >
-            {new Date(item.created_at).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Text>
-          {isMine ? renderStatusIcons() : null}
-        </View>
-
-        {isUploadingAttachment && (
-          <UploadProgressLine
-            label={uploadStatusLabel}
-            isMine={isMine}
-            trackColor={isMine ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.08)"}
-            accentColor={isMine ? "#FFFFFF" : colors.tint}
-          />
-        )}
-
-        {fullUrl && isImage && (
-          <Modal
-            visible={isFullScreen}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setIsFullScreen(false)}
-          >
-            <TouchableWithoutFeedback onPress={() => setIsFullScreen(false)}>
-              <View style={styles.modalBackground}>
-                <SafeAreaView style={styles.modalSafeArea}>
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => setIsFullScreen(false)}
-                    activeOpacity={0.7}
-                  >
-                    <ArrowLeft size={24} color="#fff" />
-                  </TouchableOpacity>
-                  <TouchableWithoutFeedback>
-                    <View style={styles.imageContainer}>
-                      {isSvgMedia ? (
-                        <SvgUri uri={fullUrl} width="100%" height="100%" />
-                      ) : (
-                        <Image
-                          source={{ uri: fullUrl }}
-                          style={styles.fullImage}
-                          resizeMode="contain"
-                        />
-                      )}
-                    </View>
-                  </TouchableWithoutFeedback>
-                </SafeAreaView>
-              </View>
-            </TouchableWithoutFeedback>
-          </Modal>
-        )}
-        {fullUrl && isVideo && isFullScreen && (
-          <Modal
-            visible={isFullScreen}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setIsFullScreen(false)}
-          >
-            <TouchableWithoutFeedback onPress={() => setIsFullScreen(false)}>
-              <View style={styles.modalBackground}>
-                <SafeAreaView style={styles.modalSafeArea}>
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => setIsFullScreen(false)}
-                    activeOpacity={0.7}
-                  >
-                    <ArrowLeft size={24} color="#fff" />
-                  </TouchableOpacity>
-                  <TouchableWithoutFeedback>
-                    <View style={styles.videoContainerFull}>
-                      <MessageVideo uri={fullUrl} isFullScreen={true} />
-                    </View>
-                  </TouchableWithoutFeedback>
-                </SafeAreaView>
-              </View>
-            </TouchableWithoutFeedback>
-          </Modal>
-        )}
-      </View>
-      {item.reaction && (
-        <View style={[
-          styles.reactionPill,
-          {
-            backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-            borderColor: colors.border,
-            alignSelf: "flex-start",
-            marginTop: 4,
-            marginBottom: 2,
-          }
-        ]}>
-          <Text style={styles.reactionPillText}>{item.reaction}</Text>
-        </View>
-      )}
       </View>
     </View>
   );
@@ -1709,7 +1798,7 @@ const styles = StyleSheet.create({
   youtubeThumbnailContainer: {
     width: 260,
     height: 180,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
     marginBottom: 4,
     position: "relative",
@@ -1759,7 +1848,7 @@ const styles = StyleSheet.create({
   mediaFrame: {
     width: 240,
     height: 300,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "#FFFFFF",
   },
@@ -1774,7 +1863,7 @@ const styles = StyleSheet.create({
   videoContainer: {
     width: 260,
     height: 180,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
     marginBottom: 4,
     position: "relative",
@@ -1804,7 +1893,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 4,
     width: 220,
   },
