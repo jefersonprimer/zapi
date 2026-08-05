@@ -89,6 +89,9 @@ const DATE_REGEX = /(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/;
  * 📝 Detector 1: Intent de Nota
  */
 export function detectNoteIntent(text: string): IntentDetectionResult {
+  if (!text || typeof text !== "string") {
+    return { intent: "note", score: 0, entities: { title: "Nota", content: "" } };
+  }
   const lower = text.toLowerCase();
   const rawLines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   let score = 0;
@@ -131,6 +134,9 @@ export function detectNoteIntent(text: string): IntentDetectionResult {
  * ⏰ Detector 2: Intent de Lembrete
  */
 export function detectReminderIntent(text: string): IntentDetectionResult {
+  if (!text || typeof text !== "string") {
+    return { intent: "reminder", score: 0, entities: { title: "", content: "" } };
+  }
   const lower = text.toLowerCase();
   let score = 0;
 
@@ -180,6 +186,9 @@ export function detectReminderIntent(text: string): IntentDetectionResult {
  * 📅 Detector 3: Intent de Evento
  */
 export function detectEventIntent(text: string): IntentDetectionResult {
+  if (!text || typeof text !== "string") {
+    return { intent: "event", score: 0, entities: { title: "", content: "" } };
+  }
   const lower = text.toLowerCase();
   let score = 0;
 

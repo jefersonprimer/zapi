@@ -164,7 +164,9 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
           style={[
             styles.sheetContainer,
             {
-              backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+              backgroundColor: isDark
+                ? "rgba(30, 30, 30, 0.98)"
+                : "rgba(255, 255, 255, 0.98)",
               height: sheetHeight,
             },
           ]}
@@ -229,7 +231,7 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
           <ScrollView contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Título</Text>
             <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+              style={[styles.input, styles.titleInput, { color: colors.text, borderColor: colors.border }]}
               value={title}
               onChangeText={setTitle}
               placeholder="Título"
@@ -333,6 +335,7 @@ const styles = StyleSheet.create({
   },
   typeSelector: {
     flexDirection: "row",
+    justifyContent: "center",
     gap: 8,
     marginBottom: 14,
   },
@@ -351,7 +354,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   label: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
     marginTop: 4,
   },
@@ -359,8 +362,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  titleInput: {
+    fontSize: 20,
+    paddingVertical: 12,
+    fontWeight: "500",
   },
   multilineInput: {
     minHeight: 70,

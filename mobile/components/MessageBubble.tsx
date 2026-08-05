@@ -1223,6 +1223,24 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         </TouchableOpacity>
       )}
       <View style={{ flexDirection: "column", flexShrink: 1 }}>
+        {item.reaction && (
+          <View
+            style={[
+              styles.reactionPill,
+              {
+                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                borderColor: colors.border,
+                alignSelf: "flex-start",
+                marginBottom: -6,
+                marginTop: 2,
+                marginLeft: 10,
+                zIndex: 10,
+              },
+            ]}
+          >
+            <Text style={styles.reactionPillText}>{item.reaction}</Text>
+          </View>
+        )}
         <View
           style={[
             styles.messageBubble,
@@ -1658,22 +1676,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </Modal>
           )}
         </View>
-        {item.reaction && (
-          <View
-            style={[
-              styles.reactionPill,
-              {
-                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                borderColor: colors.border,
-                alignSelf: "flex-start",
-                marginTop: 4,
-                marginBottom: 2,
-              },
-            ]}
-          >
-            <Text style={styles.reactionPillText}>{item.reaction}</Text>
-          </View>
-        )}
 
         {/* Botões de Ação Minimalistas abaixo da mensagem */}
         {(onCreateNote || onCreateReminder || onCreateEvent) && (
