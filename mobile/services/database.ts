@@ -133,6 +133,14 @@ export async function initializeDatabase() {
       FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS custom_stickers (
+      id TEXT PRIMARY KEY,
+      url TEXT NOT NULL,
+      local_path TEXT,
+      title TEXT,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS event_details (
       item_id TEXT PRIMARY KEY,
       start_at TEXT NOT NULL,
@@ -1095,4 +1103,49 @@ export async function removePinnedNoteLocal(): Promise<void> {
   const db = await getDatabase();
   await db.runAsync("DELETE FROM pinned_notes;");
 }
+
+export interface CustomStickerItem {
+  id: string;
+  url: string;
+  local_path?: string | null;
+  title?: string | null;
+  created_at: string;
+}
+
+export async function addCustomStickerLocal(sticker: {
+  id?: string;
+  url: string;
+  local_path?: string;
+  title?: string;
+}): Promise<CustomStickerItem> {
+  const db = await getDatabase();
+  const id = sticker.id || `custom_sticker_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `INSERT INTO custom_stickers (id, url, local_path, title, created_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET url = excluded.url, local_path = excluded.local_path, title = excluded.title`,
+    [id, sticker.url, sticker.local_path || null, sticker.title || null, now]
+  );
+  return {
+    id,
+    url: sticker.url,
+    local_path: sticker.local_path || null,
+    title: sticker.title || null,
+    created_at: now,
+  };
+}
+
+export async function getCustomStickersLocal(): Promise<CustomStickerItem[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<CustomStickerItem>(
+    "SELECT * FROM custom_stickers ORDER BY created_at DESC"
+  );
+}
+
+export async function removeCustomStickerLocal(id: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync("DELETE FROM custom_stickers WHERE id = ?", [id]);
+}
+
 

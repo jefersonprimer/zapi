@@ -16,6 +16,11 @@ import { EmojiKeyboard } from "rn-emoji-keyboard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/context/ThemeContext";
 import { STICKER_PACKS, Sticker } from "@/constants/stickers";
+import {
+  getCustomStickersLocal,
+  removeCustomStickerLocal,
+  CustomStickerItem,
+} from "@/services/database";
 
 interface ChatMediaSelectorProps {
   onEmojiSelected: (emojiObject: { emoji: string }) => void;
@@ -48,8 +53,45 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
   const [loadingGifs, setLoadingGifs] = useState(false);
 
   // Sticker states
-  const [activePackId, setActivePackId] = useState(STICKER_PACKS[0]?.id || "");
+  const [activePackId, setActivePackId] = useState<string>("custom_sqlite");
   const [downloading, setDownloading] = useState(false);
+
+  // Custom SQLite Stickers state
+  const [customStickers, setCustomStickers] = useState<CustomStickerItem[]>([]);
+
+  const loadCustomStickers = useCallback(async () => {
+    try {
+      const stickers = await getCustomStickersLocal();
+      setCustomStickers(stickers);
+    } catch (err) {
+      console.error("Error loading custom stickers from SQLite:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "sticker") {
+      loadCustomStickers();
+    }
+  }, [activeTab, loadCustomStickers]);
+
+  const handleDeleteCustomSticker = (stickerId: string) => {
+    Alert.alert(
+      "Remover Figurinha",
+      "Deseja remover esta figurinha salva?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Remover",
+          style: "destructive",
+          onPress: async () => {
+            await removeCustomStickerLocal(stickerId);
+            loadCustomStickers();
+          },
+        },
+      ]
+    );
+  };
+
 
   const fetchGIFs = useCallback(async (query: string) => {
     setLoadingGifs(true);
@@ -318,6 +360,25 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
                 { borderBottomColor: colors.border },
               ]}
             >
+              {/* Custom SQLite Pack Tab */}
+              <TouchableOpacity
+                style={[
+                  styles.packButton,
+                  activePackId === "custom_sqlite" && {
+                    backgroundColor: colors.background,
+                    borderBottomWidth: 2,
+                    borderBottomColor: colors.brandGreen,
+                  },
+                ]}
+                onPress={() => setActivePackId("custom_sqlite")}
+              >
+                <Text style={styles.packIcon}>⭐</Text>
+                <Text style={[styles.packName, { color: colors.text }]}>
+                  Minhas ({customStickers.length})
+                </Text>
+              </TouchableOpacity>
+
+              {/* Standard Static Packs */}
               {STICKER_PACKS.map((pack) => (
                 <TouchableOpacity
                   key={pack.id}
@@ -339,26 +400,57 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
               ))}
             </View>
 
-            {/* Sticker Grid */}
-            <FlatList
-              data={activePack?.stickers || []}
-              keyExtractor={(item) => item.id}
-              numColumns={4}
-              contentContainerStyle={styles.gridContent}
-              renderItem={({ item }: { item: Sticker }) => (
-                <TouchableOpacity
-                  style={styles.stickerItem}
-                  onPress={() => handleSelectMedia(item.url, true)}
-                >
-                  <Image
-                    source={{ uri: item.url }}
-                    style={styles.stickerImage}
-                    contentFit="contain"
-                    cachePolicy="disk"
-                  />
-                </TouchableOpacity>
-              )}
-            />
+            {/* Sticker Grid (Custom SQLite or Pack) */}
+            {activePackId === "custom_sqlite" ? (
+              <FlatList
+                data={customStickers}
+                keyExtractor={(item) => item.id}
+                numColumns={4}
+                contentContainerStyle={styles.gridContent}
+                renderItem={({ item }: { item: CustomStickerItem }) => (
+                  <TouchableOpacity
+                    style={styles.stickerItem}
+                    onPress={() => handleSelectMedia(item.local_path || item.url, true)}
+                    onLongPress={() => handleDeleteCustomSticker(item.id)}
+                  >
+                    <Image
+                      source={{ uri: item.local_path || item.url }}
+                      style={styles.stickerImage}
+                      contentFit="contain"
+                      cachePolicy="disk"
+                    />
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.centerContainer}>
+                    <Ionicons name="images-outline" size={32} color={colors.textSecondary} />
+                    <Text style={{ color: colors.textSecondary, marginTop: 8, textAlign: "center" }}>
+                      Nenhuma figurinha salva.{"\n"}Pesquise na web no chat para adicionar!
+                    </Text>
+                  </View>
+                }
+              />
+            ) : (
+              <FlatList
+                data={activePack?.stickers || []}
+                keyExtractor={(item) => item.id}
+                numColumns={4}
+                contentContainerStyle={styles.gridContent}
+                renderItem={({ item }: { item: Sticker }) => (
+                  <TouchableOpacity
+                    style={styles.stickerItem}
+                    onPress={() => handleSelectMedia(item.url, true)}
+                  >
+                    <Image
+                      source={{ uri: item.url }}
+                      style={styles.stickerImage}
+                      contentFit="contain"
+                      cachePolicy="disk"
+                    />
+                  </TouchableOpacity>
+                )}
+              />
+            )}
           </View>
         )}
       </View>

@@ -465,6 +465,27 @@ export function ChatMessageOptionsModal({
 
                 <TouchableOpacity
                   style={styles.modalRowOption}
+                  onPress={() => hideModal(onSelect)}
+                >
+                  <View
+                    style={[
+                      styles.modalRowIconContainer,
+                      { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="checkbox-multiple-marked-outline"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </View>
+                  <Text style={[styles.modalRowText, { color: colors.text }]}>
+                    Selecionar Mais
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalRowOption}
                   onPress={() => hideModal(onDelete)}
                 >
                   <View

@@ -17,6 +17,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import * as FileSystem from "expo-file-system/legacy";
 import { BrowserMediaActionsModal } from "./BrowserMediaActionsModal";
+import { StickerEditorModal } from "./StickerEditorModal";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -44,6 +45,7 @@ export function WebSearchBottomSheet({
   const [searchQuery, setSearchQuery] = useState("");
   const [currentUrl, setCurrentUrl] = useState("https://www.google.com");
   const [loading, setLoading] = useState(false);
+
   const [mediaModalState, setMediaModalState] = useState<{
     visible: boolean;
     mediaType: "image" | "video" | null;
@@ -52,6 +54,14 @@ export function WebSearchBottomSheet({
     visible: false,
     mediaType: null,
     src: null,
+  });
+
+  const [editorState, setEditorState] = useState<{
+    visible: boolean;
+    imageUri: string | null;
+  }>({
+    visible: false,
+    imageUri: null,
   });
   const webViewRef = useRef<WebView>(null);
 
@@ -777,6 +787,26 @@ export function WebSearchBottomSheet({
         src={mediaModalState.src}
         onOpenInNewTab={(url) => {
           setCurrentUrl(url);
+        }}
+        onTransformSticker={(imageUri) => {
+          setEditorState({
+            visible: true,
+            imageUri: imageUri,
+          });
+        }}
+      />
+
+      <StickerEditorModal
+        visible={editorState.visible}
+        imageUri={editorState.imageUri}
+        onClose={() => setEditorState({ visible: false, imageUri: null })}
+        onSaveAndSend={(editedStickerUri) => {
+          onSendMedia({
+            uri: editedStickerUri,
+            name: `sticker_${Date.now()}.webp`,
+            type: "image",
+            mimeType: "image/webp",
+          });
         }}
       />
     </View>

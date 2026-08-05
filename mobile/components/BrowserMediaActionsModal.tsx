@@ -14,12 +14,15 @@ import { useAppTheme } from "@/context/ThemeContext";
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library";
 
+import { addCustomStickerLocal } from "@/services/database";
+
 interface BrowserMediaActionsModalProps {
   visible: boolean;
   onClose: () => void;
   mediaType: "image" | "video" | null;
   src: string | null;
   onOpenInNewTab: (url: string) => void;
+  onTransformSticker?: (src: string) => void;
 }
 
 export function BrowserMediaActionsModal({
@@ -28,6 +31,7 @@ export function BrowserMediaActionsModal({
   mediaType,
   src,
   onOpenInNewTab,
+  onTransformSticker,
 }: BrowserMediaActionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const actionsAnimation = useRef(new Animated.Value(0)).current;
@@ -255,6 +259,62 @@ export function BrowserMediaActionsModal({
           </View>
           <Text style={[styles.modalRowText, { color: colors.text }]}>
             Copiar Link
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.modalRowOption,
+            {
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.border,
+            },
+          ]}
+          onPress={async () => {
+            try {
+              let localUri = src;
+              if (src.startsWith("http://") || src.startsWith("https://")) {
+                const filename = `sticker_${Date.now()}.webp`;
+                const localPath = `${FileSystem.documentDirectory}stickers/${filename}`;
+                const dirInfo = await FileSystem.getInfoAsync(`${FileSystem.documentDirectory}stickers/`);
+                if (!dirInfo.exists) {
+                  await FileSystem.makeDirectoryAsync(`${FileSystem.documentDirectory}stickers/`, { intermediates: true });
+                }
+                const dl = await FileSystem.downloadAsync(src, localPath);
+                if (dl.status === 200) {
+                  localUri = dl.uri;
+                }
+              }
+              await addCustomStickerLocal({
+                url: src,
+                local_path: localUri,
+                title: "Figurinha da Web",
+              });
+              Alert.alert("Sucesso! 🎉", "Imagem salva nas suas figurinhas locais!");
+              if (onTransformSticker) {
+                onTransformSticker(localUri);
+              }
+            } catch (err) {
+              console.error("Erro ao converter em sticker:", err);
+              Alert.alert("Erro", "Não foi possível transformar a imagem em figurinha.");
+            }
+            hideActionsModal();
+          }}
+        >
+          <View
+            style={[
+              styles.modalRowIconContainer,
+              { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="sticker-emoji"
+              size={20}
+              color={colors.brandGreen || colors.text}
+            />
+          </View>
+          <Text style={[styles.modalRowText, { color: colors.text, fontWeight: "600" }]}>
+            Transformar em Sticker
           </Text>
         </TouchableOpacity>
 
