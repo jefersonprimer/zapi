@@ -27,6 +27,9 @@ interface ChatItemRowProps {
   onSwipeRight: (msg: Message) => void;
   onToggleMessageSelection: (msg: Message, layout?: { x: number; y: number; width: number; height: number }, onlyReactions?: boolean) => void;
   onToggleCallSelection: (callId: string) => void;
+  onCreateNote?: (msg: Message) => void;
+  onCreateReminder?: (msg: Message) => void;
+  onCreateEvent?: (msg: Message) => void;
 }
 
 export const ChatItemRow: React.FC<ChatItemRowProps> = ({
@@ -44,6 +47,9 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
   onSwipeRight,
   onToggleMessageSelection,
   onToggleCallSelection,
+  onCreateNote,
+  onCreateReminder,
+  onCreateEvent,
 }) => {
   const { colors, isDark } = useAppTheme();
   const bubbleRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
@@ -129,6 +135,9 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
               currentUserId={currentUserId}
               isGroup={isGroup}
               onLongPress={handleLongPress}
+              onCreateNote={onCreateNote ? () => onCreateNote(msg) : undefined}
+              onCreateReminder={onCreateReminder ? () => onCreateReminder(msg) : undefined}
+              onCreateEvent={onCreateEvent ? () => onCreateEvent(msg) : undefined}
             />
           </TouchableOpacity>
         </SwipeableMessageRow>

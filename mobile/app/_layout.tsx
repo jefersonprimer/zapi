@@ -215,6 +215,8 @@ function InitialLayout() {
       <Stack.Screen name="archived" options={{ headerShown: false }} />
       <Stack.Screen name="notes" options={{ headerShown: false }} />
       <Stack.Screen name="note-editor" options={{ headerShown: false }} />
+      <Stack.Screen name="items" options={{ headerShown: false }} />
+      <Stack.Screen name="item-editor" options={{ headerShown: false }} />
       <Stack.Screen name="payments" options={{ headerShown: false }} />
       <Stack.Screen name="story-viewer" options={{ headerShown: false, presentation: "fullScreenModal" }} />
       <Stack.Screen name="create-story" options={{ headerShown: false, presentation: "fullScreenModal" }} />

@@ -79,13 +79,13 @@ export default function ExploreScreen() {
       available: true,
     },
     {
-      id: "notes",
-      title: "Notas e Tarefas",
-      description: "Crie e organize suas notas rapidamente.",
+      id: "items",
+      title: "Notas, Lembretes e Eventos",
+      description: "Organize notas, listas, tarefas e calendário em um só lugar.",
       category: "utilities",
       icon: (props) => (
         <MaterialCommunityIcons
-          name="file-document-outline"
+          name="calendar-check-outline"
           size={props.size ?? 24}
           color={props.color}
         />
@@ -93,12 +93,12 @@ export default function ExploreScreen() {
       iconBgColor: "#F3E8FF",
       iconColor: "#A855F7",
       fullDescription:
-        "Anotações rápidas direto do Zapi. Crie notas simples, organize suas ideias e acesse de qualquer lugar. Uma ferramenta leve para capturar o que importa no momento.",
+        "Gerenciador completo do Superapp. Crie notas, listas de compras, agende lembretes com alarme e organize seus compromissos no calendário.",
       details: [
-        "Crie notas com título e conteúdo",
-        "Favorite suas notas importantes",
-        "Acesse de qualquer lugar dentro do Zapi",
-        "Interface simples e rápida",
+        "Notas, checklists e listas de compras",
+        "Lembretes com notificação local",
+        "Eventos com sincronização nativa de calendário",
+        "Conversão em 1 toque entre Nota, Lembrete e Evento",
       ],
       available: true,
     },
@@ -108,8 +108,8 @@ export default function ExploreScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     }
-    if (service.id === "notes") {
-      router.push("/notes");
+    if (service.id === "items" || service.id === "notes") {
+      router.push("/items");
       return;
     }
     if (service.id === "payments") {

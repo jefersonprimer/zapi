@@ -48,6 +48,9 @@ interface MessageBubbleProps {
   currentUserId?: string;
   isGroup?: boolean;
   onLongPress?: () => void;
+  onCreateNote?: () => void;
+  onCreateReminder?: () => void;
+  onCreateEvent?: () => void;
 }
 
 function ScheduledCountdown({ targetTime }: { targetTime: number }) {
@@ -128,6 +131,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   currentUserId,
   isGroup,
   onLongPress,
+  onCreateNote,
+  onCreateReminder,
+  onCreateEvent,
 }) => {
   const { colors, isDark } = useAppTheme();
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -1668,6 +1674,32 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
           </View>
         )}
+
+        {/* Botões de Ação Minimalistas abaixo da mensagem */}
+        {(onCreateNote || onCreateReminder || onCreateEvent) && (
+          <View style={styles.minimalActionRow}>
+            {onCreateNote && (
+              <TouchableOpacity style={styles.minimalChip} onPress={onCreateNote}>
+                <Ionicons name="document-text-outline" size={12} color="#6366F1" />
+                <Text style={[styles.minimalChipText, { color: colors.textSecondary }]}>Nota</Text>
+              </TouchableOpacity>
+            )}
+
+            {onCreateReminder && (
+              <TouchableOpacity style={styles.minimalChip} onPress={onCreateReminder}>
+                <Ionicons name="alarm-outline" size={12} color="#F59E0B" />
+                <Text style={[styles.minimalChipText, { color: colors.textSecondary }]}>Lembrete</Text>
+              </TouchableOpacity>
+            )}
+
+            {onCreateEvent && (
+              <TouchableOpacity style={styles.minimalChip} onPress={onCreateEvent}>
+                <Ionicons name="calendar-outline" size={12} color="#10B981" />
+                <Text style={[styles.minimalChipText, { color: colors.textSecondary }]}>Evento</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -2128,5 +2160,26 @@ const styles = StyleSheet.create({
   locationShareButtonText: {
     fontSize: 14,
     fontWeight: "bold",
+  },
+  minimalActionRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignSelf: "center",
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  minimalChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    backgroundColor: "rgba(100, 116, 139, 0.08)",
+  },
+  minimalChipText: {
+    fontSize: 11,
+    fontWeight: "500",
   },
 });

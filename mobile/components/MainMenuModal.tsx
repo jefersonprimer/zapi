@@ -138,6 +138,17 @@ export default function MainMenuModal({
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => {
+            hideMenu(() => router.push("/items"));
+          }}
+        >
+          <Text style={[styles.menuItemText, { color: colors.text }]}>
+            Notas, Lembretes e Eventos
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => {
             hideMenu(() => router.push("/settings"));
           }}
         >

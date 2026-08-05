@@ -44,6 +44,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useChat } from "@/hooks/useChat";
 import { useChatLists } from "@/hooks/useChatLists";
 import { Ionicons } from "@expo/vector-icons";
+import { analyzeMessageRules, analyzeMessageMultiIntents, IntentSuggestion } from "@/services/chatIntentEngine";
+import { ChatActionCard } from "@/components/ChatActionCard";
+import { ItemEditBottomSheet } from "@/components/ItemEditBottomSheet";
+import { useItemsStore } from "@/store/useItemsStore";
+import { ItemType } from "@/types/item";
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
@@ -259,6 +264,49 @@ export default function ChatScreen() {
     handleSaveLists,
     handleCreateList,
   } = useChatLists(chatId);
+
+  const { createNote, createReminder, createEvent } = useItemsStore();
+  const [activeSuggestion, setActiveSuggestion] = useState<IntentSuggestion | null>(null);
+
+  // Bottom Sheet state
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [sheetType, setSheetType] = useState<ItemType>("note");
+  const [sheetSuggestion, setSheetSuggestion] = useState<IntentSuggestion | null>(null);
+
+  const openSheetForMessage = (msg: any, type: ItemType) => {
+    const parsed = analyzeMessageRules(msg.content);
+    setSheetType(type);
+    setSheetSuggestion(
+      parsed || {
+        id: Math.random().toString(),
+        type,
+        title: msg.content.slice(0, 35) || "Novo Item",
+        content: msg.content,
+        confidence: 100,
+        matchedText: msg.content,
+      }
+    );
+    setBottomSheetVisible(true);
+  };
+
+  // Debounce de 2.5s para analisar as últimas mensagens quando a conversa pausar
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+
+    const timer = setTimeout(() => {
+      // Pega as últimas 5 mensagens
+      const recent = messages.slice(-5);
+      const combinedText = recent.map((m) => m.content).join("\n");
+      const result = analyzeMessageRules(combinedText);
+
+      // Só exibe a sugestão se a pontuação for >= 80 (ou IA remota)
+      if (result && result.confidence >= 80) {
+        setActiveSuggestion(result);
+      }
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [messages]);
 
   const selectedMsg = messages.find((m) => selectedMessageIds.includes(m.id));
   const isMine = selectedMsg ? selectedMsg.sender_id === user?.user_id : false;
@@ -581,6 +629,21 @@ export default function ChatScreen() {
               }
             }}
             onToggleCallSelection={toggleCallSelection}
+            onCreateNote={(() => {
+              if (item.type !== "message") return undefined;
+              const multi = analyzeMessageMultiIntents(item.data.content);
+              return multi.isNote ? (msg) => openSheetForMessage(msg, "note") : undefined;
+            })()}
+            onCreateReminder={(() => {
+              if (item.type !== "message") return undefined;
+              const multi = analyzeMessageMultiIntents(item.data.content);
+              return multi.isReminder ? (msg) => openSheetForMessage(msg, "reminder") : undefined;
+            })()}
+            onCreateEvent={(() => {
+              if (item.type !== "message") return undefined;
+              const multi = analyzeMessageMultiIntents(item.data.content);
+              return multi.isEvent ? (msg) => openSheetForMessage(msg, "event") : undefined;
+            })()}
           />
         )}
         ListEmptyComponent={
@@ -1028,6 +1091,15 @@ export default function ChatScreen() {
           onSelect={() => {
             setMsgOptionsVisible(false);
           }}
+          onCreateNote={() => {
+            if (selectedMsg) openSheetForMessage(selectedMsg, "note");
+          }}
+          onCreateReminder={() => {
+            if (selectedMsg) openSheetForMessage(selectedMsg, "reminder");
+          }}
+          onCreateEvent={() => {
+            if (selectedMsg) openSheetForMessage(selectedMsg, "event");
+          }}
         />
       )}
 
@@ -1042,6 +1114,13 @@ export default function ChatScreen() {
           handleSend(null, link);
           setWebSearchVisible(false);
         }}
+      />
+
+      <ItemEditBottomSheet
+        visible={bottomSheetVisible}
+        initialType={sheetType}
+        suggestion={sheetSuggestion}
+        onClose={() => setBottomSheetVisible(false)}
       />
     </KeyboardAvoidingView>
   );

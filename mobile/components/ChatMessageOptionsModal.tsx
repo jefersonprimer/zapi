@@ -35,6 +35,9 @@ interface ChatMessageOptionsModalProps {
   participantUsername?: string;
   reactionByMe?: boolean;
   onlyReactions?: boolean;
+  onCreateNote?: () => void;
+  onCreateReminder?: () => void;
+  onCreateEvent?: () => void;
 }
 
 const HISTORY_KEY = "zapi_reactions_history";
@@ -99,6 +102,9 @@ export function ChatMessageOptionsModal({
   participantUsername = "Outro",
   reactionByMe = false,
   onlyReactions = false,
+  onCreateNote,
+  onCreateReminder,
+  onCreateEvent,
 }: ChatMessageOptionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const { height: screenHeight, width: screenWidth } = useWindowDimensions();
@@ -106,9 +112,11 @@ export function ChatMessageOptionsModal({
 
   const [reactionsList, setReactionsList] = useState<string[]>(cachedHistory);
   const [isEmojiKeyboardOpen, setIsEmojiKeyboardOpen] = useState(false);
+  const [showMoreSubmenu, setShowMoreSubmenu] = useState(false);
 
   useEffect(() => {
     if (visible) {
+      setShowMoreSubmenu(false);
       getReactionsHistory().then((history) => {
         cachedHistory = history;
         setReactionsList(history);
@@ -367,138 +375,234 @@ export function ChatMessageOptionsModal({
               },
             ]}
           >
-            <TouchableOpacity
-              style={styles.modalRowOption}
-              onPress={() => hideModal(onReply)}
-            >
-              <View
-                style={[
-                  styles.modalRowIconContainer,
-                  { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="reply-outline"
-                  size={24}
-                  color={colors.text}
-                />
-              </View>
-              <Text style={[styles.modalRowText, { color: colors.text }]}>
-                Responder
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.modalRowOption}
-              onPress={() => hideModal(onForward)}
-            >
-              <View
-                style={[
-                  styles.modalRowIconContainer,
-                  { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="share-all-outline"
-                  size={24}
-                  color={colors.text}
-                />
-              </View>
-              <Text style={[styles.modalRowText, { color: colors.text }]}>
-                Encaminhar
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.modalRowOption}
-              onPress={() => hideModal(onCopy)}
-            >
-              <View
-                style={[
-                  styles.modalRowIconContainer,
-                  { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="content-copy"
-                  size={24}
-                  color={colors.text}
-                />
-              </View>
-              <Text style={[styles.modalRowText, { color: colors.text }]}>
-                Copiar
-              </Text>
-            </TouchableOpacity>
-
-            {canEdit && onEdit && (
-              <TouchableOpacity
-                style={styles.modalRowOption}
-                onPress={() => hideModal(onEdit)}
-              >
-                <View
-                  style={[
-                    styles.modalRowIconContainer,
-                    { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-                  ]}
+            {!showMoreSubmenu ? (
+              <>
+                <TouchableOpacity
+                  style={styles.modalRowOption}
+                  onPress={() => hideModal(onReply)}
                 >
-                  <MaterialCommunityIcons
-                    name="pencil-outline"
-                    size={24}
-                    color={colors.text}
-                  />
-                </View>
-                <Text style={[styles.modalRowText, { color: colors.text }]}>
-                  Editar
-                </Text>
-              </TouchableOpacity>
+                  <View
+                    style={[
+                      styles.modalRowIconContainer,
+                      { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="reply-outline"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </View>
+                  <Text style={[styles.modalRowText, { color: colors.text }]}>
+                    Responder
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalRowOption}
+                  onPress={() => hideModal(onForward)}
+                >
+                  <View
+                    style={[
+                      styles.modalRowIconContainer,
+                      { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="share-all-outline"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </View>
+                  <Text style={[styles.modalRowText, { color: colors.text }]}>
+                    Encaminhar
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalRowOption}
+                  onPress={() => hideModal(onCopy)}
+                >
+                  <View
+                    style={[
+                      styles.modalRowIconContainer,
+                      { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="content-copy"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </View>
+                  <Text style={[styles.modalRowText, { color: colors.text }]}>
+                    Copiar
+                  </Text>
+                </TouchableOpacity>
+
+                {canEdit && onEdit && (
+                  <TouchableOpacity
+                    style={styles.modalRowOption}
+                    onPress={() => hideModal(onEdit)}
+                  >
+                    <View
+                      style={[
+                        styles.modalRowIconContainer,
+                        { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="pencil-outline"
+                        size={24}
+                        color={colors.text}
+                      />
+                    </View>
+                    <Text style={[styles.modalRowText, { color: colors.text }]}>
+                      Editar
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={styles.modalRowOption}
+                  onPress={() => hideModal(onDelete)}
+                >
+                  <View
+                    style={[
+                      styles.modalRowIconContainer,
+                      { backgroundColor: isDark ? "#2D2D2D" : "#FF3B30" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="delete-outline"
+                      size={24}
+                      color={isDark ? "#FF3B30" : "#FFFFFF"}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.modalRowText,
+                      { color: "#FF3B30", fontWeight: "600" },
+                    ]}
+                  >
+                    Apagar
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalRowOption}
+                  onPress={() => setShowMoreSubmenu(true)}
+                >
+                  <View
+                    style={[
+                      styles.modalRowIconContainer,
+                      { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="dots-horizontal"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </View>
+                  <Text style={[styles.modalRowText, { color: colors.text }]}>
+                    Mais...
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.modalRowOption}
+                  onPress={() => setShowMoreSubmenu(false)}
+                >
+                  <View
+                    style={[
+                      styles.modalRowIconContainer,
+                      { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-left"
+                      size={24}
+                      color={colors.text}
+                    />
+                  </View>
+                  <Text style={[styles.modalRowText, { color: colors.text, fontWeight: "bold" }]}>
+                    Voltar
+                  </Text>
+                </TouchableOpacity>
+
+                {onCreateNote && (
+                  <TouchableOpacity
+                    style={styles.modalRowOption}
+                    onPress={() => hideModal(onCreateNote)}
+                  >
+                    <View
+                      style={[
+                        styles.modalRowIconContainer,
+                        { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="file-document-outline"
+                        size={24}
+                        color="#6366F1"
+                      />
+                    </View>
+                    <Text style={[styles.modalRowText, { color: colors.text }]}>
+                      Criar Nota
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {onCreateReminder && (
+                  <TouchableOpacity
+                    style={styles.modalRowOption}
+                    onPress={() => hideModal(onCreateReminder)}
+                  >
+                    <View
+                      style={[
+                        styles.modalRowIconContainer,
+                        { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="alarm"
+                        size={24}
+                        color="#F59E0B"
+                      />
+                    </View>
+                    <Text style={[styles.modalRowText, { color: colors.text }]}>
+                      Criar Lembrete
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {onCreateEvent && (
+                  <TouchableOpacity
+                    style={styles.modalRowOption}
+                    onPress={() => hideModal(onCreateEvent)}
+                  >
+                    <View
+                      style={[
+                        styles.modalRowIconContainer,
+                        { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="calendar-outline"
+                        size={24}
+                        color="#10B981"
+                      />
+                    </View>
+                    <Text style={[styles.modalRowText, { color: colors.text }]}>
+                      Criar Evento
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
-
-            <TouchableOpacity
-              style={styles.modalRowOption}
-              onPress={() => hideModal(onSelect)}
-            >
-              <View
-                style={[
-                  styles.modalRowIconContainer,
-                  { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="checkbox-multiple-marked-outline"
-                  size={24}
-                  color={colors.text}
-                />
-              </View>
-              <Text style={[styles.modalRowText, { color: colors.text }]}>
-                Selecionar mais
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.modalRowOption}
-              onPress={() => hideModal(onDelete)}
-            >
-              <View
-                style={[
-                  styles.modalRowIconContainer,
-                  { backgroundColor: isDark ? "#2D2D2D" : "#FF3B30" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="delete-outline"
-                  size={24}
-                  color={isDark ? "#FF3B30" : "#FFFFFF"}
-                />
-              </View>
-              <Text
-                style={[
-                  styles.modalRowText,
-                  { color: "#FF3B30", fontWeight: "600" },
-                ]}
-              >
-                Apagar
-              </Text>
-            </TouchableOpacity>
           </Animated.View>
         )}
       </TouchableOpacity>
@@ -688,5 +792,11 @@ const styles = StyleSheet.create({
   },
   reactionDetailEmoji: {
     fontSize: 15,
+  },
+  submenuContainer: {
+    paddingLeft: 12,
+    marginTop: 4,
+    borderLeftWidth: 2,
+    borderLeftColor: "rgba(100, 116, 139, 0.2)",
   },
 });

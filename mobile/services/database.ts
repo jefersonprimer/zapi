@@ -99,6 +99,52 @@ export async function initializeDatabase() {
       FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS items (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT,
+      color TEXT,
+      pinned INTEGER DEFAULT 0,
+      archived INTEGER DEFAULT 0,
+      tags_json TEXT DEFAULT '[]',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT,
+      synced_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS note_details (
+      item_id TEXT PRIMARY KEY,
+      note_type TEXT DEFAULT 'text',
+      checklist_json TEXT DEFAULT '[]',
+      FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS reminder_details (
+      item_id TEXT PRIMARY KEY,
+      due_date TEXT,
+      completed INTEGER DEFAULT 0,
+      completed_at TEXT,
+      priority TEXT DEFAULT 'none',
+      repeat_pattern TEXT DEFAULT 'none',
+      location_trigger_json TEXT,
+      notification_id TEXT,
+      FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS event_details (
+      item_id TEXT PRIMARY KEY,
+      start_at TEXT NOT NULL,
+      end_at TEXT NOT NULL,
+      all_day INTEGER DEFAULT 0,
+      location TEXT,
+      participants_json TEXT DEFAULT '[]',
+      repeat_pattern TEXT DEFAULT 'none',
+      device_calendar_event_id TEXT,
+      FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS chat_list_order (
       list_id TEXT PRIMARY KEY,
       position INTEGER NOT NULL
