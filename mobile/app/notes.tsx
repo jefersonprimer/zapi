@@ -22,6 +22,12 @@ import {
 } from "@/services/notesApi";
 import { Ionicons } from "@expo/vector-icons";
 
+import {
+  setPinnedNoteLocal,
+  getPinnedNoteLocal,
+  removePinnedNoteLocal,
+} from "@/services/database";
+
 export default function NotesScreen() {
   const router = useRouter();
   const { token } = useAuth();
@@ -31,12 +37,15 @@ export default function NotesScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [pinnedNoteId, setPinnedNoteId] = useState<string | null>(null);
 
   const fetchNotes = useCallback(async () => {
     if (!token) return;
     try {
       const data = await getNotes(token);
       setNotes(data);
+      const pinned = await getPinnedNoteLocal();
+      setPinnedNoteId(pinned?.id || null);
     } catch (err: any) {
       console.error("Failed to fetch notes:", err);
     } finally {
@@ -100,6 +109,28 @@ export default function NotesScreen() {
     return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
   }
 
+  async function handleTogglePinHome(note: Note) {
+    try {
+      if (pinnedNoteId === note.id) {
+        await removePinnedNoteLocal();
+        setPinnedNoteId(null);
+        Alert.alert("Sucesso", "Nota desafixada da tela inicial.");
+      } else {
+        await setPinnedNoteLocal({
+          id: note.id,
+          title: note.title || "Sem título",
+          content: note.content || "",
+          updated_at: note.updated_at,
+        });
+        setPinnedNoteId(note.id);
+        Alert.alert("Sucesso", "Nota fixada na tela inicial como lembrete.");
+      }
+    } catch (err: any) {
+      console.error("Failed to pin note to home:", err);
+      Alert.alert("Erro", "Não foi possível alterar o status de fixação.");
+    }
+  }
+
   const renderItem = ({ item }: { item: Note }) => (
     <TouchableOpacity
       style={[
@@ -138,11 +169,6 @@ export default function NotesScreen() {
       >
         {item.content || "Nota vazia"}
       </Text>
-      <View style={styles.noteFooter}>
-        <Text style={[styles.noteDate, { color: colors.textSecondary }]}>
-          {formatDate(item.updated_at)}
-        </Text>
-      </View>
     </TouchableOpacity>
   );
 
@@ -209,18 +235,18 @@ export default function NotesScreen() {
         style={[
           styles.fab,
           {
-            backgroundColor: colors.fab,
+            backgroundColor: isDark
+              ? "rgba(30, 30, 30, 0.98)"
+              : "rgba(255, 255, 255, 0.98)",
+            borderWidth: 1,
+            borderColor: colors.border,
             bottom: insets.bottom + 20,
           },
         ]}
         activeOpacity={0.8}
         onPress={() => router.push({ pathname: "/note-editor" })}
       >
-        <Ionicons
-          name="create-outline"
-          size={24}
-          color={isDark ? "#121212" : "#FFFFFF"}
-        />
+        <Ionicons name="create-outline" size={24} color="#FFFFFF" />
       </TouchableOpacity>
 
       <Modal
@@ -245,6 +271,28 @@ export default function NotesScreen() {
             <Text style={[styles.sheetTitle, { color: colors.text }]}>
               {selectedNote?.title || "Sem título"}
             </Text>
+            <TouchableOpacity
+              style={styles.sheetOption}
+              onPress={() => {
+                setSheetVisible(false);
+                if (selectedNote) handleTogglePinHome(selectedNote);
+              }}
+            >
+              <MaterialCommunityIcons
+                name={
+                  selectedNote?.id === pinnedNoteId ? "pin-off" : "pin"
+                }
+                size={20}
+                color={
+                  selectedNote?.id === pinnedNoteId ? colors.tint : colors.textSecondary
+                }
+              />
+              <Text style={[styles.sheetOptionText, { color: colors.text }]}>
+                {selectedNote?.id === pinnedNoteId
+                  ? "Desafixar da Home"
+                  : "Adicionar à Home"}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => {
@@ -345,8 +393,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "500",
   },
   headerSubtitle: {
     fontSize: 12,
@@ -357,7 +405,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
   },
   noteHeader: {
@@ -375,15 +423,6 @@ const styles = StyleSheet.create({
   noteContent: {
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 10,
-  },
-  noteFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  noteDate: {
-    fontSize: 12,
   },
   emptyContainer: {
     alignItems: "center",
@@ -404,8 +443,8 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: 20,
-    width: 56,
-    height: 56,
+    width: 50,
+    height: 50,
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",

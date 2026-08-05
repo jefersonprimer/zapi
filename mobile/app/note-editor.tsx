@@ -128,16 +128,16 @@ export default function NoteEditorScreen() {
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backBtn}
+            style={[styles.headerButton, { borderColor: colors.border }]}
           >
             <Ionicons
               name="chevron-back-outline"
               size={24}
-              color={colors.headerText}
+              color={colors.textSecondary}
             />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.headerText }]}>
-            {noteId ? "Editar nota" : "Nova nota"}
+            {noteId ? "Editar nota" : "Nova Nota"}
           </Text>
           <View style={styles.headerActions}>
             {noteId && (
@@ -156,22 +156,16 @@ export default function NoteEditorScreen() {
             <TouchableOpacity
               onPress={handleSave}
               disabled={saving}
-              style={styles.headerBtn}
+              style={[
+                styles.headerButton,
+                { backgroundColor: "#34C759", borderColor: "#34C759" },
+              ]}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               {saving ? (
-                <ActivityIndicator size="small" color={colors.tint} />
+                <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text
-                  style={[
-                    styles.saveText,
-                    { color: colors.tint },
-
-                    { backgroundColor: "#34C759", borderColor: "#34C759" },
-                  ]}
-                >
-                  <Ionicons name="checkmark" size={24} color="#ffffff" />
-                </Text>
+                <Ionicons name="checkmark" size={24} color="#ffffff" />
               )}
             </TouchableOpacity>
           </View>
@@ -224,6 +218,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     marginTop: 8,
   },
@@ -232,8 +227,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "500",
+    textAlign: "center",
     flex: 1,
   },
   headerActions: {
@@ -243,6 +239,14 @@ const styles = StyleSheet.create({
   },
   headerBtn: {
     padding: 4,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   saveText: {
     fontSize: 16,

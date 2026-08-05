@@ -147,8 +147,15 @@ export async function initializeDatabase() {
 
     CREATE TABLE IF NOT EXISTS search_history (
       id TEXT PRIMARY KEY,
-      query TEXT NOT NULL UNIQUE,
+      query TEXT UNIQUE NOT NULL,
       created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS pinned_notes (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      content TEXT,
+      updated_at TEXT
     );
   `);
 
@@ -1014,5 +1021,32 @@ export async function removeSearchHistoryLocal(id: string): Promise<void> {
 export async function clearSearchHistoryLocal(): Promise<void> {
   const db = await getDatabase();
   await db.runAsync("DELETE FROM search_history;");
+}
+
+export interface PinnedNoteItem {
+  id: string;
+  title: string | null;
+  content: string | null;
+  updated_at: string | null;
+}
+
+export async function setPinnedNoteLocal(note: { id: string; title: string; content: string; updated_at?: string }): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync("DELETE FROM pinned_notes;");
+  await db.runAsync(
+    "INSERT INTO pinned_notes (id, title, content, updated_at) VALUES (?, ?, ?, ?)",
+    [note.id, note.title, note.content, note.updated_at || new Date().toISOString()]
+  );
+}
+
+export async function getPinnedNoteLocal(): Promise<PinnedNoteItem | null> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<PinnedNoteItem>("SELECT * FROM pinned_notes LIMIT 1;");
+  return rows.length > 0 ? rows[0] : null;
+}
+
+export async function removePinnedNoteLocal(): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync("DELETE FROM pinned_notes;");
 }
 

@@ -107,8 +107,8 @@ export default function ContactsScreen() {
         style={[styles.actionItem, { borderBottomColor: colors.border }]}
         onPress={() => router.push("/new-group")}
       >
-        <View style={[styles.iconContainer, styles.groupBg, { borderRadius: 50 }]}>
-          <Ionicons name="add" color="#fff" size={24} />
+        <View style={[styles.iconContainer, styles.groupBg]}>
+          <Ionicons name="people-outline" color="#fff" size={24} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Nova conversa em grupo
@@ -126,7 +126,7 @@ export default function ContactsScreen() {
             { backgroundColor: "#FA9E3B" },
           ]}
         >
-          <MaterialCommunityIcons name="account-plus" color="#fff" size={24} />
+          <Ionicons name="person-add-outline" color="#fff" size={24} />
         </View>
         <Text style={[styles.actionText, { color: colors.text }]}>
           Novos Amigos

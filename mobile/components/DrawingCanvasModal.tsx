@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import { Path, Rect, Svg } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -442,69 +443,83 @@ export function DrawingCanvasModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: colors.background }]}
-      >
-        <View
-          style={[
-            styles.header,
-            {
-              borderBottomColor: colors.border,
-              backgroundColor: colors.surface,
-            },
-          ]}
-        >
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: "#FFFFFF" }]}>
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={onClose}
-            style={styles.headerButton}
+            style={[
+              styles.headerButton,
+              {
+                borderColor: colors.border,
+                backgroundColor: isDark
+                  ? "rgba(30, 30, 30, 0.98)"
+                  : "rgba(255, 255, 255, 0.98)",
+              },
+            ]}
             hitSlop={12}
           >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={24}
-              color={colors.text}
-            />
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={handleUndo}
-              style={styles.headerButton}
-              hitSlop={12}
-              disabled={strokes.length === 0}
+            <View
+              style={[
+                styles.segmentedGroup,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: isDark
+                    ? "rgba(30, 30, 30, 0.98)"
+                    : "rgba(255, 255, 255, 0.98)",
+                },
+              ]}
             >
-              <MaterialCommunityIcons
-                name="undo"
-                size={24}
-                color={
-                  strokes.length === 0 ? colors.textSecondary : colors.text
-                }
+              <TouchableOpacity
+                onPress={handleUndo}
+                style={styles.segmentedButton}
+                hitSlop={8}
+                disabled={strokes.length === 0}
+              >
+                <MaterialCommunityIcons
+                  name="undo-variant"
+                  size={24}
+                  color={
+                    strokes.length === 0 ? colors.textSecondary : colors.text
+                  }
+                />
+              </TouchableOpacity>
+
+              <View
+                style={[
+                  styles.segmentedDivider,
+                  { backgroundColor: colors.border },
+                ]}
               />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleRedo}
-              style={styles.headerButton}
-              hitSlop={12}
-              disabled={redoStack.length === 0}
-            >
-              <MaterialCommunityIcons
-                name="redo"
-                size={24}
-                color={
-                  redoStack.length === 0 ? colors.textSecondary : colors.text
-                }
-              />
-            </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleRedo}
+                style={styles.segmentedButton}
+                hitSlop={8}
+                disabled={redoStack.length === 0}
+              >
+                <MaterialCommunityIcons
+                  name="redo-variant"
+                  size={24}
+                  color={
+                    redoStack.length === 0 ? colors.textSecondary : colors.text
+                  }
+                />
+              </TouchableOpacity>
+            </View>
+
             <TouchableOpacity
               onPress={handleSave}
-              style={styles.headerButton}
+              style={[
+                styles.headerButton,
+                { backgroundColor: "#34C759", borderColor: "#34C759" },
+              ]}
               hitSlop={12}
             >
-              <MaterialCommunityIcons
-                name="check"
-                size={24}
-                color={colors.tint}
-              />
+              <Ionicons name="checkmark" size={24} color="#ffffff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -546,19 +561,9 @@ export function DrawingCanvasModal({
           </View>
         </View>
 
-        <View
-          style={[
-            styles.toolbarWrap,
-            { backgroundColor: colors.surface, borderTopColor: colors.border },
-          ]}
-        >
+        <View style={[styles.toolbarWrap, { backgroundColor: colors.surface }]}>
           {/* Controles de tamanho e opacidade */}
-          <View
-            style={[
-              styles.adjustmentsRow,
-              { borderBottomColor: colors.border },
-            ]}
-          >
+          <View style={styles.adjustmentsRow}>
             <View style={styles.adjustmentItem}>
               <Text
                 style={[
@@ -737,7 +742,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerActions: {
     flexDirection: "row",
@@ -750,6 +754,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 20,
+    borderWidth: 1,
+  },
+  segmentedGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 4,
+  },
+  segmentedButton: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentedDivider: {
+    width: 1,
+    height: 18,
   },
   body: {
     flex: 1,
@@ -758,17 +781,12 @@ const styles = StyleSheet.create({
   canvasFrame: {
     flex: 1,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
   },
   toolbarWrap: {
-    borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 12,
     paddingBottom: 14,
+
+    borderRadius: 24,
   },
   toolbarContent: {
     paddingHorizontal: 14,
@@ -826,7 +844,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     marginBottom: 8,
   },
   adjustmentItem: {

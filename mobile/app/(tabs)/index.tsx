@@ -43,6 +43,9 @@ import {
   getDatabase,
   getListPositionsLocal,
   saveListPositionLocal,
+  getPinnedNoteLocal,
+  removePinnedNoteLocal,
+  type PinnedNoteItem,
 } from "@/services/database";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { wsClient } from "@/services/ws";
@@ -646,9 +649,16 @@ export default function ChatListScreen() {
     }
   }, [token]);
 
+  // Pinned Note state
+  const [pinnedNote, setPinnedNote] = useState<PinnedNoteItem | null>(null);
+
   const loadChats = useCallback(async () => {
     if (!token) return;
     try {
+      // Load pinned note
+      const note = await getPinnedNoteLocal();
+      setPinnedNote(note);
+
       // Load lists in background
       loadLists();
 
@@ -1174,6 +1184,66 @@ export default function ChatListScreen() {
                       </View>
                     </TouchableOpacity>
                   )}
+                  {pinnedNote && activeFilterId === "all" && (
+                    <TouchableOpacity
+                      style={[
+                        styles.pinnedNoteCard,
+                        {
+                          backgroundColor: colors.cardBackground,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/note-editor",
+                          params: { noteId: pinnedNote.id },
+                        })
+                      }
+                    >
+                      <View style={styles.pinnedNoteHeader}>
+                        <View style={styles.pinnedNoteTitleRow}>
+                          <MaterialCommunityIcons
+                            name="pin"
+                            size={16}
+                            color={colors.tint}
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text
+                            style={[
+                              styles.pinnedNoteTitle,
+                              { color: colors.text },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {pinnedNote.title || "Lembrete"}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={async () => {
+                            await removePinnedNoteLocal();
+                            setPinnedNote(null);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <MaterialCommunityIcons
+                            name="close"
+                            size={18}
+                            color={colors.textSecondary}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      <Text
+                        style={[
+                          styles.pinnedNoteContent,
+                          { color: colors.textSecondary },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {pinnedNote.content || "Nota vazia"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                   {pinnedChats.length > 0 && (
                     <View style={styles.pinnedSection}>
                       <FlatList
@@ -1395,8 +1465,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 24,
     right: 24,
-    width: 56,
-    height: 56,
+    width: 50,
+    height: 50,
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
@@ -1425,6 +1495,34 @@ const styles = StyleSheet.create({
   },
   archivedText: {
     fontSize: 16,
+  },
+  pinnedNoteCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  pinnedNoteHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  pinnedNoteTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  pinnedNoteTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    flex: 1,
+  },
+  pinnedNoteContent: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   pinnedSection: {
     paddingVertical: 16,

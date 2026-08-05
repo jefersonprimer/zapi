@@ -139,7 +139,7 @@ export default function ReorderListsModal({
           style={[
             StyleSheet.absoluteFillObject,
             {
-              backgroundColor: colors.modalOverlay,
+              backgroundColor: "rgba(0,0,0,0.7)",
               opacity: overlayOpacity,
             },
           ]}
@@ -149,8 +149,8 @@ export default function ReorderListsModal({
             styles.bottomSheetContainer,
             {
               backgroundColor: isDark
-                ? "rgba(30, 30, 30, 0.85)"
-                : "rgba(255, 255, 255, 0.85)",
+                ? "rgba(30, 30, 30, 0.98)"
+                : "rgba(255, 255, 255, 0.98)",
               borderColor: colors.border,
               transform: [{ translateY }],
             },
@@ -163,9 +163,26 @@ export default function ReorderListsModal({
             />
           </View>
 
-          <Text style={[styles.dialogTitle, { color: colors.text }]}>
-            Reorganizar Tags
-          </Text>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={handleClose}
+              style={[styles.headerButton, { borderColor: colors.border }]}
+            >
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <Text style={[styles.dialogTitle, { color: colors.text }]}>
+              Reorganizar Tags
+            </Text>
+            <TouchableOpacity
+              onPress={handleClose}
+              style={[
+                styles.headerButton,
+                { backgroundColor: "#34C759", borderColor: "#34C759" },
+              ]}
+            >
+              <Ionicons name="checkmark" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
 
           <Text
             style={[styles.dialogDescription, { color: colors.textSecondary }]}
@@ -266,11 +283,24 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   dialogTitle: {
     fontSize: 20,
     fontWeight: "500",
     textAlign: "center",
-    marginBottom: 16,
   },
   dialogDescription: {
     textAlign: "center",
