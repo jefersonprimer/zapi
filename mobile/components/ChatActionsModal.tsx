@@ -28,6 +28,8 @@ interface ChatActionsModalProps {
   visible: boolean;
   onClose: () => void;
   onEmojiPress: () => void;
+  onGifPress: () => void;
+  onStickerPress: () => void;
   onFotosPress: () => void;
   onCameraPress: () => void;
   onDocumentosPress: () => void;
@@ -40,6 +42,8 @@ interface ChatActionsModalProps {
 const ITEM_HEIGHT = 58;
 const DEFAULT_ORDER = [
   "emoji",
+  "gif",
+  "sticker",
   "fotos",
   "camera",
   "draw",
@@ -53,6 +57,8 @@ export function ChatActionsModal({
   visible,
   onClose,
   onEmojiPress,
+  onGifPress,
+  onStickerPress,
   onFotosPress,
   onCameraPress,
   onDocumentosPress,
@@ -143,6 +149,22 @@ export function ChatActionsModal({
       onPress: () => {
         Keyboard.dismiss();
         hideActionsModal(onEmojiPress);
+      },
+    },
+    gif: {
+      label: "GIF",
+      icon: "gif",
+      onPress: () => {
+        Keyboard.dismiss();
+        hideActionsModal(onGifPress);
+      },
+    },
+    sticker: {
+      label: "Sticker",
+      icon: "sticker-outline",
+      onPress: () => {
+        Keyboard.dismiss();
+        hideActionsModal(onStickerPress);
       },
     },
     fotos: {

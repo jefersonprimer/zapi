@@ -1204,7 +1204,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         marginBottom: 8,
       }}
     >
-      {isFileMessage && (
+      {isFileMessage && !isSticker && (
         <TouchableOpacity
           onPress={handleForwardMessage}
           onLongPress={onLongPress}

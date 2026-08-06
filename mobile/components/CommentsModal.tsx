@@ -46,7 +46,7 @@ import * as updatesApi from "@/services/updatesApi";
 import { uploadFile } from "@/services/api";
 import type { Comment, FeedPost, PostAttachment } from "@/services/updatesApi";
 import { getFullRemoteUrl } from "@/services/mediaCache";
-import { ChatMediaSelector } from "@/components/ChatMediaSelector";
+import { EmojiModal } from "@/components/EmojiModal";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 /** Fixed open height so comments are visible without dragging up first. */
@@ -387,13 +387,12 @@ function CommentsSheetFooter(props: BottomSheetFooterProps) {
         </View>
 
         {state.showEmojiPicker && (
-          <ChatMediaSelector
+          <EmojiModal
             onEmojiSelected={(emojiObject) =>
               state.setText(
                 `${commentsSheetStore.getSnapshot().text}${emojiObject.emoji}`,
               )
             }
-            onSendMedia={state.onSendMedia}
             height={260}
           />
         )}

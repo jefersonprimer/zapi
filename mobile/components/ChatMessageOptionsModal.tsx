@@ -14,6 +14,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { EmojiKeyboard } from "rn-emoji-keyboard";
 import * as SecureStore from "expo-secure-store";
 import { API_URL } from "@/services/api";
+import { StickerModal } from "@/components/StickerModal";
 
 interface ChatMessageOptionsModalProps {
   visible: boolean;
@@ -38,6 +39,7 @@ interface ChatMessageOptionsModalProps {
   onCreateNote?: () => void;
   onCreateReminder?: () => void;
   onCreateEvent?: () => void;
+  onAddSticker?: (stickerUrl: string) => void;
 }
 
 const HISTORY_KEY = "zapi_reactions_history";
@@ -105,6 +107,7 @@ export function ChatMessageOptionsModal({
   onCreateNote,
   onCreateReminder,
   onCreateEvent,
+  onAddSticker,
 }: ChatMessageOptionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const { height: screenHeight, width: screenWidth } = useWindowDimensions();
@@ -113,10 +116,12 @@ export function ChatMessageOptionsModal({
   const [reactionsList, setReactionsList] = useState<string[]>(cachedHistory);
   const [isEmojiKeyboardOpen, setIsEmojiKeyboardOpen] = useState(false);
   const [showMoreSubmenu, setShowMoreSubmenu] = useState(false);
+  const [isStickerPickerOpen, setIsStickerPickerOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setShowMoreSubmenu(false);
+      setIsStickerPickerOpen(false);
       getReactionsHistory().then((history) => {
         cachedHistory = history;
         setReactionsList(history);
@@ -554,6 +559,32 @@ export function ChatMessageOptionsModal({
                   </Text>
                 </TouchableOpacity>
 
+                {onAddSticker && (
+                  <TouchableOpacity
+                    style={styles.modalRowOption}
+                    onPress={() => {
+                      setShowMoreSubmenu(false);
+                      setIsStickerPickerOpen(true);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.modalRowIconContainer,
+                        { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="sticker-outline"
+                        size={24}
+                        color="#8B5CF6"
+                      />
+                    </View>
+                    <Text style={[styles.modalRowText, { color: colors.text }]}>
+                      Adicionar Sticker
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 {onCreateNote && (
                   <TouchableOpacity
                     style={styles.modalRowOption}
@@ -685,6 +716,52 @@ export function ChatMessageOptionsModal({
           </TouchableOpacity>
         </Modal>
       )}
+
+      {isStickerPickerOpen && onAddSticker && (
+        <Modal
+          transparent={true}
+          visible={isStickerPickerOpen}
+          animationType="fade"
+          onRequestClose={() => setIsStickerPickerOpen(false)}
+        >
+          <TouchableOpacity
+            style={styles.stickerModalOverlay}
+            activeOpacity={1}
+            onPress={() => setIsStickerPickerOpen(false)}
+          >
+            <View
+              style={[
+                styles.stickerSheetContainer,
+                { backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF" },
+              ]}
+            >
+              <View style={styles.emojiSheetHeader}>
+                <Text style={[styles.emojiSheetTitle, { color: colors.text }]}>
+                  Escolha um sticker
+                </Text>
+                <TouchableOpacity onPress={() => setIsStickerPickerOpen(false)}>
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={24}
+                    color={colors.text}
+                  />
+                </TouchableOpacity>
+              </View>
+              <View style={{ flex: 1 }}>
+                <StickerModal
+                  onSendMedia={() => {}}
+                  height={360}
+                  onStickerSelected={(stickerUrl) => {
+                    onAddSticker(stickerUrl);
+                    setIsStickerPickerOpen(false);
+                    hideModal();
+                  }}
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </>
   );
 }
@@ -756,6 +833,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.4)",
     justifyContent: "flex-end",
   },
+  stickerModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    justifyContent: "flex-end",
+  },
   emojiSheetContainer: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -767,6 +849,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
+  },
+  stickerSheetContainer: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 16,
+    height: 520,
+    elevation: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    overflow: "hidden",
   },
   emojiSheetHeader: {
     flexDirection: "row",

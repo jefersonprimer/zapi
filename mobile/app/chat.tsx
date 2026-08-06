@@ -23,7 +23,9 @@ import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { API_URL } from "@/services/api";
-import { ChatMediaSelector } from "@/components/ChatMediaSelector";
+import { EmojiModal } from "@/components/EmojiModal";
+import { GifModal } from "@/components/GifModal";
+import { StickerModal } from "@/components/StickerModal";
 import { ChatBlockedBar } from "@/components/ChatBlockedBar";
 import { ChatDeleteModal } from "@/components/ChatDeleteModal";
 import { ChatItemRow } from "@/components/ChatItemRow";
@@ -165,7 +167,7 @@ export default function ChatScreen() {
   const flatListContainerRef = useRef<View>(null);
   const inputRef = useRef<any>(null);
   const shouldStickToBottomRef = useRef(true);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activePicker, setActivePicker] = useState<"emoji" | "gif" | "sticker" | null>(null);
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
   const [sendLaterVisible, setSendLaterVisible] = useState(false);
   const [scheduledDelayMs, setScheduledDelayMs] = useState<number | null>(null);
@@ -186,7 +188,8 @@ export default function ChatScreen() {
 
   // Sticker Drag & Drop References and Hook
   const { draggingSticker, dragPosition, stopDragging, registerOnDrop } = useStickerDrag();
-  const messageLayouts = useRef<Record<string, { y: number; height: number; pageY?: number }>>({});
+  const messageLayouts = useRef<Record<string, { x: number; y: number; width: number; height: number }>>({});
+  const bubbleLayouts = useRef<Record<string, { x: number; y: number; width: number; height: number; pageX: number; pageY: number }>>({});
   const flatListScrollOffset = useRef(0);
   const flatListLayout = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
@@ -241,21 +244,15 @@ export default function ChatScreen() {
       }
 
       if (foundMsgId) {
-        // Calculate offset relative to the message bubble container
-        let targetMsgY = 16;
-        for (const item of chatItems) {
-          const id = item.type === "message" ? item.data.id : `call_${item.data.id}`;
-          const layout = messageLayouts.current[id];
-          if (id === foundMsgId) break;
-          targetMsgY += layout ? layout.height : 0;
-        }
-        
-        const localX = pageX - flatListLayout.current.x; // approximate relative x
-        const localY = relativeY - targetMsgY; // relative y in message row
-
         const targetMsg = messages.find((m) => m.id === foundMsgId);
-        const isMine = targetMsg?.sender_id === user?.user_id;
-        const xOffset = isMine ? flatListLayout.current.width - localX : localX;
+        const targetLayout = messageLayouts.current[foundMsgId];
+        if (!targetLayout) return;
+
+        const xOffset =
+          targetMsg?.sender_id === user?.user_id
+            ? Math.max(30, targetLayout.width - 30)
+            : 30;
+        const localY = Math.max(0, Math.min(targetLayout.height, relativeY - targetLayout.y));
 
         const tempId = `temp_${Date.now()}`;
         const tempSticker = {
@@ -399,18 +396,18 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (isKeyboardVisible) {
-      setShowEmojiPicker(false);
+      setActivePicker(null);
       setAttachSheetVisible(false);
     }
-  }, [isKeyboardVisible, setAttachSheetVisible, setShowEmojiPicker]);
+  }, [isKeyboardVisible, setAttachSheetVisible, setActivePicker]);
 
   useEffect(() => {
     if (attachSheetVisible) {
       inputRef.current?.blur();
       Keyboard.dismiss();
-      setShowEmojiPicker(false);
+      setActivePicker(null);
     }
-  }, [attachSheetVisible, setShowEmojiPicker]);
+  }, [attachSheetVisible, setActivePicker]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -480,6 +477,76 @@ export default function ChatScreen() {
     selectedMsg?.status === "scheduled" &&
     selectedMsg.sender_id === user?.user_id;
 
+  const handleAddStickerToSelectedMessage = useCallback(
+    async (stickerUrl: string) => {
+      if (!token || !chatId || !selectedMsg) return;
+
+      const rowLayout = messageLayouts.current[selectedMsg.id];
+      if (!rowLayout) return;
+
+      const xOffset = selectedMsg.sender_id === user?.user_id
+        ? Math.max(30, rowLayout.width - 30)
+        : 30;
+      const yOffset = Math.max(0, rowLayout.height - 8);
+
+      const tempId = `temp_${Date.now()}`;
+      const tempSticker = {
+        id: tempId,
+        sticker_url: stickerUrl,
+        x_offset: xOffset,
+        y_offset: yOffset,
+        scale_factor: 1,
+        rotation: 0,
+      };
+
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === selectedMsg.id) {
+            return { ...msg, placed_stickers: [...(msg.placed_stickers || []), tempSticker] };
+          }
+          return msg;
+        })
+      );
+
+      try {
+        const newPlaced = await placeStickerOnMessage(
+          token,
+          chatId,
+          selectedMsg.id,
+          stickerUrl,
+          xOffset,
+          yOffset,
+          1,
+          0
+        );
+
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (msg.id === selectedMsg.id) {
+              const updatedStickers = (msg.placed_stickers || []).filter((s) => s.id !== tempId);
+              updatedStickers.push(newPlaced);
+              updateMessageStickersLocal(selectedMsg.id, updatedStickers).catch(console.error);
+              return { ...msg, placed_stickers: updatedStickers };
+            }
+            return msg;
+          })
+        );
+      } catch (err) {
+        console.error("Failed to place sticker from menu:", err);
+        Alert.alert("Erro", "Não foi possível adicionar o sticker.");
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (msg.id === selectedMsg.id) {
+              return { ...msg, placed_stickers: (msg.placed_stickers || []).filter((s) => s.id !== tempId) };
+            }
+            return msg;
+          })
+        );
+      }
+    },
+    [token, chatId, selectedMsg, user?.user_id, setMessages]
+  );
+
   const handleEditScheduledMessage = useCallback(async () => {
     if (!selectedMsg || !isScheduledSelected) return;
 
@@ -491,7 +558,7 @@ export default function ChatScreen() {
     setScheduledDelayMs(draft.delayMs);
     setMsgOptionsVisible(false);
     setOnlyReactionsMode(false);
-    setShowEmojiPicker(false);
+    setActivePicker(null);
     setAttachSheetVisible(false);
     inputRef.current?.focus();
     clearSelection();
@@ -502,7 +569,7 @@ export default function ChatScreen() {
     setContent,
     setSelectedAttachment,
     setAttachSheetVisible,
-    setShowEmojiPicker,
+    setActivePicker,
     clearSelection,
   ]);
 
@@ -774,7 +841,7 @@ export default function ChatScreen() {
             paddingBottom:
               (isKeyboardVisible || attachSheetVisible
                 ? 60
-                : showEmojiPicker
+                : activePicker
                   ? 280 + (insets.bottom > 0 ? insets.bottom : 16) + 60
                   : insets.bottom + 60) + 16,
           }}
@@ -794,6 +861,9 @@ export default function ChatScreen() {
               onSwipeRight={handleReencaminhar}
               onLayoutMessage={(msgId, layout) => {
                 messageLayouts.current[msgId] = layout;
+              }}
+              onMeasureBubble={(msgId, layout) => {
+                bubbleLayouts.current[msgId] = layout;
               }}
               onToggleMessageSelection={(msg, layout, onlyReactions) => {
                 if (selectedMessageIds.length > 0) {
@@ -841,7 +911,7 @@ export default function ChatScreen() {
       <View
         style={{
           position: "absolute",
-          bottom: showEmojiPicker
+          bottom: activePicker
             ? 280 + (insets.bottom > 0 ? insets.bottom : 16)
             : sendLaterVisible
               ? 280 + (insets.bottom > 0 ? insets.bottom : 16)
@@ -857,7 +927,7 @@ export default function ChatScreen() {
             {
               paddingBottom:
                 isKeyboardVisible ||
-                showEmojiPicker ||
+                activePicker !== null ||
                 attachSheetVisible ||
                 sendLaterVisible
                   ? 6
@@ -976,7 +1046,7 @@ export default function ChatScreen() {
                       },
                     ]}
                     onPress={() => {
-                      setShowEmojiPicker(false);
+                      setActivePicker(null);
                       setActionsModalVisible(true);
                     }}
                   >
@@ -992,7 +1062,7 @@ export default function ChatScreen() {
                     value={content}
                     onChangeText={setContent}
                     onFocus={() => {
-                      setShowEmojiPicker(false);
+                      setActivePicker(null);
                       setAttachSheetVisible(false);
                       setSendLaterVisible(false);
                     }}
@@ -1024,14 +1094,28 @@ export default function ChatScreen() {
         </View>
       </View>
 
-      {showEmojiPicker && (
-        <ChatMediaSelector
+      {activePicker === "emoji" && (
+        <EmojiModal
           onEmojiSelected={(emojiObject) =>
             setContent((prev) => prev + emojiObject.emoji)
           }
+          height={280}
+        />
+      )}
+      {activePicker === "gif" && (
+        <GifModal
           onSendMedia={(media) => {
-            handleSend(media);
-            setShowEmojiPicker(false);
+            setSelectedAttachment(media);
+            setActivePicker(null);
+          }}
+          height={280}
+        />
+      )}
+      {activePicker === "sticker" && (
+        <StickerModal
+          onSendMedia={(media) => {
+            setSelectedAttachment(media);
+            setActivePicker(null);
           }}
           height={280}
         />
@@ -1188,7 +1272,15 @@ export default function ChatScreen() {
           onClose={() => setActionsModalVisible(false)}
           onEmojiPress={() => {
             inputRef.current?.blur();
-            setShowEmojiPicker(true);
+            setActivePicker("emoji");
+          }}
+          onGifPress={() => {
+            inputRef.current?.blur();
+            setActivePicker("gif");
+          }}
+          onStickerPress={() => {
+            inputRef.current?.blur();
+            setActivePicker("sticker");
           }}
           onFotosPress={handlePickFromGallery}
           onCameraPress={handleTakePhoto}
@@ -1197,7 +1289,7 @@ export default function ChatScreen() {
           onSearchWebPress={() => setWebSearchVisible(true)}
           onLocationPress={() => setLocationPickerVisible(true)}
           onSendLaterPress={() => {
-            setShowEmojiPicker(false);
+            setActivePicker(null);
             setScheduledDelayMs(60000); // 1 minute default delay
           }}
         />
@@ -1279,6 +1371,7 @@ export default function ChatScreen() {
           onCreateEvent={() => {
             if (selectedMsg) openSheetForMessage(selectedMsg, "event");
           }}
+          onAddSticker={handleAddStickerToSelectedMessage}
         />
       )}
 

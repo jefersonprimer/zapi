@@ -25,7 +25,21 @@ interface ChatItemRowProps {
   participantUsername: string;
   participantAvatarUrl: string;
   onSwipeRight: (msg: Message) => void;
-  onLayoutMessage?: (msgId: string, layout: { y: number; height: number }) => void;
+  onLayoutMessage?: (
+    msgId: string,
+    layout: { x: number; y: number; width: number; height: number }
+  ) => void;
+  onMeasureBubble?: (
+    msgId: string,
+    layout: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      pageX: number;
+      pageY: number;
+    }
+  ) => void;
   onToggleMessageSelection: (msg: Message, layout?: { x: number; y: number; width: number; height: number }, onlyReactions?: boolean) => void;
   onToggleCallSelection: (callId: string) => void;
   onCreateNote?: (msg: Message) => void;
@@ -39,7 +53,6 @@ interface PlacedStickerComponentProps {
   msgId: string;
   onRemoveSticker: (msgId: string, stickerId: string) => void;
   extraTop: number;
-  isMine: boolean;
 }
 
 const PlacedStickerComponent: React.FC<PlacedStickerComponentProps> = ({
@@ -47,7 +60,6 @@ const PlacedStickerComponent: React.FC<PlacedStickerComponentProps> = ({
   msgId,
   onRemoveSticker,
   extraTop,
-  isMine,
 }) => {
   const scaleAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -79,7 +91,7 @@ const PlacedStickerComponent: React.FC<PlacedStickerComponentProps> = ({
     <Animated.View
       style={{
         position: "absolute",
-        ...(isMine ? { right: placed.x_offset - 30 } : { left: placed.x_offset - 30 }),
+        left: placed.x_offset - 30,
         top: placed.y_offset + extraTop - 30,
         transform: [
           { rotate: `${placed.rotation || 0}deg` },
@@ -119,6 +131,7 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
   participantAvatarUrl,
   onSwipeRight,
   onLayoutMessage,
+  onMeasureBubble,
   onToggleMessageSelection,
   onToggleCallSelection,
   onCreateNote,
@@ -129,6 +142,15 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
   const { colors, isDark } = useAppTheme();
   const bubbleRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
   const lastPressRef = useRef<number>(0);
+
+  const reportBubbleLayout = () => {
+    if (!onMeasureBubble || item.type !== "message") return;
+    requestAnimationFrame(() => {
+      bubbleRef.current?.measure((x, y, width, height, pageX, pageY) => {
+        onMeasureBubble(item.data.id, { x, y, width, height, pageX, pageY });
+      });
+    });
+  };
 
   const itemDate =
     item.type === "message"
@@ -179,7 +201,9 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
         onLayout={(e) => {
           if (onLayoutMessage) {
             onLayoutMessage(msg.id, {
+              x: e.nativeEvent.layout.x,
               y: e.nativeEvent.layout.y,
+              width: e.nativeEvent.layout.width,
               height: e.nativeEvent.layout.height,
             });
           }
@@ -221,6 +245,7 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
         >
           <TouchableOpacity
             ref={bubbleRef}
+            onLayout={reportBubbleLayout}
             onPress={() => {
               if (isSelectionMode) {
                 onToggleMessageSelection(msg);
@@ -248,9 +273,9 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
               onCreateEvent={onCreateEvent ? () => onCreateEvent(msg) : undefined}
             />
           </TouchableOpacity>
-        </SwipeableMessageRow>
-        
-        {/* Placed Stickers rendered relative to this outer row view */}
+          </SwipeableMessageRow>
+          
+          {/* Placed Stickers rendered relative to this outer row view */}
         {!msg.deleted_for_everyone && msg.placed_stickers?.map((placed) => (
           <PlacedStickerComponent
             key={placed.id}
@@ -258,7 +283,6 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
             msgId={msg.id}
             onRemoveSticker={onRemoveSticker}
             extraTop={extraTop}
-            isMine={isMine}
           />
         ))}
       </View>
