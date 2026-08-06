@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  Image,
+  Image as RNImage,
   TouchableOpacity,
   StyleSheet,
   Linking,
@@ -14,6 +14,7 @@ import {
   Clipboard,
   Animated,
 } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { PIX_TYPE_LABELS } from "@/services/pixApi";
@@ -666,7 +667,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               ]}
             >
               {avatarUri ? (
-                <Image
+                <RNImage
                   source={{ uri: avatarUri }}
                   style={styles.contactShareAvatarImage}
                 />
@@ -1350,6 +1351,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         source={{ uri: fullUrl }}
                         style={StyleSheet.absoluteFillObject}
                         contentFit="contain"
+                        cachePolicy="disk"
                       />
                     )}
                   </View>
@@ -1535,7 +1537,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               onLongPress={onLongPress}
               activeOpacity={0.9}
             >
-              <Image
+              <RNImage
                 source={{
                   uri: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`,
                 }}
@@ -1662,7 +1664,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         {isSvgMedia ? (
                           <SvgUri uri={fullUrl} width="100%" height="100%" />
                         ) : (
-                          <Image
+                          <RNImage
                             source={{ uri: fullUrl }}
                             style={styles.fullImage}
                             resizeMode="contain"

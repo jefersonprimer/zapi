@@ -17,7 +17,7 @@ export const STICKER_PACKS: StickerPack[] = [
     name: "Animais",
     icon: "🐱",
     stickers: [
-      { id: "cat_hello", url: "https://media.giphy.com/media/l0ExdUrO6hOQYo21q/giphy.gif", name: "Cat Hello" },
+      { id: "cat_hello", url: "https://mathiasbynens.be/demo/animated-webp-supported.webp", name: "Cat Hello" },
       { id: "doge", url: "https://media.giphy.com/media/l3q2zVr6cu95nF6O4/giphy.gif", name: "Doge" },
       { id: "cute_panda", url: "https://media.giphy.com/media/13CoXDiaCcC2qc/giphy.gif", name: "Cute Panda" },
       { id: "happy_fox", url: "https://media.giphy.com/media/3o7qDQ4kc0JfyCg1a0/giphy.gif", name: "Happy Fox" },

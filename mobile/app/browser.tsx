@@ -148,6 +148,35 @@ export default function BrowserScreen() {
     }
   }, [activeTabId, activeTab.zoom]);
 
+  // Dynamically inject JS to toggle dark mode when theme changes
+  useEffect(() => {
+    const toggleScript = `
+      (function() {
+        var existingStyle = document.getElementById('dark-mode-style');
+        if (${isDark}) {
+          if (!existingStyle) {
+            var style = document.createElement('style');
+            style.id = 'dark-mode-style';
+            style.type = 'text/css';
+            style.innerHTML = 'html { filter: invert(1) hue-rotate(180deg) !important; background: #000 !important; } img, video, iframe, canvas, svg { filter: invert(1) hue-rotate(180deg) !important; }';
+            document.head.appendChild(style);
+          }
+        } else {
+          if (existingStyle) {
+            existingStyle.remove();
+          }
+        }
+      })();
+      true;
+    `;
+    
+    Object.values(webViewRefs.current).forEach((webView) => {
+      if (webView) {
+        webView.injectJavaScript(toggleScript);
+      }
+    });
+  }, [isDark]);
+
   const handleNavigate = (urlText: string) => {
     Keyboard.dismiss();
     let url = urlText.trim();
@@ -222,7 +251,7 @@ export default function BrowserScreen() {
 
   // Styling helpers for Incognito Mode
   const isIncognito = activeTab.isIncognito;
-  const headerBackground = isIncognito ? "#1E1B4B" : colors.surface;
+  const headerBackground = "transparent";
   const inputBackground = isIncognito
     ? "#312E81"
     : isDark
@@ -246,7 +275,7 @@ export default function BrowserScreen() {
           styles.header,
           {
             backgroundColor: headerBackground,
-            borderBottomColor: isIncognito ? "#312E81" : colors.border,
+            borderBottomColor: "transparent",
           },
         ]}
       >
@@ -345,8 +374,19 @@ export default function BrowserScreen() {
                 }}
                 source={{ uri: tab.navigationUrl }}
                 style={styles.webView}
+                pullToRefreshEnabled={true}
+                bounces={true}
+                nestedScrollEnabled={true}
                 injectedJavaScriptBeforeContentLoaded={`
                   ${getAdblockScript(adblockEnabled)}
+                  
+                  if (${isDark}) {
+                    var style = document.createElement('style');
+                    style.id = 'dark-mode-style';
+                    style.type = 'text/css';
+                    style.innerHTML = 'html { filter: invert(1) hue-rotate(180deg) !important; background: #000 !important; } img, video, iframe, canvas, svg { filter: invert(1) hue-rotate(180deg) !important; }';
+                    document.head.appendChild(style);
+                  }
                   
                   (function() {
                     document.addEventListener('contextmenu', function(e) {
@@ -507,7 +547,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
-    borderBottomWidth: 1,
   },
   headerButton: {
     width: 38,

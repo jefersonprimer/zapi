@@ -231,28 +231,34 @@ export default function ChatScreen() {
   useEffect(() => {
     registerOnDrop((stickerUrl, pageX, pageY) => {
       clearHoverTimer();
-      // Calculate touch coordinate relative to FlatList top
-      const relativeY = pageY - flatListLayout.current.y + flatListScrollOffset.current;
-      
-      // Find which message bounds contain relativeY
+
+      // Find which message bubble contains (pageX, pageY) using the measured bounds from bubbleLayouts
       let foundMsgId: string | null = null;
-      for (const [msgId, layout] of Object.entries(messageLayouts.current)) {
-        if (relativeY >= layout.y && relativeY <= layout.y + layout.height) {
+      let relativeX = 0;
+      let relativeY = 0;
+
+      for (const [msgId, layout] of Object.entries(bubbleLayouts.current)) {
+        if (
+          pageX >= layout.pageX &&
+          pageX <= layout.pageX + layout.width &&
+          pageY >= layout.pageY &&
+          pageY <= layout.pageY + layout.height
+        ) {
           foundMsgId = msgId;
+          relativeX = pageX - layout.pageX;
+          relativeY = pageY - layout.pageY;
           break;
         }
       }
 
       if (foundMsgId) {
         const targetMsg = messages.find((m) => m.id === foundMsgId);
-        const targetLayout = messageLayouts.current[foundMsgId];
+        const targetLayout = bubbleLayouts.current[foundMsgId];
         if (!targetLayout) return;
 
-        const xOffset =
-          targetMsg?.sender_id === user?.user_id
-            ? Math.max(30, targetLayout.width - 30)
-            : 30;
-        const localY = Math.max(0, Math.min(targetLayout.height, relativeY - targetLayout.y));
+        // Limit coordinates to remain inside the message bubble bounds
+        const xOffset = Math.max(10, Math.min(targetLayout.width - 10, relativeX));
+        const localY = Math.max(10, Math.min(targetLayout.height - 10, relativeY));
 
         const tempId = `temp_${Date.now()}`;
         const tempSticker = {
@@ -305,11 +311,9 @@ export default function ChatScreen() {
               );
             });
         }
-      } else {
-          // Dropped on empty space, could cancel or something
       }
     });
-  }, [token, chatId, registerOnDrop]);
+  }, [token, chatId, registerOnDrop, messages]);
 
   const scrollToBottom = useCallback((animated = false) => {
     flatListRef.current?.scrollToEnd({ animated });

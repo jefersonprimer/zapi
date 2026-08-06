@@ -158,10 +158,9 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               ]}
             >
               <MaterialCommunityIcons
-                name="star"
+                name={isCurrentFavorite ? "star" : "star-outline"}
                 size={24}
                 color={isCurrentFavorite ? "#FFB300" : colors.text}
-                fill={isCurrentFavorite ? "#FFB300" : "transparent"}
               />
             </TouchableOpacity>
 
@@ -203,7 +202,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
           {/* Zoom Control Row */}
           <View style={[styles.zoomRow, { borderBottomColor: colors.border }]}>
             <Text style={[styles.zoomLabel, { color: colors.text }]}>
-              Zoom da Página
+              Zoom
             </Text>
             <View style={styles.zoomControls}>
               <TouchableOpacity
@@ -214,7 +213,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 ]}
               >
                 <MaterialCommunityIcons
-                  name="magnify-minus"
+                  name="minus"
                   size={20}
                   color={colors.text}
                 />
@@ -235,7 +234,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 ]}
               >
                 <MaterialCommunityIcons
-                  name="magnify-plus"
+                  name="plus"
                   size={20}
                   color={colors.text}
                 />
@@ -253,7 +252,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               style={styles.bottomSheetMenuItem}
             >
               <MaterialCommunityIcons
-                name="share"
+                name="share-variant-outline"
                 size={24}
                 color={colors.text}
                 style={styles.bottomSheetMenuIcon}
@@ -273,7 +272,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               style={styles.bottomSheetMenuItem}
             >
               <MaterialCommunityIcons
-                name="star"
+                name="star-outline"
                 size={24}
                 color={colors.text}
                 style={styles.bottomSheetMenuIcon}
@@ -293,7 +292,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               style={styles.bottomSheetMenuItem}
             >
               <MaterialCommunityIcons
-                name="shield"
+                name="shield-outline"
                 size={24}
                 color={colors.text}
                 style={styles.bottomSheetMenuIcon}
