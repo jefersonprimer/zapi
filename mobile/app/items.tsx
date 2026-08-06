@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,10 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  ScrollView,
-  TextInput,
   Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useItemsStore } from "@/store/useItemsStore";
@@ -34,9 +32,6 @@ export default function ItemsScreen() {
     setSyncWithDeviceCalendar,
     toggleReminderCompleted,
     deleteItem,
-    createNote,
-    createReminder,
-    createEvent,
     convertNoteToReminder,
     convertReminderToEvent,
     createNoteFromEvent,
@@ -44,20 +39,10 @@ export default function ItemsScreen() {
 
   const [selectedItem, setSelectedItem] = useState<AnyItem | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-
-  // Form states para criação rápida
-  const [createType, setCreateType] = useState<ItemType>("note");
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [eventStart, setEventStart] = useState("");
-  const [eventEnd, setEventEnd] = useState("");
-  const [location, setLocation] = useState("");
 
   useEffect(() => {
     fetchItems(filterType === "all" ? undefined : filterType);
-  }, [filterType]);
+  }, [filterType, fetchItems]);
 
   const handleCreateNew = (type: ItemType) => {
     router.push({

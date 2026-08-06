@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Animated, PanResponder, Image, Alert } from "react-native";
+import React, { useRef } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Image, Alert } from "react-native";
 import { SwipeableMessageRow } from "@/components/SwipeableMessageRow";
 import { MessageBubble } from "@/components/MessageBubble";
 import { CallBubble } from "@/components/CallBubble";
@@ -70,7 +70,7 @@ const PlacedStickerComponent: React.FC<PlacedStickerComponentProps> = ({
       friction: 6,
       useNativeDriver: true,
     }).start();
-  }, [placed.scale_factor]);
+  }, [placed.scale_factor, scaleAnim]);
 
   const handleLongPress = () => {
     Alert.alert(
@@ -168,7 +168,6 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
 
   if (item.type === "message") {
     const msg = item.data;
-    const isMine = msg.sender_id === currentUserId;
     const isSelected = selectedMessageIds.includes(msg.id);
     const handleLongPress = (onlyReactions = false) => {
       if (isSelectionMode) {

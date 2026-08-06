@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,6 @@ import {
   Switch,
   Platform,
   Clipboard,
-  Dimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -41,116 +40,15 @@ import * as updatesApi from "@/services/updatesApi";
 import CreateListModal from "@/components/CreateListModal";
 import MuteModal from "@/components/MuteModal";
 import ListSelectorModal from "@/components/ListSelectorModal";
-import { getFullRemoteUrl } from "@/services/mediaCache";
+
 import FeedPost from "@/components/FeedPost";
 
-const COLS = 3;
 const GAP = 2;
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const GRID_ITEM_SIZE = (SCREEN_WIDTH - GAP * (COLS + 1)) / COLS;
-const GRID_ITEM_HEIGHT = GRID_ITEM_SIZE * 1.35;
 
-function formatFollowers(count: number): string {
-  if (count === 1) return "1 seguidor";
-  return `${count.toLocaleString("pt-BR")} seguidores`;
-}
 
-function formatFollowing(count: number): string {
-  if (count === 1) return "1 seguindo";
-  return `${count.toLocaleString("pt-BR")} seguindo`;
-}
 
-function formatPostsCount(count: number): string {
-  if (count === 1) return "1 publicação";
-  return `${count} publicações`;
-}
 
-function getPreviewAttachment(post: updatesApi.FeedPost) {
-  return post.attachments.find(
-    (a) =>
-      a.type === "image" ||
-      a.type === "gif" ||
-      a.type === "video" ||
-      a.mime_type?.startsWith("image/") ||
-      a.mime_type?.startsWith("video/"),
-  );
-}
 
-function isVideoAttachment(type: string, mimeType: string | null) {
-  return type === "video" || mimeType?.startsWith("video/") === true;
-}
-
-function PostGridItem({
-  post,
-  onPress,
-  colors,
-}: {
-  post: updatesApi.FeedPost;
-  onPress: () => void;
-  colors: { textSecondary: string; surface: string };
-}) {
-  const att = getPreviewAttachment(post);
-  const isVideo = att ? isVideoAttachment(att.type, att.mime_type) : false;
-  const previewUri = att
-    ? getFullRemoteUrl(
-        isVideo && att.thumbnail_url ? att.thumbnail_url : att.url,
-      )
-    : null;
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.gridItem,
-        { width: GRID_ITEM_SIZE, height: GRID_ITEM_HEIGHT },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.85}
-    >
-      {previewUri ? (
-        <>
-          <Image
-            source={{ uri: previewUri }}
-            style={styles.gridImage}
-            resizeMode="cover"
-          />
-          {isVideo && (
-            <View style={styles.videoBadge}>
-              <MaterialCommunityIcons name="play" size={16} color="#fff" />
-            </View>
-          )}
-          {post.attachments.length > 1 && (
-            <View style={styles.multiBadge}>
-              <Text style={styles.multiBadgeText}>
-                {post.attachments.length}
-              </Text>
-            </View>
-          )}
-        </>
-      ) : (
-        <View
-          style={[styles.textPlaceholder, { backgroundColor: colors.surface }]}
-        >
-          <MaterialCommunityIcons
-            name="file-document-outline"
-            size={24}
-            color={colors.textSecondary}
-          />
-          {post.content ? (
-            <Text
-              style={[
-                styles.textPlaceholderLabel,
-                { color: colors.textSecondary },
-              ]}
-              numberOfLines={4}
-            >
-              {post.content}
-            </Text>
-          ) : null}
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-}
 
 export default function ContactDetailScreen() {
   const router = useRouter();
@@ -178,7 +76,7 @@ export default function ContactDetailScreen() {
   const [muteModalVisible, setMuteModalVisible] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [publisherId, setPublisherId] = useState<string | null>(null);
-  const [followLoading, setFollowLoading] = useState(false);
+
   const [chatSettings, setChatSettings] = useState<{
     notification_muted_until?: string | null;
     notification_muted_forever?: boolean;
@@ -192,7 +90,6 @@ export default function ContactDetailScreen() {
   const [pixKey, setPixKey] = useState<PixKeyData | null>(null);
 
   // Publisher and updates state
-  const [publisher, setPublisher] = useState<updatesApi.Publisher | null>(null);
   const [posts, setPosts] = useState<updatesApi.FeedPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<updatesApi.FeedPost | null>(
     null,
@@ -201,21 +98,7 @@ export default function ContactDetailScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [activeTab, setActiveTab] = useState<"contato" | "atualizacoes">(
-    "contato",
-  );
-  const [publisherSubTab, setPublisherSubTab] = useState<"posts" | "clips">(
-    "posts",
-  );
-
-  const displayedPosts = useMemo(() => {
-    return posts.filter((p) => {
-      if (publisherSubTab === "clips") {
-        return p.type === "clip";
-      }
-      return p.type !== "clip";
-    });
-  }, [posts, publisherSubTab]);
+  const activeTab: "contato" | "atualizacoes" = "contato";
 
   const loadPublisherPosts = useCallback(
     async (id: string, pageNum: number, replace: boolean) => {
@@ -551,7 +434,6 @@ export default function ContactDetailScreen() {
         );
         setPublisherId(publisherData.id);
         setIsFollowing(!!publisherData.is_following);
-        setPublisher(publisherData);
         loadPublisherPosts(publisherData.id, 1, true);
       } catch (err) {
         console.error("Error fetching publisher follow state:", err);
@@ -583,40 +465,6 @@ export default function ContactDetailScreen() {
       true,
       contact?.avatar_url || avatarUrl,
     );
-  };
-
-  const handleToggleFollow = async () => {
-    if (!token || !participantId || followLoading) return;
-    const prev = isFollowing;
-    setIsFollowing(!prev);
-    setFollowLoading(true);
-    try {
-      const res = await updatesApi.toggleFollowByUser(token, participantId);
-      setIsFollowing(res.following);
-      if (publisher) {
-        setPublisher({
-          ...publisher,
-          followers_count: Math.max(
-            0,
-            (publisher.followers_count ?? 0) + (res.following ? 1 : -1),
-          ),
-        });
-      }
-    } catch (err) {
-      console.error("Error toggling follow:", err);
-      setIsFollowing(prev);
-      Alert.alert("Erro", "Não foi possível atualizar o follow.");
-    } finally {
-      setFollowLoading(false);
-    }
-  };
-
-  const handleOpenPublisherProfile = () => {
-    if (!publisherId) return;
-    router.push({
-      pathname: "/publisher-profile",
-      params: { publisherId },
-    });
   };
 
   const handleToggleBlock = async () => {
@@ -838,7 +686,7 @@ export default function ContactDetailScreen() {
             }
 
             // Infinite scroll check for updates tab
-            if (activeTab === "atualizacoes") {
+            if ((activeTab as string) === "atualizacoes") {
               const isCloseToBottom =
                 layoutMeasurement.height + y >= contentSize.height - 100;
               if (isCloseToBottom) {

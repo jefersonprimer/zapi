@@ -17,6 +17,69 @@ import { useAppTheme } from "@/context/ThemeContext";
 
 const GIPHY_API_KEY = "dc6zaTOxFJmzC"; // Public beta key
 
+const CURATED_GIFS = [
+  {
+    id: "cat_jam",
+    title: "Cat Jam",
+    url: "https://i.giphy.com/media/jpbnoe3UIa8TU8LM13/giphy.gif",
+  },
+  {
+    id: "popcorn_cat",
+    title: "Eating Popcorn",
+    url: "https://i.giphy.com/media/gl0mkIZOW6Nwc/giphy.gif",
+  },
+  {
+    id: "doge",
+    title: "Doge",
+    url: "https://i.giphy.com/media/10t50vhNu7Wvja/giphy.gif",
+  },
+  {
+    id: "cute_panda",
+    title: "Cute Panda",
+    url: "https://i.giphy.com/media/13CoXDiaCcC2qc/giphy.gif",
+  },
+  {
+    id: "happy_fox",
+    title: "Happy Fox",
+    url: "https://i.giphy.com/media/3o7qDQ4kc0JfyCg1a0/giphy.gif",
+  },
+  {
+    id: "sleeping_koala",
+    title: "Sleeping Koala",
+    url: "https://i.giphy.com/media/12P3yf5CtsWyvC/giphy.gif",
+  },
+  {
+    id: "pepe_cool",
+    title: "Pepe Cool",
+    url: "https://i.giphy.com/media/X8M4L3N4P1vF2jDQc6/giphy.gif",
+  },
+  {
+    id: "popcat",
+    title: "Pop Cat",
+    url: "https://i.giphy.com/media/3orif2uE4Zc1QPy7Qc/giphy.gif",
+  },
+  {
+    id: "shrug",
+    title: "Shrug",
+    url: "https://i.giphy.com/media/l3q2Lz5yuEFUXXefC/giphy.gif",
+  },
+  {
+    id: "facepalm",
+    title: "Facepalm",
+    url: "https://i.giphy.com/media/3og0INyMDTk59TNW9i/giphy.gif",
+  },
+  {
+    id: "fine",
+    title: "This is fine",
+    url: "https://i.giphy.com/media/3o72F8t9TDi2xVnxOE/giphy.gif",
+  },
+  {
+    id: "mindblown",
+    title: "Mindblown",
+    url: "https://i.giphy.com/media/26ufdipGbF56nn9hm/giphy.gif",
+  },
+];
+
 interface GifModalProps {
   onSendMedia: (media: {
     uri: string;
@@ -43,17 +106,53 @@ export const GifModal: React.FC<GifModalProps> = ({
   const fetchGIFs = useCallback(async (query: string) => {
     setLoadingGifs(true);
     try {
+      const tenorApiKey = process.env.EXPO_PUBLIC_TENOR_API_KEY;
+      const giphyApiKey = process.env.EXPO_PUBLIC_GIPHY_API_KEY || GIPHY_API_KEY;
+
+      if (tenorApiKey) {
+        // Fetch from Tenor API if key is available
+        const endpoint = query
+          ? `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${tenorApiKey}&limit=24`
+          : `https://tenor.googleapis.com/v2/featured?key=${tenorApiKey}&limit=24`;
+
+        const response = await fetch(endpoint);
+        const json = await response.json();
+        if (json.results && json.results.length > 0) {
+          const formatted = json.results.map((item: any) => ({
+            id: item.id,
+            title: item.title || "GIF",
+            images: {
+              fixed_width: { url: item.media_formats?.tinygif?.url || item.media_formats?.gif?.url },
+              original: { url: item.media_formats?.gif?.url }
+            }
+          }));
+          setGifs(formatted);
+          return;
+        }
+      }
+
+      // Fetch from Giphy
       const endpoint = query
-        ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=24&rating=g`
-        : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=24&rating=g`;
+        ? `https://api.giphy.com/v1/gifs/search?api_key=${giphyApiKey}&q=${encodeURIComponent(query)}&limit=24&rating=g`
+        : `https://api.giphy.com/v1/gifs/trending?api_key=${giphyApiKey}&limit=24&rating=g`;
 
       const response = await fetch(endpoint);
       const json = await response.json();
-      if (json.data) {
+      if (json.data && json.data.length > 0) {
         setGifs(json.data);
+      } else {
+        throw new Error("Giphy API returned empty or failed");
       }
     } catch (error) {
-      console.error("Error fetching GIFs from Giphy:", error);
+      console.log("Error fetching GIFs online, falling back to curated list:", error);
+      setGifs(CURATED_GIFS.map(g => ({
+        id: g.id,
+        title: g.title,
+        images: {
+          fixed_width: { url: g.url },
+          original: { url: g.url }
+        }
+      })));
     } finally {
       setLoadingGifs(false);
     }

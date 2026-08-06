@@ -97,7 +97,7 @@ export const StickerEditorModal: React.FC<StickerEditorModalProps> = ({
       lastScale.current = 1;
       lastTranslate.current = { x: 0, y: 0 };
     }
-  }, [visible, imageUri]);
+  }, [visible, imageUri, scale, translateX, translateY]);
 
   // Gestures Handler with PanResponder (detects pan and pinch zoom)
   const initialDistance = useRef<number | null>(null);

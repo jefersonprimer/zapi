@@ -153,7 +153,7 @@ export function ChatActionsModal({
     },
     gif: {
       label: "GIF",
-      icon: "gif",
+      icon: "gif" as any,
       onPress: () => {
         Keyboard.dismiss();
         hideActionsModal(onGifPress);

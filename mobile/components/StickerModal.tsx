@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   PanResponder,
+  TextInput,
 } from "react-native";
 import { Image } from "expo-image";
 import * as FileSystem from "expo-file-system/legacy";
@@ -112,9 +113,43 @@ export const StickerModal: React.FC<StickerModalProps> = ({
 
   const { startDragging } = useStickerDrag();
 
-  const [activePackId, setActivePackId] = useState<string>("custom_sqlite");
+  const [activePackId, setActivePackId] = useState<string>("cute_animals");
   const [downloading, setDownloading] = useState(false);
   const [customStickers, setCustomStickers] = useState<CustomStickerItem[]>([]);
+
+  // Online search states
+  const [stickerSearch, setStickerSearch] = useState("");
+  const [onlineStickers, setOnlineStickers] = useState<any[]>([]);
+  const [loadingOnline, setLoadingOnline] = useState(false);
+
+  const fetchOnlineStickers = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setOnlineStickers([]);
+      return;
+    }
+    setLoadingOnline(true);
+    try {
+      const giphyApiKey = process.env.EXPO_PUBLIC_GIPHY_API_KEY || "yfeFCJulj7aGGv3EZq5M9B5Rd77J9WOg";
+      const endpoint = `https://api.giphy.com/v1/stickers/search?api_key=${giphyApiKey}&q=${encodeURIComponent(query)}&limit=24&rating=g`;
+      const response = await fetch(endpoint);
+      const json = await response.json();
+      if (json.data) {
+        setOnlineStickers(json.data.map((item: any) => ({
+          id: item.id,
+          name: item.title || "Sticker",
+          url: item.images?.original?.url || item.images?.fixed_width?.url,
+        })));
+      }
+    } catch (err) {
+      console.error("Error fetching online stickers:", err);
+    } finally {
+      setLoadingOnline(false);
+    }
+  }, []);
+
+  const handleSearchSubmit = () => {
+    fetchOnlineStickers(stickerSearch);
+  };
 
   const loadCustomStickers = useCallback(async () => {
     try {
@@ -201,51 +236,127 @@ export const StickerModal: React.FC<StickerModalProps> = ({
     >
       <View style={styles.contentPane}>
         <View style={styles.tabContent}>
+          {/* Sticker Search Bar */}
           <View
             style={[
-              styles.packSelector,
-              { borderBottomColor: colors.border },
+              styles.searchBar,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
             ]}
           >
-            <TouchableOpacity
-              style={[
-                styles.packButton,
-                activePackId === "custom_sqlite" && {
-                  backgroundColor: colors.background,
-                  borderBottomWidth: 2,
-                  borderBottomColor: colors.brandGreen,
-                },
-              ]}
-              onPress={() => setActivePackId("custom_sqlite")}
-            >
-              <Text style={styles.packIcon}>⭐</Text>
-              <Text style={[styles.packName, { color: colors.text }]}>
-                Minhas ({customStickers.length})
-              </Text>
-            </TouchableOpacity>
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={colors.textSecondary}
+              style={{ marginRight: 8 }}
+            />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Pesquisar figurinhas online..."
+              placeholderTextColor={colors.textSecondary}
+              value={stickerSearch}
+              onChangeText={(text) => {
+                setStickerSearch(text);
+                if (!text.trim()) {
+                  setOnlineStickers([]);
+                }
+              }}
+              onSubmitEditing={handleSearchSubmit}
+              returnKeyType="search"
+            />
+            {stickerSearch.length > 0 && (
+              <TouchableOpacity onPress={() => {
+                setStickerSearch("");
+                setOnlineStickers([]);
+              }}>
+                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
 
-            {STICKER_PACKS.map((pack) => (
+          {!stickerSearch.trim() && (
+            <View
+              style={[
+                styles.packSelector,
+                { borderBottomColor: colors.border },
+              ]}
+            >
               <TouchableOpacity
-                key={pack.id}
                 style={[
                   styles.packButton,
-                  activePackId === pack.id && {
+                  activePackId === "custom_sqlite" && {
                     backgroundColor: colors.background,
                     borderBottomWidth: 2,
                     borderBottomColor: colors.brandGreen,
                   },
                 ]}
-                onPress={() => setActivePackId(pack.id)}
+                onPress={() => setActivePackId("custom_sqlite")}
               >
-                <Text style={styles.packIcon}>{pack.icon}</Text>
+                <Text style={styles.packIcon}>⭐</Text>
                 <Text style={[styles.packName, { color: colors.text }]}>
-                  {pack.name}
+                  Minhas ({customStickers.length})
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
 
-          {activePackId === "custom_sqlite" ? (
+              {STICKER_PACKS.map((pack) => (
+                <TouchableOpacity
+                  key={pack.id}
+                  style={[
+                    styles.packButton,
+                    activePackId === pack.id && {
+                      backgroundColor: colors.background,
+                      borderBottomWidth: 2,
+                      borderBottomColor: colors.brandGreen,
+                    },
+                  ]}
+                  onPress={() => setActivePackId(pack.id)}
+                >
+                  <Text style={styles.packIcon}>{pack.icon}</Text>
+                  <Text style={[styles.packName, { color: colors.text }]}>
+                    {pack.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {stickerSearch.trim() ? (
+            loadingOnline ? (
+              <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color={colors.brandGreen} />
+              </View>
+            ) : (
+              <FlatList
+                data={onlineStickers}
+                keyExtractor={(item) => item.id}
+                numColumns={4}
+                contentContainerStyle={styles.gridContent}
+                renderItem={({ item }) => (
+                  <StickerGestureItem
+                    url={item.url}
+                    onPress={() => {
+                      if (onStickerSelected) {
+                        onStickerSelected(item.url);
+                        return;
+                      }
+                      handleSelectMedia(item.url);
+                    }}
+                    startDragging={startDragging}
+                    styles={styles}
+                  />
+                )}
+                ListEmptyComponent={
+                  <View style={styles.centerContainer}>
+                    <Text style={{ color: colors.textSecondary }}>
+                      Nenhuma figurinha encontrada
+                    </Text>
+                  </View>
+                }
+              />
+            )
+          ) : activePackId === "custom_sqlite" ? (
             <FlatList
               data={customStickers}
               keyExtractor={(item) => item.id}
@@ -400,5 +511,19 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 14,
     fontWeight: "500",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    margin: 8,
+    paddingHorizontal: 10,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    padding: 0,
   },
 });

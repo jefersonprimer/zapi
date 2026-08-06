@@ -1,7 +1,7 @@
 import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { getFullRemoteUrl } from "@/services/mediaCache";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface MyStoryItemProps {
   avatarUrl: string | null;

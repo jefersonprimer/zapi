@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   Alert,
   Clipboard,
-  Animated,
 } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -314,8 +313,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const isSticker =
     !!mediaUrl &&
     (mediaUrl.toLowerCase().endsWith(".webp") ||
+      mediaUrl.toLowerCase().endsWith(".gif") ||
       mediaUrl.toLowerCase().includes("sticker") ||
-      attachment?.mime_type === "image/webp");
+      mediaUrl.toLowerCase().includes("giphy") ||
+      mediaUrl.toLowerCase().includes("tenor") ||
+      attachment?.mime_type === "image/webp" ||
+      attachment?.mime_type === "image/gif");
 
   console.log("[MessageBubble] Debug:", {
     msgId: item.id,

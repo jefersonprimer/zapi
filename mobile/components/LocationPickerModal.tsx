@@ -44,6 +44,7 @@ export function LocationPickerModal({
       initialCoordsRef.current = null;
       getUserLocation();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const getUserLocation = async () => {

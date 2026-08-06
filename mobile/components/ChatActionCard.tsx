@@ -23,22 +23,25 @@ export function ChatActionCard({ suggestion, onDismiss, onSuccess }: Props) {
     try {
       if (isNote) {
         await createNote({
-          title: suggestion.title,
-          content: suggestion.content,
+          type: "note",
+          title: suggestion.title || "Nota",
+          content: suggestion.content || "",
           noteType: "text",
         });
       } else if (isReminder) {
         await createReminder({
-          title: suggestion.title,
-          content: suggestion.content,
+          type: "reminder",
+          title: suggestion.title || "Lembrete",
+          content: suggestion.content || "",
           dueDate: suggestion.dueDate || new Date().toISOString(),
           repeat: "none",
           priority: "none",
         });
       } else if (isEvent) {
         await createEvent({
-          title: suggestion.title,
-          content: suggestion.content,
+          type: "event",
+          title: suggestion.title || "Evento",
+          content: suggestion.content || "",
           start: suggestion.start || new Date().toISOString(),
           end: suggestion.end || new Date(Date.now() + 3600000).toISOString(),
           allDay: false,

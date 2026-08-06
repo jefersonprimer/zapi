@@ -19,6 +19,12 @@ export interface IntentSuggestion extends IntentDetectionResult {
   type: ItemType;
   confidence: number;
   matchedText: string;
+  title?: string;
+  content?: string;
+  dueDate?: string;
+  start?: string;
+  end?: string;
+  location?: string;
 }
 
 export interface MultiIntentResult {

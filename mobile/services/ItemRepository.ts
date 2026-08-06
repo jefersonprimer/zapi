@@ -384,6 +384,7 @@ export class ItemRepository {
     if (!item || item.type !== "event") return null;
 
     const newNote = await this.createNote({
+      type: 'note',
       title: `Notas: ${item.title}`,
       content: `Anotações da reunião/evento realizado em ${new Date(item.start).toLocaleString('pt-BR')}.\n\nLocal: ${item.location || 'Não informado'}\n\n- `,
       noteType: 'text',

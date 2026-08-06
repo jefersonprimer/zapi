@@ -18,11 +18,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useItemsStore } from "@/store/useItemsStore";
 import { ItemRepository } from "@/services/ItemRepository";
-import { ItemType, AnyItem, Priority, RepeatPattern } from "@/types/item";
+import { ItemType, Priority, RepeatPattern } from "@/types/item";
 
 export default function ItemEditorScreen() {
   const router = useRouter();
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   const params = useLocalSearchParams<{
@@ -44,7 +44,6 @@ export default function ItemEditorScreen() {
     createEvent,
     deleteItem,
     fetchItems,
-    syncWithDeviceCalendar,
   } = useItemsStore();
 
   const [type, setType] = useState<ItemType>(params.type || "note");
@@ -108,9 +107,10 @@ export default function ItemEditorScreen() {
       }
 
       if (type === "note") {
-        await createNote({ title: trimmedTitle, content, noteType: "text" });
+        await createNote({ type: "note", title: trimmedTitle, content, noteType: "text" });
       } else if (type === "reminder") {
         await createReminder({
+          type: "reminder",
           title: trimmedTitle,
           content,
           dueDate: dueDate ? new Date(dueDate).toISOString() : new Date().toISOString(),
@@ -119,6 +119,7 @@ export default function ItemEditorScreen() {
         });
       } else if (type === "event") {
         await createEvent({
+          type: "event",
           title: trimmedTitle,
           content,
           start: start ? new Date(start).toISOString() : new Date().toISOString(),

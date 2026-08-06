@@ -12,7 +12,6 @@ import {
   Keyboard,
   Image,
   Alert,
-  PanResponder,
   Animated,
 } from "react-native";
 import { useStickerDrag } from "@/context/StickerDragContext";
@@ -22,7 +21,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { voiceCallManager } from "@/services/voiceCallManager";
-import { API_URL } from "@/services/api";
+import { API_URL, PlacedSticker } from "@/services/api";
 import { EmojiModal } from "@/components/EmojiModal";
 import { GifModal } from "@/components/GifModal";
 import { StickerModal } from "@/components/StickerModal";
@@ -53,9 +52,7 @@ import { useChat } from "@/hooks/useChat";
 import { useChatLists } from "@/hooks/useChatLists";
 import { Ionicons } from "@expo/vector-icons";
 import { analyzeMessageRules, analyzeMessageMultiIntents, IntentSuggestion } from "@/services/chatIntentEngine";
-import { ChatActionCard } from "@/components/ChatActionCard";
 import { ItemEditBottomSheet } from "@/components/ItemEditBottomSheet";
-import { useItemsStore } from "@/store/useItemsStore";
 import { ItemType } from "@/types/item";
 
 export default function ChatScreen() {
@@ -204,7 +201,7 @@ export default function ChatScreen() {
   const initialDragRotation = useRef(0);
 
   const hoveredMessageIdRef = useRef<string | null>(null);
-  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hoverTimerRef = useRef<any>(null);
   const lastTouchCoordsRef = useRef({ x: 0, y: 0 });
 
   const clearHoverTimer = () => {
@@ -225,7 +222,7 @@ export default function ChatScreen() {
       initialDragAngle.current = null;
       clearHoverTimer();
     }
-  }, [draggingSticker]);
+  }, [draggingSticker, dragScale, dragRotation]);
 
   // Handle when a sticker is dropped onto a message
   useEffect(() => {
@@ -252,7 +249,6 @@ export default function ChatScreen() {
       }
 
       if (foundMsgId) {
-        const targetMsg = messages.find((m) => m.id === foundMsgId);
         const targetLayout = bubbleLayouts.current[foundMsgId];
         if (!targetLayout) return;
 
@@ -261,13 +257,16 @@ export default function ChatScreen() {
         const localY = Math.max(10, Math.min(targetLayout.height - 10, relativeY));
 
         const tempId = `temp_${Date.now()}`;
-        const tempSticker = {
+        const tempSticker: PlacedSticker = {
           id: tempId,
+          message_id: foundMsgId,
+          user_id: user?.user_id || "",
           sticker_url: stickerUrl,
           x_offset: xOffset,
           y_offset: localY,
           scale_factor: dragScaleVal.current,
-          rotation: dragRotationVal.current
+          rotation: dragRotationVal.current,
+          created_at: new Date().toISOString()
         };
 
         // Optimistic Update
@@ -313,7 +312,7 @@ export default function ChatScreen() {
         }
       }
     });
-  }, [token, chatId, registerOnDrop, messages]);
+  }, [token, chatId, registerOnDrop, messages, setMessages, user?.user_id]);
 
   const scrollToBottom = useCallback((animated = false) => {
     flatListRef.current?.scrollToEnd({ animated });
@@ -431,9 +430,6 @@ export default function ChatScreen() {
     handleCreateList,
   } = useChatLists(chatId);
 
-  const { createNote, createReminder, createEvent } = useItemsStore();
-  const [activeSuggestion, setActiveSuggestion] = useState<IntentSuggestion | null>(null);
-
   // Bottom Sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [sheetType, setSheetType] = useState<ItemType>("note");
@@ -446,10 +442,16 @@ export default function ChatScreen() {
       parsed || {
         id: Math.random().toString(),
         type,
-        title: msg.content.slice(0, 35) || "Novo Item",
-        content: msg.content,
+        intent: type,
+        score: 100,
         confidence: 100,
         matchedText: msg.content,
+        title: msg.content.slice(0, 35) || "Novo Item",
+        content: msg.content,
+        entities: {
+          title: msg.content.slice(0, 35) || "Novo Item",
+          content: msg.content,
+        }
       }
     );
     setBottomSheetVisible(true);
@@ -467,7 +469,7 @@ export default function ChatScreen() {
 
       // Só exibe a sugestão se a pontuação for >= 80 (ou IA remota)
       if (result && result.confidence >= 80) {
-        setActiveSuggestion(result);
+        // setActiveSuggestion(result);
       }
     }, 2500);
 
@@ -494,13 +496,16 @@ export default function ChatScreen() {
       const yOffset = Math.max(0, rowLayout.height - 8);
 
       const tempId = `temp_${Date.now()}`;
-      const tempSticker = {
+      const tempSticker: PlacedSticker = {
         id: tempId,
+        message_id: selectedMsg.id,
+        user_id: user?.user_id || "",
         sticker_url: stickerUrl,
         x_offset: xOffset,
         y_offset: yOffset,
         scale_factor: 1,
         rotation: 0,
+        created_at: new Date().toISOString(),
       };
 
       setMessages((prev) =>
@@ -1511,7 +1516,7 @@ export default function ChatScreen() {
             <Image
               source={{ uri: draggingSticker.stickerUrl }}
               style={{ width: "100%", height: "100%" }}
-              contentFit="contain"
+              resizeMode="contain"
             />
           </Animated.View>
         </View>

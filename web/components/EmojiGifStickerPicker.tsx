@@ -174,6 +174,11 @@ export function EmojiGifStickerPicker({
   const [gifs, setGifs] = useState(CURATED_GIFS);
   const [loadingGifs, setLoadingGifs] = useState(false);
 
+  // Sticker search & online fetching states
+  const [stickerSearchQuery, setStickerSearchQuery] = useState("");
+  const [onlineStickers, setOnlineStickers] = useState<{ id: string; name: string; url: string }[]>([]);
+  const [loadingOnlineStickers, setLoadingOnlineStickers] = useState(false);
+
   // Sticker pack selection
   const [selectedStickerPackId, setSelectedStickerPackId] = useState("Animals");
   const [customStickers, setCustomStickers] = useState<string[]>(() => {
@@ -222,7 +227,7 @@ export function EmojiGifStickerPicker({
     saveCustomStickers(updated);
   };
 
-  // Fetch GIFs from Tenor API if key exists, else filter curated list
+  // Fetch GIFs from Giphy or Tenor API, else filter curated list
   useEffect(() => {
     if (activeTab !== "gifs") return;
 
@@ -231,63 +236,181 @@ export function EmojiGifStickerPicker({
       gifSearchQuery.trim() ||
       selectedGifCategory.replace(/[^a-zA-ZáàâãéèêíóôõúçÁÀÂÃÉÈÊÍÓÔÕÚÇ]/g, "");
 
-    const fetchTenorGifs = async () => {
+    const fetchGifs = async () => {
+      const giphyApiKey = process.env.NEXT_PUBLIC_GIPHY_API_KEY;
       const tenorApiKey = process.env.NEXT_PUBLIC_TENOR_API_KEY;
-      if (!tenorApiKey) {
-        // Fallback filtering on curated GIFs
-        if (!query || selectedGifCategory.includes("Trending")) {
-          setGifs(CURATED_GIFS);
-        } else {
-          const filtered = CURATED_GIFS.filter(
-            (g) =>
-              g.title.toLowerCase().includes(query.toLowerCase()) ||
-              g.category.toLowerCase().includes(query.toLowerCase()),
-          );
-          setGifs(filtered.length > 0 ? filtered : CURATED_GIFS);
-        }
-        return;
-      }
 
-      setLoadingGifs(true);
-      try {
-        const endpoint = `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${tenorApiKey}&limit=20&media_filter=gif`;
-        const res = await fetch(endpoint);
-        const data = await res.json();
-
-        if (isMounted && data?.results) {
-          const fetchedGifs = data.results.map(
-            (item: {
-              id: string;
-              title?: string;
-              media_formats?: Record<string, { url: string }>;
-            }) => ({
+      // 1. Try Giphy if key exists
+      if (giphyApiKey) {
+        setLoadingGifs(true);
+        try {
+          const endpoint = `https://api.giphy.com/v1/gifs/search?api_key=${giphyApiKey}&q=${encodeURIComponent(query)}&limit=20&rating=g`;
+          const res = await fetch(endpoint);
+          const data = await res.json();
+          if (isMounted && data?.data) {
+            const fetchedGifs = data.data.map((item: any) => ({
               id: item.id,
               title: item.title || "GIF",
-              category: "Tenor",
-              url:
-                item.media_formats?.gif?.url ||
-                item.media_formats?.tinygif?.url,
-              preview:
-                item.media_formats?.tinygif?.url ||
-                item.media_formats?.gif?.url,
-            }),
-          );
-          setGifs(fetchedGifs);
+              category: "Giphy",
+              url: item.images?.original?.url || item.images?.fixed_width?.url,
+              preview: item.images?.fixed_width?.url || item.images?.original?.url,
+            }));
+            setGifs(fetchedGifs);
+            return;
+          }
+        } catch (err) {
+          console.error("Failed to fetch Giphy GIFs:", err);
+        } finally {
+          if (isMounted) setLoadingGifs(false);
         }
-      } catch (err) {
-        console.error("Failed to fetch Tenor GIFs:", err);
-        if (isMounted) setGifs(CURATED_GIFS);
-      } finally {
-        if (isMounted) setLoadingGifs(false);
+      }
+
+      // 2. Try Tenor if key exists
+      if (tenorApiKey) {
+        setLoadingGifs(true);
+        try {
+          const endpoint = `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${tenorApiKey}&limit=20&media_filter=gif`;
+          const res = await fetch(endpoint);
+          const data = await res.json();
+
+          if (isMounted && data?.results) {
+            const fetchedGifs = data.results.map(
+              (item: {
+                id: string;
+                title?: string;
+                media_formats?: Record<string, { url: string }>;
+              }) => ({
+                id: item.id,
+                title: item.title || "GIF",
+                category: "Tenor",
+                url:
+                  item.media_formats?.gif?.url ||
+                  item.media_formats?.tinygif?.url,
+                preview:
+                  item.media_formats?.tinygif?.url ||
+                  item.media_formats?.gif?.url,
+              }),
+            );
+            setGifs(fetchedGifs);
+            return;
+          }
+        } catch (err) {
+          console.error("Failed to fetch Tenor GIFs:", err);
+        } finally {
+          if (isMounted) setLoadingGifs(false);
+        }
+      }
+
+      // 3. Fallback filtering on curated GIFs
+      if (!query || selectedGifCategory.includes("Trending")) {
+        setGifs(CURATED_GIFS);
+      } else {
+        const filtered = CURATED_GIFS.filter(
+          (g) =>
+            g.title.toLowerCase().includes(query.toLowerCase()) ||
+            g.category.toLowerCase().includes(query.toLowerCase()),
+        );
+        setGifs(filtered.length > 0 ? filtered : CURATED_GIFS);
       }
     };
 
-    const timer = setTimeout(fetchTenorGifs, 300);
+    const timer = setTimeout(fetchGifs, 300);
     return () => {
       isMounted = false;
       clearTimeout(timer);
     };
   }, [activeTab, gifSearchQuery, selectedGifCategory]);
+
+  // Fetch Stickers from Giphy or Tenor API
+  useEffect(() => {
+    if (activeTab !== "stickers" || !stickerSearchQuery.trim()) {
+      setOnlineStickers([]);
+      return;
+    }
+
+    let isMounted = true;
+    const query = stickerSearchQuery.trim();
+
+    const fetchStickers = async () => {
+      const giphyApiKey = process.env.NEXT_PUBLIC_GIPHY_API_KEY;
+      const tenorApiKey = process.env.NEXT_PUBLIC_TENOR_API_KEY;
+
+      // 1. Try Giphy if key exists (Giphy Stickers Search is excellent!)
+      if (giphyApiKey) {
+        setLoadingOnlineStickers(true);
+        try {
+          const endpoint = `https://api.giphy.com/v1/stickers/search?api_key=${giphyApiKey}&q=${encodeURIComponent(query)}&limit=24&rating=g`;
+          const res = await fetch(endpoint);
+          const data = await res.json();
+          if (isMounted && data?.data) {
+            const fetched = data.data.map((item: any) => ({
+              id: item.id,
+              name: item.title || "Sticker",
+              url: item.images?.original?.url || item.images?.fixed_width?.url,
+            }));
+            setOnlineStickers(fetched);
+            return;
+          }
+        } catch (err) {
+          console.error("Failed to fetch Giphy stickers:", err);
+        } finally {
+          if (isMounted) setLoadingOnlineStickers(false);
+        }
+      }
+
+      // 2. Try Tenor if key exists
+      if (tenorApiKey) {
+        setLoadingOnlineStickers(true);
+        try {
+          const endpoint = `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${tenorApiKey}&limit=24&searchfilter=sticker`;
+          const res = await fetch(endpoint);
+          const data = await res.json();
+
+          if (isMounted && data?.results) {
+            const fetched = data.results.map(
+              (item: {
+                id: string;
+                title?: string;
+                media_formats?: Record<string, { url: string }>;
+              }) => ({
+                id: item.id,
+                name: item.title || "Sticker",
+                url:
+                  item.media_formats?.gif?.url ||
+                  item.media_formats?.webp_transparent?.url ||
+                  item.media_formats?.tinygif?.url ||
+                  "",
+              })
+            ).filter((s: { url: string }) => s.url !== "");
+            setOnlineStickers(fetched);
+            return;
+          }
+        } catch (err) {
+          console.error("Failed to fetch Tenor stickers:", err);
+        } finally {
+          if (isMounted) setLoadingOnlineStickers(false);
+        }
+      }
+
+      // 3. Fallback filter in Giphy/Tenor curated animated gifs for stickers
+      const filtered = CURATED_GIFS.filter(
+        (g) =>
+          g.title.toLowerCase().includes(query.toLowerCase()) ||
+          g.category.toLowerCase().includes(query.toLowerCase())
+      ).map((g) => ({
+        id: g.id,
+        name: g.title,
+        url: g.url,
+      }));
+      setOnlineStickers(filtered);
+    };
+
+    const timer = setTimeout(fetchStickers, 300);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [activeTab, stickerSearchQuery]);
 
   const activeStickerPack = useMemo(() => {
     return BUILTIN_STICKER_PACKS.find((p) => p.id === selectedStickerPackId);
@@ -459,67 +582,126 @@ export function EmojiGifStickerPicker({
         {/* STICKERS TAB */}
         {activeTab === "stickers" && (
           <div className="h-full flex flex-col">
-            {/* Sticker Pack Selector Sub-bar */}
-            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/30 dark:bg-neutral-900/30 overflow-x-auto">
-              {BUILTIN_STICKER_PACKS.map((pack) => (
+            {/* Online Search Input for Stickers */}
+            <div className="px-3 pt-3 pb-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar figurinhas online..."
+                  value={stickerSearchQuery}
+                  onChange={(e) => setStickerSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-neutral-100 dark:bg-neutral-800/80 text-xs rounded-xl border border-transparent focus:border-emerald-500 outline-none text-neutral-900 dark:text-neutral-100 placeholder-neutral-400"
+                />
+                {stickerSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setStickerSearchQuery("")}
+                    className="absolute right-2.5 top-2.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Sticker Pack Selector Sub-bar (only if not searching online) */}
+            {!stickerSearchQuery && (
+              <div className="flex items-center gap-1.5 px-3 py-2 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/30 dark:bg-neutral-900/30 overflow-x-auto">
+                {BUILTIN_STICKER_PACKS.map((pack) => (
+                  <button
+                    key={pack.id}
+                    type="button"
+                    onClick={() => setSelectedStickerPackId(pack.id)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-xl whitespace-nowrap transition-all ${
+                      selectedStickerPackId === pack.id
+                        ? "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                        : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                    }`}
+                  >
+                    <span>{pack.icon}</span>
+                    <span>{pack.name}</span>
+                  </button>
+                ))}
+
+                {/* Custom User Stickers Tab */}
                 <button
-                  key={pack.id}
                   type="button"
-                  onClick={() => setSelectedStickerPackId(pack.id)}
+                  onClick={() => setSelectedStickerPackId("custom")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-xl whitespace-nowrap transition-all ${
-                    selectedStickerPackId === pack.id
+                    selectedStickerPackId === "custom"
                       ? "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                       : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                   }`}
                 >
-                  <span>{pack.icon}</span>
-                  <span>{pack.name}</span>
+                  <SmilePlus className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Meus ({customStickers.length})</span>
                 </button>
-              ))}
+              </div>
+            )}
 
-              {/* Custom User Stickers Tab */}
-              <button
-                type="button"
-                onClick={() => setSelectedStickerPackId("custom")}
-                className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-xl whitespace-nowrap transition-all ${
-                  selectedStickerPackId === "custom"
-                    ? "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
-                    : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                }`}
-              >
-                <SmilePlus className="h-3.5 w-3.5 text-emerald-500" />
-                <span>Meus ({customStickers.length})</span>
-              </button>
-            </div>
+            {/* Custom Sticker Upload Action Bar (only if not searching online) */}
+            {!stickerSearchQuery && (
+              <div className="flex items-center justify-between px-3 py-2 bg-neutral-50/50 dark:bg-neutral-900/50 border-b border-neutral-100 dark:border-neutral-800">
+                <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
+                  {selectedStickerPackId === "custom"
+                    ? "Suas figurinhas personalizadas (WEBP/PNG)"
+                    : `Pack: ${activeStickerPack?.name || ""}`}
+                </span>
 
-            {/* Custom Sticker Upload Action Bar */}
-            <div className="flex items-center justify-between px-3 py-2 bg-neutral-50/50 dark:bg-neutral-900/50 border-b border-neutral-100 dark:border-neutral-800">
-              <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
-                {selectedStickerPackId === "custom"
-                  ? "Suas figurinhas personalizadas (WEBP/PNG)"
-                  : `Pack: ${activeStickerPack?.name || ""}`}
-              </span>
-
-              <input
-                type="file"
-                ref={customFileInputRef}
-                accept="image/png, image/webp, image/jpeg, image/gif"
-                onChange={handleCustomStickerUpload}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => customFileInputRef.current?.click()}
-                className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-900 transition-colors"
-              >
-                <Upload className="h-3 w-3" />
-                <span>+ Criar Sticker</span>
-              </button>
-            </div>
+                <input
+                  type="file"
+                  ref={customFileInputRef}
+                  accept="image/png, image/webp, image/jpeg, image/gif"
+                  onChange={handleCustomStickerUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => customFileInputRef.current?.click()}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-900 transition-colors"
+                >
+                  <Upload className="h-3 w-3" />
+                  <span>+ Criar Sticker</span>
+                </button>
+              </div>
+            )}
 
             {/* Sticker Grid */}
             <div className="flex-1 p-3 overflow-y-auto">
-              {selectedStickerPackId === "custom" ? (
+              {stickerSearchQuery ? (
+                loadingOnlineStickers ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-neutral-400 gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                    <span className="text-xs">Buscando figurinhas...</span>
+                  </div>
+                ) : onlineStickers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-neutral-400 gap-2">
+                    <StickerIcon className="h-8 w-8 text-neutral-300 dark:text-neutral-700" />
+                    <span className="text-xs">Nenhuma figurinha encontrada</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-3">
+                    {onlineStickers.map((st) => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => onSelectSticker(st.url)}
+                        className="aspect-square p-2 rounded-2xl bg-neutral-100/70 dark:bg-neutral-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-neutral-200/60 dark:border-neutral-800 hover:border-emerald-400/60 transition-all flex items-center justify-center cursor-pointer hover:scale-110 transform duration-200"
+                        title={st.name}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={st.url}
+                          alt={st.name}
+                          className="w-full h-full object-contain"
+                          loading="lazy"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )
+              ) : selectedStickerPackId === "custom" ? (
                 customStickers.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-neutral-400 gap-2 text-center">
                     <StickerIcon className="h-10 w-10 text-neutral-300 dark:text-neutral-700" />

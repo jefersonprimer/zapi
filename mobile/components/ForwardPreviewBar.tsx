@@ -116,14 +116,14 @@ export const ForwardPreviewBar: React.FC<ForwardPreviewBarProps> = ({
             {hasAttachment && (
               iconLibrary === "ionicons" ? (
                 <Ionicons
-                  name={iconName}
+                  name={iconName as any}
                   size={14}
                   color={colors.textSecondary}
                   style={styles.previewIcon}
                 />
               ) : (
                 <MaterialCommunityIcons
-                  name={iconName}
+                  name={iconName as any}
                   size={14}
                   color={colors.textSecondary}
                   style={styles.previewIcon}

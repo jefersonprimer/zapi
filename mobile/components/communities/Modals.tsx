@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
-import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 
 interface ModalProps {
   visible: boolean;
@@ -197,7 +197,7 @@ export function CreateCommunityModal({
                 ]}
               >
                 <Ionicons
-                  name="lock-outline"
+                  name="lock-closed-outline"
                   size={20}
                   color={
                     visibility === "private"
@@ -778,7 +778,7 @@ export function CreateEventModal({
               Agendar Evento
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={24} color={colors.text} />
+              <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 

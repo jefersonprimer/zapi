@@ -236,7 +236,7 @@ export default function ChatListItem({
                 displayMessage = "Mensagem apagada";
                 iconElement = (
                   <MaterialCommunityIcons
-                    name="ban"
+                    name="cancel"
                     size={15}
                     color={colors.textSecondary}
                     style={{ marginRight: 4 }}

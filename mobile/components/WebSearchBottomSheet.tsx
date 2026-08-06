@@ -19,7 +19,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { BrowserMediaActionsModal } from "./BrowserMediaActionsModal";
 import { StickerEditorModal } from "./StickerEditorModal";
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface WebSearchBottomSheetProps {
   visible: boolean;
@@ -113,7 +113,7 @@ export function WebSearchBottomSheet({
         useNativeDriver: false,
       }).start();
     }
-  }, [visible]);
+  }, [visible, animatedHeight, sheetHeight]);
 
   // PanResponder to handle sheet resizing
   const panResponder = useRef(
@@ -351,7 +351,7 @@ export function WebSearchBottomSheet({
         dragMediaRef.current = null;
         setDragMedia(null);
       }
-    } catch (e) {
+    } catch {
       // Ignore parsing errors
     }
   };

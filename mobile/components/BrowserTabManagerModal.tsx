@@ -44,7 +44,7 @@ export function BrowserTabManagerModal({
       setActiveMode(activeTab.isIncognito ? "incognito" : "normal");
       setSearchQuery(""); // Reset search
     }
-  }, [visible, activeTabId]);
+  }, [visible, activeTabId, activeTab]);
 
   const filteredTabs = tabs
     .filter((t) =>
@@ -390,7 +390,8 @@ export function BrowserTabManagerModal({
               ]}
               onPress={() => setActiveMode("incognito")}
             >
-              <EyeOff
+              <MaterialCommunityIcons
+                name="eye-off"
                 size={13}
                 color={activeMode === "incognito" ? "#A78BFA" : "#8E8E93"}
                 style={{ marginRight: 4 }}

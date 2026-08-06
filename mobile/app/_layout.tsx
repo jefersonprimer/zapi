@@ -11,6 +11,7 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider as AppThemeProvider, useAppTheme } from "@/context/ThemeContext";
+import { StickerDragProvider } from "@/context/StickerDragContext";
 import { wsClient } from "@/services/ws";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { registerForPushNotifications, notifications as Notifications } from "@/services/notifications";
@@ -277,7 +278,7 @@ function ThemedRoot({ children }: { children: ReactNode }) {
   );
 }
 
-import { StickerDragProvider } from "@/context/StickerDragContext";
+
 
 export default function RootLayout() {
   return (

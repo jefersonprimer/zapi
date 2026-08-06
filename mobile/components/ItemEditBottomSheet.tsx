@@ -118,7 +118,7 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
       sheetHeight.setValue(DEFAULT_HEIGHT);
       isExpandedRef.current = false;
     }
-  }, [visible, initialType, suggestion]);
+  }, [visible, initialType, suggestion, sheetHeight]);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -128,9 +128,10 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
 
     try {
       if (type === "note") {
-        await createNote({ title, content, noteType: "text" });
+        await createNote({ type: "note", title, content, noteType: "text" });
       } else if (type === "reminder") {
         await createReminder({
+          type: "reminder",
           title,
           content,
           dueDate: new Date().toISOString(),
@@ -139,6 +140,7 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
         });
       } else if (type === "event") {
         await createEvent({
+          type: "event",
           title,
           content,
           start: new Date().toISOString(),
@@ -152,7 +154,7 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
 
       Alert.alert("Sucesso", `${type === "note" ? "Nota" : type === "reminder" ? "Lembrete" : "Evento"} salvo(a)!`);
       onClose();
-    } catch (e) {
+    } catch {
       Alert.alert("Erro", "Não foi possível salvar o item.");
     }
   };

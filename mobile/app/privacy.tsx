@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { useAuth, getStorageItem, setStorageItem } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+
 import { updateProfile } from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
 

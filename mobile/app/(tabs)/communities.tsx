@@ -29,6 +29,7 @@ import {
   JoinCommunityModal,
   CreateChannelModal,
   CreatePostModal,
+  CreateEventModal,
 } from "@/components/communities/Modals";
 import { PostDetailModal } from "@/components/communities/PostDetailModal";
 
@@ -203,7 +204,7 @@ export default function CommunitiesScreen() {
       Share.share({
         message: `Entre na minha comunidade "${selectedCommunity.name}" no Zapi! Use o código: ${invite.code}\nOu clique no link: ${inviteLink}`,
       });
-    } catch (err: any) {
+    } catch {
       Alert.alert("Erro", "Não foi possível gerar um código de convite.");
     }
   };
@@ -268,6 +269,11 @@ export default function CommunitiesScreen() {
           channel={selectedChannel!}
           onBack={() => setActiveChannelView("list")}
           onCreateEventClick={() => setShowCreateEvent(true)}
+        />
+        <CreateEventModal
+          visible={showCreateEvent}
+          onClose={() => setShowCreateEvent(false)}
+          onSubmit={handleCreateEventSubmit}
         />
       </View>
     );

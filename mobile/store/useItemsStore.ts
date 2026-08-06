@@ -65,7 +65,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
 
   createNote: async (input) => {
     const note = await ItemRepository.createNote(input);
-    await get().fetchItems(get().filterType === "all" ? undefined : get().filterType);
+    await get().fetchItems(get().filterType === "all" ? undefined : (get().filterType as ItemType));
     return note;
   },
 
@@ -80,7 +80,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
       }
     }
 
-    await get().fetchItems(get().filterType === "all" ? undefined : get().filterType);
+    await get().fetchItems(get().filterType === "all" ? undefined : (get().filterType as ItemType));
     return reminder;
   },
 
@@ -98,7 +98,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
       }
     }
 
-    await get().fetchItems(get().filterType === "all" ? undefined : get().filterType);
+    await get().fetchItems(get().filterType === "all" ? undefined : (get().filterType as ItemType));
     return event;
   },
 
@@ -108,7 +108,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
       // Se concluiu o lembrete, cancela a notificação agendada
       await cancelItemNotification(updated.notificationId);
     }
-    await get().fetchItems(get().filterType === "all" ? undefined : get().filterType);
+    await get().fetchItems(get().filterType === "all" ? undefined : (get().filterType as ItemType));
   },
 
   deleteItem: async (id) => {
@@ -117,7 +117,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
       await cancelItemNotification(item.notificationId);
     }
     await ItemRepository.deleteItem(id);
-    await get().fetchItems(get().filterType === "all" ? undefined : get().filterType);
+    await get().fetchItems(get().filterType === "all" ? undefined : (get().filterType as ItemType));
   },
 
   convertNoteToReminder: async (noteId, dueDate) => {
@@ -125,7 +125,7 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
     if (reminder && reminder.dueDate) {
       await scheduleItemNotification(reminder);
     }
-    await get().fetchItems(get().filterType === "all" ? undefined : get().filterType);
+    await get().fetchItems(get().filterType === "all" ? undefined : (get().filterType as ItemType));
     return reminder;
   },
 
@@ -137,13 +137,13 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
         await syncEventToDeviceCalendar(event);
       }
     }
-    await get().fetchItems(get().filterType === "all" ? undefined : get().filterType);
+    await get().fetchItems(get().filterType === "all" ? undefined : (get().filterType as ItemType));
     return event;
   },
 
   createNoteFromEvent: async (eventId) => {
     const note = await ItemRepository.createNoteFromEvent(eventId);
-    await get().fetchItems(get().filterType === "all" ? undefined : get().filterType);
+    await get().fetchItems(get().filterType === "all" ? undefined : (get().filterType as ItemType));
     return note;
   },
 }));

@@ -283,7 +283,7 @@ export default function CreateListModal({
               }
             >
               {showEmojiPicker ? (
-                <Ionicons name="keyboard-outline" size={24} color={colors.text} />
+                <Ionicons name={"keyboard-outline" as any} size={24} color={colors.text} />
               ) : icon ? (
                 <Text style={styles.emojiButtonIcon}>{icon}</Text>
               ) : (
