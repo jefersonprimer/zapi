@@ -211,7 +211,7 @@ export function SendLaterModal({
 const styles = StyleSheet.create({
   sheetContainer: {
     width: "100%",
-    height: "34%",
+    height: "32%",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
