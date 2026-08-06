@@ -43,5 +43,21 @@ pub struct Message {
     pub status: Option<String>,
 
     pub reaction: Option<String>,
+
+    #[sqlx(skip)]
+    pub placed_stickers: Option<Vec<MessagePlacedSticker>>,
+}
+
+#[derive(Debug, FromRow, Serialize, Clone, serde::Deserialize)]
+pub struct MessagePlacedSticker {
+    pub id: Uuid,
+    pub message_id: Uuid,
+    pub user_id: Uuid,
+    pub sticker_url: String,
+    pub x_offset: f32,
+    pub y_offset: f32,
+    pub scale_factor: f32,
+    pub rotation: f32,
+    pub created_at: DateTime<Utc>,
 }
 

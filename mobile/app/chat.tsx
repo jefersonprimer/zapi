@@ -12,7 +12,12 @@ import {
   Keyboard,
   Image,
   Alert,
+  PanResponder,
+  Animated,
 } from "react-native";
+import { useStickerDrag } from "@/context/StickerDragContext";
+import { placeStickerOnMessage, removePlacedSticker } from "@/services/placedStickersApi";
+import { updateMessageStickersLocal } from "@/services/database";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -40,6 +45,7 @@ import { WebSearchBottomSheet } from "@/components/WebSearchBottomSheet";
 import { SendLaterModal } from "@/components/SendLaterModal";
 import { SendLaterPreviewBar } from "@/components/SendLaterPreviewBar";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useChat } from "@/hooks/useChat";
 import { useChatLists } from "@/hooks/useChatLists";
@@ -125,10 +131,38 @@ export default function ChatScreen() {
     handleReact,
     restoreScheduledMessageToComposer,
     messages,
+    setMessages,
+    loadMessages,
     handleScheduleMessage,
   } = useChat();
 
+  const { token } = useAuth();
+
+  const handleRemoveSticker = async (msgId: string, stickerId: string) => {
+    if (!token || !chatId) return;
+
+    // Optimistic UI update
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === msgId) {
+          const updatedStickers = (msg.placed_stickers || []).filter((s) => s.id !== stickerId);
+          updateMessageStickersLocal(msgId, updatedStickers).catch(console.error);
+          return { ...msg, placed_stickers: updatedStickers };
+        }
+        return msg;
+      })
+    );
+
+    try {
+      await removePlacedSticker(token, chatId, msgId, stickerId);
+    } catch (err) {
+      console.error("Failed to remove sticker:", err);
+      loadMessages();
+    }
+  };
+
   const flatListRef = useRef<FlatList>(null);
+  const flatListContainerRef = useRef<View>(null);
   const inputRef = useRef<any>(null);
   const shouldStickToBottomRef = useRef(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -149,6 +183,136 @@ export default function ChatScreen() {
     width: number;
     height: number;
   } | null>(null);
+
+  // Sticker Drag & Drop References and Hook
+  const { draggingSticker, dragPosition, stopDragging, registerOnDrop } = useStickerDrag();
+  const messageLayouts = useRef<Record<string, { y: number; height: number; pageY?: number }>>({});
+  const flatListScrollOffset = useRef(0);
+  const flatListLayout = useRef({ x: 0, y: 0, width: 0, height: 0 });
+
+  const dragScale = useRef(new Animated.Value(1.0)).current;
+  const dragScaleVal = useRef(1.0);
+  const initialDragDistance = useRef<number | null>(null);
+  const initialDragScale = useRef(1.0);
+
+  const dragRotation = useRef(new Animated.Value(0)).current;
+  const dragRotationVal = useRef(0);
+  const initialDragAngle = useRef<number | null>(null);
+  const initialDragRotation = useRef(0);
+
+  const hoveredMessageIdRef = useRef<string | null>(null);
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTouchCoordsRef = useRef({ x: 0, y: 0 });
+
+  const clearHoverTimer = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    hoveredMessageIdRef.current = null;
+  };
+
+  useEffect(() => {
+    if (draggingSticker) {
+      dragScale.setValue(1.0);
+      dragScaleVal.current = 1.0;
+      dragRotation.setValue(0);
+      dragRotationVal.current = 0;
+      initialDragDistance.current = null;
+      initialDragAngle.current = null;
+      clearHoverTimer();
+    }
+  }, [draggingSticker]);
+
+  // Handle when a sticker is dropped onto a message
+  useEffect(() => {
+    registerOnDrop((stickerUrl, pageX, pageY) => {
+      clearHoverTimer();
+      // Calculate touch coordinate relative to FlatList top
+      const relativeY = pageY - flatListLayout.current.y + flatListScrollOffset.current;
+      
+      // Find which message bounds contain relativeY
+      let foundMsgId: string | null = null;
+      for (const [msgId, layout] of Object.entries(messageLayouts.current)) {
+        if (relativeY >= layout.y && relativeY <= layout.y + layout.height) {
+          foundMsgId = msgId;
+          break;
+        }
+      }
+
+      if (foundMsgId) {
+        // Calculate offset relative to the message bubble container
+        let targetMsgY = 16;
+        for (const item of chatItems) {
+          const id = item.type === "message" ? item.data.id : `call_${item.data.id}`;
+          const layout = messageLayouts.current[id];
+          if (id === foundMsgId) break;
+          targetMsgY += layout ? layout.height : 0;
+        }
+        
+        const localX = pageX - flatListLayout.current.x; // approximate relative x
+        const localY = relativeY - targetMsgY; // relative y in message row
+
+        const targetMsg = messages.find((m) => m.id === foundMsgId);
+        const isMine = targetMsg?.sender_id === user?.user_id;
+        const xOffset = isMine ? flatListLayout.current.width - localX : localX;
+
+        const tempId = `temp_${Date.now()}`;
+        const tempSticker = {
+          id: tempId,
+          sticker_url: stickerUrl,
+          x_offset: xOffset,
+          y_offset: localY,
+          scale_factor: dragScaleVal.current,
+          rotation: dragRotationVal.current
+        };
+
+        // Optimistic Update
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (msg.id === foundMsgId) {
+              return { ...msg, placed_stickers: [...(msg.placed_stickers || []), tempSticker] };
+            }
+            return msg;
+          })
+        );
+
+        if (token && chatId) {
+          // Fire API to place sticker
+          placeStickerOnMessage(token, chatId, foundMsgId, stickerUrl, xOffset, localY, dragScaleVal.current, dragRotationVal.current)
+            .then((newPlaced) => {
+              console.log("Sticker placed successfully on message:", foundMsgId);
+              setMessages((prev) =>
+                prev.map((msg) => {
+                  if (msg.id === foundMsgId) {
+                    const updatedStickers = (msg.placed_stickers || []).filter(s => s.id !== tempId);
+                    updatedStickers.push(newPlaced);
+                    updateMessageStickersLocal(foundMsgId, updatedStickers).catch(console.error);
+                    return { ...msg, placed_stickers: updatedStickers };
+                  }
+                  return msg;
+                })
+              );
+            })
+            .catch((err) => {
+              console.error("Failed to place sticker:", err);
+              Alert.alert("Erro", "Não foi possível colocar a figurinha na mensagem.");
+              // Revert optimistic update
+              setMessages((prev) =>
+                prev.map((msg) => {
+                  if (msg.id === foundMsgId) {
+                    return { ...msg, placed_stickers: (msg.placed_stickers || []).filter(s => s.id !== tempId) };
+                  }
+                  return msg;
+                })
+              );
+            });
+        }
+      } else {
+          // Dropped on empty space, could cancel or something
+      }
+    });
+  }, [token, chatId, registerOnDrop]);
 
   const scrollToBottom = useCallback((animated = false) => {
     flatListRef.current?.scrollToEnd({ animated });
@@ -189,6 +353,7 @@ export default function ChatScreen() {
     }) => {
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
+      flatListScrollOffset.current = contentOffset.y;
       const distanceFromBottom =
         contentSize.height - layoutMeasurement.height - contentOffset.y;
       shouldStickToBottomRef.current = distanceFromBottom < 80;
@@ -584,80 +749,94 @@ export default function ChatScreen() {
         </View>
       </View>
 
-      <FlatList
-        key={chatId}
-        ref={flatListRef}
-        data={chatItems}
-        keyExtractor={(item) =>
-          item.type === "message" ? item.data.id : `call_${item.data.id}`
-        }
-        onContentSizeChange={handleContentSizeChange}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        style={styles.messageList}
-        contentContainerStyle={{
-          padding: 16,
-          paddingBottom:
-            (isKeyboardVisible || attachSheetVisible
-              ? 60
-              : showEmojiPicker
-                ? 280 + (insets.bottom > 0 ? insets.bottom : 16) + 60
-                : insets.bottom + 60) + 16,
+      <View
+        ref={flatListContainerRef}
+        style={{ flex: 1 }}
+        onLayout={() => {
+          flatListContainerRef.current?.measure((x, y, width, height, pageX, pageY) => {
+            flatListLayout.current = { x: pageX, y: pageY, width, height };
+          });
         }}
-        renderItem={({ item, index }) => (
-          <ChatItemRow
-            item={item}
-            index={index}
-            chatItems={chatItems}
-            selectedMessageIds={selectedMessageIds}
-            selectedCallIds={selectedCallIds}
-            isSelectionMode={isSelectionMode && !msgOptionsVisible}
-            currentUserId={user?.user_id}
-            isGroup={isGroup}
-            participantId={participantId}
-            participantUsername={participantUsername}
-            participantAvatarUrl={participantAvatarUrl}
-            onSwipeRight={handleReencaminhar}
-            onToggleMessageSelection={(msg, layout, onlyReactions) => {
-              if (selectedMessageIds.length > 0) {
-                toggleMessageSelection(msg);
-              } else {
-                setSelectedMessageIds([msg.id]);
-                setSelectedMessageLayout(layout || null);
-                setOnlyReactionsMode(!!onlyReactions);
-                setMsgOptionsVisible(true);
-              }
-            }}
-            onToggleCallSelection={toggleCallSelection}
-            onCreateNote={(() => {
-              if (item.type !== "message") return undefined;
-              const multi = analyzeMessageMultiIntents(item.data.content);
-              return multi.isNote ? (msg) => openSheetForMessage(msg, "note") : undefined;
-            })()}
-            onCreateReminder={(() => {
-              if (item.type !== "message") return undefined;
-              const multi = analyzeMessageMultiIntents(item.data.content);
-              return multi.isReminder ? (msg) => openSheetForMessage(msg, "reminder") : undefined;
-            })()}
-            onCreateEvent={(() => {
-              if (item.type !== "message") return undefined;
-              const multi = analyzeMessageMultiIntents(item.data.content);
-              return multi.isEvent ? (msg) => openSheetForMessage(msg, "event") : undefined;
-            })()}
-          />
-        )}
-        ListEmptyComponent={
-          isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.tint} />
-            </View>
-          ) : (
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Nenhuma mensagem ainda. Envie um oi!
-            </Text>
-          )
-        }
-      />
+      >
+        <FlatList
+          key={chatId}
+          ref={flatListRef}
+          data={chatItems}
+          keyExtractor={(item) =>
+            item.type === "message" ? item.data.id : `call_${item.data.id}`
+          }
+          onContentSizeChange={handleContentSizeChange}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          style={styles.messageList}
+          contentContainerStyle={{
+            padding: 16,
+            paddingBottom:
+              (isKeyboardVisible || attachSheetVisible
+                ? 60
+                : showEmojiPicker
+                  ? 280 + (insets.bottom > 0 ? insets.bottom : 16) + 60
+                  : insets.bottom + 60) + 16,
+          }}
+          renderItem={({ item, index }) => (
+            <ChatItemRow
+              item={item}
+              index={index}
+              chatItems={chatItems}
+              selectedMessageIds={selectedMessageIds}
+              selectedCallIds={selectedCallIds}
+              isSelectionMode={isSelectionMode && !msgOptionsVisible}
+              currentUserId={user?.user_id}
+              isGroup={isGroup}
+              participantId={participantId}
+              participantUsername={participantUsername}
+              participantAvatarUrl={participantAvatarUrl}
+              onSwipeRight={handleReencaminhar}
+              onLayoutMessage={(msgId, layout) => {
+                messageLayouts.current[msgId] = layout;
+              }}
+              onToggleMessageSelection={(msg, layout, onlyReactions) => {
+                if (selectedMessageIds.length > 0) {
+                  toggleMessageSelection(msg);
+                } else {
+                  setSelectedMessageIds([msg.id]);
+                  setSelectedMessageLayout(layout || null);
+                  setOnlyReactionsMode(!!onlyReactions);
+                  setMsgOptionsVisible(true);
+                }
+              }}
+              onToggleCallSelection={toggleCallSelection}
+              onCreateNote={(() => {
+                if (item.type !== "message") return undefined;
+                const multi = analyzeMessageMultiIntents(item.data.content);
+                return multi.isNote ? (msg) => openSheetForMessage(msg, "note") : undefined;
+              })()}
+              onCreateReminder={(() => {
+                if (item.type !== "message") return undefined;
+                const multi = analyzeMessageMultiIntents(item.data.content);
+                return multi.isReminder ? (msg) => openSheetForMessage(msg, "reminder") : undefined;
+              })()}
+              onCreateEvent={(() => {
+                if (item.type !== "message") return undefined;
+                const multi = analyzeMessageMultiIntents(item.data.content);
+                return multi.isEvent ? (msg) => openSheetForMessage(msg, "event") : undefined;
+              })()}
+              onRemoveSticker={handleRemoveSticker}
+            />
+          )}
+          ListEmptyComponent={
+            isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.tint} />
+              </View>
+            ) : (
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                Nenhuma mensagem ainda. Envie um oi!
+              </Text>
+            )
+          }
+        />
+      </View>
 
       <View
         style={{
@@ -1122,6 +1301,124 @@ export default function ChatScreen() {
         suggestion={sheetSuggestion}
         onClose={() => setBottomSheetVisible(false)}
       />
+      {draggingSticker && (
+        <View
+          style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderTerminationRequest={() => false}
+          onResponderRelease={(e) => {
+            if (e.nativeEvent.touches.length === 0) {
+              const lastCoords = lastTouchCoordsRef.current;
+              clearHoverTimer();
+              stopDragging(lastCoords.x, lastCoords.y);
+            }
+          }}
+          onTouchMove={(e) => {
+            const touches = e.nativeEvent.touches;
+            if (touches && touches.length === 2) {
+              const dx = touches[0].pageX - touches[1].pageX;
+              const dy = touches[0].pageY - touches[1].pageY;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+              if (initialDragDistance.current === null) {
+                initialDragDistance.current = distance;
+                initialDragScale.current = dragScaleVal.current;
+              } else {
+                const newScale = Math.max(0.3, Math.min(3.0, (distance / initialDragDistance.current) * initialDragScale.current));
+                dragScaleVal.current = newScale;
+                dragScale.setValue(newScale);
+              }
+
+              if (initialDragAngle.current === null) {
+                initialDragAngle.current = angle;
+                initialDragRotation.current = dragRotationVal.current;
+              } else {
+                const angleDiff = angle - initialDragAngle.current;
+                let newRotation = (initialDragRotation.current + angleDiff) % 360;
+                if (newRotation < 0) newRotation += 360;
+                dragRotationVal.current = newRotation;
+                dragRotation.setValue(newRotation);
+              }
+              
+              // Clear hover timer when adjusting to prevent snapping during pinch
+              clearHoverTimer();
+            } else if (touches && touches.length === 1) {
+              const touch = touches[0];
+              const pageX = touch.pageX;
+              const pageY = touch.pageY;
+
+              dragPosition.setValue({
+                x: pageX - 50,
+                y: pageY - 50,
+              });
+              initialDragDistance.current = null;
+              initialDragAngle.current = null;
+
+              // Detect which message is hovered
+              const relativeY = pageY - flatListLayout.current.y + flatListScrollOffset.current;
+              let currentHoveredMsgId: string | null = null;
+              
+              let accumulatedY = 16; // contentContainerStyle padding is 16
+              for (const item of chatItems) {
+                const id = item.type === "message" ? item.data.id : `call_${item.data.id}`;
+                const layout = messageLayouts.current[id];
+                const h = layout ? layout.height : 0;
+                
+                if (h > 0 && relativeY >= accumulatedY && relativeY <= accumulatedY + h) {
+                  currentHoveredMsgId = item.type === "message" ? id : null;
+                  break;
+                }
+                accumulatedY += h;
+              }
+
+              const lastCoords = lastTouchCoordsRef.current;
+              const dist = Math.sqrt(Math.pow(pageX - lastCoords.x, 2) + Math.pow(pageY - lastCoords.y, 2));
+
+              if (currentHoveredMsgId !== hoveredMessageIdRef.current || dist > 15) {
+                clearHoverTimer();
+                hoveredMessageIdRef.current = currentHoveredMsgId;
+
+                if (currentHoveredMsgId) {
+                  hoverTimerRef.current = setTimeout(() => {
+                    const snapCoords = lastTouchCoordsRef.current;
+                    clearHoverTimer();
+                    stopDragging(snapCoords.x, snapCoords.y);
+                  }, 600);
+                }
+              }
+              lastTouchCoordsRef.current = { x: pageX, y: pageY };
+            }
+          }}
+        >
+          <Animated.View
+            style={{
+              position: "absolute",
+              width: 100,
+              height: 100,
+              transform: [
+                { translateX: dragPosition.x },
+                { translateY: dragPosition.y },
+                { scale: dragScale },
+                {
+                  rotate: dragRotation.interpolate({
+                    inputRange: [0, 360],
+                    outputRange: ["0deg", "360deg"],
+                  }),
+                },
+              ],
+              opacity: 0.85,
+            }}
+          >
+            <Image
+              source={{ uri: draggingSticker.stickerUrl }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="contain"
+            />
+          </Animated.View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -1251,5 +1548,74 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
+  },
+  stickerControlsContainer: {
+    position: "absolute",
+    bottom: 90,
+    left: 20,
+    right: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 10000,
+  },
+  stickerControlsTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  stickerControlsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 16,
+  },
+  controlGroup: {
+    alignItems: "center",
+  },
+  controlLabel: {
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  controlButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  controlBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  controlValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginHorizontal: 12,
+    minWidth: 40,
+    textAlign: "center",
+  },
+  stickerControlsActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    height: 38,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 6,
+  },
+  actionBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

@@ -526,6 +526,16 @@ pub async fn get_messages(
         .await
         .unwrap_or_default();
 
+        let placed_stickers = sqlx::query_as::<_, crate::models::message::MessagePlacedSticker>(
+            "SELECT id, message_id, user_id, sticker_url, x_offset, y_offset, scale_factor, rotation, created_at 
+             FROM message_placed_stickers 
+             WHERE message_id = ANY($1)"
+        )
+        .bind(&msg_ids)
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_default();
+
         for msg in &mut messages {
             let msg_atts: Vec<_> = attachments
                 .iter()
@@ -533,6 +543,13 @@ pub async fn get_messages(
                 .cloned()
                 .collect();
             msg.attachments = Some(msg_atts);
+
+            let msg_stickers: Vec<_> = placed_stickers
+                .iter()
+                .filter(|s| s.message_id == msg.id)
+                .cloned()
+                .collect();
+            msg.placed_stickers = Some(msg_stickers);
 
             // Compute message status on the fly for A's own messages
             if msg.sender_id == auth.0 {

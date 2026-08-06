@@ -277,13 +277,17 @@ function ThemedRoot({ children }: { children: ReactNode }) {
   );
 }
 
+import { StickerDragProvider } from "@/context/StickerDragContext";
+
 export default function RootLayout() {
   return (
     <AuthProvider>
       <AppThemeProvider>
-        <ThemedRoot>
-          <RootLayoutInner />
-        </ThemedRoot>
+        <StickerDragProvider>
+          <ThemedRoot>
+            <RootLayoutInner />
+          </ThemedRoot>
+        </StickerDragProvider>
       </AppThemeProvider>
     </AuthProvider>
   );

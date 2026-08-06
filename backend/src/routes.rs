@@ -47,6 +47,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/chats/:id/messages", get(handlers::messages::get_messages).post(handlers::messages::send_message))
         .route("/chats/:id/messages/:message_id", delete(handlers::messages::delete_message))
         .route("/chats/:id/messages/:message_id/react", post(handlers::messages::react_to_message))
+        .route("/chats/:id/messages/:message_id/stickers", post(handlers::placed_stickers::place_sticker))
+        .route("/chats/:id/messages/:message_id/stickers/:sticker_id", delete(handlers::placed_stickers::remove_sticker))
         .route("/chats/:id/read", post(handlers::messages::mark_chat_read))
         .route("/chats/:id/clear", post(handlers::messages::clear_chat_messages))
         .route("/users/search", get(handlers::users::search_users))
@@ -75,6 +77,8 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/updates", updates::routes::router())
         .nest("/delivery", handlers::delivery::router())
         .nest("/communities", handlers::communities::router())
+        .route("/stickers/remove-bg", post(handlers::stickers::remove_background).layer(DefaultBodyLimit::disable()))
+        .route("/stickers/remove-bg-url", post(handlers::stickers::remove_background_url))
         .nest_service("/uploads", ServeDir::new("uploads"))
         .with_state(state)
 }

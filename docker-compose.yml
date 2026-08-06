@@ -11,5 +11,24 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  bg-remover:
+    build:
+      context: ./services/bg-remover
+      dockerfile: Dockerfile
+    container_name: zapi-bg-remover
+    ports:
+      - "5050:5050"
+    environment:
+      - WORKERS=2
+    restart: unless-stopped
+    # Uncomment below for GPU acceleration (NVIDIA):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
 volumes:
   pgdata:

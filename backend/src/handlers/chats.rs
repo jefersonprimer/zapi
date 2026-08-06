@@ -69,6 +69,7 @@ pub async fn create_chat(
         "SELECT c.id FROM chats c
          JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.user_id = $1
          JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.user_id = $2
+         WHERE c.is_group = false
          LIMIT 1",
     )
     .bind(auth.0)

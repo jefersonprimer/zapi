@@ -85,6 +85,19 @@ export interface Message {
   deleted_at?: string | null;
   attachments?: Attachment[];
   reaction?: string | null;
+  placed_stickers?: PlacedSticker[];
+}
+
+export interface PlacedSticker {
+  id: string;
+  message_id: string;
+  user_id: string;
+  sticker_url: string;
+  x_offset: number;
+  y_offset: number;
+  scale_factor: number;
+  rotation: number;
+  created_at: string;
 }
 
 export async function authFetch(url: string, token: string, options: RequestInit = {}) {

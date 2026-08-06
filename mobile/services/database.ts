@@ -76,6 +76,11 @@ export async function initializeDatabase() {
   } catch (e) {
     // Ignore error if column already exists
   }
+  try {
+    await db.execAsync("ALTER TABLE messages ADD COLUMN placed_stickers_json TEXT DEFAULT '[]';");
+  } catch (e) {
+    // Ignore error if column already exists
+  }
 
   await db.execAsync(`
 
@@ -171,7 +176,8 @@ export async function initializeDatabase() {
       deleted_for_everyone INTEGER DEFAULT 0,
       deleted_at TEXT DEFAULT NULL,
       reaction TEXT DEFAULT NULL,
-      scheduled_for INTEGER DEFAULT NULL
+      scheduled_for INTEGER DEFAULT NULL,
+      placed_stickers_json TEXT DEFAULT '[]'
     );
 
     CREATE TABLE IF NOT EXISTS attachments (
@@ -352,8 +358,8 @@ export async function saveMessages(messages: Message[]) {
   for (const msg of messages) {
     await db.runAsync(
       `INSERT INTO messages (
-        id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at, reaction
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at, reaction, placed_stickers_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         content = excluded.content,
         image_url = excluded.image_url,
@@ -361,7 +367,8 @@ export async function saveMessages(messages: Message[]) {
         created_at = excluded.created_at,
         deleted_for_everyone = excluded.deleted_for_everyone,
         deleted_at = excluded.deleted_at,
-        reaction = COALESCE(excluded.reaction, reaction)`,
+        reaction = COALESCE(excluded.reaction, reaction),
+        placed_stickers_json = excluded.placed_stickers_json`,
       [
         msg.id,
         msg.chat_id,
@@ -375,6 +382,7 @@ export async function saveMessages(messages: Message[]) {
         msg.deleted_for_everyone ? 1 : 0,
         msg.deleted_at || null,
         msg.reaction || null,
+        JSON.stringify(msg.placed_stickers || []),
       ]
     );
 
@@ -542,6 +550,7 @@ export async function getMessagesFromLocal(
       attachments,
       reaction: r.reaction || null,
       scheduled_for: r.scheduled_for || undefined,
+      placed_stickers: r.placed_stickers_json ? JSON.parse(r.placed_stickers_json) : [],
     });
   }
 
@@ -561,12 +570,13 @@ export async function insertMessageLocal(msg: {
   attachments?: Attachment[];
   reaction?: string | null;
   scheduled_for?: number;
+  placed_stickers?: any[];
 }) {
   const db = await getDatabase();
   await db.runAsync(
     `INSERT INTO messages (
-      id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, reaction, scheduled_for
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, reaction, scheduled_for, placed_stickers_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       msg.id,
       msg.chat_id,
@@ -579,6 +589,7 @@ export async function insertMessageLocal(msg: {
       msg.status || "sent",
       msg.reaction || null,
       msg.scheduled_for || null,
+      JSON.stringify(msg.placed_stickers || []),
     ]
   );
 
@@ -1146,6 +1157,17 @@ export async function getCustomStickersLocal(): Promise<CustomStickerItem[]> {
 export async function removeCustomStickerLocal(id: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync("DELETE FROM custom_stickers WHERE id = ?", [id]);
+}
+
+export async function updateMessageStickersLocal(
+  messageId: string,
+  stickers: any[]
+): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE messages SET placed_stickers_json = ? WHERE id = ?",
+    [JSON.stringify(stickers), messageId]
+  );
 }
 
 

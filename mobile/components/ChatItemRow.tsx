@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useRef, useEffect } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Animated, PanResponder, Image, Alert } from "react-native";
 import { SwipeableMessageRow } from "@/components/SwipeableMessageRow";
 import { MessageBubble } from "@/components/MessageBubble";
 import { CallBubble } from "@/components/CallBubble";
@@ -25,12 +25,85 @@ interface ChatItemRowProps {
   participantUsername: string;
   participantAvatarUrl: string;
   onSwipeRight: (msg: Message) => void;
+  onLayoutMessage?: (msgId: string, layout: { y: number; height: number }) => void;
   onToggleMessageSelection: (msg: Message, layout?: { x: number; y: number; width: number; height: number }, onlyReactions?: boolean) => void;
   onToggleCallSelection: (callId: string) => void;
   onCreateNote?: (msg: Message) => void;
   onCreateReminder?: (msg: Message) => void;
   onCreateEvent?: (msg: Message) => void;
+  onRemoveSticker: (msgId: string, stickerId: string) => void;
 }
+
+interface PlacedStickerComponentProps {
+  placed: any;
+  msgId: string;
+  onRemoveSticker: (msgId: string, stickerId: string) => void;
+  extraTop: number;
+  isMine: boolean;
+}
+
+const PlacedStickerComponent: React.FC<PlacedStickerComponentProps> = ({
+  placed,
+  msgId,
+  onRemoveSticker,
+  extraTop,
+  isMine,
+}) => {
+  const scaleAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: placed.scale_factor || 1.0,
+      tension: 110,
+      friction: 6,
+      useNativeDriver: true,
+    }).start();
+  }, [placed.scale_factor]);
+
+  const handleLongPress = () => {
+    Alert.alert(
+      "Remover Figurinha",
+      "Deseja remover esta figurinha da mensagem?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Remover",
+          style: "destructive",
+          onPress: () => onRemoveSticker(msgId, placed.id),
+        },
+      ]
+    );
+  };
+
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        ...(isMine ? { right: placed.x_offset - 30 } : { left: placed.x_offset - 30 }),
+        top: placed.y_offset + extraTop - 30,
+        transform: [
+          { rotate: `${placed.rotation || 0}deg` },
+          { scale: scaleAnim },
+        ],
+        zIndex: 9999,
+      }}
+    >
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onLongPress={handleLongPress}
+      >
+        <Image
+          source={{ uri: placed.sticker_url }}
+          style={{
+            width: 60,
+            height: 60,
+          }}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 export const ChatItemRow: React.FC<ChatItemRowProps> = ({
   item,
@@ -45,11 +118,13 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
   participantUsername,
   participantAvatarUrl,
   onSwipeRight,
+  onLayoutMessage,
   onToggleMessageSelection,
   onToggleCallSelection,
   onCreateNote,
   onCreateReminder,
   onCreateEvent,
+  onRemoveSticker,
 }) => {
   const { colors, isDark } = useAppTheme();
   const bubbleRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
@@ -69,6 +144,7 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
 
   if (item.type === "message") {
     const msg = item.data;
+    const isMine = msg.sender_id === currentUserId;
     const isSelected = selectedMessageIds.includes(msg.id);
     const handleLongPress = (onlyReactions = false) => {
       if (isSelectionMode) {
@@ -80,8 +156,40 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
       }
     };
 
+    // Calculate dynamic vertical bounds / protrusions of stickers to push other messages
+    let extraTop = 0;
+    let extraBottom = 0;
+    if (msg.placed_stickers && msg.placed_stickers.length > 0) {
+      msg.placed_stickers.forEach((s: any) => {
+        const radius = 30 * (s.scale_factor || 1.0);
+        const topBound = s.y_offset - radius;
+        const bottomBound = s.y_offset + radius;
+        if (topBound < 0) {
+          extraTop = Math.max(extraTop, -topBound);
+        }
+        // Approximate a typical message bubble height of ~50px
+        if (bottomBound > 50) {
+          extraBottom = Math.max(extraBottom, bottomBound - 50);
+        }
+      });
+    }
+
     return (
-      <View>
+      <View
+        onLayout={(e) => {
+          if (onLayoutMessage) {
+            onLayoutMessage(msg.id, {
+              y: e.nativeEvent.layout.y,
+              height: e.nativeEvent.layout.height,
+            });
+          }
+        }}
+        style={{
+          position: "relative",
+          paddingTop: extraTop,
+          paddingBottom: extraBottom,
+        }}
+      >
         {showDateHeader && (
           <View style={styles.dateHeaderContainer}>
             <View
@@ -141,6 +249,18 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
             />
           </TouchableOpacity>
         </SwipeableMessageRow>
+        
+        {/* Placed Stickers rendered relative to this outer row view */}
+        {!msg.deleted_for_everyone && msg.placed_stickers?.map((placed) => (
+          <PlacedStickerComponent
+            key={placed.id}
+            placed={placed}
+            msgId={msg.id}
+            onRemoveSticker={onRemoveSticker}
+            extraTop={extraTop}
+            isMine={isMine}
+          />
+        ))}
       </View>
     );
   } else {

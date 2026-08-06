@@ -1720,6 +1720,7 @@ export function useChat() {
     user,
     token,
     setMessages,
+    loadMessages,
     handleScheduleMessage,
   };
 }

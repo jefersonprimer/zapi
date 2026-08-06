@@ -8,6 +8,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  PanResponder,
 } from "react-native";
 import { Image } from "expo-image";
 import * as FileSystem from "expo-file-system/legacy";
@@ -21,6 +22,7 @@ import {
   removeCustomStickerLocal,
   CustomStickerItem,
 } from "@/services/database";
+import { useStickerDrag } from "@/context/StickerDragContext";
 
 interface ChatMediaSelectorProps {
   onEmojiSelected: (emojiObject: { emoji: string }) => void;
@@ -37,6 +39,76 @@ type TabType = "emoji" | "gif" | "sticker";
 
 const GIPHY_API_KEY = "dc6zaTOxFJmzC"; // Public beta key
 
+interface StickerGestureItemProps {
+  url: string;
+  onPress: () => void;
+  onLongPress?: () => void;
+  startDragging: (url: string, x: number, y: number) => void;
+  styles: any;
+}
+
+const StickerGestureItem: React.FC<StickerGestureItemProps> = ({
+  url,
+  onPress,
+  onLongPress,
+  startDragging,
+  styles,
+}) => {
+  const isDragging = React.useRef(false);
+  const touchStart = React.useRef({ x: 0, y: 0 });
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Activate responder if user moved more than 8 pixels
+        return Math.abs(gestureState.dx) > 8 || Math.abs(gestureState.dy) > 8;
+      },
+      onPanResponderGrant: (e) => {
+        isDragging.current = false;
+        touchStart.current = {
+          x: e.nativeEvent.pageX,
+          y: e.nativeEvent.pageY,
+        };
+      },
+      onPanResponderMove: (e, gestureState) => {
+        if (!isDragging.current) {
+          const dx = gestureState.dx;
+          const dy = gestureState.dy;
+          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+            isDragging.current = true;
+          }
+        }
+        
+        if (isDragging.current) {
+          startDragging(url, e.nativeEvent.pageX, e.nativeEvent.pageY);
+        }
+      },
+      onPanResponderRelease: () => {
+        if (!isDragging.current) {
+          // It was a simple click/tap
+          onPress();
+        }
+        isDragging.current = false;
+      },
+      onPanResponderTerminate: () => {
+        isDragging.current = false;
+      },
+    })
+  ).current;
+
+  return (
+    <View style={styles.stickerItem} {...panResponder.panHandlers}>
+      <Image
+        source={{ uri: url }}
+        style={styles.stickerImage}
+        contentFit="contain"
+        cachePolicy="disk"
+      />
+    </View>
+  );
+};
+
 export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
   onEmojiSelected,
   onSendMedia,
@@ -46,6 +118,8 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
   const insets = useSafeAreaInsets();
   const bottomPadding = insets.bottom > 0 ? insets.bottom : 16;
   const [activeTab, setActiveTab] = useState<TabType>("emoji");
+
+  const { startDragging } = useStickerDrag();
 
   // GIF states
   const [gifs, setGifs] = useState<any[]>([]);
@@ -127,11 +201,22 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
     if (downloading) return;
     try {
       setDownloading(true);
-      // Clean filename
+      
       const extension = isSticker ? "webp" : "gif";
       const filename = `${Date.now()}_${isSticker ? "sticker" : "giphy"}.${extension}`;
-      const localUri = `${FileSystem.cacheDirectory}${filename}`;
 
+      // If it is already a local file, bypass downloading
+      if (url.startsWith("file://")) {
+        onSendMedia({
+          uri: url,
+          name: filename,
+          type: "image",
+          mimeType: isSticker ? "image/webp" : "image/gif",
+        });
+        return;
+      }
+
+      const localUri = `${FileSystem.cacheDirectory}${filename}`;
       const downloadResult = await FileSystem.downloadAsync(url, localUri);
 
       if (downloadResult.status === 200) {
@@ -408,18 +493,13 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
                 numColumns={4}
                 contentContainerStyle={styles.gridContent}
                 renderItem={({ item }: { item: CustomStickerItem }) => (
-                  <TouchableOpacity
-                    style={styles.stickerItem}
+                  <StickerGestureItem
+                    url={item.local_path || item.url}
                     onPress={() => handleSelectMedia(item.local_path || item.url, true)}
                     onLongPress={() => handleDeleteCustomSticker(item.id)}
-                  >
-                    <Image
-                      source={{ uri: item.local_path || item.url }}
-                      style={styles.stickerImage}
-                      contentFit="contain"
-                      cachePolicy="disk"
-                    />
-                  </TouchableOpacity>
+                    startDragging={startDragging}
+                    styles={styles}
+                  />
                 )}
                 ListEmptyComponent={
                   <View style={styles.centerContainer}>
@@ -437,17 +517,12 @@ export const ChatMediaSelector: React.FC<ChatMediaSelectorProps> = ({
                 numColumns={4}
                 contentContainerStyle={styles.gridContent}
                 renderItem={({ item }: { item: Sticker }) => (
-                  <TouchableOpacity
-                    style={styles.stickerItem}
+                  <StickerGestureItem
+                    url={item.url}
                     onPress={() => handleSelectMedia(item.url, true)}
-                  >
-                    <Image
-                      source={{ uri: item.url }}
-                      style={styles.stickerImage}
-                      contentFit="contain"
-                      cachePolicy="disk"
-                    />
-                  </TouchableOpacity>
+                    startDragging={startDragging}
+                    styles={styles}
+                  />
                 )}
               />
             )}

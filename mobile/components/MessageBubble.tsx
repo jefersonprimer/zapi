@@ -310,6 +310,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         ? isImageUrl(mediaUrl) && !mediaUrl.toLowerCase().includes("audio")
         : false;
 
+  const isSticker =
+    !!mediaUrl &&
+    (mediaUrl.toLowerCase().endsWith(".webp") ||
+      mediaUrl.toLowerCase().includes("sticker") ||
+      attachment?.mime_type === "image/webp");
+
   console.log("[MessageBubble] Debug:", {
     msgId: item.id,
     mediaUrl,
@@ -1252,6 +1258,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
               padding: 4,
             },
+            isSticker && {
+              backgroundColor: "transparent",
+              borderWidth: 0,
+              padding: 0,
+              shadowOpacity: 0,
+              elevation: 0,
+            },
             item.status === "scheduled" && {
               opacity: 0.7,
               borderStyle: "dashed",
@@ -1318,12 +1331,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <>
               {isImage ? (
                 <TouchableOpacity
-                  style={styles.mediaTouchable}
+                  style={isSticker ? styles.stickerTouchable : styles.mediaTouchable}
                   onPress={() => setIsFullScreen(true)}
                   onLongPress={onLongPress}
                   activeOpacity={0.9}
                 >
-                  <View style={styles.mediaFrame}>
+                  <View style={isSticker ? styles.stickerFrame : styles.mediaFrame}>
                     {isSvgMedia ? (
                       <SvgUri
                         style={[StyleSheet.absoluteFillObject, styles.mediaSvg]}
@@ -1336,7 +1349,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       <Image
                         source={{ uri: fullUrl }}
                         style={StyleSheet.absoluteFillObject}
-                        resizeMode="cover"
+                        contentFit="contain"
                       />
                     )}
                   </View>
@@ -1584,6 +1597,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 marginHorizontal: 6,
                 marginBottom: 2,
               },
+              isSticker && {
+                position: "absolute",
+                bottom: 4,
+                right: 4,
+                backgroundColor: "rgba(0, 0, 0, 0.45)",
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+                borderRadius: 10,
+                zIndex: 10,
+              },
             ]}
           >
             <Text
@@ -1592,6 +1615,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 isMine
                   ? styles.myMessageTime
                   : [styles.theirMessageTime, { color: colors.textSecondary }],
+                isSticker && {
+                  color: "#FFFFFF",
+                  fontSize: 10,
+                },
               ]}
             >
               {new Date(item.created_at).toLocaleTimeString([], {
@@ -1764,6 +1791,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "#FFFFFF",
+  },
+  stickerTouchable: {
+    width: 150,
+    alignSelf: "flex-start",
+  },
+  stickerFrame: {
+    width: 150,
+    height: 150,
+    borderRadius: 0,
+    overflow: "hidden",
+    backgroundColor: "transparent",
   },
   mediaSvg: {
     borderRadius: 12,
