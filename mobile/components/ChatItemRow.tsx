@@ -209,8 +209,6 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
         }}
         style={{
           position: "relative",
-          paddingTop: extraTop,
-          paddingBottom: extraBottom,
         }}
       >
         {showDateHeader && (
@@ -290,7 +288,7 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
                 placed={placed}
                 msgId={msg.id}
                 onRemoveSticker={onRemoveSticker}
-                extraTop={extraTop} // Shift layout down to match container paddingTop extension
+                extraTop={extraTop}
               />
             ))}
           </View>

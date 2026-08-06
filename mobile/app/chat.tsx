@@ -229,22 +229,40 @@ export default function ChatScreen() {
     registerOnDrop((stickerUrl, pageX, pageY) => {
       clearHoverTimer();
 
-      // Find which message bubble contains (pageX, pageY) using the measured bounds from bubbleLayouts
+      // Find which message contains (pageX, pageY) using the relative bounds from messageLayouts
+      const listRelativeY = pageY - flatListLayout.current.y + flatListScrollOffset.current;
+      const listRelativeX = pageX - flatListLayout.current.x;
+
       let foundMsgId: string | null = null;
-      let relativeX = 0;
-      let relativeY = 0;
+      let localX = 0;
+      let localY = 0;
 
       for (const [msgId, layout] of Object.entries(bubbleLayouts.current)) {
         if (
-          pageX >= layout.pageX &&
-          pageX <= layout.pageX + layout.width &&
-          pageY >= layout.pageY &&
-          pageY <= layout.pageY + layout.height
+          listRelativeY >= layout.relativeY &&
+          listRelativeY <= layout.relativeY + layout.height &&
+          listRelativeX >= layout.pageX &&
+          listRelativeX <= layout.pageX + layout.width
         ) {
           foundMsgId = msgId;
-          relativeX = pageX - layout.pageX;
-          relativeY = pageY - layout.pageY;
+          localX = listRelativeX - layout.pageX;
+          localY = listRelativeY - layout.relativeY;
           break;
+        }
+      }
+
+      // If exact intersection not found, find the closest message by Y coordinate
+      if (!foundMsgId) {
+        let minDistance = Infinity;
+        for (const [msgId, layout] of Object.entries(bubbleLayouts.current)) {
+          const centerY = layout.relativeY + layout.height / 2;
+          const distance = Math.abs(listRelativeY - centerY);
+          if (distance < minDistance) {
+            minDistance = distance;
+            foundMsgId = msgId;
+            localX = listRelativeX - layout.pageX;
+            localY = listRelativeY - layout.relativeY;
+          }
         }
       }
 
@@ -252,9 +270,9 @@ export default function ChatScreen() {
         const targetLayout = bubbleLayouts.current[foundMsgId];
         if (!targetLayout) return;
 
-        // Limit coordinates to remain inside the message bubble bounds
-        const xOffset = Math.max(10, Math.min(targetLayout.width - 10, relativeX));
-        const localY = Math.max(10, Math.min(targetLayout.height - 10, relativeY));
+        // Limit coordinates to remain inside the message bounds
+        const xOffset = Math.max(10, Math.min(targetLayout.width - 10, localX));
+        localY = Math.max(10, Math.min(targetLayout.height - 10, localY));
 
         const tempId = `temp_${Date.now()}`;
         const tempSticker: PlacedSticker = {
@@ -828,10 +846,13 @@ export default function ChatScreen() {
       <View
         ref={flatListContainerRef}
         style={{ flex: 1 }}
-        onLayout={() => {
-          flatListContainerRef.current?.measure((x, y, width, height, pageX, pageY) => {
-            flatListLayout.current = { x: pageX, y: pageY, width, height };
-          });
+        onLayout={(e) => {
+          flatListLayout.current = { 
+            x: e.nativeEvent.layout.x, 
+            y: e.nativeEvent.layout.y, 
+            width: e.nativeEvent.layout.width, 
+            height: e.nativeEvent.layout.height 
+          };
         }}
       >
         <FlatList
@@ -872,7 +893,8 @@ export default function ChatScreen() {
                 messageLayouts.current[msgId] = layout;
               }}
               onMeasureBubble={(msgId, layout) => {
-                bubbleLayouts.current[msgId] = layout;
+                const relativeY = layout.pageY - flatListLayout.current.y + flatListScrollOffset.current;
+                bubbleLayouts.current[msgId] = { ...layout, relativeY };
               }}
               onToggleMessageSelection={(msg, layout, onlyReactions) => {
                 if (selectedMessageIds.length > 0) {
@@ -1451,7 +1473,7 @@ export default function ChatScreen() {
               const pageX = touch.pageX;
               const pageY = touch.pageY;
 
-              dragPosition.setValue({
+                  dragPosition.setValue({
                 x: pageX - 50,
                 y: pageY - 50,
               });
@@ -1460,36 +1482,24 @@ export default function ChatScreen() {
 
               // Detect which message is hovered
               const relativeY = pageY - flatListLayout.current.y + flatListScrollOffset.current;
-              let currentHoveredMsgId: string | null = null;
-              
-              let accumulatedY = 16; // contentContainerStyle padding is 16
+              const relativeX = pageX - flatListLayout.current.x;
+
               for (const item of chatItems) {
-                const id = item.type === "message" ? item.data.id : `call_${item.data.id}`;
-                const layout = messageLayouts.current[id];
-                const h = layout ? layout.height : 0;
-                
-                if (h > 0 && relativeY >= accumulatedY && relativeY <= accumulatedY + h) {
-                  currentHoveredMsgId = item.type === "message" ? id : null;
+                if (item.type !== "message") continue;
+                const id = item.data.id;
+                const layout = bubbleLayouts.current[id];
+                if (!layout) continue;
+
+                if (
+                  relativeY >= layout.relativeY &&
+                  relativeY <= layout.relativeY + layout.height &&
+                  relativeX >= layout.pageX &&
+                  relativeX <= layout.pageX + layout.width
+                ) {
                   break;
                 }
-                accumulatedY += h;
               }
 
-              const lastCoords = lastTouchCoordsRef.current;
-              const dist = Math.sqrt(Math.pow(pageX - lastCoords.x, 2) + Math.pow(pageY - lastCoords.y, 2));
-
-              if (currentHoveredMsgId !== hoveredMessageIdRef.current || dist > 15) {
-                clearHoverTimer();
-                hoveredMessageIdRef.current = currentHoveredMsgId;
-
-                if (currentHoveredMsgId) {
-                  hoverTimerRef.current = setTimeout(() => {
-                    const snapCoords = lastTouchCoordsRef.current;
-                    clearHoverTimer();
-                    stopDragging(snapCoords.x, snapCoords.y);
-                  }, 600);
-                }
-              }
               lastTouchCoordsRef.current = { x: pageX, y: pageY };
             }
           }}
