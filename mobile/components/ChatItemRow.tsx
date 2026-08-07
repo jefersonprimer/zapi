@@ -53,6 +53,8 @@ interface PlacedStickerComponentProps {
   msgId: string;
   onRemoveSticker: (msgId: string, stickerId: string) => void;
   extraTop: number;
+  isMine: boolean;
+  bubbleHeight: number;
 }
 
 const PlacedStickerComponent: React.FC<PlacedStickerComponentProps> = ({
@@ -60,6 +62,8 @@ const PlacedStickerComponent: React.FC<PlacedStickerComponentProps> = ({
   msgId,
   onRemoveSticker,
   extraTop,
+  isMine,
+  bubbleHeight,
 }) => {
   const scaleAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -87,12 +91,21 @@ const PlacedStickerComponent: React.FC<PlacedStickerComponentProps> = ({
     );
   };
 
+  const isAutoLayout = placed.x_offset === -1 && placed.y_offset === -1;
+
   return (
     <Animated.View
       style={{
         position: "absolute",
-        left: placed.x_offset - 35,
-        top: placed.y_offset + extraTop - 35,
+        ...(isAutoLayout
+          ? {
+              [isMine ? "right" : "left"]: 8,
+              top: Math.max(0, bubbleHeight - 4) + extraTop - 35,
+            }
+          : {
+              left: placed.x_offset - 35,
+              top: placed.y_offset + extraTop - 35,
+            }),
         transform: [
           { rotate: `${placed.rotation || 0}deg` },
           { scale: scaleAnim },
@@ -184,8 +197,12 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
     if (msg.placed_stickers && msg.placed_stickers.length > 0) {
       msg.placed_stickers.forEach((s: any) => {
         const radius = 35 * (s.scale_factor || 1.0);
-        const topBound = s.y_offset - radius;
-        const bottomBound = s.y_offset + radius;
+        const isAutoLayout = s.x_offset === -1 && s.y_offset === -1;
+        const actualYOffset = isAutoLayout ? Math.max(0, bubbleHeight - 4) : s.y_offset;
+        
+        const topBound = actualYOffset - radius;
+        const bottomBound = actualYOffset + radius;
+        
         if (topBound < 0) {
           extraTop = Math.max(extraTop, -topBound);
         }
@@ -289,6 +306,8 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
                 msgId={msg.id}
                 onRemoveSticker={onRemoveSticker}
                 extraTop={extraTop}
+                isMine={msg.sender_id === currentUserId}
+                bubbleHeight={bubbleHeight}
               />
             ))}
           </View>

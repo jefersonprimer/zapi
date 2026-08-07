@@ -510,19 +510,14 @@ export default function ChatScreen() {
       const rowLayout = messageLayouts.current[selectedMsg.id];
       if (!rowLayout) return;
 
-      const xOffset = selectedMsg.sender_id === user?.user_id
-        ? Math.max(30, rowLayout.width - 30)
-        : 30;
-      const yOffset = Math.max(0, rowLayout.height - 8);
-
       const tempId = `temp_${Date.now()}`;
       const tempSticker: PlacedSticker = {
         id: tempId,
         message_id: selectedMsg.id,
         user_id: user?.user_id || "",
         sticker_url: stickerUrl,
-        x_offset: xOffset,
-        y_offset: yOffset,
+        x_offset: -1,
+        y_offset: -1,
         scale_factor: 1,
         rotation: 0,
         created_at: new Date().toISOString(),
@@ -543,8 +538,8 @@ export default function ChatScreen() {
           chatId,
           selectedMsg.id,
           stickerUrl,
-          xOffset,
-          yOffset,
+          -1,
+          -1,
           1,
           0
         );
