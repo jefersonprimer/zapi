@@ -295,9 +295,6 @@ export const StickerModal: React.FC<StickerModalProps> = ({
                 onPress={() => setActivePackId("custom_sqlite")}
               >
                 <Text style={styles.packIcon}>⭐</Text>
-                <Text style={[styles.packName, { color: colors.text }]}>
-                  Minhas ({customStickers.length})
-                </Text>
               </TouchableOpacity>
 
               {STICKER_PACKS.map((pack) => (
@@ -314,9 +311,6 @@ export const StickerModal: React.FC<StickerModalProps> = ({
                   onPress={() => setActivePackId(pack.id)}
                 >
                   <Text style={styles.packIcon}>{pack.icon}</Text>
-                  <Text style={[styles.packName, { color: colors.text }]}>
-                    {pack.name}
-                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -457,19 +451,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   packButton: {
-    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
   packIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  packName: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 22,
   },
   gridContent: {
     padding: 4,
