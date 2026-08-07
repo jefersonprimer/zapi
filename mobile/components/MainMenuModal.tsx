@@ -9,6 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 interface MainMenuModalProps {
   visible: boolean;
@@ -96,7 +97,9 @@ export default function MainMenuModal({
             backgroundColor: isDark
               ? "rgba(30, 30, 30, 0.85)"
               : "rgba(255, 255, 255, 0.85)",
-            borderColor: colors.border,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(0, 0, 0, 0.08)",
             opacity: menuOpacity,
             transform: [{ scale: menuScale }, { translateY: menuTranslateY }],
           },
@@ -108,6 +111,12 @@ export default function MainMenuModal({
             hideMenu(() => router.push("/link-device"));
           }}
         >
+          <Ionicons
+            name="camera-outline"
+            size={24}
+            color={colors.text}
+            style={styles.menuIcon}
+          />
           <Text style={[styles.menuItemText, { color: colors.text }]}>
             Câmera
           </Text>
@@ -119,6 +128,12 @@ export default function MainMenuModal({
             hideMenu(() => router.push("/new-group"));
           }}
         >
+          <Ionicons
+            name="people-outline"
+            size={24}
+            color={colors.text}
+            style={styles.menuIcon}
+          />
           <Text style={[styles.menuItemText, { color: colors.text }]}>
             Conversas em grupo
           </Text>
@@ -130,19 +145,14 @@ export default function MainMenuModal({
             hideMenu(() => router.push("/payments"));
           }}
         >
+          <Ionicons
+            name="card-outline"
+            size={24}
+            color={colors.text}
+            style={styles.menuIcon}
+          />
           <Text style={[styles.menuItemText, { color: colors.text }]}>
             Pagamentos
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => {
-            hideMenu(() => router.push("/items"));
-          }}
-        >
-          <Text style={[styles.menuItemText, { color: colors.text }]}>
-            Notas, Lembretes e Eventos
           </Text>
         </TouchableOpacity>
 
@@ -152,6 +162,12 @@ export default function MainMenuModal({
             hideMenu(() => router.push("/settings"));
           }}
         >
+          <Ionicons
+            name="settings-outline"
+            size={24}
+            color={colors.text}
+            style={styles.menuIcon}
+          />
           <Text style={[styles.menuItemText, { color: colors.text }]}>
             Configurações
           </Text>
@@ -183,17 +199,24 @@ const styles = StyleSheet.create({
     right: 6,
     borderRadius: 24,
     paddingVertical: 6,
-    width: "50%",
+    width: "60%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
   },
   menuItem: {
     paddingVertical: 14,
     paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  menuIcon: {
+    marginRight: 12,
+    width: 20,
+    textAlign: "center",
   },
   menuItemText: {
     fontSize: 16,

@@ -104,7 +104,9 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
             backgroundColor: isDark
               ? "rgba(30, 30, 30, 0.85)"
               : "rgba(255, 255, 255, 0.85)",
-            borderColor: colors.border,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(0, 0, 0, 0.08)",
             opacity: menuOpacity,
             transform: [{ scale: menuScale }, { translateY: menuTranslateY }],
           },
@@ -228,7 +230,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
   },
   menuItem: {
     paddingVertical: 14,

@@ -141,7 +141,9 @@ export default function MuteModal({
               backgroundColor: isDark
                 ? "rgba(30, 30, 30, 0.85)"
                 : "rgba(255, 255, 255, 0.85)",
-              borderColor: colors.border,
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.12)"
+                : "rgba(0, 0, 0, 0.08)",
               opacity: dialogOpacity,
               transform: [
                 { scale: dialogScale },
@@ -227,7 +229,7 @@ const styles = StyleSheet.create({
     width: "80%",
     borderRadius: 32,
     padding: 20,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,

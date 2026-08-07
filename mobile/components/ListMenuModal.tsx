@@ -113,7 +113,9 @@ export default function ListMenuModal({
             backgroundColor: isDark
               ? "rgba(30, 30, 30, 0.85)"
               : "rgba(255, 255, 255, 0.85)",
-            borderColor: colors.border,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(0, 0, 0, 0.08)",
             opacity: dialogOpacity,
             transform: [
               { scale: dialogScale },
@@ -128,7 +130,11 @@ export default function ListMenuModal({
           onPress={() => handleClose(onMuteChats)}
         >
           <View style={styles.dialogOptionLabel}>
-            <Ionicons name="notifications-outline" size={20} color={colors.textSecondary} />
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color={colors.textSecondary}
+            />
             <Text style={[styles.dialogOptionText, { color: colors.text }]}>
               Silenciar conversas
             </Text>
@@ -141,7 +147,11 @@ export default function ListMenuModal({
             onPress={() => handleClose(onEditList)}
           >
             <View style={styles.dialogOptionLabel}>
-              <Ionicons name="pencil-outline" size={20} color={colors.textSecondary} />
+              <Ionicons
+                name="pencil-outline"
+                size={24}
+                color={colors.textSecondary}
+              />
               <Text style={[styles.dialogOptionText, { color: colors.text }]}>
                 Editar lista
               </Text>
@@ -154,7 +164,11 @@ export default function ListMenuModal({
           onPress={() => handleClose(onReorderLists)}
         >
           <View style={styles.dialogOptionLabel}>
-            <MaterialCommunityIcons name="drag-vertical" size={20} color={colors.textSecondary} />
+            <MaterialCommunityIcons
+              name="drag-vertical"
+              size={24}
+              color={colors.textSecondary}
+            />
             <Text style={[styles.dialogOptionText, { color: colors.text }]}>
               Reorganizar listas
             </Text>
@@ -174,7 +188,11 @@ export default function ListMenuModal({
               onPress={() => handleClose(onDeleteList)}
             >
               <View style={styles.dialogOptionLabel}>
-                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                <Ionicons
+                  name="trash-outline"
+                  size={24}
+                  color={colors.danger}
+                />
                 <Text
                   style={[styles.dialogOptionText, { color: colors.danger }]}
                 >
@@ -206,7 +224,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
   },
   dialogOption: {
     flexDirection: "row",

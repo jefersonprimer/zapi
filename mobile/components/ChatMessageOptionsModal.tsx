@@ -239,8 +239,14 @@ export function ChatMessageOptionsModal({
     // If detail top goes too high, place it below reactions bar instead
     detailTop = reactionsTop + reactionsHeight + 8;
   }
-  let detailLeft = reactionsLeft;
-  let detailRight = reactionsRight;
+
+  // Center the detail card (avatar and reaction emoji) over the reactions bar
+  const ESTIMATED_REACTIONS_BAR_WIDTH = 260;
+  const ESTIMATED_DETAIL_CARD_WIDTH = 63;
+  const DETAIL_CENTER_OFFSET = (ESTIMATED_REACTIONS_BAR_WIDTH - ESTIMATED_DETAIL_CARD_WIDTH) / 2;
+
+  let detailLeft = reactionsLeft !== undefined ? reactionsLeft + DETAIL_CENTER_OFFSET : undefined;
+  let detailRight = reactionsRight !== undefined ? reactionsRight + DETAIL_CENTER_OFFSET : undefined;
 
   const renderAvatar = (avatarUrl: string | null | undefined, name: string) => {
     const avatarUri = avatarUrl
@@ -291,7 +297,9 @@ export function ChatMessageOptionsModal({
                 backgroundColor: isDark
                   ? "rgba(30, 30, 30, 0.95)"
                   : "rgba(255, 255, 255, 0.95)",
-                borderColor: colors.border,
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
                 top: detailTop,
                 left: detailLeft,
                 right: detailRight,
@@ -316,7 +324,9 @@ export function ChatMessageOptionsModal({
               backgroundColor: isDark
                 ? "rgba(30, 30, 30, 0.95)"
                 : "rgba(255, 255, 255, 0.95)",
-              borderColor: colors.border,
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.12)"
+                : "rgba(0, 0, 0, 0.08)",
               top: reactionsTop,
               left: reactionsLeft,
               right: reactionsRight,
@@ -371,7 +381,9 @@ export function ChatMessageOptionsModal({
                 backgroundColor: isDark
                   ? "rgba(30, 30, 30, 0.85)"
                   : "rgba(255, 255, 255, 0.85)",
-                borderColor: colors.border,
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
                 top: menuTop,
                 left: menuLeft,
                 right: menuRight,
@@ -755,7 +767,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 30,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -781,7 +793,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 240,
     borderRadius: 32,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
@@ -859,7 +871,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,

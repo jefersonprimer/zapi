@@ -7,12 +7,10 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  SafeAreaView,
-  Platform,
-  StatusBar,
   Keyboard,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
@@ -296,7 +294,7 @@ export default function SearchScreen() {
         >
           <MaterialCommunityIcons
             name="magnify"
-            size={18}
+            size={24}
             color={colors.textSecondary}
             style={{ marginRight: 8 }}
           />
@@ -318,7 +316,7 @@ export default function SearchScreen() {
             >
               <MaterialCommunityIcons
                 name="close"
-                size={18}
+                size={24}
                 color={colors.textSecondary}
               />
             </TouchableOpacity>
@@ -355,7 +353,7 @@ export default function SearchScreen() {
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <MaterialCommunityIcons
                       name="history"
-                      size={18}
+                      size={24}
                       color={colors.textSecondary}
                       style={{ marginRight: 6 }}
                     />
@@ -371,7 +369,7 @@ export default function SearchScreen() {
                   <TouchableOpacity onPress={handleClearHistory}>
                     <Text
                       style={{
-                        fontSize: 13,
+                        fontSize: 14,
                         color: colors.brandGreen || "#07C160",
                       }}
                     >
@@ -398,7 +396,7 @@ export default function SearchScreen() {
                     >
                       <MaterialCommunityIcons
                         name="magnify"
-                        size={18}
+                        size={24}
                         color={colors.textSecondary}
                         style={{ marginRight: 12 }}
                       />
@@ -415,7 +413,7 @@ export default function SearchScreen() {
                     >
                       <MaterialCommunityIcons
                         name="close"
-                        size={16}
+                        size={24}
                         color={colors.textSecondary}
                       />
                     </TouchableOpacity>
@@ -449,7 +447,7 @@ export default function SearchScreen() {
                 <View style={styles.sectionHeader}>
                   <MaterialCommunityIcons
                     name="message-outline"
-                    size={16}
+                    size={24}
                     color={colors.textSecondary}
                     style={{ marginRight: 6 }}
                   />
@@ -493,7 +491,7 @@ export default function SearchScreen() {
                 <View style={styles.sectionHeader}>
                   <MaterialCommunityIcons
                     name="account-multiple"
-                    size={16}
+                    size={24}
                     color={colors.textSecondary}
                     style={{ marginRight: 6 }}
                   />
@@ -539,7 +537,7 @@ export default function SearchScreen() {
                   <View style={styles.sectionHeader}>
                     <MaterialCommunityIcons
                       name="magnify"
-                      size={16}
+                      size={24}
                       color={colors.textSecondary}
                       style={{ marginRight: 6 }}
                     />
@@ -580,7 +578,7 @@ export default function SearchScreen() {
               >
                 <MaterialCommunityIcons
                   name="earth"
-                  size={20}
+                  size={24}
                   color="#07C160"
                   style={{ marginRight: 10 }}
                 />
@@ -620,7 +618,6 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight || 24 : 0,
   },
   header: {
     minHeight: 56,

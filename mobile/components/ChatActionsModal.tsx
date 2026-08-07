@@ -12,6 +12,7 @@ import {
   UIManager,
   ScrollView,
 } from "react-native";
+
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -394,7 +395,9 @@ export function ChatActionsModal({
             backgroundColor: isDark
               ? "rgba(30, 30, 30, 0.85)"
               : "rgba(255, 255, 255, 0.85)",
-            borderColor: colors.border,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(0, 0, 0, 0.08)",
             opacity: modalOpacity,
             transform: [{ scale: modalScale }, { translateY: modalTranslateY }],
           },
@@ -479,7 +482,7 @@ const styles = StyleSheet.create({
     width: "70%",
     height: 400,
     borderRadius: 32,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },

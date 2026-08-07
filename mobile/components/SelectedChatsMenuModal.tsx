@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 interface Chat {
   id: string;
@@ -134,13 +135,17 @@ export function SelectedChatsMenuModal({
               style={styles.menuItem}
               onPress={() => hideMenu(onViewContact)}
             >
+              <Ionicons
+                name="person-outline"
+                size={24}
+                color={colors.text}
+                style={{ marginRight: 12 }}
+              />
               <Text style={[styles.menuItemText, { color: colors.text }]}>
                 Ver contato
               </Text>
             </TouchableOpacity>
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
+            <View style={{ backgroundColor: colors.border }} />
           </>
         )}
 
@@ -148,32 +153,46 @@ export function SelectedChatsMenuModal({
           style={styles.menuItem}
           onPress={() => hideMenu(onSelectAll)}
         >
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={24}
+            color={colors.text}
+            style={{ marginRight: 12 }}
+          />
           <Text style={[styles.menuItemText, { color: colors.text }]}>
             Selecionar tudo
           </Text>
         </TouchableOpacity>
 
-        <View
-          style={[styles.menuDivider, { backgroundColor: colors.border }]}
-        />
+        <View style={{ backgroundColor: colors.border }} />
 
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => hideMenu(onToggleFavorite)}
         >
+          <Ionicons
+            name={allFavorited ? "star" : "star-outline"}
+            size={24}
+            color={colors.text}
+            style={{ marginRight: 12 }}
+          />
           <Text style={[styles.menuItemText, { color: colors.text }]}>
             {allFavorited ? "Remover dos favoritos" : "Favoritar"}
           </Text>
         </TouchableOpacity>
 
-        <View
-          style={[styles.menuDivider, { backgroundColor: colors.border }]}
-        />
+        <View style={{ backgroundColor: colors.border }} />
 
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => hideMenu(onAddToList)}
         >
+          <Ionicons
+            name="list-outline"
+            size={24}
+            color={colors.text}
+            style={{ marginRight: 12 }}
+          />
           <Text style={[styles.menuItemText, { color: colors.text }]}>
             Adicionar à lista
           </Text>
@@ -187,6 +206,12 @@ export function SelectedChatsMenuModal({
           style={styles.menuItem}
           onPress={() => hideMenu(onClearChats)}
         >
+          <Ionicons
+            name="trash-outline"
+            size={24}
+            color={colors.text}
+            style={{ marginRight: 12 }}
+          />
           <Text style={[styles.menuItemText, { color: colors.text }]}>
             Limpar conversa
           </Text>
@@ -194,9 +219,7 @@ export function SelectedChatsMenuModal({
 
         {nonGroupChats.length > 0 && (
           <>
-            <View
-              style={[styles.menuDivider, { backgroundColor: colors.border }]}
-            />
+            <View style={{ backgroundColor: colors.border }} />
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => hideMenu(onBlockChats)}
@@ -219,17 +242,19 @@ const styles = StyleSheet.create({
     right: 6,
     borderRadius: 24,
     paddingVertical: 6,
-    width: "50%",
+    width: "60%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
   },
   menuItem: {
     paddingVertical: 14,
     paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
   },
   menuItemText: {
     fontSize: 16,

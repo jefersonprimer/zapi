@@ -14,14 +14,32 @@ import {
   Alert,
   Animated,
 } from "react-native";
-import { useStickerDrag } from "@/context/StickerDragContext";
-import { placeStickerOnMessage, removePlacedSticker } from "@/services/placedStickersApi";
-import { updateMessageStickersLocal } from "@/services/database";
+
+
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useChat } from "@/hooks/useChat";
+import { useChatLists } from "@/hooks/useChatLists";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+
+import { useAppTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
+import { useStickerDrag } from "@/context/StickerDragContext";
+
+import {
+  analyzeMessageRules,
+  analyzeMessageMultiIntents,
+  IntentSuggestion,
+} from "@/services/chatIntentEngine";
+import {
+  placeStickerOnMessage,
+  removePlacedSticker,
+} from "@/services/placedStickersApi";
+import { updateMessageStickersLocal } from "@/services/database";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { API_URL, PlacedSticker } from "@/services/api";
+
 import { EmojiModal } from "@/components/EmojiModal";
 import { GifModal } from "@/components/GifModal";
 import { StickerModal } from "@/components/StickerModal";
@@ -45,15 +63,9 @@ import { ChatMessageOptionsModal } from "@/components/ChatMessageOptionsModal";
 import { WebSearchBottomSheet } from "@/components/WebSearchBottomSheet";
 import { SendLaterModal } from "@/components/SendLaterModal";
 import { SendLaterPreviewBar } from "@/components/SendLaterPreviewBar";
-import { useAppTheme } from "@/context/ThemeContext";
-import { useAuth } from "@/context/AuthContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useChat } from "@/hooks/useChat";
-import { useChatLists } from "@/hooks/useChatLists";
-import { Ionicons } from "@expo/vector-icons";
-import { analyzeMessageRules, analyzeMessageMultiIntents, IntentSuggestion } from "@/services/chatIntentEngine";
-import { ItemEditBottomSheet } from "@/components/ItemEditBottomSheet";
+
 import { ItemType } from "@/types/item";
+import { ItemEditBottomSheet } from "@/components/ItemEditBottomSheet";
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
@@ -144,12 +156,16 @@ export default function ChatScreen() {
     setMessages((prev) =>
       prev.map((msg) => {
         if (msg.id === msgId) {
-          const updatedStickers = (msg.placed_stickers || []).filter((s) => s.id !== stickerId);
-          updateMessageStickersLocal(msgId, updatedStickers).catch(console.error);
+          const updatedStickers = (msg.placed_stickers || []).filter(
+            (s) => s.id !== stickerId,
+          );
+          updateMessageStickersLocal(msgId, updatedStickers).catch(
+            console.error,
+          );
           return { ...msg, placed_stickers: updatedStickers };
         }
         return msg;
-      })
+      }),
     );
 
     try {
@@ -164,7 +180,9 @@ export default function ChatScreen() {
   const flatListContainerRef = useRef<View>(null);
   const inputRef = useRef<any>(null);
   const shouldStickToBottomRef = useRef(true);
-  const [activePicker, setActivePicker] = useState<"emoji" | "gif" | "sticker" | null>(null);
+  const [activePicker, setActivePicker] = useState<
+    "emoji" | "gif" | "sticker" | null
+  >(null);
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
   const [sendLaterVisible, setSendLaterVisible] = useState(false);
   const [scheduledDelayMs, setScheduledDelayMs] = useState<number | null>(null);
@@ -184,9 +202,24 @@ export default function ChatScreen() {
   } | null>(null);
 
   // Sticker Drag & Drop References and Hook
-  const { draggingSticker, dragPosition, stopDragging, registerOnDrop } = useStickerDrag();
-  const messageLayouts = useRef<Record<string, { x: number; y: number; width: number; height: number }>>({});
-  const bubbleLayouts = useRef<Record<string, { x: number; y: number; width: number; height: number; pageX: number; pageY: number }>>({});
+  const { draggingSticker, dragPosition, stopDragging, registerOnDrop } =
+    useStickerDrag();
+  const messageLayouts = useRef<
+    Record<string, { x: number; y: number; width: number; height: number }>
+  >({});
+  const bubbleLayouts = useRef<
+    Record<
+      string,
+      {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        pageX: number;
+        pageY: number;
+      }
+    >
+  >({});
   const flatListScrollOffset = useRef(0);
   const flatListLayout = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
@@ -232,7 +265,8 @@ export default function ChatScreen() {
       clearHoverTimer();
 
       // Find which message contains (pageX, pageY) using the relative bounds from messageLayouts
-      const listRelativeY = pageY - flatListLayout.current.y + flatListScrollOffset.current;
+      const listRelativeY =
+        pageY - flatListLayout.current.y + flatListScrollOffset.current;
       const listRelativeX = pageX - flatListLayout.current.x;
 
       let foundMsgId: string | null = null;
@@ -286,47 +320,75 @@ export default function ChatScreen() {
           y_offset: localY,
           scale_factor: dragScaleVal.current,
           rotation: dragRotationVal.current,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         };
 
         // Optimistic Update
         setMessages((prev) =>
           prev.map((msg) => {
             if (msg.id === foundMsgId) {
-              return { ...msg, placed_stickers: [...(msg.placed_stickers || []), tempSticker] };
+              return {
+                ...msg,
+                placed_stickers: [...(msg.placed_stickers || []), tempSticker],
+              };
             }
             return msg;
-          })
+          }),
         );
 
         if (token && chatId) {
           // Fire API to place sticker
-          placeStickerOnMessage(token, chatId, foundMsgId, stickerUrl, xOffset, localY, dragScaleVal.current, dragRotationVal.current)
+          placeStickerOnMessage(
+            token,
+            chatId,
+            foundMsgId,
+            stickerUrl,
+            xOffset,
+            localY,
+            dragScaleVal.current,
+            dragRotationVal.current,
+          )
             .then((newPlaced) => {
-              console.log("Sticker placed successfully on message:", foundMsgId);
+              console.log(
+                "Sticker placed successfully on message:",
+                foundMsgId,
+              );
               setMessages((prev) =>
                 prev.map((msg) => {
                   if (msg.id === foundMsgId) {
-                    const updatedStickers = (msg.placed_stickers || []).filter(s => s.id !== tempId);
+                    const updatedStickers = (msg.placed_stickers || []).filter(
+                      (s) => s.id !== tempId,
+                    );
                     updatedStickers.push(newPlaced);
-                    updateMessageStickersLocal(foundMsgId, updatedStickers).catch(console.error);
+                    updateMessageStickersLocal(
+                      foundMsgId,
+                      updatedStickers,
+                    ).catch(console.error);
                     return { ...msg, placed_stickers: updatedStickers };
                   }
                   return msg;
-                })
+                }),
               );
             })
             .catch((err) => {
               console.error("Failed to place sticker:", err);
-              Alert.alert("Erro", "Não foi possível colocar a figurinha na mensagem.");
+              Alert.alert(
+                "Erro",
+                "Não foi possível colocar a figurinha na mensagem.",
+              );
               // Revert optimistic update
               setMessages((prev) =>
                 prev.map((msg) => {
                   if (msg.id === foundMsgId) {
-                    return { ...msg, placed_stickers: (msg.placed_stickers || []).filter(s => s.id !== tempId) };
+                    return {
+                      ...msg,
+                      placed_stickers: (msg.placed_stickers || []).filter(
+                        (s) => s.id !== tempId,
+                      ),
+                    };
                   }
                   return msg;
-                })
+                }),
               );
             });
         }
@@ -453,7 +515,8 @@ export default function ChatScreen() {
   // Bottom Sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [sheetType, setSheetType] = useState<ItemType>("note");
-  const [sheetSuggestion, setSheetSuggestion] = useState<IntentSuggestion | null>(null);
+  const [sheetSuggestion, setSheetSuggestion] =
+    useState<IntentSuggestion | null>(null);
 
   const openSheetForMessage = (msg: any, type: ItemType) => {
     const parsed = analyzeMessageRules(msg.content);
@@ -471,8 +534,8 @@ export default function ChatScreen() {
         entities: {
           title: msg.content.slice(0, 35) || "Novo Item",
           content: msg.content,
-        }
-      }
+        },
+      },
     );
     setBottomSheetVisible(true);
   };
@@ -526,10 +589,13 @@ export default function ChatScreen() {
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id === selectedMsg.id) {
-            return { ...msg, placed_stickers: [...(msg.placed_stickers || []), tempSticker] };
+            return {
+              ...msg,
+              placed_stickers: [...(msg.placed_stickers || []), tempSticker],
+            };
           }
           return msg;
-        })
+        }),
       );
 
       try {
@@ -541,19 +607,23 @@ export default function ChatScreen() {
           -1,
           -1,
           1,
-          0
+          0,
         );
 
         setMessages((prev) =>
           prev.map((msg) => {
             if (msg.id === selectedMsg.id) {
-              const updatedStickers = (msg.placed_stickers || []).filter((s) => s.id !== tempId);
+              const updatedStickers = (msg.placed_stickers || []).filter(
+                (s) => s.id !== tempId,
+              );
               updatedStickers.push(newPlaced);
-              updateMessageStickersLocal(selectedMsg.id, updatedStickers).catch(console.error);
+              updateMessageStickersLocal(selectedMsg.id, updatedStickers).catch(
+                console.error,
+              );
               return { ...msg, placed_stickers: updatedStickers };
             }
             return msg;
-          })
+          }),
         );
       } catch (err) {
         console.error("Failed to place sticker from menu:", err);
@@ -561,14 +631,19 @@ export default function ChatScreen() {
         setMessages((prev) =>
           prev.map((msg) => {
             if (msg.id === selectedMsg.id) {
-              return { ...msg, placed_stickers: (msg.placed_stickers || []).filter((s) => s.id !== tempId) };
+              return {
+                ...msg,
+                placed_stickers: (msg.placed_stickers || []).filter(
+                  (s) => s.id !== tempId,
+                ),
+              };
             }
             return msg;
-          })
+          }),
         );
       }
     },
-    [token, chatId, selectedMsg, user?.user_id, setMessages]
+    [token, chatId, selectedMsg, user?.user_id, setMessages],
   );
 
   const handleEditScheduledMessage = useCallback(async () => {
@@ -844,11 +919,11 @@ export default function ChatScreen() {
         ref={flatListContainerRef}
         style={{ flex: 1 }}
         onLayout={(e) => {
-          flatListLayout.current = { 
-            x: e.nativeEvent.layout.x, 
-            y: e.nativeEvent.layout.y, 
-            width: e.nativeEvent.layout.width, 
-            height: e.nativeEvent.layout.height 
+          flatListLayout.current = {
+            x: e.nativeEvent.layout.x,
+            y: e.nativeEvent.layout.y,
+            width: e.nativeEvent.layout.width,
+            height: e.nativeEvent.layout.height,
           };
         }}
       >
@@ -890,7 +965,10 @@ export default function ChatScreen() {
                 messageLayouts.current[msgId] = layout;
               }}
               onMeasureBubble={(msgId, layout) => {
-                const relativeY = layout.pageY - flatListLayout.current.y + flatListScrollOffset.current;
+                const relativeY =
+                  layout.pageY -
+                  flatListLayout.current.y +
+                  flatListScrollOffset.current;
                 bubbleLayouts.current[msgId] = { ...layout, relativeY };
               }}
               onToggleMessageSelection={(msg, layout, onlyReactions) => {
@@ -907,17 +985,23 @@ export default function ChatScreen() {
               onCreateNote={(() => {
                 if (item.type !== "message") return undefined;
                 const multi = analyzeMessageMultiIntents(item.data.content);
-                return multi.isNote ? (msg) => openSheetForMessage(msg, "note") : undefined;
+                return multi.isNote
+                  ? (msg) => openSheetForMessage(msg, "note")
+                  : undefined;
               })()}
               onCreateReminder={(() => {
                 if (item.type !== "message") return undefined;
                 const multi = analyzeMessageMultiIntents(item.data.content);
-                return multi.isReminder ? (msg) => openSheetForMessage(msg, "reminder") : undefined;
+                return multi.isReminder
+                  ? (msg) => openSheetForMessage(msg, "reminder")
+                  : undefined;
               })()}
               onCreateEvent={(() => {
                 if (item.type !== "message") return undefined;
                 const multi = analyzeMessageMultiIntents(item.data.content);
-                return multi.isEvent ? (msg) => openSheetForMessage(msg, "event") : undefined;
+                return multi.isEvent
+                  ? (msg) => openSheetForMessage(msg, "event")
+                  : undefined;
               })()}
               onRemoveSticker={handleRemoveSticker}
             />
@@ -1447,7 +1531,14 @@ export default function ChatScreen() {
                 initialDragDistance.current = distance;
                 initialDragScale.current = dragScaleVal.current;
               } else {
-                const newScale = Math.max(0.3, Math.min(3.0, (distance / initialDragDistance.current) * initialDragScale.current));
+                const newScale = Math.max(
+                  0.3,
+                  Math.min(
+                    3.0,
+                    (distance / initialDragDistance.current) *
+                      initialDragScale.current,
+                  ),
+                );
                 dragScaleVal.current = newScale;
                 dragScale.setValue(newScale);
               }
@@ -1457,12 +1548,13 @@ export default function ChatScreen() {
                 initialDragRotation.current = dragRotationVal.current;
               } else {
                 const angleDiff = angle - initialDragAngle.current;
-                let newRotation = (initialDragRotation.current + angleDiff) % 360;
+                let newRotation =
+                  (initialDragRotation.current + angleDiff) % 360;
                 if (newRotation < 0) newRotation += 360;
                 dragRotationVal.current = newRotation;
                 dragRotation.setValue(newRotation);
               }
-              
+
               // Clear hover timer when adjusting to prevent snapping during pinch
               clearHoverTimer();
             } else if (touches && touches.length === 1) {
@@ -1470,7 +1562,7 @@ export default function ChatScreen() {
               const pageX = touch.pageX;
               const pageY = touch.pageY;
 
-                  dragPosition.setValue({
+              dragPosition.setValue({
                 x: pageX - 50,
                 y: pageY - 50,
               });
@@ -1478,7 +1570,8 @@ export default function ChatScreen() {
               initialDragAngle.current = null;
 
               // Detect which message is hovered
-              const relativeY = pageY - flatListLayout.current.y + flatListScrollOffset.current;
+              const relativeY =
+                pageY - flatListLayout.current.y + flatListScrollOffset.current;
               const relativeX = pageX - flatListLayout.current.x;
 
               let currentHoveredMsgId: string | null = null;

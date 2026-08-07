@@ -12,8 +12,11 @@ import {
   UIManager,
 } from "react-native";
 
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { useAppTheme } from "@/context/ThemeContext";
+
 import {
   getChats,
   type ChatListItem,
@@ -47,9 +50,8 @@ import {
   removePinnedNoteLocal,
   type PinnedNoteItem,
 } from "@/services/database";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { wsClient } from "@/services/ws";
-import { useAppTheme } from "@/context/ThemeContext";
+
 import MuteModal from "@/components/MuteModal";
 import MainMenuModal from "@/components/MainMenuModal";
 import CreateListModal from "@/components/CreateListModal";

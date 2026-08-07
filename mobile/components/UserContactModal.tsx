@@ -93,7 +93,9 @@ export function UserContactModal({
             backgroundColor: isDark
               ? "rgba(30, 30, 30, 0.9)"
               : "rgba(255, 255, 255, 0.9)",
-            borderColor: colors.border,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(0, 0, 0, 0.08)",
             opacity: modalOpacity,
             transform: [{ scale: modalScale }, { translateY: modalTranslateY }],
           },
@@ -178,7 +180,7 @@ const styles = StyleSheet.create({
   actionsModalCard: {
     width: "60%",
     borderRadius: 24,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
