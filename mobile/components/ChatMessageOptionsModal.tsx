@@ -729,36 +729,15 @@ export function ChatMessageOptionsModal({
             activeOpacity={1}
             onPress={() => setIsStickerPickerOpen(false)}
           >
-            <View
-              style={[
-                styles.stickerSheetContainer,
-                { backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF" },
-              ]}
-            >
-              <View style={styles.emojiSheetHeader}>
-                <Text style={[styles.emojiSheetTitle, { color: colors.text }]}>
-                  Escolha um sticker
-                </Text>
-                <TouchableOpacity onPress={() => setIsStickerPickerOpen(false)}>
-                  <MaterialCommunityIcons
-                    name="close"
-                    size={24}
-                    color={colors.text}
-                  />
-                </TouchableOpacity>
-              </View>
-              <View style={{ flex: 1 }}>
-                <StickerModal
-                  onSendMedia={() => {}}
-                  height={360}
-                  onStickerSelected={(stickerUrl) => {
-                    onAddSticker(stickerUrl);
-                    setIsStickerPickerOpen(false);
-                    hideModal();
-                  }}
-                />
-              </View>
-            </View>
+            <StickerModal
+              onSendMedia={() => {}}
+              height={300}
+              onStickerSelected={(stickerUrl) => {
+                onAddSticker(stickerUrl);
+                setIsStickerPickerOpen(false);
+                hideModal();
+              }}
+            />
           </TouchableOpacity>
         </Modal>
       )}
