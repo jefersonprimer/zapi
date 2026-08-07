@@ -270,64 +270,12 @@ export function BrowserMediaActionsModal({
               borderBottomColor: colors.border,
             },
           ]}
-          onPress={async () => {
-            try {
-              Alert.alert(
-                "Transformar em Sticker",
-                "Deseja remover o fundo da imagem automaticamente com IA?",
-                [
-                  {
-                    text: "Sem remover fundo",
-                    onPress: async () => {
-                      try {
-                        let localUri = src;
-                        if (src.startsWith("http://") || src.startsWith("https://")) {
-                          const filename = `sticker_${Date.now()}.webp`;
-                          const localPath = `${FileSystem.documentDirectory}stickers/${filename}`;
-                          const dirInfo = await FileSystem.getInfoAsync(`${FileSystem.documentDirectory}stickers/`);
-                          if (!dirInfo.exists) {
-                            await FileSystem.makeDirectoryAsync(`${FileSystem.documentDirectory}stickers/`, { intermediates: true });
-                          }
-                          const dl = await FileSystem.downloadAsync(src, localPath);
-                          if (dl.status === 200) {
-                            localUri = dl.uri;
-                          }
-                        }
-                        await addCustomStickerLocal({
-                          url: src,
-                          local_path: localUri,
-                          title: "Figurinha da Web",
-                        });
-                        Alert.alert("Sucesso! 🎉", "Imagem salva nas suas figurinhas locais!");
-                        if (onTransformSticker) {
-                          onTransformSticker(localUri);
-                        }
-                      } catch (err) {
-                        console.error("Erro ao converter em sticker:", err);
-                        Alert.alert("Erro", "Não foi possível transformar a imagem em figurinha.");
-                      }
-                      hideActionsModal();
-                    },
-                  },
-                  {
-                    text: "Remover Fundo ⭐",
-                    onPress: () => {
-                      // Open in StickerEditorModal which handles AI removal
-                      hideActionsModal(() => {
-                        if (onTransformSticker) {
-                          onTransformSticker(src);
-                        }
-                      });
-                    },
-                  },
-                  { text: "Cancelar", style: "cancel" },
-                ]
-              );
-            } catch (err) {
-              console.error("Erro ao converter em sticker:", err);
-              Alert.alert("Erro", "Não foi possível transformar a imagem em figurinha.");
-              hideActionsModal();
-            }
+          onPress={() => {
+            hideActionsModal(() => {
+              if (onTransformSticker) {
+                onTransformSticker(src);
+              }
+            });
           }}
         >
           <View
