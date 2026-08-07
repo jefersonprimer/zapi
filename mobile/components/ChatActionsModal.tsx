@@ -13,7 +13,7 @@ import {
   ScrollView,
 } from "react-native";
 
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/context/ThemeContext";
 import { getStorageItem, setStorageItem } from "@/context/AuthContext";
@@ -140,13 +140,15 @@ export function ChatActionsModal({
     string,
     {
       label: string;
-      icon: keyof typeof MaterialCommunityIcons.glyphMap;
+      icon: string;
+      library: "Ionicons" | "MaterialCommunityIcons";
       onPress: () => void;
     }
   > = {
     emoji: {
       label: "Emoji",
-      icon: "emoticon-happy-outline",
+      icon: "happy-outline",
+      library: "Ionicons",
       onPress: () => {
         Keyboard.dismiss();
         hideActionsModal(onEmojiPress);
@@ -154,7 +156,8 @@ export function ChatActionsModal({
     },
     gif: {
       label: "GIF",
-      icon: "gif" as any,
+      icon: "gif",
+      library: "MaterialCommunityIcons",
       onPress: () => {
         Keyboard.dismiss();
         hideActionsModal(onGifPress);
@@ -163,6 +166,7 @@ export function ChatActionsModal({
     sticker: {
       label: "Sticker",
       icon: "sticker-outline",
+      library: "MaterialCommunityIcons",
       onPress: () => {
         Keyboard.dismiss();
         hideActionsModal(onStickerPress);
@@ -171,36 +175,43 @@ export function ChatActionsModal({
     fotos: {
       label: "Fotos",
       icon: "image-outline",
+      library: "Ionicons",
       onPress: () => hideActionsModal(onFotosPress),
     },
     camera: {
       label: "Câmera",
       icon: "camera-outline",
+      library: "Ionicons",
       onPress: () => hideActionsModal(onCameraPress),
     },
     documentos: {
       label: "Documentos",
-      icon: "file-document-outline",
+      icon: "document-text-outline",
+      library: "Ionicons",
       onPress: () => hideActionsModal(onDocumentosPress),
     },
     draw: {
       label: "Desenhar",
-      icon: "brush",
+      icon: "brush-outline",
+      library: "Ionicons",
       onPress: () => hideActionsModal(onDrawPress),
     },
     location: {
       label: "Localização",
-      icon: "map-marker-outline",
+      icon: "location-outline",
+      library: "Ionicons",
       onPress: () => hideActionsModal(onLocationPress),
     },
     searchWeb: {
       label: "Pesquisar na Web",
-      icon: "earth",
+      icon: "globe-outline",
+      library: "Ionicons",
       onPress: () => hideActionsModal(onSearchWebPress),
     },
     sendLater: {
       label: "Agendar Mensagem",
-      icon: "clock-outline",
+      icon: "time-outline",
+      library: "Ionicons",
       onPress: () => hideActionsModal(onSendLaterPress),
     },
   };
@@ -451,11 +462,19 @@ export function ChatActionsModal({
                       { backgroundColor: isDark ? "#2D2D2D" : "#F3F4F6" },
                     ]}
                   >
-                    <MaterialCommunityIcons
-                      name={action.icon}
-                      size={24}
-                      color={colors.text}
-                    />
+                    {action.library === "Ionicons" ? (
+                      <Ionicons
+                        name={action.icon as any}
+                        size={24}
+                        color={colors.text}
+                      />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name={action.icon as any}
+                        size={24}
+                        color={colors.text}
+                      />
+                    )}
                   </View>
                   <Text style={[styles.modalRowText, { color: colors.text }]}>
                     {action.label}

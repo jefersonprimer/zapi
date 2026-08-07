@@ -1,9 +1,10 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { ChatListItem as ChatListItemType, API_URL } from "@/services/api";
 import { useAppTheme } from "@/context/ThemeContext";
 import { resolveLastMessagePreview } from "@/utils/forwardMessage";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 interface ChatListItemPinnedProps {
   item: ChatListItemType;
@@ -112,61 +113,170 @@ export default function ChatListItemPinned({
 
         {/* Last message bubble */}
         {(() => {
-          let displayMessage = "";
           if (item.is_blocked_by_me) {
-            displayMessage = "Bloqueado";
-          } else if (!item.last_message) {
-            displayMessage = "";
-          } else {
-            const lastMessage = resolveLastMessagePreview(item.last_message);
-            if (
-              lastMessage.startsWith("Audio") ||
-              lastMessage.startsWith("🎵 Áudio")
-            ) {
-              displayMessage = "🎙️ Áudio";
-            } else if (lastMessage === "Photo" || lastMessage === "📷 Foto") {
-              displayMessage = "📷 Foto";
-            } else if (lastMessage === "Video" || lastMessage === "🎥 Vídeo") {
-              displayMessage = "🎥 Vídeo";
-            } else if (
-              lastMessage === "File" ||
-              lastMessage.startsWith("File|") ||
-              lastMessage === "📁 Arquivo" ||
-              lastMessage.startsWith("📁 Arquivo|") ||
-              lastMessage.startsWith("Arquivo|")
-            ) {
-              displayMessage = "📁 Doc";
-            } else if (lastMessage === "Message deleted") {
-              displayMessage = "🚫 Apagada";
-            } else if (lastMessage === "Chamada efetuada") {
-              displayMessage = "📞 Ligação";
-            } else if (lastMessage === "Chamada recebida") {
-              displayMessage = "📞 Ligação";
-            } else if (lastMessage === "Chamada perdida") {
-              displayMessage = "📞 Perdida";
-            } else if (
-              lastMessage.startsWith('{"type":"location"') ||
-              item.last_message?.trimStart().startsWith('{"type":"location"')
-            ) {
-              displayMessage = "📍 Local";
-            } else if (lastMessage.startsWith('{"type":"contact_share"')) {
-              displayMessage = "👤 Contato";
-            } else if (
-              lastMessage.startsWith("Pix:") ||
-              item.last_message?.trimStart().startsWith('{"type":"pix_share"')
-            ) {
-              displayMessage = "💸 Pix";
-            } else if (
-              lastMessage.startsWith("Nota:") ||
-              item.last_message?.trimStart().startsWith('{"type":"note_share"')
-            ) {
-              displayMessage = "📝 Nota";
-            } else {
-              displayMessage = lastMessage;
-            }
+            return (
+              <View
+                style={[
+                  styles.bubble,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.bubbleText, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  Bloqueado
+                </Text>
+                <View
+                  style={[
+                    styles.bubbleTail,
+                    {
+                      backgroundColor: colors.surface,
+                      borderRightColor: colors.border,
+                      borderBottomColor: colors.border,
+                    },
+                  ]}
+                />
+              </View>
+            );
           }
 
-          if (!displayMessage) return null;
+          if (!item.last_message) return null;
+
+          const lastMessage = resolveLastMessagePreview(item.last_message);
+          let displayMessage = lastMessage;
+          let iconElement = null;
+
+          if (
+            lastMessage.startsWith("Audio") ||
+            lastMessage.startsWith("🎵 Áudio")
+          ) {
+            displayMessage = "Áudio";
+            iconElement = (
+              <Ionicons
+                name="mic-outline"
+                size={13}
+                color={colors.textSecondary}
+              />
+            );
+          } else if (lastMessage === "Photo" || lastMessage === "📷 Foto") {
+            displayMessage = "Foto";
+            iconElement = (
+              <Ionicons
+                name="camera-outline"
+                size={13}
+                color={colors.textSecondary}
+              />
+            );
+          } else if (lastMessage === "Video" || lastMessage === "🎥 Vídeo") {
+            displayMessage = "Vídeo";
+            iconElement = (
+              <Ionicons
+                name="videocam-outline"
+                size={13}
+                color={colors.textSecondary}
+              />
+            );
+          } else if (
+            lastMessage === "File" ||
+            lastMessage.startsWith("File|") ||
+            lastMessage === "📁 Arquivo" ||
+            lastMessage.startsWith("📁 Arquivo|") ||
+            lastMessage.startsWith("Arquivo|")
+          ) {
+            displayMessage = "Doc";
+            iconElement = (
+              <Ionicons
+                name="document-text-outline"
+                size={13}
+                color={colors.textSecondary}
+              />
+            );
+          } else if (lastMessage === "Message deleted") {
+            displayMessage = "Apagada";
+            iconElement = (
+              <MaterialCommunityIcons
+                name="cancel"
+                size={13}
+                color={colors.textSecondary}
+              />
+            );
+          } else if (lastMessage === "Chamada efetuada") {
+            displayMessage = "Ligação";
+            iconElement = (
+              <MaterialCommunityIcons
+                name="phone-outgoing"
+                size={13}
+                color={colors.textSecondary}
+              />
+            );
+          } else if (lastMessage === "Chamada recebida") {
+            displayMessage = "Ligação";
+            iconElement = (
+              <MaterialCommunityIcons
+                name="phone-incoming"
+                size={13}
+                color={colors.textSecondary}
+              />
+            );
+          } else if (lastMessage === "Chamada perdida") {
+            displayMessage = "Perdida";
+            iconElement = (
+              <MaterialCommunityIcons
+                name="phone-missed"
+                size={13}
+                color={colors.danger}
+              />
+            );
+          } else if (
+            lastMessage.startsWith('{"type":"location"') ||
+            item.last_message?.trimStart().startsWith('{"type":"location"')
+          ) {
+            displayMessage = "Local";
+            iconElement = (
+              <Ionicons
+                name="location-outline"
+                size={13}
+                color={colors.textSecondary}
+              />
+            );
+          } else if (lastMessage.startsWith('{"type":"contact_share"')) {
+            displayMessage = "Contato";
+            iconElement = (
+              <Ionicons
+                name="person-outline"
+                size={13}
+                color={colors.textSecondary}
+              />
+            );
+          } else if (
+            lastMessage.startsWith("Pix:") ||
+            item.last_message?.trimStart().startsWith('{"type":"pix_share"')
+          ) {
+            displayMessage = "Pix";
+            iconElement = (
+              <MaterialIcons
+                name="pix"
+                size={13}
+                color="#32BCAD"
+              />
+            );
+          } else if (
+            lastMessage.startsWith("Nota:") ||
+            item.last_message?.trimStart().startsWith('{"type":"note_share"')
+          ) {
+            displayMessage = "Nota";
+            iconElement = (
+              <MaterialCommunityIcons
+                name="note-outline"
+                size={13}
+                color="#F5A623"
+              />
+            );
+          }
 
           return (
             <View
@@ -178,9 +288,10 @@ export default function ChatListItemPinned({
                 },
               ]}
             >
+              {iconElement}
               <Text
                 style={[styles.bubbleText, { color: colors.text }]}
-                numberOfLines={3}
+                numberOfLines={1}
                 ellipsizeMode="tail"
               >
                 {displayMessage}
@@ -302,6 +413,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
     elevation: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
   },
   bubbleText: {
     fontSize: 12,
