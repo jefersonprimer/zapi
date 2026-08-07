@@ -50,7 +50,16 @@ const StickerGestureItem: React.FC<StickerGestureItemProps> = ({
   styles,
 }) => {
   const isDragging = React.useRef(false);
+  const hasLongPressed = React.useRef(false);
   const touchStart = React.useRef({ x: 0, y: 0 });
+  const longPressTimeout = React.useRef<NodeJS.Timeout | null>(null);
+
+  const clearLongPress = () => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+  };
 
   const panResponder = React.useRef(
     PanResponder.create({
@@ -60,16 +69,27 @@ const StickerGestureItem: React.FC<StickerGestureItemProps> = ({
       },
       onPanResponderGrant: (e) => {
         isDragging.current = false;
+        hasLongPressed.current = false;
         touchStart.current = {
           x: e.nativeEvent.pageX,
           y: e.nativeEvent.pageY,
         };
+
+        if (onLongPress) {
+          longPressTimeout.current = setTimeout(() => {
+            hasLongPressed.current = true;
+            onLongPress();
+          }, 600);
+        }
       },
       onPanResponderMove: (e, gestureState) => {
+        if (hasLongPressed.current) return;
+
         if (!isDragging.current) {
           const dx = gestureState.dx;
           const dy = gestureState.dy;
           if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+            clearLongPress();
             isDragging.current = true;
           }
         }
@@ -79,13 +99,17 @@ const StickerGestureItem: React.FC<StickerGestureItemProps> = ({
         }
       },
       onPanResponderRelease: () => {
-        if (!isDragging.current) {
+        clearLongPress();
+        if (!isDragging.current && !hasLongPressed.current) {
           onPress();
         }
         isDragging.current = false;
+        hasLongPressed.current = false;
       },
       onPanResponderTerminate: () => {
+        clearLongPress();
         isDragging.current = false;
+        hasLongPressed.current = false;
       },
     })
   ).current;

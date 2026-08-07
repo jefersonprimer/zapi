@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 24,
+    paddingHorizontal: 22,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatar: {
