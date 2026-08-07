@@ -256,13 +256,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       forwarded.content.startsWith("https://"))
   );
 
+  const isUrlMediaOrYoutube = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    return (
+      isImageUrl(url) ||
+      isVideoUrl(url) ||
+      isAudioUrl(url) ||
+      !!getYoutubeId(url)
+    );
+  };
+
   const mediaUrl = isForwarded
     ? forwarded?.local_file_path ||
       forwarded?.image_url ||
-      (forwardedContentIsLink ? forwarded.content : null)
+      (forwardedContentIsLink && isUrlMediaOrYoutube(forwarded.content) ? forwarded.content : null)
     : item.local_file_path ||
       item.image_url ||
-      (contentIsLink ? item.content : null);
+      (contentIsLink && isUrlMediaOrYoutube(item.content) ? item.content : null);
 
   const fullUrl = mediaUrl
     ? mediaUrl.startsWith("http") || mediaUrl.startsWith("file://")
