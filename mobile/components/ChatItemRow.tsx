@@ -100,11 +100,11 @@ const PlacedStickerComponent: React.FC<PlacedStickerComponentProps> = ({
         ...(isAutoLayout
           ? {
               [isMine ? "right" : "left"]: 8,
-              top: Math.max(0, bubbleHeight - 4) + extraTop - 35,
+              top: Math.max(0, bubbleHeight - 4) - 35,
             }
           : {
               left: placed.x_offset - 35,
-              top: placed.y_offset + extraTop - 35,
+              top: placed.y_offset - 35,
             }),
         transform: [
           { rotate: `${placed.rotation || 0}deg` },
@@ -265,11 +265,6 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
             }}
           >
             <TouchableOpacity
-              ref={bubbleRef}
-              onLayout={(e) => {
-                reportBubbleLayout();
-                setBubbleHeight(e.nativeEvent.layout.height);
-              }}
               onPress={() => {
                 if (isSelectionMode) {
                   onToggleMessageSelection(msg);
@@ -287,29 +282,38 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
               style={styles.messageRow}
               activeOpacity={0.8}
             >
-              <MessageBubble
-                item={msg}
-                currentUserId={currentUserId}
-                isGroup={isGroup}
-                onLongPress={handleLongPress}
-                onCreateNote={onCreateNote ? () => onCreateNote(msg) : undefined}
-                onCreateReminder={onCreateReminder ? () => onCreateReminder(msg) : undefined}
-                onCreateEvent={onCreateEvent ? () => onCreateEvent(msg) : undefined}
-              />
+              <View 
+                ref={bubbleRef}
+                style={{ alignSelf: msg.sender_id === currentUserId ? "flex-end" : "flex-start" }}
+                onLayout={(e) => {
+                  reportBubbleLayout();
+                  setBubbleHeight(e.nativeEvent.layout.height);
+                }}
+              >
+                <MessageBubble
+                  item={msg}
+                  currentUserId={currentUserId}
+                  isGroup={isGroup}
+                  onLongPress={handleLongPress}
+                  onCreateNote={onCreateNote ? () => onCreateNote(msg) : undefined}
+                  onCreateReminder={onCreateReminder ? () => onCreateReminder(msg) : undefined}
+                  onCreateEvent={onCreateEvent ? () => onCreateEvent(msg) : undefined}
+                />
+                
+                {/* Placed Stickers rendered relative to the bubble view */}
+                {!msg.deleted_for_everyone && msg.placed_stickers?.map((placed) => (
+                  <PlacedStickerComponent
+                    key={placed.id}
+                    placed={placed}
+                    msgId={msg.id}
+                    onRemoveSticker={onRemoveSticker}
+                    extraTop={0}
+                    isMine={msg.sender_id === currentUserId}
+                    bubbleHeight={bubbleHeight}
+                  />
+                ))}
+              </View>
             </TouchableOpacity>
-
-            {/* Placed Stickers rendered relative to the messageRow view inside the SwipeableMessageRow */}
-            {!msg.deleted_for_everyone && msg.placed_stickers?.map((placed) => (
-              <PlacedStickerComponent
-                key={placed.id}
-                placed={placed}
-                msgId={msg.id}
-                onRemoveSticker={onRemoveSticker}
-                extraTop={extraTop}
-                isMine={msg.sender_id === currentUserId}
-                bubbleHeight={bubbleHeight}
-              />
-            ))}
           </View>
         </SwipeableMessageRow>
       </View>
