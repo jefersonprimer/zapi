@@ -203,6 +203,8 @@ export default function ChatScreen() {
   const hoveredMessageIdRef = useRef<string | null>(null);
   const hoverTimerRef = useRef<any>(null);
   const lastTouchCoordsRef = useRef({ x: 0, y: 0 });
+  const dragHoverScale = useRef(new Animated.Value(1.0)).current;
+  const lastHoverState = useRef(false);
 
   const clearHoverTimer = () => {
     if (hoverTimerRef.current) {
@@ -1484,6 +1486,7 @@ export default function ChatScreen() {
               const relativeY = pageY - flatListLayout.current.y + flatListScrollOffset.current;
               const relativeX = pageX - flatListLayout.current.x;
 
+              let currentHoveredMsgId: string | null = null;
               for (const item of chatItems) {
                 if (item.type !== "message") continue;
                 const id = item.data.id;
@@ -1496,8 +1499,20 @@ export default function ChatScreen() {
                   relativeX >= layout.pageX &&
                   relativeX <= layout.pageX + layout.width
                 ) {
+                  currentHoveredMsgId = id;
                   break;
                 }
+              }
+
+              const isHovering = currentHoveredMsgId !== null;
+              if (isHovering !== lastHoverState.current) {
+                lastHoverState.current = isHovering;
+                Animated.spring(dragHoverScale, {
+                  toValue: isHovering ? 1.25 : 1.0,
+                  friction: 4,
+                  tension: 120,
+                  useNativeDriver: true,
+                }).start();
               }
 
               lastTouchCoordsRef.current = { x: pageX, y: pageY };
@@ -1512,7 +1527,7 @@ export default function ChatScreen() {
               transform: [
                 { translateX: dragPosition.x },
                 { translateY: dragPosition.y },
-                { scale: dragScale },
+                { scale: Animated.multiply(dragScale, dragHoverScale) },
                 {
                   rotate: dragRotation.interpolate({
                     inputRange: [0, 360],
@@ -1520,7 +1535,7 @@ export default function ChatScreen() {
                   }),
                 },
               ],
-              opacity: 0.85,
+              opacity: lastHoverState.current ? 1.0 : 0.85,
             }}
           >
             <Image
