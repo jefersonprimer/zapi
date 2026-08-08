@@ -12,7 +12,10 @@ import {
   Switch,
   Platform,
   Clipboard,
+  Linking,
+  Dimensions,
 } from "react-native";
+
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Svg, Path } from "react-native-svg";
@@ -40,15 +43,7 @@ import * as updatesApi from "@/services/updatesApi";
 import CreateListModal from "@/components/CreateListModal";
 import MuteModal from "@/components/MuteModal";
 import ListSelectorModal from "@/components/ListSelectorModal";
-
-import FeedPost from "@/components/FeedPost";
-
-const GAP = 2;
-
-
-
-
-
+import { chatRepository } from "@/services/ChatRepository";
 
 export default function ContactDetailScreen() {
   const router = useRouter();
@@ -56,14 +51,19 @@ export default function ContactDetailScreen() {
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  const { participantId, participantUsername, chatId, avatarUrl, storeId: paramStoreId } =
-    useLocalSearchParams<{
-      participantId: string;
-      participantUsername: string;
-      chatId?: string;
-      avatarUrl?: string;
-      storeId?: string;
-    }>();
+  const {
+    participantId,
+    participantUsername,
+    chatId,
+    avatarUrl,
+    storeId: paramStoreId,
+  } = useLocalSearchParams<{
+    participantId: string;
+    participantUsername: string;
+    chatId?: string;
+    avatarUrl?: string;
+    storeId?: string;
+  }>();
 
   const [contact, setContact] = useState<Contact | null>(null);
   const activeStoreId = paramStoreId || contact?.store_id || null;
@@ -89,111 +89,26 @@ export default function ContactDetailScreen() {
   const [showHeaderProfile, setShowHeaderProfile] = useState(false);
   const [pixKey, setPixKey] = useState<PixKeyData | null>(null);
 
-  // Publisher and updates state
-  const [posts, setPosts] = useState<updatesApi.FeedPost[]>([]);
-  const [selectedPost, setSelectedPost] = useState<updatesApi.FeedPost | null>(
-    null,
-  );
-  const [postsLoading, setPostsLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const activeTab: "contato" | "atualizacoes" = "contato";
+  const [activeTab, setActiveTab] = useState<
+    "info" | "media" | "links" | "docs" | "location"
+  >("info");
+  const [messages, setMessages] = useState<any[]>([]);
+  const [selectedFullScreenImage, setSelectedFullScreenImage] = useState<
+    string | null
+  >(null);
 
-  const loadPublisherPosts = useCallback(
-    async (id: string, pageNum: number, replace: boolean) => {
-      if (!token || !id) return;
-      if (pageNum === 1) {
-        setPostsLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+  useEffect(() => {
+    if (!resolvedChatId || !token) return;
+    const fetchMessages = async () => {
       try {
-        const PAGE_SIZE = 12;
-        const data = await updatesApi.getPublisherPosts(
-          token,
-          id,
-          pageNum,
-          PAGE_SIZE,
-        );
-        setPosts((prev) => (replace ? data : [...prev, ...data]));
-        setHasMore(data.length === PAGE_SIZE);
-        setPage(pageNum);
+        const msgs = await chatRepository.getMessages(resolvedChatId, token);
+        setMessages(msgs || []);
       } catch (err) {
-        console.error("Failed to load publisher posts:", err);
-      } finally {
-        setPostsLoading(false);
-        setLoadingMore(false);
+        console.error("Error fetching messages for media tab:", err);
       }
-    },
-    [token],
-  );
-
-  const handleLoadMorePosts = useCallback(() => {
-    if (loadingMore || !hasMore || postsLoading || !publisherId) return;
-    loadPublisherPosts(publisherId, page + 1, false);
-  }, [
-    loadingMore,
-    hasMore,
-    postsLoading,
-    page,
-    publisherId,
-    loadPublisherPosts,
-  ]);
-
-  const handlePostLike = async (postId: string) => {
-    if (!token) return;
-    const prev = posts.find((p) => p.id === postId);
-    if (!prev) return;
-    const nextLiked = !prev.liked_by_me;
-    setPosts((list) =>
-      list.map((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              liked_by_me: nextLiked,
-              likes_count: p.likes_count + (nextLiked ? 1 : -1),
-            }
-          : p,
-      ),
-    );
-    if (selectedPost?.id === postId) {
-      setSelectedPost((p) =>
-        p
-          ? {
-              ...p,
-              liked_by_me: nextLiked,
-              likes_count: p.likes_count + (nextLiked ? 1 : -1),
-            }
-          : p,
-      );
-    }
-    try {
-      await updatesApi.toggleLike(token, postId);
-    } catch {
-      setPosts((list) => list.map((p) => (p.id === postId ? prev : p)));
-      if (selectedPost?.id === postId) setSelectedPost(prev);
-    }
-  };
-
-  const handlePostSave = async (postId: string) => {
-    if (!token) return;
-    const prev = posts.find((p) => p.id === postId);
-    if (!prev) return;
-    const nextSaved = !prev.saved_by_me;
-    setPosts((list) =>
-      list.map((p) => (p.id === postId ? { ...p, saved_by_me: nextSaved } : p)),
-    );
-    if (selectedPost?.id === postId) {
-      setSelectedPost((p) => (p ? { ...p, saved_by_me: nextSaved } : p));
-    }
-    try {
-      await updatesApi.toggleSave(token, postId);
-    } catch {
-      setPosts((list) => list.map((p) => (p.id === postId ? prev : p)));
-      if (selectedPost?.id === postId) setSelectedPost(prev);
-    }
-  };
+    };
+    fetchMessages();
+  }, [resolvedChatId, token]);
 
   const {
     listSelectorVisible,
@@ -434,7 +349,6 @@ export default function ContactDetailScreen() {
         );
         setPublisherId(publisherData.id);
         setIsFollowing(!!publisherData.is_following);
-        loadPublisherPosts(publisherData.id, 1, true);
       } catch (err) {
         console.error("Error fetching publisher follow state:", err);
       }
@@ -443,7 +357,7 @@ export default function ContactDetailScreen() {
     } finally {
       setLoading(false);
     }
-  }, [token, participantId, loadPublisherPosts]);
+  }, [token, participantId]);
 
   useEffect(() => {
     fetchContactDetails();
@@ -572,6 +486,55 @@ export default function ContactDetailScreen() {
       : `${API_URL}${currentAvatarUrl}`
     : null;
 
+  const mediaMessages = messages.filter((m) => {
+    if (m.deleted_for_everyone) return false;
+    const hasImage = !!m.image_url;
+    const hasLocalFile = !!m.local_file_path;
+    const hasAttachments = m.attachments && m.attachments.length > 0;
+    const attachmentType = hasAttachments ? m.attachments[0].type : null;
+    return (
+      hasImage ||
+      hasLocalFile ||
+      (hasAttachments &&
+        (attachmentType === "image" || attachmentType === "video"))
+    );
+  });
+
+  const linkMessages = messages.filter((m) => {
+    if (m.deleted_for_everyone || !m.content) return false;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return urlRegex.test(m.content);
+  });
+
+  const docMessages = messages.filter((m) => {
+    if (m.deleted_for_everyone) return false;
+    const hasAttachments = m.attachments && m.attachments.length > 0;
+    const attachmentType = hasAttachments ? m.attachments[0].type : null;
+    return attachmentType === "document";
+  });
+
+  const locationMessages = messages.filter((m) => {
+    if (m.deleted_for_everyone || !m.content) return false;
+    try {
+      const payload = JSON.parse(m.content);
+      return payload && payload.type === "location";
+    } catch {
+      return false;
+    }
+  });
+
+  const getMediaUrl = (item: any) => {
+    const mediaUrl =
+      item.local_file_path ||
+      item.image_url ||
+      (item.attachments && item.attachments[0]?.local_path) ||
+      (item.attachments && item.attachments[0]?.remote_url);
+    if (!mediaUrl) return null;
+    if (mediaUrl.startsWith("http") || mediaUrl.startsWith("file://"))
+      return mediaUrl;
+    return `${API_URL}${mediaUrl.startsWith("/") ? "" : "/"}${mediaUrl}`;
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Custom Header */}
@@ -580,15 +543,29 @@ export default function ContactDetailScreen() {
           styles.customHeader,
           {
             paddingTop: insets.top,
-            backgroundColor: colors.headerBackground,
-            borderBottomColor: colors.border,
+            backgroundColor: showHeaderProfile
+              ? colors.headerBackground
+              : "transparent",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
           },
         ]}
       >
         <View style={styles.headerContent}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backBtn}
+            style={[
+              styles.backBtn,
+              {
+                borderColor: colors.border,
+                backgroundColor: isDark
+                  ? "rgba(30, 30, 30, 0.98)"
+                  : "rgba(255, 255, 255, 0.98)",
+              },
+            ]}
           >
             <Ionicons
               name="chevron-back-outline"
@@ -637,17 +614,23 @@ export default function ContactDetailScreen() {
                 styles.headerTitle,
                 { color: colors.headerText, flex: 1 },
               ]}
-            >
-              Detalhes do Contato
-            </Text>
+            />
           )}
 
           <TouchableOpacity
             onPress={() => setMenuVisible(true)}
-            style={styles.headerMenuBtn}
+            style={[
+              styles.headerMenuBtn,
+              {
+                borderColor: colors.border,
+                backgroundColor: isDark
+                  ? "rgba(30, 30, 30, 0.98)"
+                  : "rgba(255, 255, 255, 0.98)",
+              },
+            ]}
           >
-            <MaterialCommunityIcons
-              name="dots-vertical"
+            <Ionicons
+              name="ellipsis-horizontal"
               size={24}
               color={colors.headerText}
             />
@@ -674,9 +657,7 @@ export default function ContactDetailScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           onScroll={(event) => {
-            const { layoutMeasurement, contentOffset, contentSize } =
-              event.nativeEvent;
-            const y = contentOffset.y;
+            const y = event.nativeEvent.contentOffset.y;
 
             // Header animation
             if (y > 100) {
@@ -684,20 +665,11 @@ export default function ContactDetailScreen() {
             } else {
               if (showHeaderProfile) setShowHeaderProfile(false);
             }
-
-            // Infinite scroll check for updates tab
-            if ((activeTab as string) === "atualizacoes") {
-              const isCloseToBottom =
-                layoutMeasurement.height + y >= contentSize.height - 100;
-              if (isCloseToBottom) {
-                handleLoadMorePosts();
-              }
-            }
           }}
           scrollEventThrottle={16}
         >
           {/* Profile Header Block */}
-          <View style={styles.profileHeader}>
+          <View style={[styles.profileHeader, { paddingTop: insets.top + 8 }]}>
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => avatarUri && setIsAvatarFullScreen(true)}
@@ -757,15 +729,9 @@ export default function ContactDetailScreen() {
                   { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
                 ]}
               >
-                <Ionicons
-                  name="call-outline"
-                  size={22}
-                  color={colors.text}
-                />
+                <Ionicons name="call-outline" size={24} color={colors.text} />
               </View>
-              <Text
-                style={[styles.actionButtonText, { color: colors.text }]}
-              >
+              <Text style={[styles.actionButtonText, { color: colors.text }]}>
                 Ligar
               </Text>
             </TouchableOpacity>
@@ -786,15 +752,13 @@ export default function ContactDetailScreen() {
                     { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
                   ]}
                 >
-                  <MaterialCommunityIcons
-                    name="shopping-outline"
-                    size={22}
+                  <Ionicons
+                    name="storefront-outline"
+                    size={24}
                     color={colors.tint}
                   />
                 </View>
-                <Text
-                  style={[styles.actionButtonText, { color: colors.text }]}
-                >
+                <Text style={[styles.actionButtonText, { color: colors.text }]}>
                   Loja
                 </Text>
               </TouchableOpacity>
@@ -811,13 +775,11 @@ export default function ContactDetailScreen() {
                 >
                   <Ionicons
                     name="videocam-outline"
-                    size={22}
+                    size={24}
                     color={colors.text}
                   />
                 </View>
-                <Text
-                  style={[styles.actionButtonText, { color: colors.text }]}
-                >
+                <Text style={[styles.actionButtonText, { color: colors.text }]}>
                   Vídeo
                 </Text>
               </TouchableOpacity>
@@ -846,61 +808,185 @@ export default function ContactDetailScreen() {
                     <Path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.614a.67.67 0 0 1-.946 0l-3.6-3.6A3.505 3.505 0 0 0 5.283 5.64h-.434l4.573-4.572a3.646 3.646 0 0 1 5.156 0l4.559 4.559ZM1.068 9.422 3.79 6.699h1.492a2.483 2.483 0 0 1 1.744.722l3.6 3.6a1.73 1.73 0 0 0 2.443 0l3.614-3.613a2.482 2.482 0 0 1 1.744-.723h1.767l2.737 2.737a3.646 3.646 0 0 1 0 5.156l-2.736 2.736h-1.768a2.482 2.482 0 0 1-1.744-.722l-3.613-3.613a1.77 1.77 0 0 0-2.444 0l-3.6 3.6a2.483 2.483 0 0 1-1.744.722H3.791l-2.723-2.723a3.646 3.646 0 0 1 0-5.156" />
                   </Svg>
                 </View>
-                <Text
-                  style={[styles.actionButtonText, { color: colors.text }]}
-                >
+                <Text style={[styles.actionButtonText, { color: colors.text }]}>
                   Pix
                 </Text>
               </TouchableOpacity>
             )}
           </View>
-
-          <View
-            style={[
-              styles.sectionDivider,
-              { backgroundColor: colors.border },
-            ]}
-          />
-
-          {/* Informações Section */}
-          <View style={styles.infoSection}>
-            {/* Recado Item */}
-            <TouchableOpacity
-              activeOpacity={0.6}
-              onPress={handleCopyRecado}
-              style={styles.infoItem}
+          {/* Tabs Selector */}
+          <View style={styles.tabBarContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabsScroll}
             >
-              <Text style={[styles.infoValueText, { color: colors.text }]}>
-                {contact?.about || "Sem recado"}
-              </Text>
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.infoLabelText,
-                  { color: colors.textSecondary },
+                  styles.tabItem,
+                  activeTab === "info" && styles.activeTabItem,
                 ]}
+                onPress={() => setActiveTab("info")}
               >
-                Recado
-              </Text>
-            </TouchableOpacity>
-
-            {/* Email Item */}
-            {!!displayEmail && (
-              <>
-                <View
-                  style={[
-                    styles.innerDivider,
-                    { backgroundColor: colors.border },
-                  ]}
+                <Ionicons
+                  name="information-circle-outline"
+                  size={20}
+                  color={
+                    activeTab === "info" ? colors.tint : colors.textSecondary
+                  }
                 />
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color:
+                        activeTab === "info"
+                          ? colors.tint
+                          : colors.textSecondary,
+                    },
+                    activeTab === "info" && styles.activeTabLabel,
+                  ]}
+                >
+                  Info
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.tabItem,
+                  activeTab === "media" && styles.activeTabItem,
+                ]}
+                onPress={() => setActiveTab("media")}
+              >
+                <Ionicons
+                  name="images-outline"
+                  size={20}
+                  color={
+                    activeTab === "media" ? colors.tint : colors.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color:
+                        activeTab === "media"
+                          ? colors.tint
+                          : colors.textSecondary,
+                    },
+                    activeTab === "media" && styles.activeTabLabel,
+                  ]}
+                >
+                  Mídias
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.tabItem,
+                  activeTab === "links" && styles.activeTabItem,
+                ]}
+                onPress={() => setActiveTab("links")}
+              >
+                <Ionicons
+                  name="link-outline"
+                  size={20}
+                  color={
+                    activeTab === "links" ? colors.tint : colors.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color:
+                        activeTab === "links"
+                          ? colors.tint
+                          : colors.textSecondary,
+                    },
+                    activeTab === "links" && styles.activeTabLabel,
+                  ]}
+                >
+                  Links
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.tabItem,
+                  activeTab === "docs" && styles.activeTabItem,
+                ]}
+                onPress={() => setActiveTab("docs")}
+              >
+                <Ionicons
+                  name="document-text-outline"
+                  size={20}
+                  color={
+                    activeTab === "docs" ? colors.tint : colors.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color:
+                        activeTab === "docs"
+                          ? colors.tint
+                          : colors.textSecondary,
+                    },
+                    activeTab === "docs" && styles.activeTabLabel,
+                  ]}
+                >
+                  Docs
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.tabItem,
+                  activeTab === "location" && styles.activeTabItem,
+                ]}
+                onPress={() => setActiveTab("location")}
+              >
+                <Ionicons
+                  name="location-outline"
+                  size={20}
+                  color={
+                    activeTab === "location"
+                      ? colors.tint
+                      : colors.textSecondary
+                  }
+                />
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color:
+                        activeTab === "location"
+                          ? colors.tint
+                          : colors.textSecondary,
+                    },
+                    activeTab === "location" && styles.activeTabLabel,
+                  ]}
+                >
+                  Locais
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+
+          {activeTab === "info" && (
+            <>
+              {/* Informações Section */}
+              <View style={styles.infoSection}>
+                {/* Recado Item */}
                 <TouchableOpacity
                   activeOpacity={0.6}
-                  onPress={handleCopyEmail}
+                  onPress={handleCopyRecado}
                   style={styles.infoItem}
                 >
-                  <Text
-                    style={[styles.infoValueText, { color: colors.text }]}
-                  >
-                    {displayEmail}
+                  <Text style={[styles.infoValueText, { color: colors.text }]}>
+                    {contact?.about || "Sem recado"}
                   </Text>
                   <Text
                     style={[
@@ -908,315 +994,647 @@ export default function ContactDetailScreen() {
                       { color: colors.textSecondary },
                     ]}
                   >
-                    E-mail
+                    Recado
                   </Text>
                 </TouchableOpacity>
-              </>
-            )}
-          </View>
 
-          <View
-            style={[
-              styles.sectionDivider,
-              { backgroundColor: colors.border },
-            ]}
-          />
-
-          {/* Options Section */}
-          <View style={styles.optionsSection}>
-            {/* Perfil de Atualizações / Canal */}
-            {publisherId && (
-              <TouchableOpacity
-                style={styles.optionRowClickable}
-                onPress={() =>
-                  router.push({
-                    pathname: "/publisher-profile",
-                    params: { publisherId },
-                  })
-                }
-              >
-                <View style={styles.optionLeft}>
-                  <MaterialCommunityIcons
-                    name="account-box-outline"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                  <View style={styles.optionTextContainer}>
-                    <Text
-                      style={[styles.optionTitle, { color: colors.text }]}
-                    >
-                      Perfil de Atualizações
-                    </Text>
-                    <Text
-                      style={[
-                        styles.optionSub,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {isFollowing ? "Seguindo · " : ""}Ver publicações e clips
-                    </Text>
-                  </View>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            )}
-
-            {/* Notificações */}
-            <View style={styles.optionRow}>
-              <View style={styles.optionLeft}>
-                {isMuted ? (
-                  <MaterialCommunityIcons
-                    name="bell-off"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="bell"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                )}
-                <View style={styles.optionTextContainer}>
-                  <Text
-                    style={[styles.optionTitle, { color: colors.text }]}
-                  >
-                    Notificações
-                  </Text>
-                  <Text
-                    style={[
-                      styles.optionSub,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {getMuteStatusLabel()}
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={!isMuted}
-                onValueChange={handleToggleMuteSwitch}
-                trackColor={{
-                  false: isDark ? "#2C2C2E" : "#E5E5EA",
-                  true: isDark ? "#48484A" : "#C7C7CC",
-                }}
-                thumbColor={
-                  Platform.OS === "android"
-                    ? !isMuted
-                      ? isDark
-                        ? "#D1D1D6"
-                        : "#FFFFFF"
-                      : "#F4F3F4"
-                    : undefined
-                }
-              />
-            </View>
-
-            {/* Favorito */}
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={handleToggleFavorite}
-            >
-              <View style={styles.optionLeft}>
-                {isFavorite ? (
-                  <MaterialCommunityIcons
-                    name="heart-off"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="heart"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                )}
-                <View style={styles.optionTextContainer}>
-                  <Text
-                    style={[styles.optionTitle, { color: colors.text }]}
-                  >
-                    {isFavorite
-                      ? "Remover dos favoritos"
-                      : "Adicionar aos favoritos"}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            {/* Adicionar à lista */}
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={handleOpenListSelector}
-            >
-              <View style={styles.optionLeft}>
-                <MaterialCommunityIcons
-                  name="playlist-plus"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-                <View style={styles.optionTextContainer}>
-                  <Text
-                    style={[styles.optionTitle, { color: colors.text }]}
-                  >
-                    Adicionar à lista
-                  </Text>
-                  {selectedListIds.length > 0 && (
-                    <Text
-                      style={[
-                        styles.optionSub,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {getSelectedListsLabel()}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {/* Mídias compartilhadas */}
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={() =>
-                Alert.alert(
-                  "Mídias Compartilhadas",
-                  "Essa funcionalidade estará disponível em breve!",
-                )
-              }
-            >
-              <View style={styles.optionLeft}>
-                <MaterialCommunityIcons
-                  name="image"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-                <View style={styles.optionTextContainer}>
-                  <Text
-                    style={[styles.optionTitle, { color: colors.text }]}
-                  >
-                    Mídias compartilhadas
-                  </Text>
-                </View>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {/* Buscar nesta conversa */}
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={() =>
-                Alert.alert(
-                  "Buscar na conversa",
-                  "Essa funcionalidade estará disponível em breve!",
-                )
-              }
-            >
-              <View style={styles.optionLeft}>
-                <MaterialCommunityIcons
-                  name="magnify"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-                <View style={styles.optionTextContainer}>
-                  <Text
-                    style={[styles.optionTitle, { color: colors.text }]}
-                  >
-                    Buscar nesta conversa
-                  </Text>
-                </View>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View
-            style={[
-              styles.sectionDivider,
-              { backgroundColor: colors.border },
-            ]}
-          />
-
-          {/* Danger Zone Options */}
-          <View style={styles.optionsSection}>
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={handleClearChat}
-            >
-              <View style={styles.optionLeft}>
-                <MaterialCommunityIcons
-                  name="trash-can-outline"
-                  size={20}
-                  color={colors.danger}
-                />
-                <View style={styles.optionTextContainer}>
-                  <Text
-                    style={[styles.optionTitle, { color: colors.danger }]}
-                  >
-                    Limpar conversa
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.optionRowClickable}
-              onPress={handleToggleBlock}
-            >
-              <View style={styles.optionLeft}>
-                {isBlocked ? (
+                {/* Email Item */}
+                {!!displayEmail && (
                   <>
-                    <MaterialCommunityIcons
-                      name="shield-check"
-                      size={20}
-                      color={colors.tint}
+                    <View
+                      style={[
+                        styles.innerDivider,
+                        { backgroundColor: colors.border },
+                      ]}
+                    />
+                    <TouchableOpacity
+                      activeOpacity={0.6}
+                      onPress={handleCopyEmail}
+                      style={styles.infoItem}
+                    >
+                      <Text
+                        style={[styles.infoValueText, { color: colors.text }]}
+                      >
+                        {displayEmail}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.infoLabelText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        E-mail
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+
+              <View
+                style={[
+                  styles.sectionDivider,
+                  { backgroundColor: colors.border },
+                ]}
+              />
+
+              {/* Options Section */}
+              <View style={styles.optionsSection}>
+                {/* Perfil de Atualizações / Canal */}
+                {publisherId && (
+                  <TouchableOpacity
+                    style={styles.optionRowClickable}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/publisher-profile",
+                        params: { publisherId },
+                      })
+                    }
+                  >
+                    <View style={styles.optionLeft}>
+                      <Ionicons
+                        name="person-circle-outline"
+                        size={24}
+                        color={colors.textSecondary}
+                      />
+                      <View style={styles.optionTextContainer}>
+                        <Text
+                          style={[styles.optionTitle, { color: colors.text }]}
+                        >
+                          Perfil de Atualizações
+                        </Text>
+                        <Text
+                          style={[
+                            styles.optionSub,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {isFollowing ? "Seguindo · " : ""}Ver publicações e
+                          clips
+                        </Text>
+                      </View>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={24}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                )}
+
+                {/* Notificações */}
+                <View style={styles.optionRow}>
+                  <View style={styles.optionLeft}>
+                    {isMuted ? (
+                      <Ionicons
+                        name="notifications-off-outline"
+                        size={24}
+                        color={colors.textSecondary}
+                      />
+                    ) : (
+                      <Ionicons
+                        name="notifications-outline"
+                        size={24}
+                        color={colors.textSecondary}
+                      />
+                    )}
+                    <View style={styles.optionTextContainer}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
+                        Notificações
+                      </Text>
+                      <Text
+                        style={[
+                          styles.optionSub,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {getMuteStatusLabel()}
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={!isMuted}
+                    onValueChange={handleToggleMuteSwitch}
+                    trackColor={{
+                      false: isDark ? "#2C2C2E" : "#E5E5EA",
+                      true: isDark ? "#48484A" : "#C7C7CC",
+                    }}
+                    thumbColor={
+                      Platform.OS === "android"
+                        ? !isMuted
+                          ? isDark
+                            ? "#D1D1D6"
+                            : "#FFFFFF"
+                          : "#F4F3F4"
+                        : undefined
+                    }
+                  />
+                </View>
+
+                {/* Favorito */}
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={handleToggleFavorite}
+                >
+                  <View style={styles.optionLeft}>
+                    {isFavorite ? (
+                      <Ionicons
+                        name="heart-dislike-outline"
+                        size={24}
+                        color={colors.textSecondary}
+                      />
+                    ) : (
+                      <Ionicons
+                        name="heart-outline"
+                        size={24}
+                        color={colors.textSecondary}
+                      />
+                    )}
+                    <View style={styles.optionTextContainer}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
+                        {isFavorite
+                          ? "Remover dos favoritos"
+                          : "Adicionar aos favoritos"}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Adicionar à lista */}
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={handleOpenListSelector}
+                >
+                  <View style={styles.optionLeft}>
+                    <Ionicons
+                      name="list-circle-outline"
+                      size={24}
+                      color={colors.textSecondary}
                     />
                     <View style={styles.optionTextContainer}>
                       <Text
-                        style={[styles.optionTitle, { color: colors.tint }]}
+                        style={[styles.optionTitle, { color: colors.text }]}
                       >
-                        Desbloquear contato
+                        Adicionar à lista
+                      </Text>
+                      {selectedListIds.length > 0 && (
+                        <Text
+                          style={[
+                            styles.optionSub,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {getSelectedListsLabel()}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={24}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                {/* Mídias compartilhadas */}
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={() => setActiveTab("media")}
+                >
+                  <View style={styles.optionLeft}>
+                    <Ionicons
+                      name="image-outline"
+                      size={24}
+                      color={colors.textSecondary}
+                    />
+                    <View style={styles.optionTextContainer}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
+                        Mídias compartilhadas
                       </Text>
                     </View>
-                  </>
-                ) : (
-                  <>
-                    <MaterialCommunityIcons
-                      name="block-helper"
-                      size={20}
+                  </View>
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={24}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                {/* Buscar nesta conversa */}
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={() =>
+                    Alert.alert(
+                      "Buscar na conversa",
+                      "Essa funcionalidade estará disponível em breve!",
+                    )
+                  }
+                >
+                  <View style={styles.optionLeft}>
+                    <Ionicons
+                      name="search-outline"
+                      size={24}
+                      color={colors.textSecondary}
+                    />
+                    <View style={styles.optionTextContainer}>
+                      <Text
+                        style={[styles.optionTitle, { color: colors.text }]}
+                      >
+                        Buscar nesta conversa
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View
+                style={[
+                  styles.sectionDivider,
+                  { backgroundColor: colors.border },
+                ]}
+              />
+
+              {/* Danger Zone Options */}
+              <View style={styles.optionsSection}>
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={handleClearChat}
+                >
+                  <View style={styles.optionLeft}>
+                    <Ionicons
+                      name="trash-outline"
+                      size={24}
                       color={colors.danger}
                     />
                     <View style={styles.optionTextContainer}>
                       <Text
-                        style={[
-                          styles.optionTitle,
-                          { color: colors.danger },
-                        ]}
+                        style={[styles.optionTitle, { color: colors.danger }]}
                       >
-                        Bloquear contato
+                        Limpar conversa
                       </Text>
                     </View>
-                  </>
-                )}
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.optionRowClickable}
+                  onPress={handleToggleBlock}
+                >
+                  <View style={styles.optionLeft}>
+                    {isBlocked ? (
+                      <>
+                        <Ionicons
+                          name="ban-outline"
+                          size={24}
+                          color={colors.textSecondary}
+                        />
+                        <View style={styles.optionTextContainer}>
+                          <Text
+                            style={[
+                              styles.optionTitle,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            Desbloquear contato
+                          </Text>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="ban-outline"
+                          size={24}
+                          color={colors.danger}
+                        />
+                        <View style={styles.optionTextContainer}>
+                          <Text
+                            style={[
+                              styles.optionTitle,
+                              { color: colors.danger },
+                            ]}
+                          >
+                            Bloquear contato
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
-          </View>
+            </>
+          )}
+
+          {activeTab === "media" && (
+            <View style={styles.tabContentContainer}>
+              {mediaMessages.length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons
+                    name="images-outline"
+                    size={48}
+                    color={colors.textSecondary}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <Text
+                    style={[
+                      styles.emptyStateText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Nenhuma mídia compartilhada
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.mediaGrid}>
+                  {mediaMessages.map((item, index) => {
+                    const url = getMediaUrl(item);
+                    if (!url) return null;
+                    const isVideo =
+                      item.attachments && item.attachments[0]?.type === "video";
+                    return (
+                      <TouchableOpacity
+                        key={item.id || index}
+                        style={styles.mediaGridItem}
+                        onPress={() => setSelectedFullScreenImage(url)}
+                      >
+                        <Image
+                          source={{ uri: url }}
+                          style={styles.mediaImage}
+                        />
+                        {isVideo && (
+                          <View style={styles.playIconContainer}>
+                            <Ionicons name="play" size={20} color="#fff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === "links" && (
+            <View style={styles.tabContentContainer}>
+              {linkMessages.length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons
+                    name="link-outline"
+                    size={48}
+                    color={colors.textSecondary}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <Text
+                    style={[
+                      styles.emptyStateText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Nenhum link compartilhado
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.listContainer}>
+                  {linkMessages.map((item, index) => {
+                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                    const urls = item.content.match(urlRegex) || [];
+                    const mainUrl = urls[0] || item.content;
+                    return (
+                      <TouchableOpacity
+                        key={item.id || index}
+                        style={[
+                          styles.listItem,
+                          { borderBottomColor: colors.border },
+                        ]}
+                        onPress={() => Linking.openURL(mainUrl)}
+                      >
+                        <View
+                          style={[
+                            styles.listIconBg,
+                            { backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7" },
+                          ]}
+                        >
+                          <Ionicons
+                            name="link-outline"
+                            size={20}
+                            color={colors.tint}
+                          />
+                        </View>
+                        <View style={styles.listItemTextContainer}>
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.listItemTitle,
+                              { color: colors.text },
+                            ]}
+                          >
+                            {mainUrl}
+                          </Text>
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.listItemSub,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            por @{item.sender_username} em{" "}
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name="chevron-forward-outline"
+                          size={18}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === "docs" && (
+            <View style={styles.tabContentContainer}>
+              {docMessages.length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={48}
+                    color={colors.textSecondary}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <Text
+                    style={[
+                      styles.emptyStateText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Nenhum documento compartilhado
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.listContainer}>
+                  {docMessages.map((item, index) => {
+                    const att = item.attachments[0];
+                    const url = att.local_path || att.remote_url;
+                    const fullUrl = url.startsWith("http")
+                      ? url
+                      : `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+                    return (
+                      <TouchableOpacity
+                        key={item.id || index}
+                        style={[
+                          styles.listItem,
+                          { borderBottomColor: colors.border },
+                        ]}
+                        onPress={() => Linking.openURL(fullUrl)}
+                      >
+                        <View
+                          style={[
+                            styles.listIconBg,
+                            { backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7" },
+                          ]}
+                        >
+                          <Ionicons
+                            name="document-text-outline"
+                            size={20}
+                            color={colors.tint}
+                          />
+                        </View>
+                        <View style={styles.listItemTextContainer}>
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.listItemTitle,
+                              { color: colors.text },
+                            ]}
+                          >
+                            {att.local_path?.split("/").pop() || "Documento"}
+                          </Text>
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.listItemSub,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            {att.size
+                              ? `${(att.size / 1024 / 1024).toFixed(2)} MB · `
+                              : ""}
+                            por @{item.sender_username}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name="chevron-forward-outline"
+                          size={18}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === "location" && (
+            <View style={styles.tabContentContainer}>
+              {locationMessages.length === 0 ? (
+                <View style={styles.emptyStateContainer}>
+                  <Ionicons
+                    name="location-outline"
+                    size={48}
+                    color={colors.textSecondary}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <Text
+                    style={[
+                      styles.emptyStateText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Nenhuma localização compartilhada
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.listContainer}>
+                  {locationMessages.map((item, index) => {
+                    let locData: any = {};
+                    try {
+                      locData = JSON.parse(item.content);
+                    } catch {}
+                    const mapsUrl =
+                      Platform.select({
+                        ios: `maps://app?saddr=&daddr=${locData.latitude},${locData.longitude}`,
+                        android: `google.navigation:q=${locData.latitude},${locData.longitude}`,
+                      }) ||
+                      `https://www.google.com/maps/search/?api=1&query=${locData.latitude},${locData.longitude}`;
+
+                    return (
+                      <TouchableOpacity
+                        key={item.id || index}
+                        style={[
+                          styles.listItem,
+                          { borderBottomColor: colors.border },
+                        ]}
+                        onPress={() => Linking.openURL(mapsUrl)}
+                      >
+                        <View
+                          style={[
+                            styles.listIconBg,
+                            { backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7" },
+                          ]}
+                        >
+                          <Ionicons
+                            name="location-outline"
+                            size={20}
+                            color={colors.tint}
+                          />
+                        </View>
+                        <View style={styles.listItemTextContainer}>
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.listItemTitle,
+                              { color: colors.text },
+                            ]}
+                          >
+                            {locData.name || locData.address || "Localização"}
+                          </Text>
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.listItemSub,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            Lat: {locData.latitude?.toFixed(4)}, Lng:{" "}
+                            {locData.longitude?.toFixed(4)} · por @
+                            {item.sender_username}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name="chevron-forward-outline"
+                          size={18}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
         </ScrollView>
       )}
 
@@ -1279,16 +1697,40 @@ export default function ContactDetailScreen() {
                 onPress={() => setIsAvatarFullScreen(false)}
                 style={styles.fullScreenBackBtn}
               >
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={24}
-                  color="#fff"
-                />
+                <Ionicons name="arrow-back-outline" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
             <View style={styles.fullScreenImageContainer}>
               <Image
                 source={{ uri: avatarUri }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Full Screen Media Modal */}
+      {selectedFullScreenImage && (
+        <Modal
+          visible={!!selectedFullScreenImage}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setSelectedFullScreenImage(null)}
+        >
+          <View style={styles.fullScreenBg}>
+            <View style={[styles.fullScreenHeader, { paddingTop: insets.top }]}>
+              <TouchableOpacity
+                onPress={() => setSelectedFullScreenImage(null)}
+                style={styles.fullScreenBackBtn}
+              >
+                <Ionicons name="arrow-back-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.fullScreenImageContainer}>
+              <Image
+                source={{ uri: selectedFullScreenImage }}
                 style={styles.fullScreenImage}
                 resizeMode="contain"
               />
@@ -1326,60 +1768,6 @@ export default function ContactDetailScreen() {
         }}
         onSubmit={handleCreateList}
       />
-
-      {/* Selected Post Detail Modal */}
-      <Modal
-        visible={!!selectedPost}
-        animationType="slide"
-        onRequestClose={() => setSelectedPost(null)}
-      >
-        <View
-          style={[
-            styles.postModalContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <View
-            style={[
-              styles.postModalHeader,
-              {
-                paddingTop: insets.top + 8,
-                backgroundColor: colors.headerBackground,
-                borderBottomColor: colors.border,
-              },
-            ]}
-          >
-            <TouchableOpacity onPress={() => setSelectedPost(null)}>
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={24}
-                color={colors.text}
-              />
-            </TouchableOpacity>
-            <Text style={[styles.postModalTitle, { color: colors.text }]}>
-              Publicação
-            </Text>
-            <View style={{ width: 24 }} />
-          </View>
-          {selectedPost && (
-            <FeedPost
-              post={selectedPost}
-              onHeaderPress={() => {}}
-              onMenuPress={() => {}}
-              onLike={() => handlePostLike(selectedPost.id)}
-              onComment={() =>
-                router.push({
-                  pathname: "/comments-modal",
-                  params: { postId: selectedPost.id },
-                })
-              }
-              onShare={() => {}}
-              onSave={() => handlePostSave(selectedPost.id)}
-              onVote={() => {}}
-            />
-          )}
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1401,7 +1789,6 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerContent: {
     flexDirection: "row",
@@ -1410,7 +1797,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backBtn: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
   headerTitle: {
@@ -1572,7 +1964,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   headerMenuBtn: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalOverlay: {
     flex: 1,
@@ -1716,92 +2113,99 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  updatesContainer: {
-    flex: 1,
+  tabBarContainer: {
+    marginVertical: 8,
   },
-  publisherStatsSection: {
+  tabsScroll: {
+    paddingHorizontal: 16,
+    gap: 16,
+    paddingBottom: 8,
+  },
+  tabItem: {
+    flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    gap: 6,
   },
-  followersCountText: {
+  activeTabItem: {
+    backgroundColor: "rgba(7, 193, 96, 0.1)",
+  },
+  tabLabel: {
     fontSize: 14,
     fontWeight: "500",
   },
-  loaderContainer: {
-    paddingVertical: 40,
-    justifyContent: "center",
-    alignItems: "center",
+  activeTabLabel: {
+    fontWeight: "600",
   },
-  gridContainer: {
+  tabContentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  emptyStateContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+  },
+  emptyStateText: {
+    fontSize: 15,
+    textAlign: "center",
+  },
+  mediaGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: GAP,
-    paddingHorizontal: GAP,
-    marginTop: 8,
+    gap: 8,
   },
-  gridItem: {
-    overflow: "hidden",
-    backgroundColor: "#000",
+  mediaGridItem: {
+    width: (Dimensions.get("window").width - 48) / 3,
+    height: (Dimensions.get("window").width - 48) / 3,
     borderRadius: 8,
+    overflow: "hidden",
+    position: "relative",
   },
-  gridImage: {
+  mediaImage: {
     width: "100%",
     height: "100%",
   },
-  videoBadge: {
+  playIconContainer: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: 12,
-    padding: 4,
-  },
-  multiBadge: {
-    position: "absolute",
-    top: 8,
-    right: 32,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  multiBadgeText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  textPlaceholder: {
-    flex: 1,
-    justifyContent: "center",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -15 }, { translateY: -15 }],
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
-    padding: 8,
-    gap: 6,
+    justifyContent: "center",
   },
-  textPlaceholderLabel: {
-    fontSize: 11,
-    textAlign: "center",
+  listContainer: {
+    gap: 12,
   },
-  emptyPosts: {
-    textAlign: "center",
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-  },
-  footerLoader: {
-    paddingVertical: 20,
-  },
-  postModalContainer: {
-    flex: 1,
-  },
-  postModalHeader: {
+  listItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 14,
   },
-  postModalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+  listIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  listItemTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  listItemTitle: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  listItemSub: {
+    fontSize: 12,
   },
 });
