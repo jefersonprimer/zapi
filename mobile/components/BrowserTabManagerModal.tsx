@@ -6,11 +6,11 @@ import {
   StyleSheet,
   Modal,
   FlatList,
-  SafeAreaView,
   Dimensions,
   StatusBar,
   TextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/context/ThemeContext";
 import { useBrowserStore, BrowserTab } from "@/store/useBrowserStore";

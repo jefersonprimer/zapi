@@ -7,9 +7,9 @@ import {
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/context/ThemeContext";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-interface BrowserSidebarProps {
+interface BrowserBottomSheetModalProps {
   canGoBack: boolean;
   canGoForward: boolean;
   onGoBack: () => void;
@@ -29,7 +29,10 @@ interface BrowserSidebarProps {
   onResetZoom: () => void;
 }
 
-export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
+export const BrowserBottomSheetModal = forwardRef<
+  BottomSheetModal,
+  BrowserBottomSheetModalProps
+>(
   (
     {
       canGoBack,
@@ -102,8 +105,8 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 },
               ]}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
+              <Ionicons
+                name="chevron-back-outline"
                 size={24}
                 color={canGoBack ? colors.text : colors.tabIconDefault}
               />
@@ -123,9 +126,9 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 },
               ]}
             >
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={22}
+              <Ionicons
+                name="chevron-forward-outline"
+                size={24}
                 color={canGoForward ? colors.text : colors.tabIconDefault}
               />
             </TouchableOpacity>
@@ -140,11 +143,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 { backgroundColor: colors.background },
               ]}
             >
-              <MaterialCommunityIcons
-                name="rotate-right"
-                size={20}
-                color={colors.text}
-              />
+              <Ionicons name="refresh-outline" size={24} color={colors.text} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -157,7 +156,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 { backgroundColor: colors.background },
               ]}
             >
-              <MaterialCommunityIcons
+              <Ionicons
                 name={isCurrentFavorite ? "star" : "star-outline"}
                 size={24}
                 color={isCurrentFavorite ? "#FFB300" : colors.text}
@@ -174,11 +173,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                 { backgroundColor: colors.background },
               ]}
             >
-              <MaterialCommunityIcons
-                name="plus"
-                size={24}
-                color={colors.text}
-              />
+              <Ionicons name="add-outline" size={24} color={colors.text} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -200,10 +195,8 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
           </View>
 
           {/* Zoom Control Row */}
-          <View style={[styles.zoomRow, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.zoomLabel, { color: colors.text }]}>
-              Zoom
-            </Text>
+          <View style={[styles.zoomRow]}>
+            <Text style={[styles.zoomLabel, { color: colors.text }]}>Zoom</Text>
             <View style={styles.zoomControls}>
               <TouchableOpacity
                 onPress={onZoomOut}
@@ -212,11 +205,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                   { backgroundColor: colors.background },
                 ]}
               >
-                <MaterialCommunityIcons
-                  name="minus"
-                  size={20}
-                  color={colors.text}
-                />
+                <Ionicons name="remove" size={20} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={onResetZoom}
@@ -233,11 +222,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
                   { backgroundColor: colors.background },
                 ]}
               >
-                <MaterialCommunityIcons
-                  name="plus"
-                  size={20}
-                  color={colors.text}
-                />
+                <Ionicons name="add" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
           </View>
@@ -251,8 +236,8 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               }}
               style={styles.bottomSheetMenuItem}
             >
-              <MaterialCommunityIcons
-                name="share-variant-outline"
+              <Ionicons
+                name="share-social-outline"
                 size={24}
                 color={colors.text}
                 style={styles.bottomSheetMenuIcon}
@@ -271,7 +256,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               }}
               style={styles.bottomSheetMenuItem}
             >
-              <MaterialCommunityIcons
+              <Ionicons
                 name="star-outline"
                 size={24}
                 color={colors.text}
@@ -291,7 +276,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
               }}
               style={styles.bottomSheetMenuItem}
             >
-              <MaterialCommunityIcons
+              <Ionicons
                 name="shield-outline"
                 size={24}
                 color={colors.text}
@@ -310,7 +295,7 @@ export const BrowserSidebar = forwardRef<BottomSheetModal, BrowserSidebarProps>(
   },
 );
 
-BrowserSidebar.displayName = "BrowserSidebar";
+BrowserBottomSheetModal.displayName = "BrowserBottomSheetModal";
 
 const styles = StyleSheet.create({
   contentContainer: {
@@ -321,7 +306,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     alignItems: "center",
     paddingVertical: 12,
-    borderBottomWidth: 1,
   },
   zoomRow: {
     flexDirection: "row",
@@ -329,7 +313,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderBottomWidth: 1,
   },
   zoomLabel: {
     fontSize: 16,

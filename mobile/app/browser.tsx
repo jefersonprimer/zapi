@@ -13,17 +13,19 @@ import {
 import { WebView } from "react-native-webview";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+
 import { useAppTheme } from "@/context/ThemeContext";
 import { useBrowserStore } from "@/store/useBrowserStore";
 import { getAdblockScript } from "@/utils/adblockScript";
+
 import { BrowserMediaActionsModal } from "@/components/BrowserMediaActionsModal";
-import { BrowserSidebar } from "@/components/BrowserSidebar";
+import { BrowserBottomSheetModal } from "@/components/BrowserBottomSheetModal";
 import { BrowserAdblockStatsModal } from "@/components/BrowserAdblockStatsModal";
 import { BrowserTabManagerModal } from "@/components/BrowserTabManagerModal";
 import { BrowserHistoryBookmarksModal } from "@/components/BrowserHistoryBookmarksModal";
 import { StickerEditorModal } from "@/components/StickerEditorModal";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
 const MAX_ACTIVE_WEBVIEWS = 3;
 
@@ -178,7 +180,7 @@ export default function BrowserScreen() {
       })();
       true;
     `;
-    
+
     Object.values(webViewRefs.current).forEach((webView) => {
       if (webView) {
         webView.injectJavaScript(toggleScript);
@@ -305,14 +307,6 @@ export default function BrowserScreen() {
             { backgroundColor: inputBackground },
           ]}
         >
-          {isIncognito && (
-            <MaterialCommunityIcons
-              name="eye-off"
-              size={14}
-              color="#A5B4FC"
-              style={{ marginRight: 6 }}
-            />
-          )}
           <TextInput
             style={[styles.addressInput, { color: inputTextColor }]}
             value={inputUrl}
@@ -342,7 +336,7 @@ export default function BrowserScreen() {
             >
               <MaterialCommunityIcons
                 name="refresh"
-                size={16}
+                size={24}
                 color={isIncognito ? "#A5B4FC" : isDark ? "#A1A1AA" : "#71717A"}
               />
             </TouchableOpacity>
@@ -355,7 +349,7 @@ export default function BrowserScreen() {
         >
           <MaterialCommunityIcons
             name="dots-vertical"
-            size={22}
+            size={24}
             color={isIncognito ? "#FFFFFF" : colors.text}
           />
         </TouchableOpacity>
@@ -462,7 +456,7 @@ export default function BrowserScreen() {
       </View>
 
       {/* SIDEBAR MODAL */}
-      <BrowserSidebar
+      <BrowserBottomSheetModal
         ref={sidebarRef}
         canGoBack={activeTab.canGoBack}
         canGoForward={activeTab.canGoForward}
