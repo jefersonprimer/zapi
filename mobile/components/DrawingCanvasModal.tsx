@@ -785,8 +785,6 @@ const styles = StyleSheet.create({
   toolbarWrap: {
     paddingTop: 12,
     paddingBottom: 14,
-
-    borderRadius: 24,
   },
   toolbarContent: {
     paddingHorizontal: 14,

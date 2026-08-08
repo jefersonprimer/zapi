@@ -13,9 +13,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library";
-
-import { addCustomStickerLocal } from "@/services/database";
-
 interface BrowserMediaActionsModalProps {
   visible: boolean;
   onClose: () => void;
@@ -175,7 +172,9 @@ export function BrowserMediaActionsModal({
             backgroundColor: isDark
               ? "rgba(30, 30, 30, 0.85)"
               : "rgba(255, 255, 255, 0.85)",
-            borderColor: colors.border,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(0, 0, 0, 0.08)",
             opacity: modalOpacity,
             transform: [{ scale: modalScale }, { translateY: modalTranslateY }],
           },
@@ -272,79 +271,40 @@ export function BrowserMediaActionsModal({
           ]}
           onPress={async () => {
             try {
-              Alert.alert(
-                "Transformar em Sticker",
-                "Deseja remover o fundo da imagem automaticamente com IA?",
-                [
-                  {
-                    text: "Sem remover fundo",
-                    onPress: async () => {
-                      try {
-                        let localUri = src;
-                        if (
-                          src.startsWith("http://") ||
-                          src.startsWith("https://")
-                        ) {
-                          const filename = `sticker_${Date.now()}.webp`;
-                          const localPath = `${FileSystem.documentDirectory}stickers/${filename}`;
-                          const dirInfo = await FileSystem.getInfoAsync(
-                            `${FileSystem.documentDirectory}stickers/`,
-                          );
-                          if (!dirInfo.exists) {
-                            await FileSystem.makeDirectoryAsync(
-                              `${FileSystem.documentDirectory}stickers/`,
-                              { intermediates: true },
-                            );
-                          }
-                          const dl = await FileSystem.downloadAsync(
-                            src,
-                            localPath,
-                          );
-                          if (dl.status === 200) {
-                            localUri = dl.uri;
-                          }
-                        }
-                        await addCustomStickerLocal({
-                          url: src,
-                          local_path: localUri,
-                          title: "Figurinha da Web",
-                        });
-                        Alert.alert(
-                          "Sucesso! 🎉",
-                          "Imagem salva nas suas figurinhas locais!",
-                        );
-                        if (onTransformSticker) {
-                          onTransformSticker(localUri);
-                        }
-                      } catch (err) {
-                        console.error("Erro ao converter em sticker:", err);
-                        Alert.alert(
-                          "Erro",
-                          "Não foi possível transformar a imagem em figurinha.",
-                        );
-                      }
-                      hideActionsModal();
-                    },
-                  },
-                  {
-                    text: "Remover Fundo ⭐",
-                    onPress: () => {
-                      // Open in StickerEditorModal which handles AI removal
-                      hideActionsModal(() => {
-                        if (onTransformSticker) {
-                          onTransformSticker(src);
-                        }
-                      });
-                    },
-                  },
-                  { text: "Cancelar", style: "cancel" },
-                ],
-              );
+              let localUri = src;
+              if (
+                src.startsWith("http://") ||
+                src.startsWith("https://")
+              ) {
+                const filename = `sticker_${Date.now()}.webp`;
+                const localPath = `${FileSystem.documentDirectory}stickers/${filename}`;
+                const dirInfo = await FileSystem.getInfoAsync(
+                  `${FileSystem.documentDirectory}stickers/`,
+                );
+                if (!dirInfo.exists) {
+                  await FileSystem.makeDirectoryAsync(
+                    `${FileSystem.documentDirectory}stickers/`,
+                    { intermediates: true },
+                  );
+                }
+                const dl = await FileSystem.downloadAsync(
+                  src,
+                  localPath,
+                );
+                if (dl.status === 200) {
+                  localUri = dl.uri;
+                }
+              }
+              hideActionsModal(() => {
+                if (onTransformSticker) {
+                  onTransformSticker(localUri);
+                }
+              });
             } catch (err) {
-              console.error("Erro ao converter em sticker:", err);
+              console.error("Erro ao preparar imagem para sticker:", err);
               Alert.alert(
                 "Erro",
-                "Não foi possível transformar a imagem em figurinha.",
+                "Não foi possível processar a imagem para transformar em figurinha.",
               );
               hideActionsModal();
             }
@@ -408,7 +368,7 @@ const styles = StyleSheet.create({
   actionsModalCard: {
     width: "65%",
     borderRadius: 32,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },

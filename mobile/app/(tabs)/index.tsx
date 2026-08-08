@@ -63,6 +63,7 @@ import ListMenuModal from "@/components/ListMenuModal";
 import ReorderListsModal from "@/components/ReorderListsModal";
 import ListFilterCarousel from "@/components/ListFilterCarousel";
 import { SelectedChatsMenuModal } from "@/components/SelectedChatsMenuModal";
+import { Ionicons } from "@expo/vector-icons";
 
 if (
   Platform.OS === "android" &&
@@ -920,10 +921,10 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={() => setSelectedChatIds([])}
             >
-              <MaterialCommunityIcons
-                name="arrow-left"
+              <Ionicons
+                name="chevron-back-outline"
                 color={colors.headerText}
-                size={22}
+                size={24}
               />
             </TouchableOpacity>
             <Text
@@ -1011,8 +1012,8 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={handleDeleteSelectedChats}
             >
-              <MaterialCommunityIcons
-                name="delete-outline"
+              <Ionicons
+                name="trash-outline"
                 color={colors.headerText}
                 size={24}
               />
@@ -1021,8 +1022,8 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={() => setMoreMenuVisible(true)}
             >
-              <MaterialCommunityIcons
-                name="dots-vertical"
+              <Ionicons
+                name="ellipsis-vertical"
                 color={colors.headerText}
                 size={24}
               />
@@ -1046,8 +1047,8 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={() => router.push("/search")}
             >
-              <MaterialCommunityIcons
-                name="magnify"
+              <Ionicons
+                name="search-outline"
                 color={colors.headerText}
                 size={24}
               />
@@ -1056,8 +1057,8 @@ export default function ChatListScreen() {
               style={styles.headerIcon}
               onPress={() => setMenuVisible(true)}
             >
-              <MaterialCommunityIcons
-                name="dots-vertical"
+              <Ionicons
+                name="ellipsis-vertical"
                 color={colors.headerText}
                 size={24}
               />
@@ -1307,11 +1308,7 @@ export default function ChatListScreen() {
           style={[styles.fab, { backgroundColor: colors.fab }]}
           onPress={() => router.push("/contacts")}
         >
-          <MaterialCommunityIcons
-            name="message-plus"
-            color="#FFFFFF"
-            size={24}
-          />
+          <Ionicons name="create-outline" color="#FFFFFF" size={24} />
         </TouchableOpacity>
       )}
 
@@ -1467,8 +1464,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 24,
     right: 24,
-    width: 50,
-    height: 50,
+    width: 56,
+    height: 56,
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",

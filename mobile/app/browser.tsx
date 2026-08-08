@@ -21,6 +21,7 @@ import { BrowserSidebar } from "@/components/BrowserSidebar";
 import { BrowserAdblockStatsModal } from "@/components/BrowserAdblockStatsModal";
 import { BrowserTabManagerModal } from "@/components/BrowserTabManagerModal";
 import { BrowserHistoryBookmarksModal } from "@/components/BrowserHistoryBookmarksModal";
+import { StickerEditorModal } from "@/components/StickerEditorModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
@@ -70,6 +71,14 @@ export default function BrowserScreen() {
     visible: false,
     mediaType: null,
     src: null,
+  });
+
+  const [editorState, setEditorState] = useState<{
+    visible: boolean;
+    imageUri: string | null;
+  }>({
+    visible: false,
+    imageUri: null,
   });
 
   const lastHandledParams = useRef<{ url?: string; search?: string }>({});
@@ -531,6 +540,22 @@ export default function BrowserScreen() {
         src={mediaModalState.src}
         onOpenInNewTab={(url) => {
           createTab(url, isIncognito);
+        }}
+        onTransformSticker={(imageUri) => {
+          setEditorState({
+            visible: true,
+            imageUri: imageUri,
+          });
+        }}
+      />
+
+      <StickerEditorModal
+        visible={editorState.visible}
+        imageUri={editorState.imageUri}
+        onClose={() => setEditorState({ visible: false, imageUri: null })}
+        onSaveAndSend={() => {
+          // In standalone browser, we don't have a chat to send to directly,
+          // so saving it to the database/library is sufficient.
         }}
       />
     </View>
