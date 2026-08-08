@@ -99,6 +99,7 @@ export const BrowserBottomSheetModal = forwardRef<
               disabled={!canGoBack}
               style={[
                 styles.bottomSheetNavButton,
+                styles.leftNavButton,
                 {
                   backgroundColor: colors.background,
                   opacity: canGoBack ? 1 : 0.5,
@@ -183,6 +184,7 @@ export const BrowserBottomSheetModal = forwardRef<
               }}
               style={[
                 styles.bottomSheetNavButton,
+                styles.rightNavButton,
                 { backgroundColor: colors.background },
               ]}
             >
@@ -303,9 +305,11 @@ const styles = StyleSheet.create({
   },
   bottomSheetNavRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "center",
     alignItems: "center",
+    gap: 2,
     paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   zoomRow: {
     flexDirection: "row",
@@ -339,11 +343,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   bottomSheetNavButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    flex: 1,
+    height: 48,
     justifyContent: "center",
     alignItems: "center",
+  },
+  leftNavButton: {
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+  },
+  rightNavButton: {
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
   },
   tabBadge: {
     width: 22,

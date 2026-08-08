@@ -22,7 +22,7 @@ import { getAdblockScript } from "@/utils/adblockScript";
 
 import { BrowserMediaActionsModal } from "@/components/BrowserMediaActionsModal";
 import { BrowserBottomSheetModal } from "@/components/BrowserBottomSheetModal";
-import { BrowserAdblockStatsModal } from "@/components/BrowserAdblockStatsModal";
+import { AdblockBottomSheetModal } from "@/components/AdblockBottomSheetModal";
 import { BrowserTabManagerModal } from "@/components/BrowserTabManagerModal";
 import { BrowserHistoryBookmarksModal } from "@/components/BrowserHistoryBookmarksModal";
 import { StickerEditorModal } from "@/components/StickerEditorModal";
@@ -60,8 +60,8 @@ export default function BrowserScreen() {
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
 
   const [inputUrl, setInputUrl] = useState("");
-  const [statsModalVisible, setStatsModalVisible] = useState(false);
   const sidebarRef = useRef<BottomSheetModal>(null);
+  const adblockBottomSheetRef = useRef<BottomSheetModal>(null);
   const [tabManagerVisible, setTabManagerVisible] = useState(false);
   const [historyBookmarksVisible, setHistoryBookmarksVisible] = useState(false);
 
@@ -466,7 +466,10 @@ export default function BrowserScreen() {
         isCurrentFavorite={isFavorite(activeTab.url)}
         onToggleFavorite={toggleFavoriteStatus}
         onShare={handleShare}
-        onOpenAdblockSettings={() => setStatsModalVisible(true)}
+        onOpenAdblockSettings={() => {
+          sidebarRef.current?.dismiss();
+          adblockBottomSheetRef.current?.present();
+        }}
         onOpenHistoryBookmarks={() => setHistoryBookmarksVisible(true)}
         onCreateTab={() => createTab("https://www.google.com", isIncognito)}
         onOpenTabManager={() => setTabManagerVisible(true)}
@@ -508,22 +511,19 @@ export default function BrowserScreen() {
       )}
 
       {/* ADBLOCK STATS MODAL */}
-      {statsModalVisible && (
-        <BrowserAdblockStatsModal
-          visible={statsModalVisible}
-          onClose={() => setStatsModalVisible(false)}
-          adblockEnabled={adblockEnabled}
-          onToggleAdblock={() => {
-            setAdblockEnabled(!adblockEnabled);
-            handleReload();
-          }}
-          blockedCount={blockedCount}
-          trackersBlockedCount={trackersBlockedCount}
-          dataSavedMb={dataSavedMb}
-          timeSavedSeconds={timeSavedSeconds}
-          onResetStats={resetStats}
-        />
-      )}
+      <AdblockBottomSheetModal
+        ref={adblockBottomSheetRef}
+        adblockEnabled={adblockEnabled}
+        onToggleAdblock={() => {
+          setAdblockEnabled(!adblockEnabled);
+          handleReload();
+        }}
+        blockedCount={blockedCount}
+        trackersBlockedCount={trackersBlockedCount}
+        dataSavedMb={dataSavedMb}
+        timeSavedSeconds={timeSavedSeconds}
+        onResetStats={resetStats}
+      />
 
       <BrowserMediaActionsModal
         visible={mediaModalState.visible}

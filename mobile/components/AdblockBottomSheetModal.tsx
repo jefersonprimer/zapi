@@ -1,11 +1,14 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native";
+import React, { forwardRef, useCallback, useMemo } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import {
+  BottomSheetModal,
+  BottomSheetView,
+  BottomSheetBackdrop,
+} from "@gorhom/bottom-sheet";
 
-interface BrowserAdblockStatsModalProps {
-  visible: boolean;
-  onClose: () => void;
+interface AdblockBottomSheetModalProps {
   adblockEnabled: boolean;
   onToggleAdblock: () => void;
   blockedCount: number;
@@ -15,49 +18,64 @@ interface BrowserAdblockStatsModalProps {
   onResetStats: () => void;
 }
 
-export function BrowserAdblockStatsModal({
-  visible,
-  onClose,
-  adblockEnabled,
-  onToggleAdblock,
-  blockedCount,
-  trackersBlockedCount,
-  dataSavedMb,
-  timeSavedSeconds,
-  onResetStats,
-}: BrowserAdblockStatsModalProps) {
-  const { colors, isDark } = useAppTheme();
+export const AdblockBottomSheetModal = forwardRef<
+  BottomSheetModal,
+  AdblockBottomSheetModalProps
+>(
+  (
+    {
+      adblockEnabled,
+      onToggleAdblock,
+      blockedCount,
+      trackersBlockedCount,
+      dataSavedMb,
+      timeSavedSeconds,
+      onResetStats,
+    },
+    ref,
+  ) => {
+    const { colors, isDark } = useAppTheme();
 
-  if (!visible) return null;
+    const snapPoints = useMemo(() => ["55%"], []);
 
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View
-          style={[
-            styles.modalContent,
-            { backgroundColor: colors.cardBackground },
-          ]}
-        >
+    const renderBackdrop = useCallback(
+      (props: any) => (
+        <BottomSheetBackdrop
+          {...props}
+          disappearsOnIndex={-1}
+          appearsOnIndex={0}
+        />
+      ),
+      [],
+    );
+
+    const handleClose = () => {
+      if (ref && "current" in ref && ref.current) {
+        ref.current.dismiss();
+      }
+    };
+
+    return (
+      <BottomSheetModal
+        ref={ref}
+        snapPoints={snapPoints}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{ backgroundColor: colors.surface }}
+        handleIndicatorStyle={{ backgroundColor: colors.border }}
+      >
+        <BottomSheetView style={styles.contentContainer}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <View style={styles.modalHeaderTitleRow}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                Zapi AdBlock
-              </Text>
-            </View>
-            <TouchableOpacity onPress={onClose}>
-              <MaterialCommunityIcons
-                name="close"
-                size={20}
-                color={colors.textSecondary}
-              />
+            <TouchableOpacity
+              onPress={handleClose}
+              style={[styles.headerButton, { borderColor: colors.border }]}
+            >
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              AdBlock
+            </Text>
+            <View style={{ width: 40 }} />
           </View>
 
           {/* Toggle Switch Row */}
@@ -183,23 +201,18 @@ export function BrowserAdblockStatsModal({
               </Text>
             </View>
           )}
-        </View>
-      </View>
-    </Modal>
-  );
-}
+        </BottomSheetView>
+      </BottomSheetModal>
+    );
+  },
+);
+
+AdblockBottomSheetModal.displayName = "AdblockBottomSheetModal";
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: "80%",
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
   modalHeader: {
     flexDirection: "row",
@@ -207,13 +220,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  modalHeaderTitleRow: {
-    flexDirection: "row",
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: "center",
     alignItems: "center",
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    textAlign: "center",
   },
   toggleRow: {
     flexDirection: "row",

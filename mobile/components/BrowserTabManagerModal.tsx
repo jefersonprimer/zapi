@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,8 +9,10 @@ import {
   Dimensions,
   StatusBar,
   TextInput,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
 
 import { useAppTheme } from "@/context/ThemeContext";
 import { useBrowserStore, BrowserTab } from "@/store/useBrowserStore";
@@ -21,8 +23,12 @@ interface BrowserTabManagerModalProps {
   onClose: () => void;
 }
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 36) / 2; // Sleek spacing for two columns
+const { width, height } = Dimensions.get("window");
+const CARD_WIDTH = width * 0.74;
+const CARD_HEIGHT = height * 0.62;
+const CARD_MARGIN = 12;
+const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2;
+const EMPTY_SPACE = (width - CARD_WIDTH) / 2 - CARD_MARGIN;
 
 export function BrowserTabManagerModal({
   visible,
@@ -36,26 +42,37 @@ export function BrowserTabManagerModal({
   const [activeMode, setActiveMode] = useState<"normal" | "incognito">(
     "normal",
   );
-  const [searchQuery, setSearchQuery] = useState("");
+
+  const flatListRef = useRef<FlatList<BrowserTab>>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   // Sync mode with currently active tab upon opening
   useEffect(() => {
     if (visible && activeTab) {
       setActiveMode(activeTab.isIncognito ? "incognito" : "normal");
-      setSearchQuery(""); // Reset search
     }
   }, [visible, activeTabId, activeTab]);
 
   const filteredTabs = tabs
     .filter((t) =>
       activeMode === "incognito" ? t.isIncognito : !t.isIncognito,
-    )
-    .filter((t) =>
-      searchQuery
-        ? t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          t.url.toLowerCase().includes(searchQuery.toLowerCase())
-        : true,
     );
+
+  // Scroll to active tab on open or mode switch
+  useEffect(() => {
+    if (visible && filteredTabs.length > 0) {
+      const index = filteredTabs.findIndex((t) => t.id === activeTabId);
+      if (index !== -1) {
+        const timer = setTimeout(() => {
+          flatListRef.current?.scrollToIndex({
+            index,
+            animated: false,
+          });
+        }, 150);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [visible, activeMode, filteredTabs.length]);
 
   const handleSelectTab = (id: string) => {
     setActiveTabId(id);
@@ -85,11 +102,165 @@ export function BrowserTabManagerModal({
     return domain ? domain.charAt(0).toUpperCase() : "G";
   };
 
-  const renderTabCard = ({ item }: { item: BrowserTab }) => {
+  const getItemLayout = (data: any, index: number) => ({
+    length: SNAP_INTERVAL,
+    offset: SNAP_INTERVAL * index,
+    index,
+  });
+
+  const renderViewportContent = (item: BrowserTab, isDark: boolean, index: number) => {
+    const isIncognito = item.isIncognito;
+    const url = item.url.toLowerCase();
+    const activeIndex = filteredTabs.findIndex((t) => t.id === activeTabId);
+
+    // Render live active tab AND the next tab in the list using WebView
+    if (index === activeIndex || index === activeIndex + 1) {
+      return (
+        <View style={styles.realWebViewContainer} pointerEvents="none">
+          <WebView
+            source={{ uri: item.url }}
+            style={styles.realWebView}
+            androidLayerType="hardware"
+            domStorageEnabled={true}
+            javaScriptEnabled={true}
+          />
+          <View style={styles.realWebViewOverlay} />
+        </View>
+      );
+    }
+
+    if (isIncognito) {
+      return (
+        <View style={styles.mockIncognitoContainer}>
+          <MaterialCommunityIcons
+            name="eye-off"
+            size={36}
+            color="#A78BFA"
+            style={{ marginBottom: 12 }}
+          />
+          <Text style={styles.mockIncognitoTitle}>Navegação Privada</Text>
+          <View style={styles.mockIncognitoLines}>
+            <View style={styles.mockIncognitoLine} />
+            <View style={[styles.mockIncognitoLine, { width: "80%" }]} />
+            <View style={[styles.mockIncognitoLine, { width: "60%" }]} />
+          </View>
+        </View>
+      );
+    }
+
+    if (url.includes("google.com")) {
+      return (
+        <View style={styles.mockGoogleContainer}>
+          <View style={styles.mockGoogleLogo}>
+            <Text style={[styles.mockGoogleLetter, { color: "#4285F4" }]}>G</Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#EA4335" }]}>o</Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#FBBC05" }]}>o</Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#4285F4" }]}>g</Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#34A853" }]}>l</Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#EA4335" }]}>e</Text>
+          </View>
+          <View style={[styles.mockSearchBar, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]}>
+            <MaterialCommunityIcons name="magnify" size={14} color="#8E8E93" />
+            <View style={styles.mockSearchBarPlaceholder} />
+            <MaterialCommunityIcons name="microphone" size={14} color="#4285F4" />
+          </View>
+          <View style={styles.mockShortcuts}>
+            <View style={[styles.mockShortcutDot, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
+            <View style={[styles.mockShortcutDot, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
+            <View style={[styles.mockShortcutDot, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
+            <View style={[styles.mockShortcutDot, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
+          </View>
+        </View>
+      );
+    }
+
+    if (url.includes("github.com")) {
+      return (
+        <View style={styles.mockGithubContainer}>
+          <View style={styles.mockGithubHeader}>
+            <MaterialCommunityIcons name="github" size={20} color={isDark ? "#FFFFFF" : "#000000"} />
+            <Text style={[styles.mockGithubUser, { color: isDark ? "#FFFFFF" : "#000000" }]}>dashboard</Text>
+          </View>
+          <View style={styles.mockGithubRepoList}>
+            <View style={[styles.mockGithubRepoCard, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]}>
+              <View style={styles.mockGithubRepoRow}>
+                <View style={[styles.mockLangDot, { backgroundColor: "#F1E05A" }]} />
+                <View style={[styles.mockGithubRepoTitle, { backgroundColor: isDark ? "#3A3A3C" : "#D1D1D6" }]} />
+              </View>
+              <View style={[styles.mockGithubRepoDesc, { backgroundColor: isDark ? "#1C1C1E" : "#C7C7CC" }]} />
+            </View>
+            <View style={[styles.mockGithubRepoCard, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]}>
+              <View style={styles.mockGithubRepoRow}>
+                <View style={[styles.mockLangDot, { backgroundColor: "#3178C6" }]} />
+                <View style={[styles.mockGithubRepoTitle, { backgroundColor: isDark ? "#3A3A3C" : "#D1D1D6", width: "50%" }]} />
+              </View>
+              <View style={[styles.mockGithubRepoDesc, { backgroundColor: isDark ? "#1C1C1E" : "#C7C7CC" }]} />
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    if (url.includes("wikipedia.org")) {
+      return (
+        <View style={styles.mockWikiContainer}>
+          <View style={styles.mockWikiHeader}>
+            <MaterialCommunityIcons name="wikipedia" size={20} color={isDark ? "#FFFFFF" : "#000000"} />
+            <Text style={[styles.mockWikiTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>Wikipedia</Text>
+          </View>
+          <View style={styles.mockWikiContent}>
+            <View style={[styles.mockWikiFeaturedImage, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
+            <View style={styles.mockWikiLines}>
+              <View style={[styles.mockWikiLine, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA", width: "90%" }]} />
+              <View style={[styles.mockWikiLine, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA", width: "100%" }]} />
+              <View style={[styles.mockWikiLine, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA", width: "80%" }]} />
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    // Generic Mockup
+    return (
+      <View style={styles.mockGenericContainer}>
+        {/* Mock Hero Header / Banner */}
+        <View style={[styles.mockGenericHero, { backgroundColor: isDark ? "#2C2C2E" : "#E8ECF2" }]}>
+          <MaterialCommunityIcons name="earth" size={24} color={isDark ? "#555" : "#CCC"} />
+        </View>
+        {/* Skeleton content */}
+        <View style={styles.mockGenericBody}>
+          <View style={[styles.mockGenericTitle, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
+          <View style={[styles.mockGenericLine, { backgroundColor: isDark ? "#1C1C1E" : "#F0F0F0", width: "100%" }]} />
+          <View style={[styles.mockGenericLine, { backgroundColor: isDark ? "#1C1C1E" : "#F0F0F0", width: "85%" }]} />
+          <View style={[styles.mockGenericLine, { backgroundColor: isDark ? "#1C1C1E" : "#F0F0F0", width: "60%" }]} />
+        </View>
+      </View>
+    );
+  };
+
+  const renderTabCard = ({ item, index }: { item: BrowserTab; index: number }) => {
     const isActive = item.id === activeTabId;
     const isIncognito = item.isIncognito;
     const domain = getDomain(item.url);
     const initial = getInitial(item.title, item.url);
+
+    const inputRange = [
+      (index - 1) * SNAP_INTERVAL,
+      index * SNAP_INTERVAL,
+      (index + 1) * SNAP_INTERVAL,
+    ];
+
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.9, 1, 0.9],
+      extrapolate: "clamp",
+    });
+
+    const opacity = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.75, 1, 0.75],
+      extrapolate: "clamp",
+    });
 
     // iOS system card colors
     const cardBg = isIncognito
@@ -111,178 +282,132 @@ export function BrowserTabManagerModal({
       : colors.brandGreen || "#34C759";
 
     return (
-      <TouchableOpacity
-        activeOpacity={0.9}
+      <Animated.View
         style={[
-          styles.tabCard,
+          styles.cardContainer,
           {
-            backgroundColor: cardBg,
-            borderColor: isActive
-              ? activeBorderColor
-              : isIncognito
-                ? "#3A3A3C"
-                : isDark
-                  ? "#2C2C2E"
-                  : "#E5E5EA",
-            borderWidth: isActive ? 2.5 : 1,
-            shadowOpacity: isActive ? 0.3 : 0.08,
-            shadowRadius: isActive ? 10 : 4,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: isActive ? 4 : 2 },
-            elevation: isActive ? 6 : 2,
+            transform: [{ scale }],
+            opacity,
           },
         ]}
-        onPress={() => handleSelectTab(item.id)}
       >
-        {/* iOS Close Button (Floating in top right of card like Safari) */}
         <TouchableOpacity
+          activeOpacity={0.9}
           style={[
-            styles.closeButton,
+            styles.tabCard,
             {
-              backgroundColor: isIncognito
-                ? "rgba(255, 255, 255, 0.2)"
-                : "rgba(0, 0, 0, 0.08)",
+              backgroundColor: cardBg,
+              borderColor: isActive
+                ? activeBorderColor
+                : isIncognito
+                  ? "#3A3A3C"
+                  : isDark
+                    ? "#2C2C2E"
+                    : "#E5E5EA",
+              borderWidth: isActive ? 2.5 : 1,
+              shadowOpacity: isActive ? 0.3 : 0.08,
+              shadowRadius: isActive ? 10 : 4,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: isActive ? 4 : 2 },
+              elevation: isActive ? 6 : 2,
             },
           ]}
-          onPress={() => closeTab(item.id)}
+          onPress={() => handleSelectTab(item.id)}
         >
-          <MaterialCommunityIcons
-            name="close"
-            size={20}
-            color={isIncognito || isDark ? "#FFFFFF" : "#3D3D3D"}
-          />
-        </TouchableOpacity>
-
-        {/* Card Body / Webpage Mockup Viewport */}
-        <View style={styles.cardViewport}>
-          {/* Mini Webpage Header Banner */}
-          <View
+          {/* iOS Close Button (Floating in top right of card like Safari) */}
+          <TouchableOpacity
             style={[
-              styles.cardViewportHeader,
+              styles.closeButton,
               {
                 backgroundColor: isIncognito
-                  ? "#1C1C1E"
-                  : isDark
-                    ? "#121212"
-                    : "#F2F2F7",
+                  ? "rgba(255, 255, 255, 0.2)"
+                  : "rgba(0, 0, 0, 0.08)",
               },
             ]}
+            onPress={() => closeTab(item.id)}
           >
-            <View style={styles.faviconContainer}>
-              {isIncognito ? (
-                <MaterialCommunityIcons
-                  name="eye-off"
-                  size={11}
-                  color="#A78BFA"
-                />
-              ) : item.url.includes("google.com") ? (
-                <Text
-                  style={[
-                    styles.faviconText,
-                    { color: "#4285F4", fontWeight: "bold" },
-                  ]}
-                >
-                  G
-                </Text>
-              ) : (
-                <MaterialCommunityIcons
-                  name="earth"
-                  size={11}
-                  color={isDark ? "#AEAEB2" : "#8E8E93"}
-                />
-              )}
-            </View>
-            <Text
-              numberOfLines={1}
-              style={[styles.miniUrlText, { color: domainColor }]}
-            >
-              {domain}
-            </Text>
-          </View>
+            <MaterialCommunityIcons
+              name="close"
+              size={18}
+              color={isIncognito || isDark ? "#FFFFFF" : "#3D3D3D"}
+            />
+          </TouchableOpacity>
 
-          {/* Webpage Content Representation */}
-          <View
-            style={[
-              styles.cardViewportContent,
-              {
-                backgroundColor: isIncognito
-                  ? "#121212"
-                  : isDark
-                    ? "#0A0A0A"
-                    : "#F9F9FC",
-              },
-            ]}
-          >
-            {/* Elegant preview placeholder to look like a real iOS tab preview */}
+          {/* Card Body / Webpage Mockup Viewport */}
+          <View style={styles.cardViewport}>
+            {/* Mini Webpage Header Banner */}
             <View
               style={[
-                styles.previewMockCircle,
+                styles.cardViewportHeader,
                 {
                   backgroundColor: isIncognito
-                    ? "#2C2C2E"
+                    ? "#1C1C1E"
                     : isDark
-                      ? "#1C1C1E"
-                      : "#E5E5EA",
+                      ? "#121212"
+                      : "#F2F2F7",
                 },
               ]}
             >
+              <View style={styles.faviconContainer}>
+                {isIncognito ? (
+                  <MaterialCommunityIcons
+                    name="eye-off"
+                    size={13}
+                    color="#A78BFA"
+                  />
+                ) : item.url.includes("google.com") ? (
+                  <Text
+                    style={[
+                      styles.faviconText,
+                      { color: "#4285F4", fontWeight: "bold" },
+                    ]}
+                  >
+                    G
+                  </Text>
+                ) : (
+                  <MaterialCommunityIcons
+                    name="earth"
+                    size={13}
+                    color={isDark ? "#AEAEB2" : "#8E8E93"}
+                  />
+                )}
+              </View>
               <Text
-                style={[
-                  styles.previewLetter,
-                  {
-                    color: isIncognito
-                      ? "#A78BFA"
-                      : isDark
-                        ? "#FFFFFF"
-                        : "#8E8E93",
-                  },
-                ]}
+                numberOfLines={1}
+                style={[styles.miniUrlText, { color: domainColor }]}
               >
-                {initial}
+                {domain}
               </Text>
             </View>
-            <View style={styles.previewLines}>
-              <View
-                style={[
-                  styles.previewLine,
-                  {
-                    width: "70%",
-                    backgroundColor: isIncognito
-                      ? "#2C2C2E"
-                      : isDark
-                        ? "#1C1C1E"
-                        : "#EAF0F6",
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.previewLine,
-                  {
-                    width: "40%",
-                    backgroundColor: isIncognito
-                      ? "#2C2C2E"
-                      : isDark
-                        ? "#1C1C1E"
-                        : "#EAF0F6",
-                  },
-                ]}
-              />
+
+            {/* Webpage Content Representation */}
+            <View
+              style={[
+                styles.cardViewportContent,
+                {
+                  backgroundColor: isIncognito
+                    ? "#121212"
+                    : isDark
+                      ? "#0A0A0A"
+                      : "#F9F9FC",
+                },
+              ]}
+            >
+              {renderViewportContent(item, isDark, index)}
             </View>
           </View>
-        </View>
 
-        {/* Card Footer (Tab Title) */}
-        <View style={styles.cardFooter}>
-          <Text
-            numberOfLines={1}
-            style={[styles.cardTitle, { color: titleColor }]}
-          >
-            {item.title || "Nova Guia"}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
+          {/* Card Footer (Tab Title) */}
+          <View style={styles.cardFooter}>
+            <Text
+              numberOfLines={1}
+              style={[styles.cardTitle, { color: titleColor }]}
+            >
+              {item.title || "Nova Guia"}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </Animated.View> );
   };
 
   // True Apple Safari-style dark/light background setup
@@ -316,7 +441,20 @@ export function BrowserTabManagerModal({
         <View
           style={[styles.header, { borderBottomColor: headerBottomBorder }]}
         >
-          <View style={{ width: 60 }} />
+          <TouchableOpacity
+            style={styles.plusButtonHeader}
+            onPress={handleNewTab}
+          >
+            <MaterialCommunityIcons
+              name="plus"
+              size={26}
+              color={
+                activeMode === "incognito"
+                  ? "#A78BFA"
+                  : colors.brandGreen || "#34C759"
+              }
+            />
+          </TouchableOpacity>
 
           {/* iOS Segmented Control */}
           <View
@@ -427,46 +565,7 @@ export function BrowserTabManagerModal({
           </TouchableOpacity>
         </View>
 
-        {/* Safari-style Top Search Bar */}
-        <View style={styles.searchBarContainer}>
-          <View
-            style={[
-              styles.searchBar,
-              {
-                backgroundColor:
-                  activeMode === "incognito"
-                    ? "#1C1C1E"
-                    : isDark
-                      ? "#1C1C1E"
-                      : "#E3E3E9",
-              },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="magnify"
-              size={20}
-              color="#8E8E93"
-              style={{ marginRight: 6 }}
-            />
-            <TextInput
-              placeholder="Buscar abas"
-              placeholderTextColor="#8E8E93"
-              style={[
-                styles.searchInput,
-                {
-                  color:
-                    activeMode === "incognito" || isDark
-                      ? "#FFFFFF"
-                      : "#000000",
-                },
-              ]}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              clearButtonMode="while-editing"
-              autoCapitalize="none"
-            />
-          </View>
-        </View>
+
 
         {/* Tab Grid or Empty State */}
         {filteredTabs.length === 0 ? (
@@ -506,86 +605,32 @@ export function BrowserTabManagerModal({
             )}
           </View>
         ) : (
-          <FlatList
+          <Animated.FlatList
+            ref={flatListRef}
             data={filteredTabs}
             renderItem={renderTabCard}
             keyExtractor={(item) => item.id}
-            numColumns={2}
-            contentContainerStyle={styles.listContent}
-            columnWrapperStyle={styles.columnWrapper}
-            showsVerticalScrollIndicator={false}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={SNAP_INTERVAL}
+            snapToAlignment="center"
+            decelerationRate="fast"
+            contentContainerStyle={[
+              styles.listContent,
+              {
+                paddingHorizontal: EMPTY_SPACE,
+              },
+            ]}
+            getItemLayout={getItemLayout}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: true },
+            )}
             keyboardShouldPersistTaps="handled"
           />
         )}
 
-        {/* Safari Floating Bottom Bar */}
-        <View
-          style={[
-            styles.bottomBar,
-            {
-              backgroundColor:
-                activeMode === "incognito"
-                  ? "#1C1C1E"
-                  : isDark
-                    ? "#161618"
-                    : "#FFFFFF",
-              borderTopColor:
-                activeMode === "incognito"
-                  ? "#2C2C2E"
-                  : isDark
-                    ? "#2C2C2E"
-                    : "#E5E5EA",
-            },
-          ]}
-        >
-          {/* Left Plus Add Button */}
-          <TouchableOpacity
-            style={[
-              styles.plusButton,
-              {
-                backgroundColor:
-                  activeMode === "incognito"
-                    ? "rgba(255, 255, 255, 0.08)"
-                    : isDark
-                      ? "rgba(255, 255, 255, 0.08)"
-                      : "rgba(0, 0, 0, 0.04)",
-              },
-            ]}
-            onPress={handleNewTab}
-          >
-            <MaterialCommunityIcons
-              name="plus"
-              size={20}
-              color={
-                activeMode === "incognito"
-                  ? "#A78BFA"
-                  : colors.brandGreen || "#007AFF"
-              }
-            />
-          </TouchableOpacity>
 
-          {/* Center Tabs Badge */}
-          <View style={styles.centerBadgeContainer}>
-            <Text
-              style={[
-                styles.tabCountText,
-                {
-                  color:
-                    activeMode === "incognito" || isDark
-                      ? "#FFFFFF"
-                      : "#000000",
-                },
-              ]}
-            >
-              {filteredTabs.length === 1
-                ? `1 aba`
-                : `${filteredTabs.length} abas`}
-            </Text>
-          </View>
-
-          {/* Empty placeholder to mirror Safari layout symmetrically */}
-          <View style={{ width: 36 }} />
-        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -637,46 +682,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  searchBarContainer: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    paddingTop: 4,
-  },
-  searchBar: {
-    flexDirection: "row",
-    height: 40,
-    borderRadius: 50,
-    alignItems: "center",
-    paddingHorizontal: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    height: "100%",
-    padding: 0,
-  },
+
   listContent: {
-    padding: 12,
-    paddingBottom: 110,
+    paddingVertical: 20,
+    alignItems: "center",
   },
-  columnWrapper: {
-    justifyContent: "space-between",
-    marginBottom: 12,
+  cardContainer: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    marginHorizontal: CARD_MARGIN,
+    justifyContent: "center",
+    alignItems: "center",
   },
   tabCard: {
-    width: CARD_WIDTH,
-    height: 190,
-    borderRadius: 14,
+    width: "100%",
+    height: "100%",
+    borderRadius: 20,
     overflow: "hidden",
     position: "relative",
   },
   closeButton: {
     position: "absolute",
-    top: 6,
-    right: 6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 99,
@@ -686,27 +717,27 @@ const styles = StyleSheet.create({
     flexDirection: "column",
   },
   cardViewportHeader: {
-    height: 28,
+    height: 38,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "rgba(0,0,0,0.05)",
   },
   faviconContainer: {
-    width: 16,
-    height: 16,
-    borderRadius: 3,
+    width: 20,
+    height: 20,
+    borderRadius: 5,
     backgroundColor: "rgba(255, 255, 255, 0.8)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 6,
+    marginRight: 8,
   },
   faviconText: {
-    fontSize: 10,
+    fontSize: 12,
   },
   miniUrlText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "500",
     flex: 1,
   },
@@ -714,39 +745,183 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 12,
+    padding: 16,
   },
-  previewMockCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
+  mockIncognitoContainer: {
+    flex: 1,
     justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  mockIncognitoTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#FFFFFF",
     marginBottom: 8,
   },
-  previewLetter: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  previewLines: {
+  mockIncognitoLines: {
     width: "100%",
     alignItems: "center",
     gap: 4,
   },
-  previewLine: {
-    height: 3,
-    borderRadius: 1.5,
+  mockIncognitoLine: {
+    height: 4,
+    width: "90%",
+    backgroundColor: "#3A3A3C",
+    borderRadius: 2,
+  },
+  mockGoogleContainer: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  mockGoogleLogo: {
+    flexDirection: "row",
+    marginBottom: 12,
+  },
+  mockGoogleLetter: {
+    fontSize: 24,
+    fontWeight: "bold",
+    letterSpacing: -1,
+  },
+  mockSearchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 32,
+    borderRadius: 16,
+    width: "100%",
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  mockSearchBarPlaceholder: {
+    flex: 1,
+  },
+  mockShortcuts: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "80%",
+  },
+  mockShortcutDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  mockGithubContainer: {
+    flex: 1,
+    width: "100%",
+    padding: 12,
+  },
+  mockGithubHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  mockGithubUser: {
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  mockGithubRepoList: {
+    flex: 1,
+    gap: 6,
+  },
+  mockGithubRepoCard: {
+    borderRadius: 8,
+    padding: 8,
+    gap: 4,
+  },
+  mockGithubRepoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  mockLangDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  mockGithubRepoTitle: {
+    height: 8,
+    width: "70%",
+    borderRadius: 4,
+  },
+  mockGithubRepoDesc: {
+    height: 6,
+    width: "90%",
+    borderRadius: 3,
+  },
+  mockWikiContainer: {
+    flex: 1,
+    width: "100%",
+    padding: 12,
+  },
+  mockWikiHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  mockWikiTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  mockWikiContent: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 8,
+  },
+  mockWikiFeaturedImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 6,
+  },
+  mockWikiLines: {
+    flex: 1,
+    gap: 6,
+  },
+  mockWikiLine: {
+    height: 5,
+    borderRadius: 2.5,
+  },
+  mockGenericContainer: {
+    flex: 1,
+    width: "100%",
+  },
+  mockGenericHero: {
+    height: "40%",
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  mockGenericBody: {
+    flex: 1,
+    padding: 10,
+    gap: 6,
+  },
+  mockGenericTitle: {
+    height: 8,
+    width: "50%",
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  mockGenericLine: {
+    height: 4,
+    borderRadius: 2,
   },
   cardFooter: {
-    height: 32,
+    height: 44,
     justifyContent: "center",
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(0,0,0,0.03)",
   },
   cardTitle: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     textAlign: "center",
   },
   emptyContainer: {
@@ -776,31 +951,25 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
   },
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 64,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  plusButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
+  plusButtonHeader: {
+    width: 60,
+    height: "100%",
     justifyContent: "center",
+    alignItems: "flex-start",
+    paddingLeft: 8,
   },
-  centerBadgeContainer: {
+  realWebViewContainer: {
     flex: 1,
-    alignItems: "center",
+    width: "100%",
+    position: "relative",
+    borderRadius: 14,
+    overflow: "hidden",
   },
-  tabCountText: {
-    fontSize: 13,
-    fontWeight: "600",
+  realWebView: {
+    flex: 1,
+  },
+  realWebViewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "transparent",
   },
 });
