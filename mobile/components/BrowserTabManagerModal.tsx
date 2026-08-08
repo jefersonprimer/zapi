@@ -8,8 +8,8 @@ import {
   FlatList,
   Dimensions,
   StatusBar,
-  TextInput,
   Animated,
+  PanResponder,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
@@ -24,12 +24,199 @@ interface BrowserTabManagerModalProps {
 }
 
 const { width, height } = Dimensions.get("window");
-const CARD_WIDTH = width * 0.74;
-const CARD_HEIGHT = height * 0.62;
+const CARD_WIDTH = width * 0.68;
+const CARD_HEIGHT = height * 0.68;
 const CARD_MARGIN = 12;
 const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2;
 const EMPTY_SPACE = (width - CARD_WIDTH) / 2 - CARD_MARGIN;
+interface TabCardProps {
+  item: BrowserTab;
+  index: number;
+  isActive: boolean;
+  isIncognito: boolean;
+  isDark: boolean;
+  colors: any;
+  scale: any;
+  opacity: any;
+  handleSelectTab: (id: string) => void;
+  closeTab: (id: string) => void;
+  renderViewportContent: (
+    item: BrowserTab,
+    isDark: boolean,
+    index: number,
+  ) => React.ReactNode;
+}
 
+const TabCard = ({
+  item,
+  index,
+  isActive,
+  isIncognito,
+  isDark,
+  colors,
+  scale,
+  opacity,
+  handleSelectTab,
+  closeTab,
+  renderViewportContent,
+}: TabCardProps) => {
+  const translateY = useRef(new Animated.Value(0)).current;
+  const cardOpacity = useRef(new Animated.Value(1)).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        const { dx, dy } = gestureState;
+        return Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy < 0) {
+          translateY.setValue(gestureState.dy);
+          const newOpacity = Math.max(0, 1 + gestureState.dy / 250);
+          cardOpacity.setValue(newOpacity);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy < -120) {
+          Animated.parallel([
+            Animated.timing(translateY, {
+              toValue: -CARD_HEIGHT - 100,
+              duration: 180,
+              useNativeDriver: true,
+            }),
+            Animated.timing(cardOpacity, {
+              toValue: 0,
+              duration: 180,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            closeTab(item.id);
+          });
+        } else {
+          Animated.parallel([
+            Animated.spring(translateY, {
+              toValue: 0,
+              useNativeDriver: true,
+            }),
+            Animated.spring(cardOpacity, {
+              toValue: 1,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.parallel([
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }),
+          Animated.spring(cardOpacity, {
+            toValue: 1,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      },
+    }),
+  ).current;
+
+  const cardBg = isIncognito ? "#2C2C2E" : isDark ? "#1C1C1E" : "#FFFFFF";
+
+  const titleColor = isIncognito || isDark ? "#FFFFFF" : "#000000";
+
+  const activeBorderColor = isIncognito
+    ? "#A78BFA"
+    : isDark
+      ? "#3A3A3C"
+      : "#C7C7CC";
+
+  return (
+    <Animated.View
+      style={[
+        styles.cardContainer,
+        {
+          transform: [{ scale }, { translateY }],
+          opacity: Animated.multiply(opacity, cardOpacity),
+        },
+      ]}
+      {...panResponder.panHandlers}
+    >
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={[
+          styles.tabCard,
+          {
+            backgroundColor: "transparent",
+            borderColor: isActive
+              ? activeBorderColor
+              : isIncognito
+                ? "#3A3A3C"
+                : isDark
+                  ? "#2C2C2E"
+                  : "#E5E5EA",
+            borderWidth: 0,
+            shadowOpacity: isActive ? 0.3 : 0.08,
+            shadowRadius: isActive ? 10 : 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: isActive ? 4 : 2 },
+            elevation: isActive ? 6 : 2,
+          },
+        ]}
+        onPress={() => handleSelectTab(item.id)}
+      >
+        <View style={styles.cardViewport}>
+          <View style={styles.cardViewportHeader}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.faviconContainer}>
+                {isIncognito ? (
+                  <MaterialCommunityIcons
+                    name="eye-off"
+                    size={13}
+                    color="#A78BFA"
+                  />
+                ) : item.url.includes("google.com") ? (
+                  <Text
+                    style={[
+                      styles.faviconText,
+                      { color: "#4285F4", fontWeight: "bold" },
+                    ]}
+                  >
+                    G
+                  </Text>
+                ) : (
+                  <MaterialCommunityIcons
+                    name="earth"
+                    size={13}
+                    color={isDark ? "#AEAEB2" : "#8E8E93"}
+                  />
+                )}
+              </View>
+              <Text
+                numberOfLines={1}
+                style={[styles.miniUrlText, { color: titleColor }]}
+              >
+                {item.title || "Nova Guia"}
+              </Text>
+            </View>
+          </View>
+          <View
+            style={[
+              styles.cardViewportContent,
+              {
+                backgroundColor: cardBg,
+                borderRadius: 24,
+                overflow: "hidden",
+              },
+            ]}
+          >
+            {renderViewportContent(item, isDark, index)}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 export function BrowserTabManagerModal({
   visible,
   onClose,
@@ -53,10 +240,9 @@ export function BrowserTabManagerModal({
     }
   }, [visible, activeTabId, activeTab]);
 
-  const filteredTabs = tabs
-    .filter((t) =>
-      activeMode === "incognito" ? t.isIncognito : !t.isIncognito,
-    );
+  const filteredTabs = tabs.filter((t) =>
+    activeMode === "incognito" ? t.isIncognito : !t.isIncognito,
+  );
 
   // Scroll to active tab on open or mode switch
   useEffect(() => {
@@ -108,7 +294,11 @@ export function BrowserTabManagerModal({
     index,
   });
 
-  const renderViewportContent = (item: BrowserTab, isDark: boolean, index: number) => {
+  const renderViewportContent = (
+    item: BrowserTab,
+    isDark: boolean,
+    index: number,
+  ) => {
     const isIncognito = item.isIncognito;
     const url = item.url.toLowerCase();
     const activeIndex = filteredTabs.findIndex((t) => t.id === activeTabId);
@@ -152,23 +342,64 @@ export function BrowserTabManagerModal({
       return (
         <View style={styles.mockGoogleContainer}>
           <View style={styles.mockGoogleLogo}>
-            <Text style={[styles.mockGoogleLetter, { color: "#4285F4" }]}>G</Text>
-            <Text style={[styles.mockGoogleLetter, { color: "#EA4335" }]}>o</Text>
-            <Text style={[styles.mockGoogleLetter, { color: "#FBBC05" }]}>o</Text>
-            <Text style={[styles.mockGoogleLetter, { color: "#4285F4" }]}>g</Text>
-            <Text style={[styles.mockGoogleLetter, { color: "#34A853" }]}>l</Text>
-            <Text style={[styles.mockGoogleLetter, { color: "#EA4335" }]}>e</Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#4285F4" }]}>
+              G
+            </Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#EA4335" }]}>
+              o
+            </Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#FBBC05" }]}>
+              o
+            </Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#4285F4" }]}>
+              g
+            </Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#34A853" }]}>
+              l
+            </Text>
+            <Text style={[styles.mockGoogleLetter, { color: "#EA4335" }]}>
+              e
+            </Text>
           </View>
-          <View style={[styles.mockSearchBar, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]}>
+          <View
+            style={[
+              styles.mockSearchBar,
+              { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" },
+            ]}
+          >
             <MaterialCommunityIcons name="magnify" size={14} color="#8E8E93" />
             <View style={styles.mockSearchBarPlaceholder} />
-            <MaterialCommunityIcons name="microphone" size={14} color="#4285F4" />
+            <MaterialCommunityIcons
+              name="microphone"
+              size={14}
+              color="#4285F4"
+            />
           </View>
           <View style={styles.mockShortcuts}>
-            <View style={[styles.mockShortcutDot, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
-            <View style={[styles.mockShortcutDot, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
-            <View style={[styles.mockShortcutDot, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
-            <View style={[styles.mockShortcutDot, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
+            <View
+              style={[
+                styles.mockShortcutDot,
+                { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" },
+              ]}
+            />
+            <View
+              style={[
+                styles.mockShortcutDot,
+                { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" },
+              ]}
+            />
+            <View
+              style={[
+                styles.mockShortcutDot,
+                { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" },
+              ]}
+            />
+            <View
+              style={[
+                styles.mockShortcutDot,
+                { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" },
+              ]}
+            />
           </View>
         </View>
       );
@@ -178,23 +409,71 @@ export function BrowserTabManagerModal({
       return (
         <View style={styles.mockGithubContainer}>
           <View style={styles.mockGithubHeader}>
-            <MaterialCommunityIcons name="github" size={20} color={isDark ? "#FFFFFF" : "#000000"} />
-            <Text style={[styles.mockGithubUser, { color: isDark ? "#FFFFFF" : "#000000" }]}>dashboard</Text>
+            <MaterialCommunityIcons
+              name="github"
+              size={20}
+              color={isDark ? "#FFFFFF" : "#000000"}
+            />
+            <Text
+              style={[
+                styles.mockGithubUser,
+                { color: isDark ? "#FFFFFF" : "#000000" },
+              ]}
+            >
+              dashboard
+            </Text>
           </View>
           <View style={styles.mockGithubRepoList}>
-            <View style={[styles.mockGithubRepoCard, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]}>
+            <View
+              style={[
+                styles.mockGithubRepoCard,
+                { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" },
+              ]}
+            >
               <View style={styles.mockGithubRepoRow}>
-                <View style={[styles.mockLangDot, { backgroundColor: "#F1E05A" }]} />
-                <View style={[styles.mockGithubRepoTitle, { backgroundColor: isDark ? "#3A3A3C" : "#D1D1D6" }]} />
+                <View
+                  style={[styles.mockLangDot, { backgroundColor: "#F1E05A" }]}
+                />
+                <View
+                  style={[
+                    styles.mockGithubRepoTitle,
+                    { backgroundColor: isDark ? "#3A3A3C" : "#D1D1D6" },
+                  ]}
+                />
               </View>
-              <View style={[styles.mockGithubRepoDesc, { backgroundColor: isDark ? "#1C1C1E" : "#C7C7CC" }]} />
+              <View
+                style={[
+                  styles.mockGithubRepoDesc,
+                  { backgroundColor: isDark ? "#1C1C1E" : "#C7C7CC" },
+                ]}
+              />
             </View>
-            <View style={[styles.mockGithubRepoCard, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]}>
+            <View
+              style={[
+                styles.mockGithubRepoCard,
+                { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" },
+              ]}
+            >
               <View style={styles.mockGithubRepoRow}>
-                <View style={[styles.mockLangDot, { backgroundColor: "#3178C6" }]} />
-                <View style={[styles.mockGithubRepoTitle, { backgroundColor: isDark ? "#3A3A3C" : "#D1D1D6", width: "50%" }]} />
+                <View
+                  style={[styles.mockLangDot, { backgroundColor: "#3178C6" }]}
+                />
+                <View
+                  style={[
+                    styles.mockGithubRepoTitle,
+                    {
+                      backgroundColor: isDark ? "#3A3A3C" : "#D1D1D6",
+                      width: "50%",
+                    },
+                  ]}
+                />
               </View>
-              <View style={[styles.mockGithubRepoDesc, { backgroundColor: isDark ? "#1C1C1E" : "#C7C7CC" }]} />
+              <View
+                style={[
+                  styles.mockGithubRepoDesc,
+                  { backgroundColor: isDark ? "#1C1C1E" : "#C7C7CC" },
+                ]}
+              />
             </View>
           </View>
         </View>
@@ -205,15 +484,55 @@ export function BrowserTabManagerModal({
       return (
         <View style={styles.mockWikiContainer}>
           <View style={styles.mockWikiHeader}>
-            <MaterialCommunityIcons name="wikipedia" size={20} color={isDark ? "#FFFFFF" : "#000000"} />
-            <Text style={[styles.mockWikiTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>Wikipedia</Text>
+            <MaterialCommunityIcons
+              name="wikipedia"
+              size={20}
+              color={isDark ? "#FFFFFF" : "#000000"}
+            />
+            <Text
+              style={[
+                styles.mockWikiTitle,
+                { color: isDark ? "#FFFFFF" : "#000000" },
+              ]}
+            >
+              Wikipedia
+            </Text>
           </View>
           <View style={styles.mockWikiContent}>
-            <View style={[styles.mockWikiFeaturedImage, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
+            <View
+              style={[
+                styles.mockWikiFeaturedImage,
+                { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" },
+              ]}
+            />
             <View style={styles.mockWikiLines}>
-              <View style={[styles.mockWikiLine, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA", width: "90%" }]} />
-              <View style={[styles.mockWikiLine, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA", width: "100%" }]} />
-              <View style={[styles.mockWikiLine, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA", width: "80%" }]} />
+              <View
+                style={[
+                  styles.mockWikiLine,
+                  {
+                    backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA",
+                    width: "90%",
+                  },
+                ]}
+              />
+              <View
+                style={[
+                  styles.mockWikiLine,
+                  {
+                    backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA",
+                    width: "100%",
+                  },
+                ]}
+              />
+              <View
+                style={[
+                  styles.mockWikiLine,
+                  {
+                    backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA",
+                    width: "80%",
+                  },
+                ]}
+              />
             </View>
           </View>
         </View>
@@ -224,25 +543,61 @@ export function BrowserTabManagerModal({
     return (
       <View style={styles.mockGenericContainer}>
         {/* Mock Hero Header / Banner */}
-        <View style={[styles.mockGenericHero, { backgroundColor: isDark ? "#2C2C2E" : "#E8ECF2" }]}>
-          <MaterialCommunityIcons name="earth" size={24} color={isDark ? "#555" : "#CCC"} />
+        <View
+          style={[
+            styles.mockGenericHero,
+            { backgroundColor: isDark ? "#2C2C2E" : "#E8ECF2" },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="earth"
+            size={24}
+            color={isDark ? "#555" : "#CCC"}
+          />
         </View>
         {/* Skeleton content */}
         <View style={styles.mockGenericBody}>
-          <View style={[styles.mockGenericTitle, { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" }]} />
-          <View style={[styles.mockGenericLine, { backgroundColor: isDark ? "#1C1C1E" : "#F0F0F0", width: "100%" }]} />
-          <View style={[styles.mockGenericLine, { backgroundColor: isDark ? "#1C1C1E" : "#F0F0F0", width: "85%" }]} />
-          <View style={[styles.mockGenericLine, { backgroundColor: isDark ? "#1C1C1E" : "#F0F0F0", width: "60%" }]} />
+          <View
+            style={[
+              styles.mockGenericTitle,
+              { backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA" },
+            ]}
+          />
+          <View
+            style={[
+              styles.mockGenericLine,
+              {
+                backgroundColor: isDark ? "#1C1C1E" : "#F0F0F0",
+                width: "100%",
+              },
+            ]}
+          />
+          <View
+            style={[
+              styles.mockGenericLine,
+              { backgroundColor: isDark ? "#1C1C1E" : "#F0F0F0", width: "85%" },
+            ]}
+          />
+          <View
+            style={[
+              styles.mockGenericLine,
+              { backgroundColor: isDark ? "#1C1C1E" : "#F0F0F0", width: "60%" },
+            ]}
+          />
         </View>
       </View>
     );
   };
 
-  const renderTabCard = ({ item, index }: { item: BrowserTab; index: number }) => {
+  const renderTabCard = ({
+    item,
+    index,
+  }: {
+    item: BrowserTab;
+    index: number;
+  }) => {
     const isActive = item.id === activeTabId;
     const isIncognito = item.isIncognito;
-    const domain = getDomain(item.url);
-    const initial = getInitial(item.title, item.url);
 
     const inputRange = [
       (index - 1) * SNAP_INTERVAL,
@@ -262,152 +617,21 @@ export function BrowserTabManagerModal({
       extrapolate: "clamp",
     });
 
-    // iOS system card colors
-    const cardBg = isIncognito
-      ? "#2C2C2E" // Apple systemGray4 (Dark)
-      : isDark
-        ? "#1C1C1E" // Apple systemGray6 (Dark)
-        : "#FFFFFF"; // Pure white card
-
-    const titleColor = isIncognito || isDark ? "#FFFFFF" : "#000000";
-    const domainColor = isIncognito
-      ? "#8E8E93"
-      : isDark
-        ? "#8E8E93"
-        : "#8E8E93";
-
-    // Apple active tab border/shadow glow (subtle, clean, and elegant)
-    const activeBorderColor = isIncognito
-      ? "#A78BFA"
-      : colors.brandGreen || "#34C759";
-
     return (
-      <Animated.View
-        style={[
-          styles.cardContainer,
-          {
-            transform: [{ scale }],
-            opacity,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[
-            styles.tabCard,
-            {
-              backgroundColor: cardBg,
-              borderColor: isActive
-                ? activeBorderColor
-                : isIncognito
-                  ? "#3A3A3C"
-                  : isDark
-                    ? "#2C2C2E"
-                    : "#E5E5EA",
-              borderWidth: isActive ? 2.5 : 1,
-              shadowOpacity: isActive ? 0.3 : 0.08,
-              shadowRadius: isActive ? 10 : 4,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: isActive ? 4 : 2 },
-              elevation: isActive ? 6 : 2,
-            },
-          ]}
-          onPress={() => handleSelectTab(item.id)}
-        >
-          {/* iOS Close Button (Floating in top right of card like Safari) */}
-          <TouchableOpacity
-            style={[
-              styles.closeButton,
-              {
-                backgroundColor: isIncognito
-                  ? "rgba(255, 255, 255, 0.2)"
-                  : "rgba(0, 0, 0, 0.08)",
-              },
-            ]}
-            onPress={() => closeTab(item.id)}
-          >
-            <MaterialCommunityIcons
-              name="close"
-              size={18}
-              color={isIncognito || isDark ? "#FFFFFF" : "#3D3D3D"}
-            />
-          </TouchableOpacity>
-
-          {/* Card Body / Webpage Mockup Viewport */}
-          <View style={styles.cardViewport}>
-            {/* Mini Webpage Header Banner */}
-            <View
-              style={[
-                styles.cardViewportHeader,
-                {
-                  backgroundColor: isIncognito
-                    ? "#1C1C1E"
-                    : isDark
-                      ? "#121212"
-                      : "#F2F2F7",
-                },
-              ]}
-            >
-              <View style={styles.faviconContainer}>
-                {isIncognito ? (
-                  <MaterialCommunityIcons
-                    name="eye-off"
-                    size={13}
-                    color="#A78BFA"
-                  />
-                ) : item.url.includes("google.com") ? (
-                  <Text
-                    style={[
-                      styles.faviconText,
-                      { color: "#4285F4", fontWeight: "bold" },
-                    ]}
-                  >
-                    G
-                  </Text>
-                ) : (
-                  <MaterialCommunityIcons
-                    name="earth"
-                    size={13}
-                    color={isDark ? "#AEAEB2" : "#8E8E93"}
-                  />
-                )}
-              </View>
-              <Text
-                numberOfLines={1}
-                style={[styles.miniUrlText, { color: domainColor }]}
-              >
-                {domain}
-              </Text>
-            </View>
-
-            {/* Webpage Content Representation */}
-            <View
-              style={[
-                styles.cardViewportContent,
-                {
-                  backgroundColor: isIncognito
-                    ? "#121212"
-                    : isDark
-                      ? "#0A0A0A"
-                      : "#F9F9FC",
-                },
-              ]}
-            >
-              {renderViewportContent(item, isDark, index)}
-            </View>
-          </View>
-
-          {/* Card Footer (Tab Title) */}
-          <View style={styles.cardFooter}>
-            <Text
-              numberOfLines={1}
-              style={[styles.cardTitle, { color: titleColor }]}
-            >
-              {item.title || "Nova Guia"}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </Animated.View> );
+      <TabCard
+        item={item}
+        index={index}
+        isActive={isActive}
+        isIncognito={isIncognito}
+        isDark={isDark}
+        colors={colors}
+        scale={scale}
+        opacity={opacity}
+        handleSelectTab={handleSelectTab}
+        closeTab={closeTab}
+        renderViewportContent={renderViewportContent}
+      />
+    );
   };
 
   // True Apple Safari-style dark/light background setup
@@ -442,16 +666,20 @@ export function BrowserTabManagerModal({
           style={[styles.header, { borderBottomColor: headerBottomBorder }]}
         >
           <TouchableOpacity
-            style={styles.plusButtonHeader}
-            onPress={handleNewTab}
+            style={[
+              styles.modalHeaderButton,
+              {
+                borderColor: isDark ? "#2C2C2E" : "#E5E5EA",
+                backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
+              },
+            ]}
+            onPress={onClose}
           >
             <MaterialCommunityIcons
-              name="plus"
-              size={26}
+              name="close"
+              size={22}
               color={
-                activeMode === "incognito"
-                  ? "#A78BFA"
-                  : colors.brandGreen || "#34C759"
+                activeMode === "incognito" || isDark ? "#FFFFFF" : "#3D3D3D"
               }
             />
           </TouchableOpacity>
@@ -547,25 +775,20 @@ export function BrowserTabManagerModal({
             </TouchableOpacity>
           </View>
 
-          {/* Done/Concluir Button */}
-          <TouchableOpacity style={styles.doneButton} onPress={onClose}>
-            <Text
-              style={[
-                styles.doneButtonText,
-                {
-                  color:
-                    activeMode === "incognito"
-                      ? "#A78BFA"
-                      : colors.brandGreen || "#007AFF",
-                },
-              ]}
-            >
-              OK
-            </Text>
+          {/* Plus Button Header (on the right) */}
+          <TouchableOpacity
+            style={[
+              styles.modalHeaderButton,
+              {
+                backgroundColor: colors.brandGreen || "#34C759",
+                borderColor: colors.brandGreen || "#34C759",
+              },
+            ]}
+            onPress={handleNewTab}
+          >
+            <MaterialCommunityIcons name="plus" size={22} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-
-
 
         {/* Tab Grid or Empty State */}
         {filteredTabs.length === 0 ? (
@@ -629,8 +852,6 @@ export function BrowserTabManagerModal({
             keyboardShouldPersistTaps="handled"
           />
         )}
-
-
       </SafeAreaView>
     </Modal>
   );
@@ -701,37 +922,39 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
   },
-  closeButton: {
+  headerCloseButton: {
     position: "absolute",
-    top: 10,
-    right: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    right: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 99,
   },
   cardViewport: {
     flex: 1,
     flexDirection: "column",
   },
   cardViewportHeader: {
-    height: 38,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+    position: "relative",
+  },
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   faviconContainer: {
     width: 20,
     height: 20,
     borderRadius: 5,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 8,
+    marginRight: 12,
   },
   faviconText: {
     fontSize: 12,
@@ -739,13 +962,10 @@ const styles = StyleSheet.create({
   miniUrlText: {
     fontSize: 12,
     fontWeight: "500",
-    flex: 1,
+    flexShrink: 1,
   },
   cardViewportContent: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
   },
   mockIncognitoContainer: {
     flex: 1,
@@ -951,12 +1171,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
   },
-  plusButtonHeader: {
-    width: 60,
-    height: "100%",
+  modalHeaderButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
     justifyContent: "center",
-    alignItems: "flex-start",
-    paddingLeft: 8,
+    alignItems: "center",
   },
   realWebViewContainer: {
     flex: 1,
