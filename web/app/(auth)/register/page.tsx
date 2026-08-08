@@ -7,7 +7,9 @@ import { useAuth } from "@/lib/auth-context";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
+  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [usernameEdited, setUsernameEdited] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,9 +25,38 @@ export default function RegisterPage() {
   const isUsernameValid =
     cleanUsername.length >= 3 && /^[a-zA-Z0-9_]+$/.test(cleanUsername);
 
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (!usernameEdited) {
+      const generated = val
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "");
+      setUsername(generated);
+    }
+  };
+
+  const handleUsernameChange = (val: string) => {
+    setUsernameEdited(true);
+    const formatted = val
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
+    setUsername(formatted);
+  };
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!name.trim()) {
+      setError("Por favor, informe o seu nome.");
+      return;
+    }
 
     if (!cleanUsername) {
       setError("Por favor, informe um nome de usuário.");
@@ -52,7 +83,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(cleanUsername, email.trim(), password);
+      await register(cleanUsername, email.trim(), password, name.trim());
       router.push("/");
     } catch (err) {
       const message =
@@ -89,6 +120,25 @@ export default function RegisterPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name Field */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="name"
+            className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-700 dark:text-neutral-300"
+          >
+            Nome
+          </label>
+          <input
+            id="name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => handleNameChange(e.target.value)}
+            placeholder="Ex: Zé Pneus"
+            className="block w-full bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-300 dark:border-neutral-800 rounded-md px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:border-neutral-900 dark:focus:border-neutral-100 focus:ring-1 focus:ring-neutral-900 dark:focus:ring-neutral-100 outline-none transition-all"
+          />
+        </div>
+
         {/* Username Field */}
         <div className="space-y-1.5">
           <label
@@ -102,7 +152,7 @@ export default function RegisterPage() {
             type="text"
             required
             value={username}
-            onChange={(e) => setUsername(e.target.value.replace(/\s+/g, ""))}
+            onChange={(e) => handleUsernameChange(e.target.value)}
             placeholder="usuario"
             className="block w-full bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-300 dark:border-neutral-800 rounded-md px-3 py-2 text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:border-neutral-900 dark:focus:border-neutral-100 focus:ring-1 focus:ring-neutral-900 dark:focus:ring-neutral-100 outline-none transition-all"
           />

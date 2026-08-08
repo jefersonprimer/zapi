@@ -264,12 +264,13 @@ export async function login(email: string, password: string): Promise<AuthRespon
 export async function register(
   username: string,
   email: string,
-  password: string
+  password: string,
+  name?: string
 ): Promise<AuthResponse> {
   const res = await fetch(`${API_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, email, password }),
+    body: JSON.stringify({ username, email, password, name }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "Registration failed");

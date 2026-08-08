@@ -1,8 +1,25 @@
 import * as SQLite from "expo-sqlite";
 import { ChatListItem, Message, Attachment } from "./api";
 import { resolveLastMessagePreview } from "@/utils/forwardMessage";
+import { Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
+
+async function getActiveUserId(): Promise<string | null> {
+  try {
+    const userStr = Platform.OS === "web"
+      ? localStorage.getItem("user")
+      : await SecureStore.getItemAsync("user");
+    if (userStr) {
+      const u = JSON.parse(userStr);
+      return u.user_id || null;
+    }
+  } catch (e) {
+    console.warn("Failed to get active user ID in DB", e);
+  }
+  return null;
+}
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!dbInstance) {
@@ -217,6 +234,12 @@ export async function initializeDatabase() {
       content TEXT,
       updated_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS user_pinned_chats (
+      user_id TEXT NOT NULL,
+      chat_id TEXT NOT NULL,
+      PRIMARY KEY (user_id, chat_id)
+    );
   `);
 
   try {
@@ -278,6 +301,7 @@ export async function initializeDatabase() {
 // Bulk save chats fetched from server
 export async function saveChats(chats: ChatListItem[]) {
   const db = await getDatabase();
+  const activeUserId = await getActiveUserId();
 
   // Delete local chats and messages that are no longer on the server
   const serverChatIds = chats.map((c) => c.id);
@@ -297,6 +321,24 @@ export async function saveChats(chats: ChatListItem[]) {
   }
 
   for (const chat of chats) {
+    let isPinned = chat.is_pinned ? 1 : 0;
+    if (activeUserId) {
+      if (isPinned) {
+        await db.runAsync(
+          "INSERT OR REPLACE INTO user_pinned_chats (user_id, chat_id) VALUES (?, ?)",
+          [activeUserId, chat.id]
+        );
+      } else {
+        const pinnedRow = await db.getFirstAsync<{ chat_id: string }>(
+          "SELECT chat_id FROM user_pinned_chats WHERE user_id = ? AND chat_id = ?",
+          [activeUserId, chat.id]
+        );
+        if (pinnedRow) {
+          isPinned = 1;
+        }
+      }
+    }
+
     await db.runAsync(
       `INSERT INTO chats (
         id, participant_id, participant_username, participant_avatar_url, participant_name, is_group, name, 
@@ -304,8 +346,8 @@ export async function saveChats(chats: ChatListItem[]) {
         last_message, last_message_at, created_at, unread_count, 
         is_blocked_by_me, is_blocked_by_them, messages_restricted_reason,
         notification_muted_until, notification_muted_forever,
-        is_archived, is_favorite
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        is_archived, is_favorite, is_pinned
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         participant_id=excluded.participant_id,
         participant_username=excluded.participant_username,
@@ -325,7 +367,8 @@ export async function saveChats(chats: ChatListItem[]) {
         notification_muted_until=excluded.notification_muted_until,
         notification_muted_forever=excluded.notification_muted_forever,
         is_archived=excluded.is_archived,
-        is_favorite=excluded.is_favorite`,
+        is_favorite=excluded.is_favorite,
+        is_pinned=excluded.is_pinned`,
       [
         chat.id,
         chat.participant_id || null,
@@ -347,6 +390,7 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.notification_muted_forever ? 1 : 0,
         chat.is_archived ? 1 : 0,
         chat.is_favorite ? 1 : 0,
+        isPinned,
       ]
     );
   }
@@ -899,6 +943,21 @@ export async function setChatPinnedLocal(chatId: string, isPinned: boolean) {
     "UPDATE chats SET is_pinned = ? WHERE id = ?",
     [isPinned ? 1 : 0, chatId]
   );
+
+  const activeUserId = await getActiveUserId();
+  if (activeUserId) {
+    if (isPinned) {
+      await db.runAsync(
+        "INSERT OR REPLACE INTO user_pinned_chats (user_id, chat_id) VALUES (?, ?)",
+        [activeUserId, chatId]
+      );
+    } else {
+      await db.runAsync(
+        "DELETE FROM user_pinned_chats WHERE user_id = ? AND chat_id = ?",
+        [activeUserId, chatId]
+      );
+    }
+  }
 }
 
 export async function setChatArchivedLocal(chatId: string, isArchived: boolean) {

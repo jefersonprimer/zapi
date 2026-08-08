@@ -16,6 +16,7 @@ pub struct RegisterRequest {
     pub username: String,
     pub email: String,
     pub password: String,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -70,12 +71,15 @@ pub async fn register(
         })?
         .to_string();
 
+    let name_val = body.name.clone().unwrap_or_else(|| body.username.clone());
+
     let user = sqlx::query_as::<_, crate::models::user::User>(
-        "INSERT INTO users (username, email, password_hash, name) VALUES ($1, $2, $3, $1) RETURNING id, username, email, password_hash, created_at, avatar_url, about, name, username_updated_at, privacy_messages, privacy_calls",
+        "INSERT INTO users (username, email, password_hash, name) VALUES ($1, $2, $3, $4) RETURNING id, username, email, password_hash, created_at, avatar_url, about, name, username_updated_at, privacy_messages, privacy_calls",
     )
     .bind(&body.username)
     .bind(&body.email)
     .bind(&password_hash)
+    .bind(&name_val)
     .fetch_one(&pool)
     .await
     .map_err(|e| {

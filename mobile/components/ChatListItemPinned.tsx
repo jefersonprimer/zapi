@@ -27,13 +27,17 @@ export default function ChatListItemPinned({
   onPress,
   onLongPress,
 }: ChatListItemPinnedProps) {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
 
   const name =
     item.name ??
     item.participant_name ??
     item.participant_username ??
     "Unknown";
+
+  const badgeBorder = isDark
+    ? "rgba(255, 255, 255, 0.12)"
+    : "rgba(0, 0, 0, 0.08)";
 
   return (
     <TouchableOpacity
@@ -84,9 +88,17 @@ export default function ChatListItemPinned({
           )}
         </View>
 
-        {/* Unread badge absolute positioned on the avatar */}
+        {/* Unread badge absolute positioned on the avatar (at the bottom right) */}
         {item.unread_count > 0 && (
-          <View style={[styles.badge, { backgroundColor: colors.badge }]}>
+          <View
+            style={[
+              styles.badge,
+              {
+                backgroundColor: colors.badge,
+                borderColor: badgeBorder,
+              },
+            ]}
+          >
             <Text style={[styles.badgeText, { color: colors.badgeText }]}>
               {item.unread_count}
             </Text>
@@ -110,206 +122,236 @@ export default function ChatListItemPinned({
             </View>
           )}
         </View>
+      </View>
 
-        {/* Last message bubble */}
-        {(() => {
-          if (item.is_blocked_by_me) {
-            return (
-              <View
-                style={[
-                  styles.bubble,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Text
-                  style={[styles.bubbleText, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  Bloqueado
-                </Text>
-                <View
-                  style={[
-                    styles.bubbleTail,
-                    {
-                      backgroundColor: colors.surface,
-                      borderRightColor: colors.border,
-                      borderBottomColor: colors.border,
-                    },
-                  ]}
-                />
-              </View>
-            );
-          }
+      {/* Last message bubble (positioned relative to the card container now) */}
+      {(() => {
+        // Only show message bubble if there are unread messages
+        if (item.unread_count <= 0) return null;
 
-          if (!item.last_message) return null;
+        const { isDark } = useAppTheme();
+        const bubbleStyle = {
+          top: 16, // Always at the top
+        };
+        const tailStyle = {
+          bottom: -5,
+          borderBottomWidth: 1,
+          borderRightWidth: 1,
+          borderTopWidth: 0,
+          borderLeftWidth: 0,
+        };
 
-          const lastMessage = resolveLastMessagePreview(item.last_message);
-          let displayMessage = lastMessage;
-          let iconElement = null;
+        const bubbleBg = isDark
+          ? "rgba(30, 30, 30, 0.85)"
+          : "rgba(255, 255, 255, 0.85)";
+        const bubbleBorder = isDark
+          ? "rgba(255, 255, 255, 0.12)"
+          : "rgba(0, 0, 0, 0.08)";
 
-          if (
-            lastMessage.startsWith("Audio") ||
-            lastMessage.startsWith("🎵 Áudio")
-          ) {
-            displayMessage = "Áudio";
-            iconElement = (
-              <Ionicons
-                name="mic-outline"
-                size={13}
-                color={colors.textSecondary}
-              />
-            );
-          } else if (lastMessage === "Photo" || lastMessage === "📷 Foto") {
-            displayMessage = "Foto";
-            iconElement = (
-              <Ionicons
-                name="camera-outline"
-                size={13}
-                color={colors.textSecondary}
-              />
-            );
-          } else if (lastMessage === "Video" || lastMessage === "🎥 Vídeo") {
-            displayMessage = "Vídeo";
-            iconElement = (
-              <Ionicons
-                name="videocam-outline"
-                size={13}
-                color={colors.textSecondary}
-              />
-            );
-          } else if (
-            lastMessage === "File" ||
-            lastMessage.startsWith("File|") ||
-            lastMessage === "📁 Arquivo" ||
-            lastMessage.startsWith("📁 Arquivo|") ||
-            lastMessage.startsWith("Arquivo|")
-          ) {
-            displayMessage = "Doc";
-            iconElement = (
-              <Ionicons
-                name="document-text-outline"
-                size={13}
-                color={colors.textSecondary}
-              />
-            );
-          } else if (lastMessage === "Message deleted") {
-            displayMessage = "Apagada";
-            iconElement = (
-              <MaterialCommunityIcons
-                name="cancel"
-                size={13}
-                color={colors.textSecondary}
-              />
-            );
-          } else if (lastMessage === "Chamada efetuada") {
-            displayMessage = "Ligação";
-            iconElement = (
-              <MaterialCommunityIcons
-                name="phone-outgoing"
-                size={13}
-                color={colors.textSecondary}
-              />
-            );
-          } else if (lastMessage === "Chamada recebida") {
-            displayMessage = "Ligação";
-            iconElement = (
-              <MaterialCommunityIcons
-                name="phone-incoming"
-                size={13}
-                color={colors.textSecondary}
-              />
-            );
-          } else if (lastMessage === "Chamada perdida") {
-            displayMessage = "Perdida";
-            iconElement = (
-              <MaterialCommunityIcons
-                name="phone-missed"
-                size={13}
-                color={colors.danger}
-              />
-            );
-          } else if (
-            lastMessage.startsWith('{"type":"location"') ||
-            item.last_message?.trimStart().startsWith('{"type":"location"')
-          ) {
-            displayMessage = "Local";
-            iconElement = (
-              <Ionicons
-                name="location-outline"
-                size={13}
-                color={colors.textSecondary}
-              />
-            );
-          } else if (lastMessage.startsWith('{"type":"contact_share"')) {
-            displayMessage = "Contato";
-            iconElement = (
-              <Ionicons
-                name="person-outline"
-                size={13}
-                color={colors.textSecondary}
-              />
-            );
-          } else if (
-            lastMessage.startsWith("Pix:") ||
-            item.last_message?.trimStart().startsWith('{"type":"pix_share"')
-          ) {
-            displayMessage = "Pix";
-            iconElement = (
-              <MaterialIcons
-                name="pix"
-                size={13}
-                color="#32BCAD"
-              />
-            );
-          } else if (
-            lastMessage.startsWith("Nota:") ||
-            item.last_message?.trimStart().startsWith('{"type":"note_share"')
-          ) {
-            displayMessage = "Nota";
-            iconElement = (
-              <MaterialCommunityIcons
-                name="note-outline"
-                size={13}
-                color="#F5A623"
-              />
-            );
-          }
-
+        if (item.is_blocked_by_me) {
           return (
             <View
               style={[
                 styles.bubble,
+                bubbleStyle,
                 {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
+                  backgroundColor: bubbleBg,
+                  borderColor: bubbleBorder,
                 },
               ]}
             >
-              {iconElement}
               <Text
                 style={[styles.bubbleText, { color: colors.text }]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
+                numberOfLines={2}
               >
-                {displayMessage}
+                Bloqueado
               </Text>
               <View
                 style={[
                   styles.bubbleTail,
+                  tailStyle,
                   {
-                    backgroundColor: colors.surface,
-                    borderRightColor: colors.border,
-                    borderBottomColor: colors.border,
+                    backgroundColor: bubbleBg,
+                    borderLeftColor: bubbleBorder,
+                    borderTopColor: bubbleBorder,
+                    borderRightColor: bubbleBorder,
+                    borderBottomColor: bubbleBorder,
                   },
                 ]}
               />
             </View>
           );
-        })()}
-      </View>
+        }
+
+        if (!item.last_message) return null;
+
+        const lastMessage = resolveLastMessagePreview(item.last_message);
+        let displayMessage = lastMessage;
+        let iconElement = null;
+
+        if (
+          lastMessage.startsWith("Audio") ||
+          lastMessage.startsWith("🎵 Áudio")
+        ) {
+          displayMessage = "Áudio";
+          iconElement = (
+            <Ionicons
+              name="mic-outline"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
+        } else if (lastMessage === "Photo" || lastMessage === "📷 Foto") {
+          displayMessage = "Foto";
+          iconElement = (
+            <Ionicons
+              name="camera-outline"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
+        } else if (lastMessage === "Video" || lastMessage === "🎥 Vídeo") {
+          displayMessage = "Vídeo";
+          iconElement = (
+            <Ionicons
+              name="videocam-outline"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
+        } else if (
+          lastMessage === "File" ||
+          lastMessage.startsWith("File|") ||
+          lastMessage === "📁 Arquivo" ||
+          lastMessage.startsWith("📁 Arquivo|") ||
+          lastMessage.startsWith("Arquivo|")
+        ) {
+          displayMessage = "Doc";
+          iconElement = (
+            <Ionicons
+              name="document-text-outline"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
+        } else if (lastMessage === "Message deleted") {
+          displayMessage = "Apagada";
+          iconElement = (
+            <MaterialCommunityIcons
+              name="cancel"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
+        } else if (lastMessage === "Chamada efetuada") {
+          displayMessage = "Ligação";
+          iconElement = (
+            <MaterialCommunityIcons
+              name="phone-outgoing"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
+        } else if (lastMessage === "Chamada recebida") {
+          displayMessage = "Ligação";
+          iconElement = (
+            <MaterialCommunityIcons
+              name="phone-incoming"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
+        } else if (lastMessage === "Chamada perdida") {
+          displayMessage = "Perdida";
+          iconElement = (
+            <MaterialCommunityIcons
+              name="phone-missed"
+              size={13}
+              color={colors.danger}
+            />
+          );
+        } else if (
+          lastMessage.startsWith('{"type":"location"') ||
+          item.last_message?.trimStart().startsWith('{"type":"location"')
+        ) {
+          displayMessage = "Local";
+          iconElement = (
+            <Ionicons
+              name="location-outline"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
+        } else if (lastMessage.startsWith('{"type":"contact_share"')) {
+          displayMessage = "Contato";
+          iconElement = (
+            <Ionicons
+              name="person-outline"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
+        } else if (
+          lastMessage.startsWith("Pix:") ||
+          item.last_message?.trimStart().startsWith('{"type":"pix_share"')
+        ) {
+          displayMessage = "Pix";
+          iconElement = (
+            <MaterialIcons
+              name="pix"
+              size={13}
+              color="#32BCAD"
+            />
+          );
+        } else if (
+          lastMessage.startsWith("Nota:") ||
+          item.last_message?.trimStart().startsWith('{"type":"note_share"')
+        ) {
+          displayMessage = "Nota";
+          iconElement = (
+            <MaterialCommunityIcons
+              name="note-outline"
+              size={13}
+              color="#F5A623"
+            />
+          );
+        }
+
+        return (
+          <View
+            style={[
+              styles.bubble,
+              bubbleStyle,
+              {
+                backgroundColor: bubbleBg,
+                borderColor: bubbleBorder,
+              },
+            ]}
+          >
+            {iconElement}
+            <Text
+              style={[styles.bubbleText, { color: colors.text }]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {displayMessage}
+            </Text>
+            <View
+              style={[
+                styles.bubbleTail,
+                tailStyle,
+                {
+                  backgroundColor: bubbleBg,
+                  borderLeftColor: bubbleBorder,
+                  borderTopColor: bubbleBorder,
+                  borderRightColor: bubbleBorder,
+                  borderBottomColor: bubbleBorder,
+                },
+              ]}
+            />
+          </View>
+        );
+      })()}
 
       {/* Name below the avatar */}
       <Text
@@ -333,11 +375,12 @@ const styles = StyleSheet.create({
     maxWidth: "33.3%",
     borderRadius: 24,
     marginVertical: 4,
+    position: "relative",
   },
   chatName: {
     fontSize: 12,
     fontWeight: "500",
-    marginTop: 16,
+    marginTop: 8,
     textAlign: "center",
     maxWidth: 100,
   },
@@ -368,8 +411,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: "absolute",
-    top: -2,
-    right: -2,
+    bottom: 4, // Positioned at the bottom of the avatar
+    right: 4,
     borderRadius: 9,
     minWidth: 18,
     height: 18,
@@ -377,7 +420,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 4,
     borderWidth: 1.5,
-    borderColor: "#fff",
   },
   badgeText: {
     fontSize: 9,
@@ -401,9 +443,9 @@ const styles = StyleSheet.create({
   },
   bubble: {
     position: "absolute",
-    bottom: -12,
-    left: 0,
-    right: 0,
+    top: 16, // Always at the top
+    left: 2,
+    right: 2,
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 10,
@@ -426,7 +468,7 @@ const styles = StyleSheet.create({
   bubbleTail: {
     position: "absolute",
     bottom: -5,
-    right: 15,
+    right: 22,
     width: 8,
     height: 8,
     transform: [{ rotate: "45deg" }],

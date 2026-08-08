@@ -13,18 +13,18 @@ import { useRouter, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth, type SavedProfile } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   BottomSheetModal,
   BottomSheetView,
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
 import { getFullRemoteUrl } from "@/services/mediaCache";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SelectProfileScreen() {
   const router = useRouter();
   const { signIn, savedProfiles, removeProfile } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
 
@@ -138,7 +138,7 @@ export default function SelectProfileScreen() {
           style={{ padding: 8, marginRight: -8 }}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="dots-horizontal" color={textColor} size={24} />
+          <Ionicons name="ellipsis-horizontal" color={textColor} size={24} />
         </TouchableOpacity>
       </View>
 
@@ -269,7 +269,14 @@ export default function SelectProfileScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.removeProfileButton}
+                  style={[
+                    styles.removeProfileButton,
+                    {
+                      borderColor: isDark
+                        ? "rgba(255, 255, 255, 0.12)"
+                        : "rgba(0, 0, 0, 0.08)",
+                    },
+                  ]}
                   onPress={() => {
                     Alert.alert(
                       "Remover conta",
@@ -285,7 +292,11 @@ export default function SelectProfileScreen() {
                     );
                   }}
                 >
-                  <MaterialCommunityIcons name="delete-outline" size={16} color="#EF4444" />
+                  <Ionicons
+                    name="close-outline"
+                    size={24}
+                    color={textSecondary}
+                  />
                 </TouchableOpacity>
               </View>
             ))}
@@ -299,7 +310,12 @@ export default function SelectProfileScreen() {
             onPress={() => router.push("/login")}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons name="plus" size={16} color={textColor} style={{ marginRight: 8 }} />
+            <Ionicons
+              name="add-outline"
+              size={24}
+              color={textColor}
+              style={{ marginRight: 8 }}
+            />
             <Text
               style={[styles.actionOutlineButtonText, { color: textColor }]}
             >
@@ -338,17 +354,46 @@ export default function SelectProfileScreen() {
         backgroundStyle={{ backgroundColor: colors.menuBackground }}
         handleIndicatorStyle={{ backgroundColor: colors.border }}
       >
-        <BottomSheetView style={{ padding: 24, paddingBottom: 40 }}>
-          <Text
+        <BottomSheetView style={{ padding: 12, paddingBottom: 40 }}>
+          <View
             style={{
-              fontSize: 18,
-              fontWeight: "700",
-              color: textColor,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
               marginBottom: 16,
+              position: "relative",
+              width: "100%",
             }}
           >
-            Opções da conta
-          </Text>
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                left: 4,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.3)"
+                  : "rgba(0, 0, 0, 0.2)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={() => bottomSheetRef.current?.dismiss()}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-outline" size={24} color={textColor} />
+            </TouchableOpacity>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "500",
+                color: textColor,
+              }}
+            >
+              Opções da conta
+            </Text>
+          </View>
           <View
             style={{
               height: StyleSheet.hairlineWidth,
@@ -362,6 +407,12 @@ export default function SelectProfileScreen() {
               flexDirection: "row",
               alignItems: "center",
               paddingVertical: 12,
+              paddingHorizontal: 16,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.3)"
+                : "rgba(0, 0, 0, 0.2)",
             }}
             activeOpacity={0.7}
             onPress={() => {
@@ -380,8 +431,9 @@ export default function SelectProfileScreen() {
               );
             }}
           >
-            <MaterialCommunityIcons name="delete-outline" size={20} color="#EF4444" style={{ marginRight: 12 }} />
-            <Text style={{ color: "#EF4444", fontSize: 16, fontWeight: "600" }}>
+            <Text
+              style={{ color: textSecondary, fontSize: 16, fontWeight: "600" }}
+            >
               Remover conta atual
             </Text>
           </TouchableOpacity>
@@ -512,7 +564,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   removeProfileButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+    borderWidth: 1,
   },
   savedProfileActions: {
     alignItems: "center",

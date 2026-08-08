@@ -25,19 +25,46 @@ export default function RegisterScreen() {
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
+  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [usernameEdited, setUsernameEdited] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [nameFocused, setNameFocused] = useState(false);
   const [usernameFocused, setUsernameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (!usernameEdited) {
+      const generated = val
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "");
+      setUsername(generated);
+    }
+  };
+
+  const handleUsernameChange = (val: string) => {
+    setUsernameEdited(true);
+    const formatted = val
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
+    setUsername(formatted);
+  };
+
   async function handleRegister() {
-    if (!username.trim() || !email.trim() || !password) {
+    if (!name.trim() || !username.trim() || !email.trim() || !password) {
       setError("Todos os campos são obrigatórios.");
       Alert.alert("Erro", "Todos os campos são obrigatórios.");
       return;
@@ -46,11 +73,12 @@ export default function RegisterScreen() {
     setError(null);
     setLoading(true);
     try {
-      const data = await register(username.trim(), email.trim(), password);
+      const data = await register(username.trim(), email.trim(), password, name.trim());
       await signIn(data.token, {
         user_id: data.user_id,
         username: data.username,
         email: data.email,
+        name: data.name,
       });
     } catch (err: any) {
       console.error("Registration error:", err);
@@ -137,6 +165,29 @@ export default function RegisterScreen() {
               </View>
             ) : null}
 
+            {/* Name Input */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textSecondary }]}>
+                NOME
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: inputBg,
+                    borderColor: nameFocused ? borderFocused : borderDefault,
+                    color: textColor,
+                  },
+                ]}
+                placeholder="Ex: Zé Pneus"
+                placeholderTextColor={isDark ? "#4B5563" : "#9CA3AF"}
+                value={name}
+                onChangeText={handleNameChange}
+                onFocus={() => setNameFocused(true)}
+                onBlur={() => setNameFocused(false)}
+              />
+            </View>
+
             {/* Username Input */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: textSecondary }]}>
@@ -156,7 +207,7 @@ export default function RegisterScreen() {
                 placeholder="seu_usuario"
                 placeholderTextColor={isDark ? "#4B5563" : "#9CA3AF"}
                 value={username}
-                onChangeText={setUsername}
+                onChangeText={handleUsernameChange}
                 autoCapitalize="none"
                 onFocus={() => setUsernameFocused(true)}
                 onBlur={() => setUsernameFocused(false)}
