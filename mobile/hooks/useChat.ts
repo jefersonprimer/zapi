@@ -445,6 +445,10 @@ export function useChat() {
           if (contact.avatar_url) {
             setParticipantAvatarUrl(contact.avatar_url);
           }
+          const nameToDisplay = contact.custom_name || contact.name || contact.username;
+          if (nameToDisplay) {
+            setDisplayTitle(nameToDisplay);
+          }
         }
       } catch (err) {
         console.error("Error checking contact status:", err);

@@ -138,6 +138,7 @@ pub async fn list_chats(
             (SELECT u2.username FROM chat_participants cp2 JOIN users u2 ON u2.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1) AS participant_username,
             (SELECT u2.avatar_url FROM chat_participants cp2 JOIN users u2 ON u2.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1) AS participant_avatar_url,
             (SELECT u2.name FROM chat_participants cp2 JOIN users u2 ON u2.id = cp2.user_id WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1) AS participant_name,
+            (SELECT con.custom_name FROM contacts con WHERE con.user_id = $1 AND con.contact_id = (SELECT cp2.user_id FROM chat_participants cp2 WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1)) AS participant_custom_name,
             (SELECT s.id FROM stores s WHERE s.owner_id = (SELECT cp2.user_id FROM chat_participants cp2 WHERE cp2.chat_id = c.id AND cp2.user_id != $1 LIMIT 1) LIMIT 1) AS participant_store_id,
             c.is_group,
             c.name,

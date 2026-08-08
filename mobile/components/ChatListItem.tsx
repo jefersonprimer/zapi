@@ -81,7 +81,9 @@ export default function ChatListItem({
           <Text style={styles.avatarText}>
             {item.is_group
               ? (item.name ?? "G")[0].toUpperCase()
-              : (item.participant_name ??
+              : (item.participant_custom_name ??
+                  (item as any).custom_name ??
+                  item.participant_name ??
                   item.participant_username ??
                   "?")[0].toUpperCase()}
           </Text>
@@ -93,10 +95,14 @@ export default function ChatListItem({
             style={[styles.chatName, { color: colors.text }]}
             numberOfLines={1}
           >
-            {item.name ??
-              item.participant_name ??
-              item.participant_username ??
-              "Unknown"}
+            {item.is_group
+              ? (item.name ?? "Group")
+              : (item.participant_custom_name ??
+                  (item as any).custom_name ??
+                  item.name ??
+                  item.participant_name ??
+                  item.participant_username ??
+                  "Unknown")}
           </Text>
           <Text
             style={[

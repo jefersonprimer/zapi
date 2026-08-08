@@ -33,6 +33,7 @@ export interface ChatListItem {
   participant_username: string | null;
   participant_avatar_url: string | null;
   participant_name: string | null;
+  participant_custom_name?: string | null;
   participant_store_id?: string | null;
   is_group: boolean;
   name: string | null;
@@ -331,6 +332,7 @@ export interface Contact {
   avatar_url?: string | null;
   about?: string | null;
   name?: string | null;
+  custom_name?: string | null;
   store_id?: string | null;
 }
 
@@ -342,6 +344,13 @@ export async function addContact(token: string, contactId: string): Promise<{ st
   return authFetch(`${API_URL}/contacts`, token, {
     method: "POST",
     body: JSON.stringify({ contact_id: contactId }),
+  });
+}
+
+export async function updateContactName(token: string, contactId: string, customName: string | null): Promise<{ status: string }> {
+  return authFetch(`${API_URL}/contacts/${contactId}`, token, {
+    method: "PUT",
+    body: JSON.stringify({ custom_name: customName }),
   });
 }
 

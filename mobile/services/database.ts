@@ -57,6 +57,7 @@ export async function initializeDatabase() {
       participant_username TEXT,
       participant_avatar_url TEXT,
       participant_name TEXT,
+      participant_custom_name TEXT,
       is_group INTEGER DEFAULT 0,
       name TEXT,
       avatar_url TEXT,
@@ -73,6 +74,11 @@ export async function initializeDatabase() {
     );
   `);
 
+  try {
+    await db.execAsync("ALTER TABLE chats ADD COLUMN participant_custom_name TEXT;");
+  } catch (e) {
+    // Ignore error if column already exists
+  }
   try {
     await db.execAsync("ALTER TABLE chats ADD COLUMN participant_name TEXT;");
   } catch (e) {
@@ -341,18 +347,19 @@ export async function saveChats(chats: ChatListItem[]) {
 
     await db.runAsync(
       `INSERT INTO chats (
-        id, participant_id, participant_username, participant_avatar_url, participant_name, is_group, name, 
+        id, participant_id, participant_username, participant_avatar_url, participant_name, participant_custom_name, is_group, name, 
         avatar_url, description,
         last_message, last_message_at, created_at, unread_count, 
         is_blocked_by_me, is_blocked_by_them, messages_restricted_reason,
         notification_muted_until, notification_muted_forever,
         is_archived, is_favorite, is_pinned
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         participant_id=excluded.participant_id,
         participant_username=excluded.participant_username,
         participant_avatar_url=excluded.participant_avatar_url,
         participant_name=excluded.participant_name,
+        participant_custom_name=excluded.participant_custom_name,
         is_group=excluded.is_group,
         name=excluded.name,
         avatar_url=excluded.avatar_url,
@@ -375,6 +382,7 @@ export async function saveChats(chats: ChatListItem[]) {
         chat.participant_username || null,
         chat.participant_avatar_url || null,
         chat.participant_name || null,
+        chat.participant_custom_name || null,
         chat.is_group ? 1 : 0,
         chat.name || null,
         chat.avatar_url || null,
@@ -481,6 +489,7 @@ export async function getChatsFromLocal(): Promise<ChatListItem[]> {
     participant_username: r.participant_username,
     participant_avatar_url: r.participant_avatar_url,
     participant_name: r.participant_name,
+    participant_custom_name: r.participant_custom_name,
     is_group: r.is_group === 1,
     name: r.name,
     avatar_url: r.avatar_url,

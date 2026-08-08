@@ -29,11 +29,14 @@ export default function ChatListItemPinned({
 }: ChatListItemPinnedProps) {
   const { colors, isDark } = useAppTheme();
 
-  const name =
-    item.name ??
-    item.participant_name ??
-    item.participant_username ??
-    "Unknown";
+  const name = item.is_group
+    ? (item.name ?? "Group")
+    : (item.participant_custom_name ??
+        (item as any).custom_name ??
+        item.name ??
+        item.participant_name ??
+        item.participant_username ??
+        "Unknown");
 
   const badgeBorder = isDark
     ? "rgba(255, 255, 255, 0.12)"
@@ -81,7 +84,9 @@ export default function ChatListItemPinned({
             <Text style={styles.avatarText}>
               {item.is_group
                 ? (item.name ?? "G")[0].toUpperCase()
-                : (item.participant_name ??
+                : (item.participant_custom_name ??
+                    (item as any).custom_name ??
+                    item.participant_name ??
                     item.participant_username ??
                     "?")[0].toUpperCase()}
             </Text>

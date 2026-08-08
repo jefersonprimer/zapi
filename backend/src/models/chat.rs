@@ -22,6 +22,7 @@ pub struct ChatListItem {
     pub participant_username: Option<String>,
     pub participant_avatar_url: Option<String>,
     pub participant_name: Option<String>,
+    pub participant_custom_name: Option<String>,
     pub participant_store_id: Option<Uuid>,
     pub is_group: bool,
     pub name: Option<String>,

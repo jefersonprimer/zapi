@@ -19,6 +19,7 @@ pub struct ContactResponse {
     pub avatar_url: Option<String>,
     pub about: Option<String>,
     pub name: Option<String>,
+    pub custom_name: Option<String>,
     pub store_id: Option<Uuid>,
 }
 
@@ -27,18 +28,23 @@ pub struct AddContactRequest {
     pub contact_id: Uuid,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateContactRequest {
+    pub custom_name: Option<String>,
+}
+
 pub async fn list_contacts(
     AuthUser(user_id): AuthUser,
     State(pool): State<PgPool>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let contacts = sqlx::query_as::<_, ContactResponse>(
         r#"
-        SELECT c.contact_id, u.username, u.email, c.is_blocked, u.avatar_url, u.about, u.name,
+        SELECT c.contact_id, u.username, u.email, c.is_blocked, u.avatar_url, u.about, u.name, c.custom_name,
                (SELECT s.id FROM stores s WHERE s.owner_id = u.id LIMIT 1) AS store_id
         FROM contacts c
         JOIN users u ON c.contact_id = u.id
         WHERE c.user_id = $1
-        ORDER BY u.username ASC
+        ORDER BY COALESCE(c.custom_name, u.name, u.username) ASC
         "#
     )
     .bind(user_id)
@@ -116,6 +122,37 @@ pub async fn add_contact(
     }
 
     Ok((StatusCode::CREATED, Json(json!({ "status": "success" }))))
+}
+
+pub async fn update_contact(
+    AuthUser(user_id): AuthUser,
+    State(pool): State<PgPool>,
+    Path(contact_id): Path<Uuid>,
+    Json(payload): Json<UpdateContactRequest>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let result = sqlx::query(
+        "UPDATE contacts SET custom_name = $1 WHERE user_id = $2 AND contact_id = $3"
+    )
+    .bind(payload.custom_name)
+    .bind(user_id)
+    .bind(contact_id)
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+    })?;
+
+    if result.rows_affected() == 0 {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Contact not found" })),
+        ));
+    }
+
+    Ok(Json(json!({ "status": "success" })))
 }
 
 pub async fn remove_contact(

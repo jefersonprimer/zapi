@@ -16,6 +16,7 @@ export interface UserContactCardProps {
   avatarUrl?: string | null;
   name?: string | null;
   username: string;
+  customName?: string | null;
   email?: string | null;
   onPress?: () => void;
   onLongPress?: () => void;
@@ -57,6 +58,7 @@ export const UserContactCard: React.FC<UserContactCardProps> = ({
   avatarUrl,
   name,
   username,
+  customName,
   email,
   onPress,
   onLongPress,
@@ -67,7 +69,7 @@ export const UserContactCard: React.FC<UserContactCardProps> = ({
   checked,
 }) => {
   const { colors, isDark } = useAppTheme();
-  const displayName = name || username;
+  const displayName = customName || name || username;
   const avatarBg = avatarUrl ? "transparent" : getAvatarColor(displayName);
 
   const renderAvatar = () => {

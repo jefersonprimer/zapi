@@ -28,6 +28,7 @@ import {
   API_URL,
   createChat,
   getChats,
+  updateContactName,
 } from "@/services/api";
 import {
   toggleBlockContact,
@@ -43,6 +44,7 @@ import * as updatesApi from "@/services/updatesApi";
 import CreateListModal from "@/components/CreateListModal";
 import MuteModal from "@/components/MuteModal";
 import ListSelectorModal from "@/components/ListSelectorModal";
+import RenameContactModal from "@/components/RenameContactModal";
 import { chatRepository } from "@/services/ChatRepository";
 
 export default function ContactDetailScreen() {
@@ -71,6 +73,7 @@ export default function ContactDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
 
   const [muteModalVisible, setMuteModalVisible] = useState(false);
@@ -190,6 +193,23 @@ export default function ContactDetailScreen() {
       Alert.alert(
         "Erro",
         err.message || "Não foi possível atualizar os favoritos.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveName = async (newName: string | null) => {
+    if (!token || !participantId) return;
+    try {
+      setActionLoading(true);
+      await updateContactName(token, participantId, newName);
+      setContact((prev) => (prev ? { ...prev, custom_name: newName } : null));
+      setRenameModalVisible(false);
+    } catch (err: any) {
+      Alert.alert(
+        "Erro",
+        err.message || "Não foi possível atualizar o apelido do contato.",
       );
     } finally {
       setActionLoading(false);
@@ -472,6 +492,7 @@ export default function ContactDetailScreen() {
   };
 
   const displayName =
+    contact?.custom_name ||
     contact?.name ||
     participantUsername ||
     contact?.username ||
@@ -697,13 +718,7 @@ export default function ContactDetailScreen() {
               {displayName}
             </Text>
 
-            {!!(contact?.username || participantUsername) && (
-              <Text
-                style={[styles.usernameText, { color: colors.textSecondary }]}
-              >
-                @{contact?.username || participantUsername}
-              </Text>
-            )}
+
 
             {isBlocked && (
               <View
@@ -1660,6 +1675,26 @@ export default function ContactDetailScreen() {
               },
             ]}
           >
+            {contact && (
+              <TouchableOpacity
+                style={[
+                  styles.menuItem,
+                  {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.border,
+                  },
+                ]}
+                onPress={() => {
+                  setMenuVisible(false);
+                  setRenameModalVisible(true);
+                }}
+              >
+                <Text style={[styles.menuItemText, { color: colors.text }]}>
+                  Editar
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => {
@@ -1767,6 +1802,13 @@ export default function ContactDetailScreen() {
           setListSelectorVisible(true);
         }}
         onSubmit={handleCreateList}
+      />
+
+      <RenameContactModal
+        visible={renameModalVisible}
+        initialName={contact?.custom_name || ""}
+        onClose={() => setRenameModalVisible(false)}
+        onSubmit={handleSaveName}
       />
     </View>
   );
@@ -1978,7 +2020,7 @@ const styles = StyleSheet.create({
   menuContainer: {
     position: "absolute",
     right: 6,
-    borderRadius: 8,
+    borderRadius: 16,
     paddingVertical: 4,
     width: 220,
     shadowColor: "#000",

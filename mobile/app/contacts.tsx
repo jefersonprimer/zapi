@@ -222,6 +222,8 @@ export default function ContactsScreen() {
             <UserContactCard
               avatarUrl={item.avatar_url}
               username={item.username}
+              name={item.name}
+              customName={item.custom_name}
               email={item.email}
               onPress={() => handleStartChat(item)}
               onLongPress={() => {

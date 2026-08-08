@@ -1,4 +1,4 @@
-use axum::{extract::{FromRef, DefaultBodyLimit}, routing::delete, routing::get, routing::post, Router};
+use axum::{extract::{FromRef, DefaultBodyLimit}, routing::delete, routing::get, routing::post, routing::put, Router};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
 
@@ -66,7 +66,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/calls/:id", delete(handlers::calls::delete_call))
         .route("/contacts", get(handlers::contacts::list_contacts))
         .route("/contacts", post(handlers::contacts::add_contact))
-        .route("/contacts/:contact_id", delete(handlers::contacts::remove_contact))
+        .route("/contacts/:contact_id", put(handlers::contacts::update_contact).delete(handlers::contacts::remove_contact))
         .route("/contacts/:contact_id/block", post(handlers::contacts::block_contact))
         .route("/contacts/:contact_id/unblock", post(handlers::contacts::unblock_contact))
         .route("/pix/me", get(handlers::pix::get_my_pix_key))
