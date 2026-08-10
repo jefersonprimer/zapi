@@ -76,8 +76,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: pageBg }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       {/* Header */}
       <View
@@ -104,7 +103,7 @@ export default function LoginScreen() {
           styles.scrollContent,
           {
             paddingTop: 10,
-            paddingBottom: insets.bottom > 0 ? insets.bottom + 16 : 24,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
           },
         ]}
         keyboardShouldPersistTaps="handled"
