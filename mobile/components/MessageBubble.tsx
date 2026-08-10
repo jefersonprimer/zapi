@@ -100,7 +100,6 @@ function ScheduledCountdown({ targetTime }: { targetTime: number }) {
   );
 }
 
-
 interface MessageVideoProps {
   uri: string;
   isFullScreen: boolean;
@@ -269,10 +268,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const mediaUrl = isForwarded
     ? forwarded?.local_file_path ||
       forwarded?.image_url ||
-      (forwardedContentIsLink && isUrlMediaOrYoutube(forwarded.content) ? forwarded.content : null)
+      (forwardedContentIsLink && isUrlMediaOrYoutube(forwarded.content)
+        ? forwarded.content
+        : null)
     : item.local_file_path ||
       item.image_url ||
-      (contentIsLink && isUrlMediaOrYoutube(item.content) ? item.content : null);
+      (contentIsLink && isUrlMediaOrYoutube(item.content)
+        ? item.content
+        : null);
 
   const fullUrl = mediaUrl
     ? mediaUrl.startsWith("http") || mediaUrl.startsWith("file://")
@@ -439,13 +442,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.8)" />
       )}
       {item.status === "delivered" && (
-        <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.8)" />
+        <Ionicons
+          name="checkmark-done"
+          size={14}
+          color="rgba(255,255,255,0.8)"
+        />
       )}
       {item.status === "read" && (
         <Ionicons name="checkmark-done" size={14} color="#34B7F1" />
       )}
       {!item.status && (
-        <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.8)" />
+        <Ionicons
+          name="checkmark-done"
+          size={14}
+          color="rgba(255,255,255,0.8)"
+        />
       )}
     </View>
   );
@@ -620,6 +631,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             ]}
           >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
+            <View
+              style={[
+                styles.reactionTail,
+                {
+                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.reactionCircle,
+                {
+                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                  borderColor: colors.border,
+                },
+              ]}
+            />
           </View>
         )}
       </View>
@@ -769,6 +797,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             ]}
           >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
+            <View
+              style={[
+                styles.reactionTail,
+                {
+                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.reactionCircle,
+                {
+                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                  borderColor: colors.border,
+                },
+              ]}
+            />
           </View>
         )}
       </View>
@@ -886,6 +931,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             ]}
           >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
+            <View
+              style={[
+                styles.reactionTail,
+                {
+                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.reactionCircle,
+                {
+                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                  borderColor: colors.border,
+                },
+              ]}
+            />
           </View>
         )}
       </View>
@@ -1034,6 +1096,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             ]}
           >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
+            <View
+              style={[
+                styles.reactionTail,
+                {
+                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.reactionCircle,
+                {
+                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                  borderColor: colors.border,
+                },
+              ]}
+            />
           </View>
         )}
       </View>
@@ -1190,6 +1269,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             ]}
           >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
+            <View
+              style={[
+                styles.reactionTail,
+                {
+                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.reactionCircle,
+                {
+                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                  borderColor: colors.border,
+                },
+              ]}
+            />
           </View>
         )}
       </View>
@@ -1259,6 +1355,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             ]}
           >
             <Text style={styles.reactionPillText}>{item.reaction}</Text>
+            <View
+              style={[
+                styles.reactionTail,
+                {
+                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.reactionCircle,
+                {
+                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
+                  borderColor: colors.border,
+                },
+              ]}
+            />
           </View>
         )}
         <View
@@ -1345,12 +1458,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <>
               {isImage ? (
                 <TouchableOpacity
-                  style={isSticker ? styles.stickerTouchable : styles.mediaTouchable}
+                  style={
+                    isSticker ? styles.stickerTouchable : styles.mediaTouchable
+                  }
                   onPress={() => setIsFullScreen(true)}
                   onLongPress={onLongPress}
                   activeOpacity={0.9}
                 >
-                  <View style={isSticker ? styles.stickerFrame : styles.mediaFrame}>
+                  <View
+                    style={isSticker ? styles.stickerFrame : styles.mediaFrame}
+                  >
                     {isSvgMedia ? (
                       <SvgUri
                         style={[StyleSheet.absoluteFillObject, styles.mediaSvg]}
@@ -1723,23 +1840,57 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {(onCreateNote || onCreateReminder || onCreateEvent) && (
           <View style={styles.minimalActionRow}>
             {onCreateNote && (
-              <TouchableOpacity style={styles.minimalChip} onPress={onCreateNote}>
-                <Ionicons name="document-text-outline" size={12} color="#6366F1" />
-                <Text style={[styles.minimalChipText, { color: colors.textSecondary }]}>Nota</Text>
+              <TouchableOpacity
+                style={styles.minimalChip}
+                onPress={onCreateNote}
+              >
+                <Ionicons
+                  name="document-text-outline"
+                  size={12}
+                  color="#6366F1"
+                />
+                <Text
+                  style={[
+                    styles.minimalChipText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Nota
+                </Text>
               </TouchableOpacity>
             )}
 
             {onCreateReminder && (
-              <TouchableOpacity style={styles.minimalChip} onPress={onCreateReminder}>
+              <TouchableOpacity
+                style={styles.minimalChip}
+                onPress={onCreateReminder}
+              >
                 <Ionicons name="alarm-outline" size={12} color="#F59E0B" />
-                <Text style={[styles.minimalChipText, { color: colors.textSecondary }]}>Lembrete</Text>
+                <Text
+                  style={[
+                    styles.minimalChipText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Lembrete
+                </Text>
               </TouchableOpacity>
             )}
 
             {onCreateEvent && (
-              <TouchableOpacity style={styles.minimalChip} onPress={onCreateEvent}>
+              <TouchableOpacity
+                style={styles.minimalChip}
+                onPress={onCreateEvent}
+              >
                 <Ionicons name="calendar-outline" size={12} color="#10B981" />
-                <Text style={[styles.minimalChipText, { color: colors.textSecondary }]}>Evento</Text>
+                <Text
+                  style={[
+                    styles.minimalChipText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Evento
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -2172,6 +2323,30 @@ const styles = StyleSheet.create({
   },
   reactionPillText: {
     fontSize: 14,
+  },
+  reactionTail: {
+    position: "absolute",
+    left: -3,
+    bottom: -2,
+    width: 0,
+    height: 0,
+    backgroundColor: "transparent",
+    borderStyle: "solid",
+    borderTopWidth: 6,
+    borderBottomWidth: 4,
+    borderRightWidth: 8,
+    borderTopColor: "transparent",
+    borderBottomColor: "transparent",
+    transform: [{ rotate: "-40deg" }],
+  },
+  reactionCircle: {
+    position: "absolute",
+    left: -9,
+    bottom: -8,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   locationShareCard: {
     borderWidth: 1,
