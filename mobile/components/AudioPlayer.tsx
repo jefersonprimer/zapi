@@ -221,7 +221,8 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 16,
     marginVertical: 4,
-    minWidth: 260,
+    width: 280,
+    maxWidth: "100%",
   },
   containerMine: {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   timelineTouch: {
     height: 32,
     justifyContent: "center",
-    width: 150,
+    width: "100%",
   },
   waveformContainer: {
     flexDirection: "row",

@@ -1251,9 +1251,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     <View
       style={{
         alignSelf: isMine ? "flex-end" : "flex-start",
-        flexDirection: "row",
+        flexDirection: isMine ? "row" : "row-reverse",
         alignItems: "center",
-        maxWidth: isFileMessage ? "85%" : "75%",
+        maxWidth: "100%",
         marginBottom: 8,
       }}
     >
@@ -1262,7 +1262,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           onPress={handleForwardMessage}
           onLongPress={onLongPress}
           style={{
-            marginRight: 8,
+            marginRight: isMine ? 8 : 0,
+            marginLeft: isMine ? 0 : 8,
             width: 36,
             height: 36,
             borderRadius: 18,
@@ -1281,7 +1282,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           />
         </TouchableOpacity>
       )}
-      <View style={{ flexDirection: "column", flexShrink: 1 }}>
+      <View
+        style={{
+          flexDirection: "column",
+          flexShrink: 1,
+          alignSelf: isMine ? "flex-end" : "flex-start",
+          maxWidth: (isFileMessage || isAudio) ? "95%" : "90%",
+        }}
+      >
         {item.reaction && (
           <View
             style={[
@@ -1323,7 +1331,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             isMine
               ? [styles.myMessage, { backgroundColor: colors.tint }]
               : [styles.theirMessage, { backgroundColor: colors.surface }],
-            { marginBottom: 0, flexShrink: 1 },
+            { marginBottom: 0, alignSelf: "stretch" },
             isAudio && { padding: 4 },
             (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
               padding: 4,
@@ -1826,7 +1834,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
 const styles = StyleSheet.create({
   youtubeThumbnailContainer: {
-    width: 260,
+    width: 280,
+    maxWidth: "100%",
     height: 180,
     borderRadius: 16,
     overflow: "hidden",
@@ -1867,17 +1876,19 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   messageImage: {
-    width: 240,
-    height: 300,
+    width: 260,
+    height: 360,
     marginBottom: 4,
   },
   mediaTouchable: {
-    width: 240,
+    width: 260,
+    maxWidth: "100%",
     alignSelf: "flex-start",
   },
   mediaFrame: {
-    width: 240,
-    height: 300,
+    width: 260,
+    maxWidth: "100%",
+    height: 360,
     borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "#FFFFFF",
@@ -1902,7 +1913,8 @@ const styles = StyleSheet.create({
   myMessageTime: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
   theirMessageTime: {},
   videoContainer: {
-    width: 260,
+    width: 280,
+    maxWidth: "100%",
     height: 180,
     borderRadius: 16,
     overflow: "hidden",
@@ -1936,7 +1948,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 16,
     marginBottom: 4,
-    width: 220,
+    width: 260,
+    maxWidth: "100%",
   },
   docBubbleMine: { backgroundColor: "rgba(255, 255, 255, 0.12)" },
   docBubbleTheir: { backgroundColor: "rgba(0, 0, 0, 0.05)" },
@@ -2043,6 +2056,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     width: 220,
+    maxWidth: "100%",
   },
   contactShareHeader: {
     flexDirection: "row",
@@ -2093,6 +2107,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     width: 240,
+    maxWidth: "100%",
   },
   pixShareHeader: {
     flexDirection: "row",
@@ -2131,6 +2146,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     width: 220,
+    maxWidth: "100%",
   },
   noteShareHeader: {
     flexDirection: "row",
@@ -2200,6 +2216,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     width: 250,
+    maxWidth: "100%",
   },
   orderShareHeader: {
     flexDirection: "row",
@@ -2277,6 +2294,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     width: 220,
+    maxWidth: "100%",
   },
   locationShareHeader: {
     flexDirection: "row",
