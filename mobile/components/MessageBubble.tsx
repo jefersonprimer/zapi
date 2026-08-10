@@ -137,6 +137,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const { colors, isDark } = useAppTheme();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const router = useRouter();
   const { token } = useAuth();
 
@@ -333,6 +334,56 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       attachment?.mime_type === "image/webp" ||
       attachment?.mime_type === "image/gif");
 
+  useEffect(() => {
+    if (isImage && !isSticker && fullUrl) {
+      if (attachment && attachment.width && attachment.height) {
+        setDimensions({ width: attachment.width, height: attachment.height });
+        return;
+      }
+      RNImage.getSize(
+        fullUrl,
+        (width, height) => {
+          setDimensions({ width, height });
+        },
+        (error) => {
+          console.warn("Failed to get image size: ", error);
+        }
+      );
+    }
+  }, [isImage, isSticker, fullUrl, attachment]);
+
+  const MIN_WIDTH = 260;
+  const MAX_WIDTH = 280;
+  const MIN_HEIGHT = 140;
+  const MAX_HEIGHT = 360;
+
+  let displayWidth = MAX_WIDTH;
+  let displayHeight = MAX_HEIGHT;
+
+  if (dimensions) {
+    const { width, height } = dimensions;
+    if (width && height) {
+      const imageAspectRatio = width / height;
+      
+      let targetWidth = MAX_WIDTH;
+      let targetHeight = Math.round(targetWidth / imageAspectRatio);
+
+      if (targetHeight < MIN_HEIGHT) {
+        targetHeight = MIN_HEIGHT;
+        targetWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(MIN_HEIGHT * imageAspectRatio)));
+      } else if (targetHeight > MAX_HEIGHT) {
+        targetHeight = MAX_HEIGHT;
+        targetWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(MAX_HEIGHT * imageAspectRatio)));
+      } else {
+        targetWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, targetWidth));
+        targetHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(targetWidth / imageAspectRatio)));
+      }
+
+      displayWidth = targetWidth;
+      displayHeight = targetHeight;
+    }
+  }
+
   console.log("[MessageBubble] Debug:", {
     msgId: item.id,
     mediaUrl,
@@ -475,7 +526,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       <View
         style={{
           alignSelf: isMine ? "flex-end" : "flex-start",
-          maxWidth: "75%",
+          maxWidth: "95%",
           marginBottom: 8,
         }}
       >
@@ -1391,14 +1442,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               {isImage ? (
                 <TouchableOpacity
                   style={
-                    isSticker ? styles.stickerTouchable : styles.mediaTouchable
+                    isSticker ? styles.stickerTouchable : [styles.mediaTouchable, dimensions ? { width: displayWidth } : null]
                   }
                   onPress={() => setIsFullScreen(true)}
                   onLongPress={onLongPress}
                   activeOpacity={0.9}
                 >
                   <View
-                    style={isSticker ? styles.stickerFrame : styles.mediaFrame}
+                    style={isSticker ? styles.stickerFrame : [styles.mediaFrame, dimensions ? { width: displayWidth, height: displayHeight } : null]}
                   >
                     {isSvgMedia ? (
                       <SvgUri
@@ -1412,7 +1463,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       <Image
                         source={{ uri: fullUrl }}
                         style={StyleSheet.absoluteFillObject}
-                        contentFit="contain"
+                        contentFit="cover"
                         cachePolicy="disk"
                       />
                     )}
@@ -1423,6 +1474,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   uri={fullUrl}
                   isMine={isMine}
                   onLongPress={onLongPress}
+                  style={styles.audioPlayer}
                 />
               ) : isVideo ? (
                 <TouchableOpacity
@@ -1912,6 +1964,10 @@ const styles = StyleSheet.create({
   messageTime: { fontSize: 11, lineHeight: 14, includeFontPadding: false },
   myMessageTime: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
   theirMessageTime: {},
+  audioPlayer: {
+    width: 280,
+    maxWidth: "100%",
+  },
   videoContainer: {
     width: 280,
     maxWidth: "100%",
@@ -2293,7 +2349,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 12,
     borderRadius: 16,
-    width: 220,
+    width: 260,
     maxWidth: "100%",
   },
   locationShareHeader: {

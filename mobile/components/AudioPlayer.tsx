@@ -8,12 +8,14 @@ interface AudioPlayerProps {
   uri: string;
   isMine: boolean;
   onLongPress?: () => void;
+  style?: any;
 }
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   uri,
   isMine,
   onLongPress,
+  style,
 }) => {
   const { colors, isDark } = useAppTheme();
   const [speed, setSpeed] = useState(1.0);
@@ -88,6 +90,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                   : "rgba(0, 0, 0, 0.05)",
               },
             ],
+        style,
       ]}
     >
       <TouchableOpacity
