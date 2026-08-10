@@ -28,7 +28,7 @@ export default function ListSelectorModal({
   onSave,
   onCreateNewList,
 }: ListSelectorModalProps) {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const [selectedListIds, setSelectedListIds] = useState<string[]>(
     initialSelectedListIds,
   );
@@ -67,8 +67,12 @@ export default function ListSelectorModal({
           style={[
             styles.themeDialog,
             {
-              backgroundColor: colors.menuBackground,
-              borderColor: colors.border,
+              backgroundColor: isDark
+                ? "rgba(30, 30, 30, 0.85)"
+                : "rgba(255, 255, 255, 0.85)",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.12)"
+                : "rgba(0, 0, 0, 0.08)",
             },
           ]}
           onStartShouldSetResponder={() => true}
@@ -203,8 +207,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   themeDialog: {
-    width: "70%",
-    borderRadius: 24,
+    width: "80%",
+    borderRadius: 32,
     padding: 20,
     borderWidth: 1,
     shadowColor: "#000",

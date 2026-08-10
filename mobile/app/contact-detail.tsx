@@ -581,7 +581,9 @@ export default function ContactDetailScreen() {
             style={[
               styles.backBtn,
               {
-                borderColor: colors.border,
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
                 backgroundColor: isDark
                   ? "rgba(30, 30, 30, 0.98)"
                   : "rgba(255, 255, 255, 0.98)",
@@ -643,7 +645,9 @@ export default function ContactDetailScreen() {
             style={[
               styles.headerMenuBtn,
               {
-                borderColor: colors.border,
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
                 backgroundColor: isDark
                   ? "rgba(30, 30, 30, 0.98)"
                   : "rgba(255, 255, 255, 0.98)",
@@ -838,6 +842,12 @@ export default function ContactDetailScreen() {
                 style={[
                   styles.tabItem,
                   activeTab === "info" && styles.activeTabItem,
+                  activeTab === "info" && {
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.12)"
+                      : "rgba(0, 0, 0, 0.08)",
+                  },
                 ]}
                 onPress={() => setActiveTab("info")}
               >
@@ -868,6 +878,12 @@ export default function ContactDetailScreen() {
                 style={[
                   styles.tabItem,
                   activeTab === "media" && styles.activeTabItem,
+                  activeTab === "media" && {
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.12)"
+                      : "rgba(0, 0, 0, 0.08)",
+                  },
                 ]}
                 onPress={() => setActiveTab("media")}
               >
@@ -898,6 +914,12 @@ export default function ContactDetailScreen() {
                 style={[
                   styles.tabItem,
                   activeTab === "links" && styles.activeTabItem,
+                  activeTab === "links" && {
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.12)"
+                      : "rgba(0, 0, 0, 0.08)",
+                  },
                 ]}
                 onPress={() => setActiveTab("links")}
               >
@@ -928,6 +950,12 @@ export default function ContactDetailScreen() {
                 style={[
                   styles.tabItem,
                   activeTab === "docs" && styles.activeTabItem,
+                  activeTab === "docs" && {
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.12)"
+                      : "rgba(0, 0, 0, 0.08)",
+                  },
                 ]}
                 onPress={() => setActiveTab("docs")}
               >
@@ -958,6 +986,12 @@ export default function ContactDetailScreen() {
                 style={[
                   styles.tabItem,
                   activeTab === "location" && styles.activeTabItem,
+                  activeTab === "location" && {
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.12)"
+                      : "rgba(0, 0, 0, 0.08)",
+                  },
                 ]}
                 onPress={() => setActiveTab("location")}
               >
@@ -1886,7 +1920,7 @@ const styles = StyleSheet.create({
   profileHeader: {
     alignItems: "center",
     paddingTop: 24,
-    paddingBottom: 16,
+    paddingBottom: 6,
   },
   avatar: {
     width: 110,
