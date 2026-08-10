@@ -98,11 +98,11 @@ export default function ChatListItem({
             {item.is_group
               ? (item.name ?? "Group")
               : (item.participant_custom_name ??
-                  (item as any).custom_name ??
-                  item.name ??
-                  item.participant_name ??
-                  item.participant_username ??
-                  "Unknown")}
+                (item as any).custom_name ??
+                item.name ??
+                item.participant_name ??
+                item.participant_username ??
+                "Unknown")}
           </Text>
           <Text
             style={[

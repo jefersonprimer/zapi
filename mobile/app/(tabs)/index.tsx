@@ -1532,6 +1532,6 @@ const styles = StyleSheet.create({
   },
   pinnedRow: {
     justifyContent: "flex-start",
-    gap: 12,
+    gap: 0,
   },
 });

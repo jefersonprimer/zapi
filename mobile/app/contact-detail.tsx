@@ -718,8 +718,6 @@ export default function ContactDetailScreen() {
               {displayName}
             </Text>
 
-
-
             {isBlocked && (
               <View
                 style={[
@@ -1670,7 +1668,9 @@ export default function ContactDetailScreen() {
               styles.menuContainer,
               {
                 backgroundColor: colors.menuBackground || colors.surface,
-                borderColor: colors.border,
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
                 top: insets.top + 10,
               },
             ]}
@@ -1871,11 +1871,11 @@ const styles = StyleSheet.create({
   },
   miniAvatarText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   headerProfileName: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "500",
     flex: 1,
   },
   scrollContent: {
@@ -1892,7 +1892,7 @@ const styles = StyleSheet.create({
     borderRadius: 55,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 8,
   },
   avatarImage: {
     width: "100%",
@@ -1904,11 +1904,11 @@ const styles = StyleSheet.create({
   },
   displayName: {
     fontSize: 22,
-    fontWeight: "600",
+    fontWeight: "500",
     textAlign: "center",
   },
   usernameText: {
-    fontSize: 15,
+    fontSize: 16,
     marginTop: 4,
     textAlign: "center",
   },
@@ -1951,7 +1951,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginVertical: 12,
+    marginVertical: 14,
     gap: 28,
   },
   actionButton: {
@@ -2156,7 +2156,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   tabBarContainer: {
-    marginVertical: 8,
+    marginVertical: 12,
   },
   tabsScroll: {
     paddingHorizontal: 16,
