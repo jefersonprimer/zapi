@@ -5,7 +5,7 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { CallBubble } from "@/components/CallBubble";
 import { useAppTheme } from "@/context/ThemeContext";
 import { isSameDay, getDateLabel } from "@/utils/date";
-import { type Message } from "@/services/api";
+import { type Message, API_URL } from "@/services/api";
 import { type CallHistoryItem } from "@/services/callApi";
 
 export type ChatItem =
@@ -282,36 +282,65 @@ export const ChatItemRow: React.FC<ChatItemRowProps> = ({
               style={styles.messageRow}
               activeOpacity={0.8}
             >
-              <View 
-                ref={bubbleRef}
-                style={{ alignSelf: msg.sender_id === currentUserId ? "flex-end" : "flex-start" }}
-                onLayout={(e) => {
-                  reportBubbleLayout();
-                  setBubbleHeight(e.nativeEvent.layout.height);
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignSelf: msg.sender_id === currentUserId ? "flex-end" : "flex-start",
+                  alignItems: "flex-end",
                 }}
               >
-                <MessageBubble
-                  item={msg}
-                  currentUserId={currentUserId}
-                  isGroup={isGroup}
-                  onLongPress={handleLongPress}
-                  onCreateNote={onCreateNote ? () => onCreateNote(msg) : undefined}
-                  onCreateReminder={onCreateReminder ? () => onCreateReminder(msg) : undefined}
-                  onCreateEvent={onCreateEvent ? () => onCreateEvent(msg) : undefined}
-                />
-                
-                {/* Placed Stickers rendered relative to the bubble view */}
-                {!msg.deleted_for_everyone && msg.placed_stickers?.map((placed) => (
-                  <PlacedStickerComponent
-                    key={placed.id}
-                    placed={placed}
-                    msgId={msg.id}
-                    onRemoveSticker={onRemoveSticker}
-                    extraTop={0}
-                    isMine={msg.sender_id === currentUserId}
-                    bubbleHeight={bubbleHeight}
+                {isGroup && msg.sender_id !== currentUserId && (
+                  <View style={styles.senderAvatarContainer}>
+                    {msg.sender_avatar_url ? (
+                      <Image
+                        source={{
+                          uri: msg.sender_avatar_url.startsWith("http")
+                            ? msg.sender_avatar_url
+                            : `${API_URL}${msg.sender_avatar_url.startsWith("/") ? "" : "/"}${msg.sender_avatar_url}`
+                        }}
+                        style={styles.senderAvatar}
+                      />
+                    ) : (
+                      <View style={[styles.senderAvatar, styles.senderAvatarPlaceholder, { backgroundColor: colors.border }]}>
+                        <Text style={[styles.avatarPlaceholderText, { color: colors.textSecondary }]}>
+                          {msg.sender_username?.[0]?.toUpperCase() || "?"}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                <View 
+                  ref={bubbleRef}
+                  style={{ alignSelf: "auto" }}
+                  onLayout={(e) => {
+                    reportBubbleLayout();
+                    setBubbleHeight(e.nativeEvent.layout.height);
+                  }}
+                >
+                  <MessageBubble
+                    item={msg}
+                    currentUserId={currentUserId}
+                    isGroup={isGroup}
+                    onLongPress={handleLongPress}
+                    onCreateNote={onCreateNote ? () => onCreateNote(msg) : undefined}
+                    onCreateReminder={onCreateReminder ? () => onCreateReminder(msg) : undefined}
+                    onCreateEvent={onCreateEvent ? () => onCreateEvent(msg) : undefined}
                   />
-                ))}
+                  
+                  {/* Placed Stickers rendered relative to the bubble view */}
+                  {!msg.deleted_for_everyone && msg.placed_stickers?.map((placed) => (
+                    <PlacedStickerComponent
+                      key={placed.id}
+                      placed={placed}
+                      msgId={msg.id}
+                      onRemoveSticker={onRemoveSticker}
+                      extraTop={0}
+                      isMine={msg.sender_id === currentUserId}
+                      bubbleHeight={bubbleHeight}
+                    />
+                  ))}
+                </View>
               </View>
             </TouchableOpacity>
           </View>
@@ -366,5 +395,22 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingHorizontal: 8,
     paddingVertical: 4,
+  },
+  senderAvatarContainer: {
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  senderAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  senderAvatarPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarPlaceholderText: {
+    fontSize: 14,
+    fontWeight: "bold",
   },
 });

@@ -28,6 +28,7 @@ pub struct Message {
     pub chat_id: Uuid,
     pub sender_id: Uuid,
     pub sender_username: String,
+    pub sender_avatar_url: Option<String>,
     pub content: Option<String>,
     pub image_url: Option<String>,
     pub order_id: Option<Uuid>,

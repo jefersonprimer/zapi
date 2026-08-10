@@ -1125,6 +1125,7 @@ export interface Message {
   chat_id: string;
   sender_id: string;
   sender_username: string;
+  sender_avatar_url?: string | null;
   content: string | null;
   image_url: string | null;
   order_id?: string | null;

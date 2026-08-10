@@ -38,7 +38,7 @@ import {
 } from "@/services/placedStickersApi";
 import { updateMessageStickersLocal } from "@/services/database";
 import { voiceCallManager } from "@/services/voiceCallManager";
-import { API_URL, PlacedSticker } from "@/services/api";
+import { API_URL, PlacedSticker, removeParticipant } from "@/services/api";
 
 import { EmojiModal } from "@/components/EmojiModal";
 import { GifModal } from "@/components/GifModal";
@@ -174,6 +174,28 @@ export default function ChatScreen() {
       console.error("Failed to remove sticker:", err);
       loadMessages();
     }
+  };
+
+  const handleLeaveGroup = async () => {
+    Alert.alert("Sair do Grupo", "Tem certeza que deseja sair deste grupo?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Sair",
+        style: "destructive",
+        onPress: async () => {
+          if (!token || !chatId || !user) return;
+          try {
+            await removeParticipant(token, chatId, user.user_id);
+            router.replace("/(tabs)");
+          } catch (err: any) {
+            Alert.alert(
+              "Erro",
+              err.message || "Não foi possível sair do grupo.",
+            );
+          }
+        },
+      },
+    ]);
   };
 
   const flatListRef = useRef<FlatList>(null);
@@ -1261,6 +1283,7 @@ export default function ChatScreen() {
           isGroup={isGroup}
           isBlocked={isBlockedByMe}
           onToggleContact={handleToggleContact}
+          onLeaveGroup={handleLeaveGroup}
           onMutePress={() => setMuteModalVisible(true)}
           onBlockPress={handleBlockPress}
           onClearChatPress={handleClearChatPress}

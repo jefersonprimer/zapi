@@ -104,6 +104,11 @@ export async function initializeDatabase() {
   } catch (e) {
     // Ignore error if column already exists
   }
+  try {
+    await db.execAsync("ALTER TABLE messages ADD COLUMN sender_avatar_url TEXT DEFAULT NULL;");
+  } catch (e) {
+    // Ignore error if column already exists
+  }
 
   await db.execAsync(`
 
@@ -191,6 +196,7 @@ export async function initializeDatabase() {
       chat_id TEXT NOT NULL,
       sender_id TEXT NOT NULL,
       sender_username TEXT NOT NULL,
+      sender_avatar_url TEXT,
       content TEXT,
       image_url TEXT,
       local_file_path TEXT,
@@ -410,9 +416,10 @@ export async function saveMessages(messages: Message[]) {
   for (const msg of messages) {
     await db.runAsync(
       `INSERT INTO messages (
-        id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at, reaction, placed_stickers_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, chat_id, sender_id, sender_username, sender_avatar_url, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at, reaction, placed_stickers_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
+        sender_avatar_url = COALESCE(excluded.sender_avatar_url, sender_avatar_url),
         content = excluded.content,
         image_url = excluded.image_url,
         local_file_path = COALESCE(excluded.local_file_path, local_file_path),
@@ -426,6 +433,7 @@ export async function saveMessages(messages: Message[]) {
         msg.chat_id,
         msg.sender_id,
         msg.sender_username,
+        msg.sender_avatar_url || null,
         msg.content || null,
         msg.image_url || null,
         msg.local_file_path || null,
@@ -592,6 +600,7 @@ export async function getMessagesFromLocal(
       chat_id: r.chat_id,
       sender_id: r.sender_id,
       sender_username: r.sender_username,
+      sender_avatar_url: r.sender_avatar_url || null,
       content: r.content,
       // Fallback/compatibility values
       image_url: firstAttachment ? firstAttachment.remote_url : r.image_url,
@@ -615,6 +624,7 @@ export async function insertMessageLocal(msg: {
   chat_id: string;
   sender_id: string;
   sender_username: string;
+  sender_avatar_url?: string | null;
   content: string | null;
   image_url: string | null;
   local_file_path?: string | null;
@@ -628,13 +638,14 @@ export async function insertMessageLocal(msg: {
   const db = await getDatabase();
   await db.runAsync(
     `INSERT INTO messages (
-      id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, reaction, scheduled_for, placed_stickers_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, chat_id, sender_id, sender_username, sender_avatar_url, content, image_url, local_file_path, created_at, status, reaction, scheduled_for, placed_stickers_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       msg.id,
       msg.chat_id,
       msg.sender_id,
       msg.sender_username,
+      msg.sender_avatar_url || null,
       msg.content,
       msg.image_url || null,
       msg.local_file_path || null,
@@ -762,13 +773,14 @@ export async function updateMessageStatusLocal(
         // 2. Insert the message with the new server ID
         await db.runAsync(
           `INSERT OR REPLACE INTO messages (
-            id, chat_id, sender_id, sender_username, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, chat_id, sender_id, sender_username, sender_avatar_url, content, image_url, local_file_path, created_at, status, deleted_for_everyone, deleted_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             updates.serverId,
             localMsg.chat_id,
             localMsg.sender_id,
             localMsg.sender_username,
+            localMsg.sender_avatar_url || null,
             localMsg.content,
             updates.image_url !== undefined ? (updates.image_url || null) : (localMsg.image_url || null),
             updates.local_file_path !== undefined ? (updates.local_file_path || null) : (localMsg.local_file_path || null),

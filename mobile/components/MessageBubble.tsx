@@ -497,22 +497,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           onLongPress={onLongPress}
           activeOpacity={0.9}
         >
-          {isGroup && !isMine && item.sender_username ? (
-            <Text
-              style={[
-                styles.senderUsername,
-                {
-                  color: colors.tint,
-                  marginTop: 8,
-                  marginLeft: 12,
-                  marginBottom: 4,
-                },
-              ]}
-            >
-              {item.sender_username}
-            </Text>
-          ) : null}
-
           <View
             style={{
               width: "100%",
@@ -684,16 +668,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           onLongPress={onLongPress}
           activeOpacity={0.95}
         >
-          {isGroup && !isMine && item.sender_username ? (
-            <Text
-              style={[
-                styles.senderUsername,
-                { color: colors.tint, marginBottom: 8 },
-              ]}
-            >
-              {item.sender_username}
-            </Text>
-          ) : null}
           <View style={styles.contactShareHeader}>
             <View
               style={[
@@ -845,16 +819,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           onLongPress={onLongPress}
           activeOpacity={0.8}
         >
-          {isGroup && !isMine && item.sender_username ? (
-            <Text
-              style={[
-                styles.senderUsername,
-                { color: colors.tint, marginBottom: 8 },
-              ]}
-            >
-              {item.sender_username}
-            </Text>
-          ) : null}
           <View style={styles.pixShareHeader}>
             <View
               style={[
@@ -973,17 +937,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             { borderColor: colors.border, marginBottom: 0, padding: 12 },
           ]}
         >
-          {isGroup && !isMine && item.sender_username ? (
-            <Text
-              style={[
-                styles.senderUsername,
-                { color: colors.tint, marginBottom: 8 },
-              ]}
-            >
-              {item.sender_username}
-            </Text>
-          ) : null}
-
           <View style={styles.orderShareHeader}>
             <View
               style={[
@@ -1140,16 +1093,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           onLongPress={onLongPress}
           activeOpacity={0.95}
         >
-          {isGroup && !isMine && item.sender_username ? (
-            <Text
-              style={[
-                styles.senderUsername,
-                { color: colors.tint, marginBottom: 8 },
-              ]}
-            >
-              {item.sender_username}
-            </Text>
-          ) : null}
           {isForwarded && forwarded && (
             <View style={styles.forwardHeaderRow}>
               <MaterialCommunityIcons
@@ -1349,7 +1292,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 alignSelf: "flex-start",
                 marginBottom: -6,
                 marginTop: 2,
-                marginLeft: 10,
+                marginLeft: 0,
                 zIndex: 10,
               },
             ]}
@@ -1400,25 +1343,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             },
           ]}
         >
-          {isGroup && !isMine && item.sender_username ? (
-            <Text
-              style={[
-                styles.senderUsername,
-                { color: colors.tint },
-                (isImage ||
-                  isVideo ||
-                  youtubeId ||
-                  (!!fullUrl && !isAudio)) && {
-                  marginHorizontal: 8,
-                  marginTop: 6,
-                  marginBottom: 4,
-                },
-              ]}
-            >
-              {item.sender_username}
-            </Text>
-          ) : null}
-
           {isForwarded && forwarded && (
             <View
               style={[

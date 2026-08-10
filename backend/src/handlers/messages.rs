@@ -138,6 +138,7 @@ pub async fn send_message(
             chat_id,
             sender_id,
             (SELECT username FROM users WHERE id = $3) AS sender_username,
+            (SELECT avatar_url FROM users WHERE id = $3) AS sender_avatar_url,
             content,
             image_url,
             order_id,
@@ -472,7 +473,7 @@ pub async fn get_messages(
 
     let mut messages = if let Some(since) = query.since {
         sqlx::query_as::<_, Message>(
-            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at, m.reaction
+            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, u.avatar_url AS sender_avatar_url, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at, m.reaction
              FROM messages m
              JOIN users u ON u.id = m.sender_id
              JOIN chat_participants cp ON cp.chat_id = m.chat_id AND cp.user_id = $2
@@ -489,7 +490,7 @@ pub async fn get_messages(
     } else {
         // Initial load: return last 50 messages
         sqlx::query_as::<_, Message>(
-            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at, m.reaction
+            "SELECT m.id, m.chat_id, m.sender_id, u.username AS sender_username, u.avatar_url AS sender_avatar_url, m.content, m.image_url, m.order_id, m.msg_type, m.created_at, m.deleted_for_everyone, m.deleted_at, m.reaction
              FROM (
                  SELECT * FROM messages 
                  WHERE chat_id = $1 

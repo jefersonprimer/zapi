@@ -14,6 +14,7 @@ interface ChatMenuModalProps {
   onBlockPress?: () => void;
   onClearChatPress?: () => void;
   onAddToListPress?: () => void;
+  onLeaveGroup?: () => void;
 }
 
 export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
@@ -28,6 +29,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
   onBlockPress,
   onClearChatPress,
   onAddToListPress,
+  onLeaveGroup,
 }) => {
   const { colors, isDark } = useAppTheme();
   const menuAnimation = useRef(new Animated.Value(0)).current;
@@ -176,29 +178,50 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          style={[
-            styles.menuItem,
-            {
-              borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: colors.border,
-            },
-          ]}
-          onPress={() => {
-            hideMenu(onToggleContact);
-          }}
-        >
-          <Text
+        {isGroup ? (
+          onLeaveGroup && (
+            <TouchableOpacity
+              style={[
+                styles.menuItem,
+                {
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.border,
+                },
+              ]}
+              onPress={() => {
+                hideMenu(onLeaveGroup);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: colors.danger }]}>
+                Sair do Grupo
+              </Text>
+            </TouchableOpacity>
+          )
+        ) : (
+          <TouchableOpacity
             style={[
-              styles.menuItemText,
-              !isContact
-                ? [styles.addText, { color: colors.tint }]
-                : { color: colors.text },
+              styles.menuItem,
+              {
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.border,
+              },
             ]}
+            onPress={() => {
+              hideMenu(onToggleContact);
+            }}
           >
-            {isContact ? (isGroup ? "Sair do Grupo" : "Remover dos Contatos") : "Adicionar aos Contatos"}
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.menuItemText,
+                !isContact
+                  ? [styles.addText, { color: colors.tint }]
+                  : { color: colors.text },
+              ]}
+            >
+              {isContact ? "Remover dos Contatos" : "Adicionar aos Contatos"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {!isGroup && onBlockPress && (
           <TouchableOpacity
