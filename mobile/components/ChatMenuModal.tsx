@@ -196,7 +196,7 @@ export const ChatMenuModal: React.FC<ChatMenuModalProps> = ({
                 : { color: colors.text },
             ]}
           >
-            {isContact ? "Remover dos Contatos" : "Adicionar aos Contatos"}
+            {isContact ? (isGroup ? "Sair do Grupo" : "Remover dos Contatos") : "Adicionar aos Contatos"}
           </Text>
         </TouchableOpacity>
 
