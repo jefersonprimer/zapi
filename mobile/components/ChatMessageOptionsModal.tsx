@@ -40,6 +40,8 @@ interface ChatMessageOptionsModalProps {
   onCreateReminder?: () => void;
   onCreateEvent?: () => void;
   onAddSticker?: (stickerUrl: string) => void;
+  isSticker?: boolean;
+  onSaveSticker?: () => void;
 }
 
 const HISTORY_KEY = "zapi_reactions_history";
@@ -108,6 +110,8 @@ export function ChatMessageOptionsModal({
   onCreateReminder,
   onCreateEvent,
   onAddSticker,
+  isSticker = false,
+  onSaveSticker,
 }: ChatMessageOptionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const { height: screenHeight, width: screenWidth } = useWindowDimensions();
@@ -457,7 +461,7 @@ export function ChatMessageOptionsModal({
 
                 <TouchableOpacity
                   style={styles.modalRowOption}
-                  onPress={() => hideModal(onCopy)}
+                  onPress={() => hideModal(isSticker && onSaveSticker ? onSaveSticker : onCopy)}
                 >
                   <View
                     style={[
@@ -466,13 +470,13 @@ export function ChatMessageOptionsModal({
                     ]}
                   >
                     <MaterialCommunityIcons
-                      name="content-copy"
+                      name={isSticker ? "sticker-emoji" : "content-copy"}
                       size={24}
                       color={colors.text}
                     />
                   </View>
                   <Text style={[styles.modalRowText, { color: colors.text }]}>
-                    Copiar
+                    {isSticker ? "Salvar Figurinha" : "Copiar"}
                   </Text>
                 </TouchableOpacity>
 

@@ -36,7 +36,9 @@ import {
   placeStickerOnMessage,
   removePlacedSticker,
 } from "@/services/placedStickersApi";
-import { updateMessageStickersLocal } from "@/services/database";
+import { updateMessageStickersLocal, addCustomStickerLocal } from "@/services/database";
+import { parseForwardContent } from "@/utils/forwardMessage";
+import { isImageUrl, isVideoUrl, isAudioUrl, getYoutubeId } from "@/utils/file";
 import { voiceCallManager } from "@/services/voiceCallManager";
 import { API_URL, PlacedSticker, removeParticipant } from "@/services/api";
 
@@ -587,6 +589,78 @@ export default function ChatScreen() {
   const isScheduledSelected =
     selectedMsg?.status === "scheduled" &&
     selectedMsg.sender_id === user?.user_id;
+
+  const isUrlMediaOrYoutube = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    return (
+      isImageUrl(url) ||
+      isVideoUrl(url) ||
+      isAudioUrl(url) ||
+      !!getYoutubeId(url)
+    );
+  };
+
+  const selectedMsgAttachment =
+    selectedMsg?.attachments && selectedMsg.attachments.length > 0
+      ? selectedMsg.attachments[0]
+      : null;
+
+  const selectedMsgForwardContent = selectedMsg ? parseForwardContent(selectedMsg.content) : null;
+  const selectedMsgIsForwarded = !!selectedMsgForwardContent;
+  const selectedMsgForwarded = selectedMsgForwardContent?.forwarded;
+
+  const selectedMsgContentIsLink =
+    selectedMsg?.content &&
+    (selectedMsg.content.startsWith("http://") || selectedMsg.content.startsWith("https://"));
+
+  const selectedMsgForwardedContentIsLink = !!(
+    selectedMsgForwarded?.content &&
+    (selectedMsgForwarded.content.startsWith("http://") ||
+      selectedMsgForwarded.content.startsWith("https://"))
+  );
+
+  const selectedMsgMediaUrl = selectedMsgIsForwarded
+    ? selectedMsgForwarded?.local_file_path ||
+      selectedMsgForwarded?.image_url ||
+      (selectedMsgForwardedContentIsLink && isUrlMediaOrYoutube(selectedMsgForwarded.content)
+        ? selectedMsgForwarded.content
+        : null)
+    : selectedMsg?.local_file_path ||
+      selectedMsg?.image_url ||
+      (selectedMsgContentIsLink && isUrlMediaOrYoutube(selectedMsg.content)
+        ? selectedMsg.content
+        : null);
+
+  const selectedMsgIsSticker =
+    !!selectedMsgMediaUrl &&
+    (selectedMsgMediaUrl.toLowerCase().endsWith(".webp") ||
+      selectedMsgMediaUrl.toLowerCase().endsWith(".gif") ||
+      selectedMsgMediaUrl.toLowerCase().includes("sticker") ||
+      selectedMsgMediaUrl.toLowerCase().includes("giphy") ||
+      selectedMsgMediaUrl.toLowerCase().includes("tenor") ||
+      selectedMsgAttachment?.mime_type === "image/webp" ||
+      selectedMsgAttachment?.mime_type === "image/gif");
+
+  const handleSaveSticker = useCallback(async () => {
+    if (!selectedMsgMediaUrl) return;
+    try {
+      const resolvedUrl = selectedMsgMediaUrl.startsWith("http") || selectedMsgMediaUrl.startsWith("file://")
+        ? selectedMsgMediaUrl
+        : `${API_URL}${selectedMsgMediaUrl.startsWith("/") ? "" : "/"}${selectedMsgMediaUrl}`;
+
+      await addCustomStickerLocal({
+        url: resolvedUrl,
+        title: "Figurinha Salva",
+      });
+
+      Alert.alert("Sucesso", "Figurinha salva com sucesso!");
+    } catch (err) {
+      console.error("Failed to save custom sticker:", err);
+      Alert.alert("Erro", "Não foi possível salvar a figurinha.");
+    }
+    setMsgOptionsVisible(false);
+    clearSelection();
+  }, [selectedMsgMediaUrl, clearSelection]);
 
   const handleAddStickerToSelectedMessage = useCallback(
     async (stickerUrl: string) => {
@@ -1507,6 +1581,8 @@ export default function ChatScreen() {
             if (selectedMsg) openSheetForMessage(selectedMsg, "event");
           }}
           onAddSticker={handleAddStickerToSelectedMessage}
+          isSticker={selectedMsgIsSticker}
+          onSaveSticker={handleSaveSticker}
         />
       )}
 
