@@ -12,6 +12,8 @@ import {
   Modal,
   Switch,
   Platform,
+  Linking,
+  Dimensions,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -40,6 +42,7 @@ import {
 } from "@/services/database";
 import { Ionicons } from "@expo/vector-icons";
 import { voiceCallManager } from "@/services/voiceCallManager";
+import { chatRepository } from "@/services/ChatRepository";
 
 export default function GroupDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -115,11 +118,78 @@ export default function GroupDetailScreen() {
     "info" | "media" | "links" | "docs" | "location"
   >("info");
 
+  const [messages, setMessages] = useState<any[]>([]);
+  const [selectedFullScreenImage, setSelectedFullScreenImage] = useState<
+    string | null
+  >(null);
+
   const [muteModalVisible, setMuteModalVisible] = useState(false);
   const [chatSettings, setChatSettings] = useState<{
     notification_muted_until?: string | null;
     notification_muted_forever?: boolean;
   }>({});
+
+  useEffect(() => {
+    if (!chatId || !token) return;
+    const fetchMessages = async () => {
+      try {
+        const msgs = await chatRepository.getMessages(chatId, token);
+        setMessages(msgs || []);
+      } catch (err) {
+        console.error("Error fetching messages for group media tab:", err);
+      }
+    };
+    fetchMessages();
+  }, [chatId, token]);
+
+  const mediaMessages = messages.filter((m) => {
+    if (m.deleted_for_everyone) return false;
+    const hasImage = !!m.image_url;
+    const hasLocalFile = !!m.local_file_path;
+    const hasAttachments = m.attachments && m.attachments.length > 0;
+    const attachmentType = hasAttachments ? m.attachments[0].type : null;
+    return (
+      hasImage ||
+      hasLocalFile ||
+      (hasAttachments &&
+        (attachmentType === "image" || attachmentType === "video"))
+    );
+  });
+
+  const linkMessages = messages.filter((m) => {
+    if (m.deleted_for_everyone || !m.content) return false;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return urlRegex.test(m.content);
+  });
+
+  const docMessages = messages.filter((m) => {
+    if (m.deleted_for_everyone) return false;
+    const hasAttachments = m.attachments && m.attachments.length > 0;
+    const attachmentType = hasAttachments ? m.attachments[0].type : null;
+    return attachmentType === "document";
+  });
+
+  const locationMessages = messages.filter((m) => {
+    if (m.deleted_for_everyone || !m.content) return false;
+    try {
+      const payload = JSON.parse(m.content);
+      return payload.latitude !== undefined && payload.longitude !== undefined;
+    } catch {
+      return false;
+    }
+  });
+
+  const getMediaUrl = (item: any) => {
+    const mediaUrl =
+      item.local_file_path ||
+      item.image_url ||
+      (item.attachments && item.attachments[0]?.local_path) ||
+      (item.attachments && item.attachments[0]?.remote_url);
+    if (!mediaUrl) return null;
+    if (mediaUrl.startsWith("http") || mediaUrl.startsWith("file://"))
+      return mediaUrl;
+    return `${API_URL}${mediaUrl.startsWith("/") ? "" : "/"}${mediaUrl}`;
+  };
 
   useEffect(() => {
     const loadLocalChatSettings = async () => {
@@ -811,6 +881,9 @@ export default function GroupDetailScreen() {
                       borderColor: isDark
                         ? "rgba(255, 255, 255, 0.12)"
                         : "rgba(0, 0, 0, 0.08)",
+                      backgroundColor: isDark
+                        ? "rgba(30, 30, 30, 0.85)"
+                        : "rgba(255, 255, 255, 0.85)",
                     },
                   ]}
                   onPress={() => setActiveTab("info")}
@@ -847,6 +920,9 @@ export default function GroupDetailScreen() {
                       borderColor: isDark
                         ? "rgba(255, 255, 255, 0.12)"
                         : "rgba(0, 0, 0, 0.08)",
+                      backgroundColor: isDark
+                        ? "rgba(30, 30, 30, 0.85)"
+                        : "rgba(255, 255, 255, 0.85)",
                     },
                   ]}
                   onPress={() => setActiveTab("media")}
@@ -883,6 +959,9 @@ export default function GroupDetailScreen() {
                       borderColor: isDark
                         ? "rgba(255, 255, 255, 0.12)"
                         : "rgba(0, 0, 0, 0.08)",
+                      backgroundColor: isDark
+                        ? "rgba(30, 30, 30, 0.85)"
+                        : "rgba(255, 255, 255, 0.85)",
                     },
                   ]}
                   onPress={() => setActiveTab("links")}
@@ -919,6 +998,9 @@ export default function GroupDetailScreen() {
                       borderColor: isDark
                         ? "rgba(255, 255, 255, 0.12)"
                         : "rgba(0, 0, 0, 0.08)",
+                      backgroundColor: isDark
+                        ? "rgba(30, 30, 30, 0.85)"
+                        : "rgba(255, 255, 255, 0.85)",
                     },
                   ]}
                   onPress={() => setActiveTab("docs")}
@@ -955,6 +1037,9 @@ export default function GroupDetailScreen() {
                       borderColor: isDark
                         ? "rgba(255, 255, 255, 0.12)"
                         : "rgba(0, 0, 0, 0.08)",
+                      backgroundColor: isDark
+                        ? "rgba(30, 30, 30, 0.85)"
+                        : "rgba(255, 255, 255, 0.85)",
                     },
                   ]}
                   onPress={() => setActiveTab("location")}
@@ -1430,85 +1515,314 @@ export default function GroupDetailScreen() {
 
             {activeTab === "media" && (
               <View style={styles.tabContentContainer}>
-                <View style={styles.emptyStateContainer}>
-                  <Ionicons
-                    name="images-outline"
-                    size={48}
-                    color={colors.textSecondary}
-                    style={{ marginBottom: 8 }}
-                  />
-                  <Text
-                    style={[
-                      styles.emptyStateText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Nenhuma mídia compartilhada
-                  </Text>
-                </View>
+                {mediaMessages.length === 0 ? (
+                  <View style={styles.emptyStateContainer}>
+                    <Ionicons
+                      name="images-outline"
+                      size={48}
+                      color={colors.textSecondary}
+                      style={{ marginBottom: 8 }}
+                    />
+                    <Text
+                      style={[
+                        styles.emptyStateText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Nenhuma mídia compartilhada
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.mediaGrid}>
+                    {mediaMessages.map((item, index) => {
+                      const url = getMediaUrl(item);
+                      if (!url) return null;
+                      const isVideo =
+                        item.attachments && item.attachments[0]?.type === "video";
+                      const isSticker =
+                        url.toLowerCase().includes("sticker") ||
+                        url.toLowerCase().includes(".webp") ||
+                        url.toLowerCase().includes(".gif") ||
+                        url.toLowerCase().includes("giphy") ||
+                        url.toLowerCase().includes("tenor") ||
+                        (item.attachments && item.attachments[0]?.type === "sticker") ||
+                        (item.attachments && item.attachments[0]?.mime_type === "image/webp") ||
+                        (item.attachments && item.attachments[0]?.mime_type === "image/gif") ||
+                        item.type === "sticker";
+                      return (
+                        <TouchableOpacity
+                          key={item.id || index}
+                          style={styles.mediaGridItem}
+                          onPress={() => setSelectedFullScreenImage(url)}
+                        >
+                          <Image
+                            source={{ uri: url }}
+                            style={styles.mediaImage}
+                            resizeMode={isSticker ? "contain" : "cover"}
+                          />
+                          {isVideo && (
+                            <View style={styles.playIconContainer}>
+                              <Ionicons name="play" size={20} color="#fff" />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             )}
 
             {activeTab === "links" && (
               <View style={styles.tabContentContainer}>
-                <View style={styles.emptyStateContainer}>
-                  <Ionicons
-                    name="link-outline"
-                    size={48}
-                    color={colors.textSecondary}
-                    style={{ marginBottom: 8 }}
-                  />
-                  <Text
-                    style={[
-                      styles.emptyStateText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Nenhum link compartilhado
-                  </Text>
-                </View>
+                {linkMessages.length === 0 ? (
+                  <View style={styles.emptyStateContainer}>
+                    <Ionicons
+                      name="link-outline"
+                      size={48}
+                      color={colors.textSecondary}
+                      style={{ marginBottom: 8 }}
+                    />
+                    <Text
+                      style={[
+                        styles.emptyStateText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Nenhum link compartilhado
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.listContainer}>
+                    {linkMessages.map((item, index) => {
+                      const urlRegex = /(https?:\/\/[^\s]+)/g;
+                      const urls = item.content.match(urlRegex) || [];
+                      const mainUrl = urls[0] || item.content;
+                      return (
+                        <TouchableOpacity
+                          key={item.id || index}
+                          style={[
+                            styles.listItem,
+                            { borderBottomColor: colors.border },
+                          ]}
+                          onPress={() => Linking.openURL(mainUrl)}
+                        >
+                          <View
+                            style={[
+                              styles.listIconBg,
+                              { backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7" },
+                            ]}
+                          >
+                            <Ionicons
+                              name="link-outline"
+                              size={20}
+                              color={colors.tint}
+                            />
+                          </View>
+                          <View style={styles.listItemTextContainer}>
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.listItemTitle,
+                                { color: colors.text },
+                              ]}
+                            >
+                              {mainUrl}
+                            </Text>
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.listItemSub,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
+                              por @{item.sender_username} em{" "}
+                              {new Date(item.created_at).toLocaleDateString()}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name="chevron-forward-outline"
+                            size={18}
+                            color={colors.textSecondary}
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             )}
 
             {activeTab === "docs" && (
               <View style={styles.tabContentContainer}>
-                <View style={styles.emptyStateContainer}>
-                  <Ionicons
-                    name="document-text-outline"
-                    size={48}
-                    color={colors.textSecondary}
-                    style={{ marginBottom: 8 }}
-                  />
-                  <Text
-                    style={[
-                      styles.emptyStateText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Nenhum documento compartilhado
-                  </Text>
-                </View>
+                {docMessages.length === 0 ? (
+                  <View style={styles.emptyStateContainer}>
+                    <Ionicons
+                      name="document-text-outline"
+                      size={48}
+                      color={colors.textSecondary}
+                      style={{ marginBottom: 8 }}
+                    />
+                    <Text
+                      style={[
+                        styles.emptyStateText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Nenhum documento compartilhado
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.listContainer}>
+                    {docMessages.map((item, index) => {
+                      const att = item.attachments[0];
+                      const url = att.local_path || att.remote_url;
+                      const fullUrl = url.startsWith("http")
+                        ? url
+                        : `${API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+                      return (
+                        <TouchableOpacity
+                          key={item.id || index}
+                          style={[
+                            styles.listItem,
+                            { borderBottomColor: colors.border },
+                          ]}
+                          onPress={() => Linking.openURL(fullUrl)}
+                        >
+                          <View
+                            style={[
+                              styles.listIconBg,
+                              { backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7" },
+                            ]}
+                          >
+                            <Ionicons
+                              name="document-text-outline"
+                              size={20}
+                              color={colors.tint}
+                            />
+                          </View>
+                          <View style={styles.listItemTextContainer}>
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.listItemTitle,
+                                { color: colors.text },
+                              ]}
+                            >
+                              {att.local_path?.split("/").pop() || "Documento"}
+                            </Text>
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.listItemSub,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
+                              {att.size
+                                ? `${(att.size / 1024 / 1024).toFixed(2)} MB · `
+                                : ""}
+                              por @{item.sender_username}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name="chevron-forward-outline"
+                            size={18}
+                            color={colors.textSecondary}
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             )}
 
             {activeTab === "location" && (
               <View style={styles.tabContentContainer}>
-                <View style={styles.emptyStateContainer}>
-                  <Ionicons
-                    name="location-outline"
-                    size={48}
-                    color={colors.textSecondary}
-                    style={{ marginBottom: 8 }}
-                  />
-                  <Text
-                    style={[
-                      styles.emptyStateText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Nenhuma localização compartilhada
-                  </Text>
-                </View>
+                {locationMessages.length === 0 ? (
+                  <View style={styles.emptyStateContainer}>
+                    <Ionicons
+                      name="location-outline"
+                      size={48}
+                      color={colors.textSecondary}
+                      style={{ marginBottom: 8 }}
+                    />
+                    <Text
+                      style={[
+                        styles.emptyStateText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Nenhuma localização compartilhada
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.listContainer}>
+                    {locationMessages.map((item, index) => {
+                      let locData: any = {};
+                      try {
+                        locData = JSON.parse(item.content);
+                      } catch {}
+                      const mapsUrl =
+                        Platform.select({
+                          ios: `maps://app?saddr=&daddr=${locData.latitude},${locData.longitude}`,
+                          android: `google.navigation:q=${locData.latitude},${locData.longitude}`,
+                        }) ||
+                        `https://www.google.com/maps/search/?api=1&query=${locData.latitude},${locData.longitude}`;
+
+                      return (
+                        <TouchableOpacity
+                          key={item.id || index}
+                          style={[
+                            styles.listItem,
+                            { borderBottomColor: colors.border },
+                          ]}
+                          onPress={() => Linking.openURL(mapsUrl)}
+                        >
+                          <View
+                            style={[
+                              styles.listIconBg,
+                              { backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7" },
+                            ]}
+                          >
+                            <Ionicons
+                              name="location-outline"
+                              size={20}
+                              color={colors.tint}
+                            />
+                          </View>
+                          <View style={styles.listItemTextContainer}>
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.listItemTitle,
+                                { color: colors.text },
+                              ]}
+                            >
+                              {locData.name || locData.address || "Localização"}
+                            </Text>
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.listItemSub,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
+                              Lat: {locData.latitude?.toFixed(4)}, Lng:{" "}
+                              {locData.longitude?.toFixed(4)} · por @
+                              {item.sender_username}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name="chevron-forward-outline"
+                            size={18}
+                            color={colors.textSecondary}
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             )}
           </>
@@ -1603,6 +1917,34 @@ export default function GroupDetailScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Full Screen Media Modal */}
+      {selectedFullScreenImage && (
+        <Modal
+          visible={!!selectedFullScreenImage}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setSelectedFullScreenImage(null)}
+        >
+          <View style={styles.fullScreenBg}>
+            <View style={[styles.fullScreenHeader, { paddingTop: insets.top }]}>
+              <TouchableOpacity
+                onPress={() => setSelectedFullScreenImage(null)}
+                style={styles.fullScreenBackBtn}
+              >
+                <Ionicons name="arrow-back-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.fullScreenImageContainer}>
+              <Image
+                source={{ uri: selectedFullScreenImage }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* Mute Chat Dialog Modal */}
       <MuteModal
@@ -1766,5 +2108,90 @@ const styles = StyleSheet.create({
   optionSub: {
     fontSize: 13,
     marginTop: 2,
+  },
+  mediaGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  mediaGridItem: {
+    width: (Dimensions.get("window").width - 48) / 3,
+    height: (Dimensions.get("window").width - 48) / 3,
+    borderRadius: 8,
+    overflow: "hidden",
+    position: "relative",
+  },
+  mediaImage: {
+    width: "100%",
+    height: "100%",
+  },
+  playIconContainer: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -15 }, { translateY: -15 }],
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  listContainer: {
+    gap: 12,
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 14,
+  },
+  listIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  listItemTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  listItemTitle: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  listItemSub: {
+    fontSize: 13,
+  },
+  fullScreenBg: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  fullScreenHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  fullScreenBackBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  fullScreenImageContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullScreenImage: {
+    width: "100%",
+    height: "100%",
   },
 });

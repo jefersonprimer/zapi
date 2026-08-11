@@ -847,6 +847,9 @@ export default function ContactDetailScreen() {
                     borderColor: isDark
                       ? "rgba(255, 255, 255, 0.12)"
                       : "rgba(0, 0, 0, 0.08)",
+                    backgroundColor: isDark
+                      ? "rgba(30, 30, 30, 0.85)"
+                      : "rgba(255, 255, 255, 0.85)",
                   },
                 ]}
                 onPress={() => setActiveTab("info")}
@@ -883,6 +886,9 @@ export default function ContactDetailScreen() {
                     borderColor: isDark
                       ? "rgba(255, 255, 255, 0.12)"
                       : "rgba(0, 0, 0, 0.08)",
+                    backgroundColor: isDark
+                      ? "rgba(30, 30, 30, 0.85)"
+                      : "rgba(255, 255, 255, 0.85)",
                   },
                 ]}
                 onPress={() => setActiveTab("media")}
@@ -919,6 +925,9 @@ export default function ContactDetailScreen() {
                     borderColor: isDark
                       ? "rgba(255, 255, 255, 0.12)"
                       : "rgba(0, 0, 0, 0.08)",
+                    backgroundColor: isDark
+                      ? "rgba(30, 30, 30, 0.85)"
+                      : "rgba(255, 255, 255, 0.85)",
                   },
                 ]}
                 onPress={() => setActiveTab("links")}
@@ -955,6 +964,9 @@ export default function ContactDetailScreen() {
                     borderColor: isDark
                       ? "rgba(255, 255, 255, 0.12)"
                       : "rgba(0, 0, 0, 0.08)",
+                    backgroundColor: isDark
+                      ? "rgba(30, 30, 30, 0.85)"
+                      : "rgba(255, 255, 255, 0.85)",
                   },
                 ]}
                 onPress={() => setActiveTab("docs")}
@@ -991,6 +1003,9 @@ export default function ContactDetailScreen() {
                     borderColor: isDark
                       ? "rgba(255, 255, 255, 0.12)"
                       : "rgba(0, 0, 0, 0.08)",
+                    backgroundColor: isDark
+                      ? "rgba(30, 30, 30, 0.85)"
+                      : "rgba(255, 255, 255, 0.85)",
                   },
                 ]}
                 onPress={() => setActiveTab("location")}
@@ -1400,13 +1415,23 @@ export default function ContactDetailScreen() {
                     Nenhuma mídia compartilhada
                   </Text>
                 </View>
-              ) : (
+                              ) : (
                 <View style={styles.mediaGrid}>
                   {mediaMessages.map((item, index) => {
                     const url = getMediaUrl(item);
                     if (!url) return null;
                     const isVideo =
                       item.attachments && item.attachments[0]?.type === "video";
+                    const isSticker =
+                      url.toLowerCase().includes("sticker") ||
+                      url.toLowerCase().includes(".webp") ||
+                      url.toLowerCase().includes(".gif") ||
+                      url.toLowerCase().includes("giphy") ||
+                      url.toLowerCase().includes("tenor") ||
+                      (item.attachments && item.attachments[0]?.type === "sticker") ||
+                      (item.attachments && item.attachments[0]?.mime_type === "image/webp") ||
+                      (item.attachments && item.attachments[0]?.mime_type === "image/gif") ||
+                      item.type === "sticker";
                     return (
                       <TouchableOpacity
                         key={item.id || index}
@@ -1416,6 +1441,7 @@ export default function ContactDetailScreen() {
                         <Image
                           source={{ uri: url }}
                           style={styles.mediaImage}
+                          resizeMode={isSticker ? "contain" : "cover"}
                         />
                         {isVideo && (
                           <View style={styles.playIconContainer}>
