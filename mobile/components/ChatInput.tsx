@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from "react";
+import React, { forwardRef, useState, useEffect } from "react";
 import { TextInput, StyleSheet, Platform } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 
@@ -12,6 +12,12 @@ export const ChatInput = forwardRef<TextInput, ChatInputProps>(
   ({ value, onChangeText, onFocus }, ref) => {
     const { colors } = useAppTheme();
     const [inputHeight, setInputHeight] = useState(36);
+
+    useEffect(() => {
+      if (!value) {
+        setInputHeight(36);
+      }
+    }, [value]);
 
     return (
       <TextInput
