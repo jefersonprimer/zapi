@@ -1270,7 +1270,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             { marginBottom: 0, alignSelf: "stretch" },
             isAudio && { padding: 4 },
             (isImage || isVideo || youtubeId || (!!fullUrl && !isAudio)) && {
-              padding: 4,
+              padding: 2,
             },
             isSticker && {
               backgroundColor: "transparent",
