@@ -93,35 +93,35 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         style,
       ]}
     >
-      <TouchableOpacity
-        onPress={status.playing ? () => player.pause() : () => player.play()}
-        onLongPress={onLongPress}
-        style={[
-          styles.playButton,
-          isMine
-            ? styles.playButtonMine
-            : [styles.playButtonTheir, { backgroundColor: colors.tint }],
-        ]}
-      >
-        {status.playing ? (
-          <MaterialCommunityIcons
-            name="pause"
-            size={20}
-            color={isMine ? colors.tint : "#fff"}
-            fill={isMine ? colors.tint : "#fff"}
-          />
-        ) : (
-          <MaterialCommunityIcons
-            name="play"
-            size={20}
-            color={isMine ? colors.tint : "#fff"}
-            fill={isMine ? colors.tint : "#fff"}
-            style={{ marginLeft: 2 }}
-          />
-        )}
-      </TouchableOpacity>
+      <View style={styles.playerRow}>
+        <TouchableOpacity
+          onPress={status.playing ? () => player.pause() : () => player.play()}
+          onLongPress={onLongPress}
+          style={[
+            styles.playButton,
+            isMine
+              ? styles.playButtonMine
+              : [styles.playButtonTheir, { backgroundColor: colors.tint }],
+          ]}
+        >
+          {status.playing ? (
+            <MaterialCommunityIcons
+              name="pause"
+              size={20}
+              color={isMine ? colors.tint : "#fff"}
+              fill={isMine ? colors.tint : "#fff"}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name="play"
+              size={20}
+              color={isMine ? colors.tint : "#fff"}
+              fill={isMine ? colors.tint : "#fff"}
+              style={{ marginLeft: 2 }}
+            />
+          )}
+        </TouchableOpacity>
 
-      <View style={styles.timelineContainer}>
         {/* Seekable Progress Bar Waveform */}
         <TouchableOpacity
           activeOpacity={1}
@@ -168,59 +168,58 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           </View>
         </TouchableOpacity>
 
-        {/* Time text below bar */}
-        <Text
+        {/* Playback Speed Pill */}
+        <TouchableOpacity
           style={[
-            styles.timeText,
+            styles.speedButton,
             isMine
-              ? styles.timeTextMine
-              : [styles.timeTextTheir, { color: colors.textSecondary }],
+              ? styles.speedButtonMine
+              : [
+                  styles.speedButtonTheir,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 122, 255, 0.1)",
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.15)"
+                      : "rgba(0, 122, 255, 0.2)",
+                  },
+                ],
           ]}
+          onPress={changeSpeed}
+          onLongPress={onLongPress}
         >
-          {formatTime(currentPosition)} / {formatTime(audioDuration)}
-        </Text>
+          <Text
+            style={[
+              styles.speedText,
+              isMine
+                ? styles.speedTextMine
+                : [styles.speedTextTheir, { color: colors.tint }],
+            ]}
+          >
+            {speed}x
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Playback Speed Pill */}
-      <TouchableOpacity
+      {/* Time text below waveform */}
+      <Text
         style={[
-          styles.speedButton,
+          styles.timeText,
           isMine
-            ? styles.speedButtonMine
-            : [
-                styles.speedButtonTheir,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 122, 255, 0.1)",
-                  borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.15)"
-                    : "rgba(0, 122, 255, 0.2)",
-                },
-              ],
+            ? styles.timeTextMine
+            : [styles.timeTextTheir, { color: colors.textSecondary }],
         ]}
-        onPress={changeSpeed}
-        onLongPress={onLongPress}
       >
-        <Text
-          style={[
-            styles.speedText,
-            isMine
-              ? styles.speedTextMine
-              : [styles.speedTextTheir, { color: colors.tint }],
-          ]}
-        >
-          {speed}x
-        </Text>
-      </TouchableOpacity>
+        {formatTime(currentPosition)} / {formatTime(audioDuration)}
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "column",
     padding: 8,
     borderRadius: 16,
     marginVertical: 4,
@@ -232,6 +231,11 @@ const styles = StyleSheet.create({
   },
   containerTheir: {
     backgroundColor: "rgba(0, 0, 0, 0.05)",
+  },
+  playerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
   },
   playButton: {
     width: 34,
@@ -247,15 +251,11 @@ const styles = StyleSheet.create({
   playButtonTheir: {
     backgroundColor: "#007AFF",
   },
-  timelineContainer: {
-    flex: 1,
-    justifyContent: "center",
-    marginRight: 8,
-  },
   timelineTouch: {
+    flex: 1,
     height: 32,
     justifyContent: "center",
-    width: "100%",
+    marginRight: 8,
   },
   waveformContainer: {
     flexDirection: "row",
@@ -270,7 +270,8 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 10,
-    marginTop: 2,
+    marginTop: -2,
+    marginLeft: 44, // Align with start of waveform (playButton width 34 + marginRight 10)
   },
   timeTextMine: {
     color: "rgba(255, 255, 255, 0.8)",
