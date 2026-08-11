@@ -1789,6 +1789,7 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: "100%",
+    minWidth: 85,
     padding: 12,
     borderRadius: 16,
   },
