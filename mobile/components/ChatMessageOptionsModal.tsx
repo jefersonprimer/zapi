@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
-import { EmojiKeyboard } from "rn-emoji-keyboard";
+import { EmojiModal } from "@/components/EmojiModal";
 import * as SecureStore from "expo-secure-store";
 import { API_URL } from "@/services/api";
 import { StickerModal } from "@/components/StickerModal";
@@ -186,7 +186,7 @@ export function ChatMessageOptionsModal({
     if (onlyReactions) {
       // Place reactions above the bubble by default
       reactionsTop = bubbleTop - reactionsHeight - 8;
-      
+
       if (reactionsTop < 60) {
         // Fallback: place reactions below the bubble if there is not enough space above
         reactionsTop = bubbleBottom + 8;
@@ -196,7 +196,7 @@ export function ChatMessageOptionsModal({
         // Place menu below, reactions above
         menuTop = bubbleBottom + 8;
         reactionsTop = bubbleTop - reactionsHeight - 8;
-        
+
         if (reactionsTop < 60) {
           // Fallback: put both below message
           reactionsTop = bubbleBottom + 8;
@@ -212,7 +212,7 @@ export function ChatMessageOptionsModal({
           menuTop = bubbleBottom + 8;
           reactionsTop = bubbleTop - reactionsHeight - 8;
         }
-        
+
         if (reactionsTop < 60) {
           reactionsTop = bubbleBottom + 8;
           menuTop = reactionsTop + reactionsHeight + 8;
@@ -243,10 +243,17 @@ export function ChatMessageOptionsModal({
   // Center the detail card (avatar and reaction emoji) over the reactions bar
   const ESTIMATED_REACTIONS_BAR_WIDTH = 260;
   const ESTIMATED_DETAIL_CARD_WIDTH = 63;
-  const DETAIL_CENTER_OFFSET = (ESTIMATED_REACTIONS_BAR_WIDTH - ESTIMATED_DETAIL_CARD_WIDTH) / 2;
+  const DETAIL_CENTER_OFFSET =
+    (ESTIMATED_REACTIONS_BAR_WIDTH - ESTIMATED_DETAIL_CARD_WIDTH) / 2;
 
-  let detailLeft = reactionsLeft !== undefined ? reactionsLeft + DETAIL_CENTER_OFFSET : undefined;
-  let detailRight = reactionsRight !== undefined ? reactionsRight + DETAIL_CENTER_OFFSET : undefined;
+  let detailLeft =
+    reactionsLeft !== undefined
+      ? reactionsLeft + DETAIL_CENTER_OFFSET
+      : undefined;
+  let detailRight =
+    reactionsRight !== undefined
+      ? reactionsRight + DETAIL_CENTER_OFFSET
+      : undefined;
 
   const renderAvatar = (avatarUrl: string | null | undefined, name: string) => {
     const avatarUri = avatarUrl
@@ -257,11 +264,18 @@ export function ChatMessageOptionsModal({
     const initial = name[0]?.toUpperCase() || "?";
 
     return (
-      <View style={[styles.detailAvatar, { backgroundColor: isDark ? "#2D2D2D" : "#E5E5EA" }]}>
+      <View
+        style={[
+          styles.detailAvatar,
+          { backgroundColor: isDark ? "#2D2D2D" : "#E5E5EA" },
+        ]}
+      >
         {avatarUri ? (
           <Image source={{ uri: avatarUri }} style={styles.detailAvatarImage} />
         ) : (
-          <Text style={[styles.detailAvatarText, { color: colors.text }]}>{initial}</Text>
+          <Text style={[styles.detailAvatarText, { color: colors.text }]}>
+            {initial}
+          </Text>
         )}
       </View>
     );
@@ -310,7 +324,7 @@ export function ChatMessageOptionsModal({
           >
             {renderAvatar(
               reactionByMe ? currentUserAvatarUrl : participantAvatarUrl,
-              reactionByMe ? currentUsername : participantUsername
+              reactionByMe ? currentUsername : participantUsername,
             )}
             <Text style={styles.reactionDetailEmoji}>{reaction}</Text>
           </Animated.View>
@@ -343,7 +357,9 @@ export function ChatMessageOptionsModal({
                 style={[
                   styles.reactionEmojiButton,
                   isSelected && {
-                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.05)",
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.15)"
+                      : "rgba(0, 0, 0, 0.05)",
                   },
                 ]}
                 onPress={() => {
@@ -388,7 +404,10 @@ export function ChatMessageOptionsModal({
                 left: menuLeft,
                 right: menuRight,
                 opacity: modalOpacity,
-                transform: [{ scale: modalScale }, { translateY: modalTranslateY }],
+                transform: [
+                  { scale: modalScale },
+                  { translateY: modalTranslateY },
+                ],
               },
             ]}
           >
@@ -566,7 +585,12 @@ export function ChatMessageOptionsModal({
                       color={colors.text}
                     />
                   </View>
-                  <Text style={[styles.modalRowText, { color: colors.text, fontWeight: "bold" }]}>
+                  <Text
+                    style={[
+                      styles.modalRowText,
+                      { color: colors.text, fontWeight: "bold" },
+                    ]}
+                  >
                     Voltar
                   </Text>
                 </TouchableOpacity>
@@ -671,62 +695,29 @@ export function ChatMessageOptionsModal({
         )}
       </TouchableOpacity>
 
-      {/* Emoji Keyboard Modal */}
+      {/* Emoji Keyboard Overlay */}
       {isEmojiKeyboardOpen && (
-        <Modal
-          transparent={true}
-          visible={isEmojiKeyboardOpen}
-          animationType="slide"
-          onRequestClose={() => setIsEmojiKeyboardOpen(false)}
-        >
+        <View style={[StyleSheet.absoluteFillObject, { zIndex: 1100 }]}>
           <TouchableOpacity
             style={styles.emojiModalOverlay}
             activeOpacity={1}
             onPress={() => setIsEmojiKeyboardOpen(false)}
           >
-            <View
-              style={[
-                styles.emojiSheetContainer,
-                { backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF" },
-              ]}
-            >
-              <View style={styles.emojiSheetHeader}>
-                <Text style={[styles.emojiSheetTitle, { color: colors.text }]}>
-                  Reagir com...
-                </Text>
-                <TouchableOpacity onPress={() => setIsEmojiKeyboardOpen(false)}>
-                  <MaterialCommunityIcons
-                    name="close"
-                    size={24}
-                    color={colors.text}
-                  />
-                </TouchableOpacity>
-              </View>
-              <EmojiKeyboard
-                onEmojiSelected={(emojiObj) => {
-                  const selectedEmoji = emojiObj.emoji;
-                  addEmojiToHistory(selectedEmoji).then((updated) => {
-                    cachedHistory = updated;
-                    setReactionsList(updated);
-                  });
-                  if (onReact) onReact(selectedEmoji);
-                  setIsEmojiKeyboardOpen(false);
-                  hideModal();
-                }}
-                expandable={false}
-                hideHeader={true}
-                enableRecentlyUsed={true}
-                theme={{
-                  backdrop: "transparent",
-                  knob: colors.tint,
-                  container: isDark ? "#1E1E1E" : "#FFFFFF",
-                  header: colors.text,
-                  skinTonesContainer: isDark ? "#1E1E1E" : "#FFFFFF",
-                }}
-              />
-            </View>
+            <EmojiModal
+              onEmojiSelected={(emojiObj) => {
+                const selectedEmoji = emojiObj.emoji;
+                addEmojiToHistory(selectedEmoji).then((updated) => {
+                  cachedHistory = updated;
+                  setReactionsList(updated);
+                });
+                if (onReact) onReact(selectedEmoji);
+                setIsEmojiKeyboardOpen(false);
+                hideModal();
+              }}
+              height={300}
+            />
           </TouchableOpacity>
-        </Modal>
+        </View>
       )}
 
       {isStickerPickerOpen && onAddSticker && (
@@ -791,7 +782,7 @@ const styles = StyleSheet.create({
   },
   actionsModalCard: {
     position: "absolute",
-    width: 240,
+    width: "60%",
     borderRadius: 32,
     borderWidth: 1,
     overflow: "hidden",
@@ -852,17 +843,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 16,
     overflow: "hidden",
-  },
-  emojiSheetHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  emojiSheetTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
   },
   reactionDetailCard: {
     position: "absolute",
