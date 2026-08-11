@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 
 interface ImagePickerModalProps {
@@ -179,9 +179,18 @@ export default function ImagePickerModal({
             <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
           </View>
 
-          <Text style={[styles.sheetTitle, { color: colors.text }]}>
-            {title}
-          </Text>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={handleClose}
+              style={[styles.closeButton, { borderColor: colors.border }]}
+            >
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>
+              {title}
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
 
           <View style={styles.optionsGroup}>
             {optionItems.map((item, index) => (
@@ -235,11 +244,25 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   sheetTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 16,
   },
   optionsGroup: {
     borderRadius: 14,

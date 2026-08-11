@@ -375,7 +375,7 @@ export default function ChatListItem({
                     { color: colors.textSecondary },
                     item.unread_count > 0 && styles.lastMessageUnread,
                   ]}
-                  numberOfLines={1}
+                  numberOfLines={2}
                 >
                   {displayMessage}
                 </Text>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -48,6 +48,7 @@ export function AddGroupMemberModal({
   actionLoadingUserId,
 }: AddGroupMemberModalProps) {
   const { colors, isDark } = useAppTheme();
+  const [isFocused, setIsFocused] = useState(false);
   const slideAnim = useRef(new Animated.Value(MODAL_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
@@ -108,7 +109,9 @@ export function AddGroupMemberModal({
           style={[
             styles.bottomSheet,
             {
-              backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+              backgroundColor: isDark
+                ? "rgba(30, 30, 30, 0.98)"
+                : "rgba(255, 255, 255, 0.98)",
               borderColor: colors.border,
               transform: [{ translateY: slideAnim }],
             },
@@ -126,16 +129,16 @@ export function AddGroupMemberModal({
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>
-              Adicionar Membros
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { borderColor: colors.border }]}>
               <Ionicons
-                name="close-outline"
+                name="close"
                 size={24}
                 color={colors.textSecondary}
               />
             </TouchableOpacity>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Adicionar Membros
+            </Text>
           </View>
 
           {/* Search Input Bar */}
@@ -143,8 +146,9 @@ export function AddGroupMemberModal({
             style={[
               styles.searchContainer,
               {
-                backgroundColor: isDark ? "#0F172A" : "#F1F5F9",
-                borderColor: colors.border,
+                backgroundColor: "transparent",
+                borderColor: isFocused ? (colors.tint || "#07C160") : colors.border,
+                borderWidth: isFocused ? 2 : 1.5,
               },
             ]}
           >
@@ -163,6 +167,8 @@ export function AddGroupMemberModal({
               onSubmitEditing={onSearch}
               returnKeyType="search"
               autoCapitalize="none"
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
             />
             {searching ? (
               <ActivityIndicator size="small" color={colors.tint} />
@@ -284,15 +290,25 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     marginBottom: 12,
+    position: "relative",
+    minHeight: 40,
   },
   title: {
     fontSize: 18,
     fontWeight: "bold",
+    textAlign: "center",
   },
   closeBtn: {
-    padding: 4,
+    position: "absolute",
+    left: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchContainer: {
     flexDirection: "row",
