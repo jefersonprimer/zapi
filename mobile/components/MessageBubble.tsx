@@ -1738,7 +1738,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Nota
+                  Criar Nota
                 </Text>
               </TouchableOpacity>
             )}
@@ -1759,7 +1759,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Lembrete
+                  Criar Lembrete
                 </Text>
               </TouchableOpacity>
             )}
@@ -1780,7 +1780,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Evento
+                  Criar Evento
                 </Text>
               </TouchableOpacity>
             )}
