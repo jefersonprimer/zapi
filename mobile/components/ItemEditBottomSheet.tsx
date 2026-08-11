@@ -20,7 +20,7 @@ import { IntentSuggestion } from "@/services/chatIntentEngine";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const DEFAULT_HEIGHT = SCREEN_HEIGHT * 0.65;
-const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.90;
+const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.9;
 
 interface Props {
   visible: boolean;
@@ -29,7 +29,12 @@ interface Props {
   onClose: () => void;
 }
 
-export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose }: Props) {
+export function ItemEditBottomSheet({
+  visible,
+  initialType,
+  suggestion,
+  onClose,
+}: Props) {
   const { colors, isDark } = useAppTheme();
   const { createNote, createReminder, createEvent } = useItemsStore();
 
@@ -48,13 +53,17 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dy) > 5,
       onPanResponderMove: (_, gestureState) => {
         const newHeight = isExpandedRef.current
           ? EXPANDED_HEIGHT - gestureState.dy
           : DEFAULT_HEIGHT - gestureState.dy;
 
-        if (newHeight >= DEFAULT_HEIGHT * 0.8 && newHeight <= SCREEN_HEIGHT * 0.95) {
+        if (
+          newHeight >= DEFAULT_HEIGHT * 0.8 &&
+          newHeight <= SCREEN_HEIGHT * 0.95
+        ) {
           sheetHeight.setValue(newHeight);
         }
       },
@@ -90,7 +99,7 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   useEffect(() => {
@@ -101,17 +110,17 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
       setDueDate(
         suggestion?.dueDate
           ? new Date(suggestion.dueDate).toLocaleString("pt-BR")
-          : new Date().toLocaleString("pt-BR")
+          : new Date().toLocaleString("pt-BR"),
       );
       setStart(
         suggestion?.start
           ? new Date(suggestion.start).toLocaleString("pt-BR")
-          : new Date().toLocaleString("pt-BR")
+          : new Date().toLocaleString("pt-BR"),
       );
       setEnd(
         suggestion?.end
           ? new Date(suggestion.end).toLocaleString("pt-BR")
-          : new Date(Date.now() + 3600000).toLocaleString("pt-BR")
+          : new Date(Date.now() + 3600000).toLocaleString("pt-BR"),
       );
       setLocation(suggestion?.location || "");
 
@@ -152,7 +161,10 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
         });
       }
 
-      Alert.alert("Sucesso", `${type === "note" ? "Nota" : type === "reminder" ? "Lembrete" : "Evento"} salvo(a)!`);
+      Alert.alert(
+        "Sucesso",
+        `${type === "note" ? "Nota" : type === "reminder" ? "Lembrete" : "Evento"} salvo(a)!`,
+      );
       onClose();
     } catch {
       Alert.alert("Erro", "Não foi possível salvar o item.");
@@ -160,8 +172,17 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
         <Animated.View
           style={[
             styles.sheetContainer,
@@ -185,7 +206,9 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
                   styles.headerButton,
                   {
                     borderColor: colors.border,
-                    backgroundColor: isDark ? "rgba(30, 30, 30, 0.98)" : "rgba(255, 255, 255, 0.98)",
+                    backgroundColor: isDark
+                      ? "rgba(30, 30, 30, 0.98)"
+                      : "rgba(255, 255, 255, 0.98)",
                   },
                 ]}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -194,7 +217,11 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
               </TouchableOpacity>
 
               <Text style={[styles.headerTitle, { color: colors.text }]}>
-                {type === "note" ? "Nova Nota" : type === "reminder" ? "Novo Lembrete" : "Novo Evento"}
+                {type === "note"
+                  ? "Nova Nota"
+                  : type === "reminder"
+                    ? "Novo Lembrete"
+                    : "Novo Evento"}
               </Text>
 
               <TouchableOpacity
@@ -218,31 +245,60 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
                 style={[
                   styles.typeTab,
                   type === t && {
-                    backgroundColor: t === "note" ? "#6366F1" : t === "reminder" ? "#F59E0B" : "#10B981",
+                    backgroundColor:
+                      t === "note"
+                        ? "#6366F1"
+                        : t === "reminder"
+                          ? "#F59E0B"
+                          : "#10B981",
                   },
                 ]}
                 onPress={() => setType(t)}
               >
-                <Text style={[styles.typeTabText, { color: type === t ? "#FFF" : colors.textSecondary }]}>
-                  {t === "note" ? "Nota" : t === "reminder" ? "Lembrete" : "Evento"}
+                <Text
+                  style={[
+                    styles.typeTabText,
+                    { color: type === t ? "#FFF" : colors.textSecondary },
+                  ]}
+                >
+                  {t === "note"
+                    ? "Nota"
+                    : t === "reminder"
+                      ? "Lembrete"
+                      : "Evento"}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <ScrollView contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Título</Text>
+          <ScrollView
+            contentContainerStyle={styles.formContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Título
+            </Text>
             <TextInput
-              style={[styles.input, styles.titleInput, { color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                styles.titleInput,
+                { color: colors.text, borderColor: colors.border },
+              ]}
               value={title}
               onChangeText={setTitle}
               placeholder="Título"
               placeholderTextColor={colors.textSecondary}
             />
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Conteúdo / Descrição</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Conteúdo / Descrição
+            </Text>
             <TextInput
-              style={[styles.input, styles.multilineInput, { color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                styles.multilineInput,
+                { color: colors.text, borderColor: colors.border },
+              ]}
               value={content}
               onChangeText={setContent}
               placeholder="Digite o conteúdo ou observações..."
@@ -252,9 +308,14 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
 
             {type === "reminder" && (
               <>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Data e Hora do Vencimento</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Data e Hora do Vencimento
+                </Text>
                 <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: colors.border },
+                  ]}
                   value={dueDate}
                   onChangeText={setDueDate}
                 />
@@ -263,21 +324,36 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
 
             {type === "event" && (
               <>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Início</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Início
+                </Text>
                 <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: colors.border },
+                  ]}
                   value={start}
                   onChangeText={setStart}
                 />
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Término</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Término
+                </Text>
                 <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: colors.border },
+                  ]}
                   value={end}
                   onChangeText={setEnd}
                 />
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Localização</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Localização
+                </Text>
                 <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                  style={[
+                    styles.input,
+                    { color: colors.text, borderColor: colors.border },
+                  ]}
                   value={location}
                   onChangeText={setLocation}
                   placeholder="Ex: Sala de Reunião 2"
@@ -295,12 +371,12 @@ export function ItemEditBottomSheet({ visible, initialType, suggestion, onClose 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.7)",
     justifyContent: "flex-end",
   },
   sheetContainer: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingBottom: 24,
     paddingTop: 10,
@@ -324,8 +400,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "500",
   },
   headerButton: {
     width: 40,
