@@ -405,6 +405,23 @@ export default function ChatListItem({
                     style={{ marginRight: 4 }}
                   />
                 );
+              } else if (
+                lastMessage.startsWith("Enquete:") ||
+                item.last_message
+                  ?.trimStart()
+                  .startsWith('{"type":"poll"')
+              ) {
+                displayMessage = lastMessage.startsWith("Enquete:")
+                  ? lastMessage.slice(8).trimStart()
+                  : "Enquete";
+                iconElement = (
+                  <MaterialCommunityIcons
+                    name="poll"
+                    size={15}
+                    color={colors.textSecondary}
+                    style={{ marginRight: 4 }}
+                  />
+                );
               }
 
               if (iconElement) {

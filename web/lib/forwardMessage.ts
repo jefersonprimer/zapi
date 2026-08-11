@@ -30,6 +30,9 @@ export function getForwardPreviewText(data: ForwardedMessageData): string {
       if (parsed?.type === "note_share") {
         return `Nota: ${parsed.title || "Sem título"}`;
       }
+      if (parsed?.type === "poll") {
+        return `Enquete: ${parsed.question || "Sem pergunta"}`;
+      }
       if (parsed?.type === "forward" && parsed.forwarded) {
         return getForwardPreviewText(parsed.forwarded);
       }
@@ -74,6 +77,9 @@ export function resolveLastMessagePreview(
     }
     if (parsed?.type === "note_share") {
       return `Nota: ${parsed.title}`;
+    }
+    if (parsed?.type === "poll") {
+      return `Enquete: ${parsed.question || "Sem pergunta"}`;
     }
   } catch {
     // plain text

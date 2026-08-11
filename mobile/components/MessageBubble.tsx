@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { PIX_TYPE_LABELS } from "@/services/pixApi";
 import { type Message, API_URL, createChat } from "../services/api";
+import { updateMessageContentLocal } from "@/services/database";
 import { AudioPlayer } from "./AudioPlayer";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -141,6 +142,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     width: number;
     height: number;
   } | null>(null);
+  const [localPoll, setLocalPoll] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(item.content || "");
+      if (parsed && parsed.type === "poll") {
+        setLocalPoll(parsed);
+      } else {
+        setLocalPoll(null);
+      }
+    } catch (e) {
+      setLocalPoll(null);
+    }
+  }, [item.content]);
+
   const router = useRouter();
   const { token } = useAuth();
 
@@ -250,6 +266,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     name?: string;
     address?: string;
   } | null = null;
+  let isPoll = false;
+  let pollData: {
+    type: "poll";
+    question: string;
+    options: Array<{ id: string; text: string; votes: string[] }>;
+    multipleAnswers?: boolean;
+  } | null = null;
+
   const forwardContent = parseForwardContent(item.content);
 
   let sharePayload: any = null;
@@ -276,6 +300,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   } else if (sharePayload?.type === "location") {
     isLocationShare = true;
     locationShareData = sharePayload;
+  } else if (sharePayload?.type === "poll") {
+    isPoll = true;
+    pollData = sharePayload;
   }
 
   const handleStartChat = async () => {
@@ -494,6 +521,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     isContactShare ||
     isPixShare ||
     isLocationShare ||
+    isPoll ||
     ((contentIsLink || forwardedContentIsLink) &&
       (isImage || isVideo || youtubeId))
       ? null
@@ -1069,6 +1097,193 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {isMine && renderStatusIcons()}
           </View>
         </View>
+        {renderReactionPill(false)}
+      </View>
+    );
+  }
+
+  if (isPoll && localPoll) {
+    const totalVotes = localPoll.options.reduce(
+      (sum: number, opt: any) => sum + (opt.votes?.length || 0),
+      0,
+    );
+
+    const handleVoteOption = async (optionId: string) => {
+      const myId = currentUserId || "";
+      if (!myId) return;
+
+      const updatedOptions = localPoll.options.map((opt: any) => {
+        const hasVoted = (opt.votes || []).includes(myId);
+        let nextVotes = [...(opt.votes || [])];
+
+        if (opt.id === optionId) {
+          if (hasVoted) {
+            nextVotes = nextVotes.filter((id) => id !== myId);
+          } else {
+            nextVotes.push(myId);
+          }
+        } else if (!localPoll.multipleAnswers) {
+          nextVotes = nextVotes.filter((id) => id !== myId);
+        }
+
+        return { ...opt, votes: nextVotes };
+      });
+
+      const updatedPoll = { ...localPoll, options: updatedOptions };
+      setLocalPoll(updatedPoll);
+
+      try {
+        await updateMessageContentLocal(item.id, JSON.stringify(updatedPoll));
+      } catch (err) {
+        console.error("Failed to save vote to SQLite database:", err);
+      }
+    };
+
+    return (
+      <View
+        style={{
+          alignSelf: isMine ? "flex-end" : "flex-start",
+          maxWidth: "85%",
+          marginBottom: 8,
+        }}
+      >
+        <TouchableOpacity
+          style={[
+            styles.messageBubble,
+            isMine
+              ? [styles.myMessage, { backgroundColor: colors.tint }]
+              : [styles.theirMessage, { backgroundColor: colors.surface }],
+            styles.pollCard,
+            {
+              borderColor: colors.border,
+              marginBottom: 0,
+              paddingHorizontal: 6,
+              paddingVertical: 8,
+            },
+          ]}
+          onLongPress={onLongPress}
+          activeOpacity={0.95}
+        >
+          <Text
+            style={[
+              styles.pollQuestion,
+              { color: isMine ? "#fff" : colors.text },
+            ]}
+          >
+            {localPoll.question}
+          </Text>
+
+          <View style={styles.pollOptionsContainer}>
+            {localPoll.options.map((opt: any) => {
+              const optVotes = opt.votes || [];
+              const hasVoted = optVotes.includes(currentUserId || "");
+              const percentage =
+                totalVotes > 0
+                  ? Math.round((optVotes.length / totalVotes) * 100)
+                  : 0;
+
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={[
+                    styles.pollOptionRow,
+                    {
+                      borderColor: isMine
+                        ? "rgba(255, 255, 255, 0.25)"
+                        : colors.border,
+                      backgroundColor: isMine
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : colors.background,
+                    },
+                  ]}
+                  onPress={() => handleVoteOption(opt.id)}
+                  activeOpacity={0.85}
+                >
+                  <View
+                    style={[
+                      styles.pollProgressFill,
+                      {
+                        width: `${percentage}%`,
+                        backgroundColor: isMine
+                          ? "rgba(255, 255, 255, 0.15)"
+                          : colors.tint + "20",
+                      },
+                    ]}
+                  />
+
+                  <View style={styles.pollOptionContent}>
+                    <View style={styles.pollOptionLabelContainer}>
+                      <Text
+                        style={[
+                          styles.pollOptionText,
+                          {
+                            color: isMine ? "#fff" : colors.text,
+                            fontWeight: hasVoted ? "bold" : "normal",
+                          },
+                        ]}
+                      >
+                        {opt.text}
+                      </Text>
+                      {optVotes.length > 0 && (
+                        <Text
+                          style={[
+                            styles.pollOptionVotesCount,
+                            {
+                              color: isMine
+                                ? "rgba(255, 255, 255, 0.7)"
+                                : colors.textSecondary,
+                            },
+                          ]}
+                        >
+                          {optVotes.length}{" "}
+                          {optVotes.length === 1 ? "voto" : "votos"} (
+                          {percentage}%)
+                        </Text>
+                      )}
+                    </View>
+
+                    <Ionicons
+                      name={
+                        hasVoted
+                          ? "checkmark-circle"
+                          : localPoll.multipleAnswers
+                            ? "square-outline"
+                            : "ellipse-outline"
+                      }
+                      size={20}
+                      color={
+                        hasVoted
+                          ? isMine
+                            ? "#fff"
+                            : colors.tint
+                          : isMine
+                            ? "rgba(255, 255, 255, 0.5)"
+                            : colors.textSecondary
+                      }
+                    />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.timeContainer}>
+            <Text
+              style={[
+                styles.messageTime,
+                isMine
+                  ? styles.myMessageTime
+                  : [styles.theirMessageTime, { color: colors.textSecondary }],
+              ]}
+            >
+              {new Date(item.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+            {isMine && renderStatusIcons()}
+          </View>
+        </TouchableOpacity>
         {renderReactionPill(false)}
       </View>
     );
@@ -2317,5 +2532,63 @@ const styles = StyleSheet.create({
   minimalChipText: {
     fontSize: 12,
     fontWeight: "400",
+  },
+  pollCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    width: 280,
+    maxWidth: "100%",
+  },
+  pollHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  pollHeaderTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  pollQuestion: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 12,
+    alignContent: "center",
+  },
+  pollOptionsContainer: {
+    width: "100%",
+    gap: 8,
+    marginBottom: 8,
+  },
+  pollOptionRow: {
+    borderWidth: 1,
+    borderRadius: 24,
+    position: "relative",
+    overflow: "hidden",
+  },
+  pollProgressFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+  },
+  pollOptionContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  pollOptionLabelContainer: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  pollOptionText: {
+    fontSize: 14,
+  },
+  pollOptionVotesCount: {
+    fontSize: 11,
+    marginTop: 2,
   },
 });

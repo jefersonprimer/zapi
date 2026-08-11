@@ -18,6 +18,7 @@ import {
   QrCode,
   StickyNote,
   Pin,
+  BarChart2,
 } from "lucide-react";
 import type { ChatListItem, UserSearchResult } from "@/lib/api";
 import { ChatCardContextMenu } from "./ChatCardContextMenu";
@@ -224,6 +225,14 @@ export function ContactCard({
         ? lastMessage.slice(5).trimStart()
         : "Nota";
       iconElement = <StickyNote className="h-3.5 w-3.5 shrink-0 opacity-60" />;
+    } else if (
+      lastMessage.startsWith("Enquete:") ||
+      targetChat.last_message?.trimStart().startsWith('{"type":"poll"')
+    ) {
+      displayMessage = lastMessage.startsWith("Enquete:")
+        ? lastMessage.slice(8).trimStart()
+        : "Enquete";
+      iconElement = <BarChart2 className="h-3.5 w-3.5 shrink-0 opacity-60" />;
     }
 
     return {

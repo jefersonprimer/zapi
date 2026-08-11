@@ -65,6 +65,7 @@ import { ChatMessageOptionsModal } from "@/components/ChatMessageOptionsModal";
 import { WebSearchBottomSheet } from "@/components/WebSearchBottomSheet";
 import { SendLaterModal } from "@/components/SendLaterModal";
 import { SendLaterPreviewBar } from "@/components/SendLaterPreviewBar";
+import { PollModal } from "@/components/PollModal";
 
 import { ItemType } from "@/types/item";
 import { ItemEditBottomSheet } from "@/components/ItemEditBottomSheet";
@@ -213,6 +214,7 @@ export default function ChatScreen() {
   const [webSearchVisible, setWebSearchVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [drawingVisible, setDrawingVisible] = useState(false);
+  const [pollModalVisible, setPollModalVisible] = useState(false);
   const [msgOptionsVisible, setMsgOptionsVisible] = useState(false);
   const [onlyReactionsMode, setOnlyReactionsMode] = useState(false);
   const [reactionsByMe, setReactionsByMe] = useState<Record<string, boolean>>(
@@ -1500,6 +1502,27 @@ export default function ChatScreen() {
           onSendLaterPress={() => {
             setActivePicker(null);
             setScheduledDelayMs(60000); // 1 minute default delay
+          }}
+          onPollPress={() => setPollModalVisible(true)}
+        />
+      )}
+
+      {pollModalVisible && (
+        <PollModal
+          visible={pollModalVisible}
+          onClose={() => setPollModalVisible(false)}
+          onSendPoll={(question, optionsList, multipleAnswers) => {
+            const pollData = {
+              type: "poll",
+              question,
+              options: optionsList.map((opt, index) => ({
+                id: String(index + 1),
+                text: opt,
+                votes: [],
+              })),
+              multipleAnswers,
+            };
+            handleSend(null, JSON.stringify(pollData));
           }}
         />
       )}

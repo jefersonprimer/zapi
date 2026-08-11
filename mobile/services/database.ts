@@ -1250,4 +1250,16 @@ export async function updateMessageStickersLocal(
   );
 }
 
+export async function updateMessageContentLocal(
+  messageId: string,
+  content: string | null
+): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE messages SET content = ? WHERE id = ?",
+    [content, messageId]
+  );
+}
+
+
 

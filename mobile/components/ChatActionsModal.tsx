@@ -38,6 +38,7 @@ interface ChatActionsModalProps {
   onSearchWebPress: () => void;
   onLocationPress: () => void;
   onSendLaterPress: () => void;
+  onPollPress: () => void;
 }
 
 const ITEM_HEIGHT = 58;
@@ -52,6 +53,7 @@ const DEFAULT_ORDER = [
   "location",
   "searchWeb",
   "sendLater",
+  "enquete",
 ];
 
 export function ChatActionsModal({
@@ -67,6 +69,7 @@ export function ChatActionsModal({
   onSearchWebPress,
   onLocationPress,
   onSendLaterPress,
+  onPollPress,
 }: ChatActionsModalProps) {
   const { colors, isDark } = useAppTheme();
   const actionsAnimation = useRef(new Animated.Value(0)).current;
@@ -213,6 +216,12 @@ export function ChatActionsModal({
       icon: "time-outline",
       library: "Ionicons",
       onPress: () => hideActionsModal(onSendLaterPress),
+    },
+    enquete: {
+      label: "Enquete",
+      icon: "poll",
+      library: "MaterialCommunityIcons",
+      onPress: () => hideActionsModal(onPollPress),
     },
   };
 

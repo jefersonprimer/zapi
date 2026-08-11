@@ -320,6 +320,20 @@ export default function ChatListItemPinned({
               color="#F5A623"
             />
           );
+        } else if (
+          lastMessage.startsWith("Enquete:") ||
+          item.last_message?.trimStart().startsWith('{"type":"poll"')
+        ) {
+          displayMessage = lastMessage.startsWith("Enquete:")
+            ? lastMessage.slice(8).trimStart()
+            : "Enquete";
+          iconElement = (
+            <MaterialCommunityIcons
+              name="poll"
+              size={13}
+              color={colors.textSecondary}
+            />
+          );
         }
 
         return (
