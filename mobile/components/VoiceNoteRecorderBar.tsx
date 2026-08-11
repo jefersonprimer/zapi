@@ -161,19 +161,17 @@ export const VoiceNoteRecorderBar: React.FC<VoiceNoteRecorderBarProps> = ({
   // Render Preview/Send State (recordedUri is set)
   return (
     <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
-      {/* 1st: Trash Button to discard (with its own background and border radius) */}
+      {/* 1st: Close Button to discard (with its own border and style matching CreateListModal.tsx) */}
       <TouchableOpacity
         style={[
-          styles.trashBtn,
+          styles.closeBtn,
           {
-            backgroundColor: isDark
-              ? "rgba(239, 68, 68, 0.2)"
-              : "rgba(239, 68, 68, 0.1)",
+            borderColor: colors.border,
           },
         ]}
         onPress={onStopRecording}
       >
-        <Ionicons name="trash-outline" size={20} color="#EF4444" />
+        <Ionicons name="close" size={24} color={colors.textSecondary} />
       </TouchableOpacity>
 
       {/* Main controls container */}
@@ -321,10 +319,11 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  trashBtn: {
+  closeBtn: {
     width: 44,
     height: 44,
-    borderRadius: 50, // Distinct border radius for the trash button, scaled up slightly
+    borderRadius: 22,
+    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
