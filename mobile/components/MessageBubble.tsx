@@ -154,6 +154,73 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const isMine = item.sender_id === currentUserId;
 
+  const renderReactionPill = (isOverlap: boolean = false) => {
+    if (!item.reaction) return null;
+
+    const pillBgColor = isDark ? "#2C2C2E" : "#FFFFFF";
+
+    return (
+      <View
+        style={[
+          styles.reactionPill,
+          {
+            backgroundColor: pillBgColor,
+            borderColor: colors.border,
+            alignSelf: isMine ? "flex-start" : "flex-end",
+            marginTop: isOverlap ? 2 : 4,
+            marginBottom: isOverlap ? -6 : 2,
+            marginLeft: 0,
+            zIndex: 10,
+          },
+        ]}
+      >
+        <Text style={styles.reactionPillText}>{item.reaction}</Text>
+        <View
+          style={[
+            styles.reactionTail,
+            isMine
+              ? {
+                  left: -3,
+                  right: "auto",
+                  borderRightWidth: 8,
+                  borderLeftWidth: 0,
+                  borderRightColor: pillBgColor,
+                  borderLeftColor: "transparent",
+                  transform: [{ rotate: "-40deg" }],
+                }
+              : {
+                  right: -3,
+                  left: "auto",
+                  borderLeftWidth: 8,
+                  borderRightWidth: 0,
+                  borderLeftColor: pillBgColor,
+                  borderRightColor: "transparent",
+                  transform: [{ rotate: "40deg" }],
+                },
+          ]}
+        />
+        <View
+          style={[
+            styles.reactionCircle,
+            {
+              backgroundColor: pillBgColor,
+              borderColor: colors.border,
+            },
+            isMine
+              ? {
+                  left: -9,
+                  right: "auto",
+                }
+              : {
+                  right: -9,
+                  left: "auto",
+                },
+          ]}
+        />
+      </View>
+    );
+  };
+
   let isContactShare = false;
   let contactShareData: {
     contact_id: string;
@@ -652,39 +719,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </View>
           </View>
         </TouchableOpacity>
-        {item.reaction && (
-          <View
-            style={[
-              styles.reactionPill,
-              {
-                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                borderColor: colors.border,
-                alignSelf: "flex-start",
-                marginTop: 4,
-                marginBottom: 2,
-              },
-            ]}
-          >
-            <Text style={styles.reactionPillText}>{item.reaction}</Text>
-            <View
-              style={[
-                styles.reactionTail,
-                {
-                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.reactionCircle,
-                {
-                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                  borderColor: colors.border,
-                },
-              ]}
-            />
-          </View>
-        )}
+        {renderReactionPill(false)}
       </View>
     );
   }
@@ -808,39 +843,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {isMine && renderStatusIcons()}
           </View>
         </TouchableOpacity>
-        {item.reaction && (
-          <View
-            style={[
-              styles.reactionPill,
-              {
-                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                borderColor: colors.border,
-                alignSelf: "flex-start",
-                marginTop: 4,
-                marginBottom: 2,
-              },
-            ]}
-          >
-            <Text style={styles.reactionPillText}>{item.reaction}</Text>
-            <View
-              style={[
-                styles.reactionTail,
-                {
-                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.reactionCircle,
-                {
-                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                  borderColor: colors.border,
-                },
-              ]}
-            />
-          </View>
-        )}
+        {renderReactionPill(false)}
       </View>
     );
   }
@@ -932,39 +935,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {isMine && renderStatusIcons()}
           </View>
         </TouchableOpacity>
-        {item.reaction && (
-          <View
-            style={[
-              styles.reactionPill,
-              {
-                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                borderColor: colors.border,
-                alignSelf: "flex-start",
-                marginTop: 4,
-                marginBottom: 2,
-              },
-            ]}
-          >
-            <Text style={styles.reactionPillText}>{item.reaction}</Text>
-            <View
-              style={[
-                styles.reactionTail,
-                {
-                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.reactionCircle,
-                {
-                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                  borderColor: colors.border,
-                },
-              ]}
-            />
-          </View>
-        )}
+        {renderReactionPill(false)}
       </View>
     );
   }
@@ -1086,39 +1057,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {isMine && renderStatusIcons()}
           </View>
         </View>
-        {item.reaction && (
-          <View
-            style={[
-              styles.reactionPill,
-              {
-                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                borderColor: colors.border,
-                alignSelf: "flex-start",
-                marginTop: 4,
-                marginBottom: 2,
-              },
-            ]}
-          >
-            <Text style={styles.reactionPillText}>{item.reaction}</Text>
-            <View
-              style={[
-                styles.reactionTail,
-                {
-                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.reactionCircle,
-                {
-                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                  borderColor: colors.border,
-                },
-              ]}
-            />
-          </View>
-        )}
+        {renderReactionPill(false)}
       </View>
     );
   }
@@ -1249,39 +1188,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {isMine && renderStatusIcons()}
           </View>
         </TouchableOpacity>
-        {item.reaction && (
-          <View
-            style={[
-              styles.reactionPill,
-              {
-                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                borderColor: colors.border,
-                alignSelf: "flex-start",
-                marginTop: 4,
-                marginBottom: 2,
-              },
-            ]}
-          >
-            <Text style={styles.reactionPillText}>{item.reaction}</Text>
-            <View
-              style={[
-                styles.reactionTail,
-                {
-                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.reactionCircle,
-                {
-                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                  borderColor: colors.border,
-                },
-              ]}
-            />
-          </View>
-        )}
+        {renderReactionPill(false)}
       </View>
     );
   }
@@ -1341,41 +1248,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           maxWidth: (isFileMessage || isAudio) ? "95%" : "90%",
         }}
       >
-        {item.reaction && (
-          <View
-            style={[
-              styles.reactionPill,
-              {
-                backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                borderColor: colors.border,
-                alignSelf: "flex-start",
-                marginBottom: -6,
-                marginTop: 2,
-                marginLeft: 0,
-                zIndex: 10,
-              },
-            ]}
-          >
-            <Text style={styles.reactionPillText}>{item.reaction}</Text>
-            <View
-              style={[
-                styles.reactionTail,
-                {
-                  borderRightColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.reactionCircle,
-                {
-                  backgroundColor: isDark ? "#2C2C2E" : "#FFFFFF",
-                  borderColor: colors.border,
-                },
-              ]}
-            />
-          </View>
-        )}
+        {renderReactionPill(true)}
         <View
           style={[
             styles.messageBubble,
