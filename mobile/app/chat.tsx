@@ -1210,7 +1210,10 @@ export default function ChatScreen() {
                       Keyboard.dismiss();
                       setSendLaterVisible(true);
                     }}
-                    onClear={() => setScheduledDelayMs(null)}
+                    onClear={() => {
+                      setScheduledDelayMs(null);
+                      setSendLaterVisible(false);
+                    }}
                   />
                 )}
 
