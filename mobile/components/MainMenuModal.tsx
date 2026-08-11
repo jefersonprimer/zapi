@@ -208,8 +208,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   menuItem: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
   },

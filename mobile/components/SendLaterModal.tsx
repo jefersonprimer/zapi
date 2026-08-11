@@ -15,19 +15,19 @@ const ITEM_HEIGHT = 48;
 const VISIBLE_ITEMS = 3;
 const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
 
-interface WheelPickerProps {
-  options: number[];
-  selectedValue: number;
-  onChange: (value: number) => void;
+interface WheelPickerProps<T extends number | string> {
+  options: T[];
+  selectedValue: T;
+  onChange: (value: T) => void;
   label: string;
 }
 
-function WheelPicker({
+function WheelPicker<T extends number | string>({
   options,
   selectedValue,
   onChange,
   label,
-}: WheelPickerProps) {
+}: WheelPickerProps<T>) {
   const { colors, isDark } = useAppTheme();
   const scrollViewRef = useRef<ScrollView>(null);
   const isInitialRender = useRef(true);
@@ -95,7 +95,7 @@ function WheelPicker({
             const isSelected = item === selectedValue;
             return (
               <View
-                key={item}
+                key={String(item)}
                 style={[styles.itemWrapper, { height: ITEM_HEIGHT }]}
               >
                 <Text
@@ -112,7 +112,7 @@ function WheelPicker({
                     },
                   ]}
                 >
-                  {String(item).padStart(2, "0")}
+                  {typeof item === "number" ? String(item).padStart(2, "0") : item}
                 </Text>
               </View>
             );
@@ -139,27 +139,58 @@ export function SendLaterModal({
 
   const bottomPadding = insets.bottom > 0 ? insets.bottom + 12 : 28;
 
-  const initialSeconds = initialDelayMs
-    ? Math.floor(initialDelayMs / 1000)
-    : 60;
-  const initialDays = Math.floor(initialSeconds / 86400);
-  const remainingSecs1 = initialSeconds % 86400;
-  const initialHours = Math.floor(remainingSecs1 / 3600);
-  const initialMinutes = Math.max(1, Math.floor((remainingSecs1 % 3600) / 60));
+  const initialDate = new Date(Date.now() + (initialDelayMs || 60000));
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetDay = new Date(initialDate);
+  targetDay.setHours(0, 0, 0, 0);
+  const diffTime = targetDay.getTime() - today.getTime();
+  const initialDays = Math.max(0, Math.floor(diffTime / 86400000));
+
+  const rawHours = initialDate.getHours();
+  const initialAmpm: "AM" | "PM" = rawHours >= 12 ? "PM" : "AM";
+  let initialHours = rawHours % 12;
+  if (initialHours === 0) initialHours = 12;
+
+  const initialMinutes = initialDate.getMinutes();
 
   const [days, setDays] = useState(initialDays);
   const [hours, setHours] = useState(initialHours);
   const [minutes, setMinutes] = useState(initialMinutes);
+  const [ampm, setAmpm] = useState<"AM" | "PM">(initialAmpm);
 
   const daysArray = Array.from({ length: 31 }, (_, i) => i);
-  const hoursArray = Array.from({ length: 24 }, (_, i) => i);
+  const hoursArray = Array.from({ length: 12 }, (_, i) => i + 1);
   const minutesArray = Array.from({ length: 60 }, (_, i) => i);
+  const ampmArray: ("AM" | "PM")[] = ["AM", "PM"];
+
+  const onScheduleRef = useRef(onSchedule);
+  useEffect(() => {
+    onScheduleRef.current = onSchedule;
+  }, [onSchedule]);
 
   useEffect(() => {
-    const totalSeconds = days * 86400 + hours * 3600 + minutes * 60;
-    const delayMs = totalSeconds > 0 ? totalSeconds * 1000 : 60000;
-    onSchedule(delayMs);
-  }, [days, hours, minutes, onSchedule]);
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + days);
+    
+    let targetHour = hours;
+    if (ampm === "PM" && hours !== 12) {
+      targetHour += 12;
+    } else if (ampm === "AM" && hours === 12) {
+      targetHour = 0;
+    }
+    
+    targetDate.setHours(targetHour, minutes, 0, 0);
+
+    // Se o horário selecionado já passou, agenda automaticamente para o dia seguinte
+    if (targetDate.getTime() <= Date.now()) {
+      targetDate.setDate(targetDate.getDate() + 1);
+    }
+
+    const delayMs = Math.max(60000, targetDate.getTime() - Date.now());
+    onScheduleRef.current(delayMs);
+  }, [days, hours, minutes, ampm]);
 
   const modalBgColor = isDark
     ? "rgba(28, 28, 30, 0.85)"
@@ -202,6 +233,12 @@ export function SendLaterModal({
           selectedValue={minutes}
           onChange={setMinutes}
           label="min"
+        />
+        <WheelPicker
+          options={ampmArray}
+          selectedValue={ampm}
+          onChange={setAmpm}
+          label="am/pm"
         />
       </View>
     </View>

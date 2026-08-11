@@ -1232,7 +1232,7 @@ export default function ContactDetailScreen() {
                 >
                   <View style={styles.optionLeft}>
                     <Ionicons
-                      name="list-circle-outline"
+                      name="list-outline"
                       size={24}
                       color={colors.textSecondary}
                     />
@@ -1415,7 +1415,7 @@ export default function ContactDetailScreen() {
                     Nenhuma mídia compartilhada
                   </Text>
                 </View>
-                              ) : (
+              ) : (
                 <View style={styles.mediaGrid}>
                   {mediaMessages.map((item, index) => {
                     const url = getMediaUrl(item);
@@ -1428,9 +1428,12 @@ export default function ContactDetailScreen() {
                       url.toLowerCase().includes(".gif") ||
                       url.toLowerCase().includes("giphy") ||
                       url.toLowerCase().includes("tenor") ||
-                      (item.attachments && item.attachments[0]?.type === "sticker") ||
-                      (item.attachments && item.attachments[0]?.mime_type === "image/webp") ||
-                      (item.attachments && item.attachments[0]?.mime_type === "image/gif") ||
+                      (item.attachments &&
+                        item.attachments[0]?.type === "sticker") ||
+                      (item.attachments &&
+                        item.attachments[0]?.mime_type === "image/webp") ||
+                      (item.attachments &&
+                        item.attachments[0]?.mime_type === "image/gif") ||
                       item.type === "sticker";
                     return (
                       <TouchableOpacity

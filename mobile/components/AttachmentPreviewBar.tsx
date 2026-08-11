@@ -48,7 +48,9 @@ export const AttachmentPreviewBar: React.FC<AttachmentPreviewBarProps> = ({
           <TouchableOpacity
             style={[
               styles.mediaCloseBtn,
-              { backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.6)" },
+              {
+                backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.6)",
+              },
             ]}
             onPress={onClear}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -99,7 +101,11 @@ export const AttachmentPreviewBar: React.FC<AttachmentPreviewBarProps> = ({
           <TouchableOpacity
             style={[
               styles.closeBtn,
-              { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" },
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.05)",
+              },
             ]}
             onPress={onClear}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -117,7 +123,11 @@ export const AttachmentPreviewBar: React.FC<AttachmentPreviewBarProps> = ({
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" },
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.1)"
+                    : "rgba(0,0,0,0.05)",
+                },
               ]}
             >
               <MaterialCommunityIcons
@@ -141,7 +151,11 @@ export const AttachmentPreviewBar: React.FC<AttachmentPreviewBarProps> = ({
           <TouchableOpacity
             style={[
               styles.closeBtn,
-              { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" },
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.05)",
+              },
             ]}
             onPress={onClear}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
