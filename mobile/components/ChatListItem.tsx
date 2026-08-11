@@ -24,7 +24,64 @@ const isChatMuted = (chat: ChatListItemType) => {
 function formatTime(iso: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (isNaN(d.getTime())) return "";
+
+  const now = new Date();
+  
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  
+  const diffTime = today.getTime() - target.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  // 1. Today: e.g. 9:50 AM
+  if (diffDays === 0) {
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  }
+
+  // 2. Yesterday: "Ontem"
+  if (diffDays === 1) {
+    return "Ontem";
+  }
+
+  // 3. Day before yesterday: "Anteontem"
+  if (diffDays === 2) {
+    return "Anteontem";
+  }
+
+  // 4. Within the last 7 days: show day of the week
+  if (diffDays < 7) {
+    const daysOfWeek = [
+      "Domingo",
+      "Segunda-Feira",
+      "Terça-Feira",
+      "Quarta-Feira",
+      "Quinta-Feira",
+      "Sexta-Feira",
+      "Sábado"
+    ];
+    return daysOfWeek[d.getDay()];
+  }
+
+  // 5. Last month (same year, previous month; or December of previous year if now is January)
+  const isPreviousMonth = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() - 1;
+  const isPrevMonthCrossYear = (now.getMonth() === 0 && d.getMonth() === 11 && d.getFullYear() === now.getFullYear() - 1);
+  
+  if (isPreviousMonth || isPrevMonthCrossYear) {
+    return "Mês passado";
+  }
+
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const day = pad(d.getDate());
+  const month = pad(d.getMonth() + 1);
+
+  // 6. Last year / Different year: DD/MM/YYYY
+  if (d.getFullYear() !== now.getFullYear()) {
+    return `${day}/${month}/${d.getFullYear()}`;
+  }
+
+  // 7. Other dates (same year): DD/MM
+  return `${day}/${month}`;
 }
 
 export default function ChatListItem({
