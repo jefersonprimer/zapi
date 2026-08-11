@@ -13,6 +13,7 @@ export interface Attachment {
   size?: number;
   duration?: number;
   previewSvg?: string;
+  isSticker?: boolean;
 }
 
 interface AttachCameraButtonProps {

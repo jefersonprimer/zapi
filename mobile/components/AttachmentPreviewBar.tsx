@@ -27,7 +27,17 @@ export const AttachmentPreviewBar: React.FC<AttachmentPreviewBarProps> = ({
               <SvgXml xml={attachment.previewSvg} width="100%" height="100%" />
             </View>
           ) : (
-            <Image source={{ uri: attachment.uri }} style={styles.mediaImage} />
+            <Image
+              source={{ uri: attachment.uri }}
+              style={[
+                styles.mediaImage,
+                (attachment.isSticker ||
+                  attachment.name?.toLowerCase().includes("sticker") ||
+                  attachment.mimeType === "image/webp") && {
+                  resizeMode: "contain",
+                },
+              ]}
+            />
           )}
           {attachment.type === "video" && (
             <View style={styles.playIconOverlay}>

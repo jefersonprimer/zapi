@@ -1463,7 +1463,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       <Image
                         source={{ uri: fullUrl }}
                         style={StyleSheet.absoluteFillObject}
-                        contentFit="cover"
+                        contentFit={isSticker ? "contain" : "cover"}
                         cachePolicy="disk"
                       />
                     )}

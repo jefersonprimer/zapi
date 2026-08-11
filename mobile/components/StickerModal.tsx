@@ -219,6 +219,7 @@ export const StickerModal: React.FC<StickerModalProps> = ({
           name: filename,
           type: "image",
           mimeType: "image/webp",
+          isSticker: true,
         });
         return;
       }
@@ -232,6 +233,7 @@ export const StickerModal: React.FC<StickerModalProps> = ({
           name: filename,
           type: "image",
           mimeType: "image/webp",
+          isSticker: true,
         });
       } else {
         Alert.alert("Erro", "Não foi possível carregar a imagem do servidor.");
