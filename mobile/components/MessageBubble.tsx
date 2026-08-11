@@ -1730,7 +1730,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 <Ionicons
                   name="document-text-outline"
                   size={12}
-                  color="#6366F1"
+                  color={colors.textSecondary}
                 />
                 <Text
                   style={[
@@ -1748,7 +1748,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 style={styles.minimalChip}
                 onPress={onCreateReminder}
               >
-                <Ionicons name="alarm-outline" size={12} color="#F59E0B" />
+                <Ionicons
+                  name="alarm-outline"
+                  size={12}
+                  color={colors.textSecondary}
+                />
                 <Text
                   style={[
                     styles.minimalChipText,
@@ -1765,7 +1769,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 style={styles.minimalChip}
                 onPress={onCreateEvent}
               >
-                <Ionicons name="calendar-outline" size={12} color="#10B981" />
+                <Ionicons
+                  name="calendar-outline"
+                  size={12}
+                  style={{ color: colors.textSecondary }}
+                />
                 <Text
                   style={[
                     styles.minimalChipText,
@@ -2307,7 +2315,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(100, 116, 139, 0.08)",
   },
   minimalChipText: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: 12,
+    fontWeight: "400",
   },
 });
