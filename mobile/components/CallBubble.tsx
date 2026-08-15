@@ -36,7 +36,9 @@ export function CallBubble({
   const { colors, isDark } = useAppTheme();
   const isOutgoing = call.caller_id === currentUserId;
 
-  let statusIconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"] = "phone-incoming";
+  let statusIconName: React.ComponentProps<
+    typeof MaterialCommunityIcons
+  >["name"] = "phone-incoming";
   let iconColor = "#34C759"; // Green
   let statusText = isOutgoing ? "Ligação efetuada" : "Ligação recebida";
   let bubbleBg = isDark ? "#1E293B" : "#f1f0f0";
@@ -47,16 +49,12 @@ export function CallBubble({
     statusIconName = "phone-outgoing";
     bubbleBg = isDark ? "#1E293B" : "#e1f5fe"; // light blue
     textColor = isDark ? "#0A84FF" : "#01579b";
-    timeColor = isDark
-      ? "rgba(10, 132, 255, 0.7)"
-      : "rgba(1, 87, 155, 0.6)";
+    timeColor = isDark ? "rgba(10, 132, 255, 0.7)" : "rgba(1, 87, 155, 0.6)";
   } else {
     if (call.status === "completed") {
       bubbleBg = isDark ? "#1E293B" : "#e8f5e9"; // light green
       textColor = isDark ? "#30D158" : "#1b5e20";
-      timeColor = isDark
-        ? "rgba(48, 209, 88, 0.7)"
-        : "rgba(27, 94, 32, 0.6)";
+      timeColor = isDark ? "rgba(48, 209, 88, 0.7)" : "rgba(27, 94, 32, 0.6)";
     } else {
       statusIconName = "phone-missed";
       iconColor = "#FF3B30"; // Red
@@ -67,9 +65,7 @@ export function CallBubble({
       }
       bubbleBg = isDark ? "#1E293B" : "#ffebee"; // light red
       textColor = isDark ? "#FF453A" : "#b71c1c";
-      timeColor = isDark
-        ? "rgba(255, 69, 58, 0.7)"
-        : "rgba(183, 28, 28, 0.6)";
+      timeColor = isDark ? "rgba(255, 69, 58, 0.7)" : "rgba(183, 28, 28, 0.6)";
     }
   }
 
@@ -88,22 +84,18 @@ export function CallBubble({
     return `${remainingSecs}s`;
   };
 
-  const durationStr = call.duration > 0 ? ` (${formatDuration(call.duration)})` : "";
+  const durationStr =
+    call.duration > 0 ? ` (${formatDuration(call.duration)})` : "";
 
   return (
     <View>
       {showDateHeader && (
         <View style={styles.dateHeaderContainer}>
-          <View
-            style={[
-              styles.dateHeaderBackground,
-              { backgroundColor: isDark ? "#1E293B" : "#eaeaea" },
-            ]}
+          <Text
+            style={[styles.dateHeaderText, { color: colors.textSecondary }]}
           >
-            <Text style={[styles.dateHeaderText, { color: colors.textSecondary }]}>
-              {getDateLabel(call.created_at)}
-            </Text>
-          </View>
+            {getDateLabel(call.created_at)}
+          </Text>
         </View>
       )}
       <TouchableOpacity
@@ -117,14 +109,26 @@ export function CallBubble({
             : undefined,
         ]}
       >
-        <View style={[styles.messageRow, isOutgoing ? styles.myCallRow : styles.theirCallRow]}>
+        <View
+          style={[
+            styles.messageRow,
+            isOutgoing ? styles.myCallRow : styles.theirCallRow,
+          ]}
+        >
           <View style={[styles.callBubble, { backgroundColor: bubbleBg }]}>
             <View style={styles.callBubbleContent}>
               <View style={styles.callIconContainer}>
-                <MaterialCommunityIcons name={statusIconName} size={20} color={iconColor} />
+                <MaterialCommunityIcons
+                  name={statusIconName}
+                  size={20}
+                  color={iconColor}
+                />
               </View>
               <View style={styles.callTextContainer}>
-                <Text style={[styles.callStatusText, { color: textColor }]} numberOfLines={1}>
+                <Text
+                  style={[styles.callStatusText, { color: textColor }]}
+                  numberOfLines={1}
+                >
                   {statusText}
                   {durationStr}
                 </Text>
@@ -171,14 +175,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginVertical: 12,
   },
-  dateHeaderBackground: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
   dateHeaderText: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "400",
   },
   messageRow: {
     flexDirection: "row",
