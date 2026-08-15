@@ -30,6 +30,8 @@ import {
   getChats,
   updateContactName,
 } from "@/services/api";
+import { getStore, type Store as StoreType } from "@/services/deliveryApi";
+import { getFullRemoteUrl } from "@/services/mediaCache";
 import {
   toggleBlockContact,
   toggleFavoriteChat,
@@ -68,6 +70,7 @@ export default function ContactDetailScreen() {
   }>();
 
   const [contact, setContact] = useState<Contact | null>(null);
+  const [store, setStore] = useState<StoreType | null>(null);
   const activeStoreId = paramStoreId || contact?.store_id || null;
   const [isBlocked, setIsBlocked] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -353,6 +356,16 @@ export default function ContactDetailScreen() {
       if (found) {
         setContact(found);
         setIsBlocked(found.is_blocked);
+      }
+
+      const storeIdVal = paramStoreId || found?.store_id || null;
+      if (storeIdVal) {
+        try {
+          const storeRes = await getStore(token, storeIdVal);
+          setStore(storeRes.store);
+        } catch (storeErr) {
+          console.error("Error fetching store in contact-detail:", storeErr);
+        }
       }
 
       try {
@@ -694,45 +707,133 @@ export default function ContactDetailScreen() {
           scrollEventThrottle={16}
         >
           {/* Profile Header Block */}
-          <View style={[styles.profileHeader, { paddingTop: insets.top + 8 }]}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => avatarUri && setIsAvatarFullScreen(true)}
-              disabled={!avatarUri}
+          {activeStoreId ? (
+            <View
               style={[
-                styles.avatar,
+                styles.storeDetailsContainer,
                 {
-                  backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7",
-                  overflow: "hidden",
+                  backgroundColor: "transparent",
                 },
               ]}
             >
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              {/* Banner */}
+              {store?.image_banner ? (
+                <Image
+                  source={{ uri: getFullRemoteUrl(store.image_banner) }}
+                  style={[styles.heroBanner, { height: 160 + insets.top, paddingTop: insets.top }]}
+                />
               ) : (
-                <Text
-                  style={[styles.avatarText, { color: colors.textSecondary }]}
-                >
-                  {nameInitial}
-                </Text>
+                <View
+                  style={[
+                    styles.heroBanner,
+                    styles.heroBannerFallback,
+                    { backgroundColor: colors.surface, height: 160 + insets.top },
+                  ]}
+                />
               )}
-            </TouchableOpacity>
 
-            <Text style={[styles.displayName, { color: colors.text }]}>
-              {displayName}
-            </Text>
-
-            {isBlocked && (
+              {/* Clickable Store Hero Info */}
               <View
+                style={[styles.storeInfoWrapper, { alignItems: "center" }]}
+              >
+                {/* Store Logo/Avatar */}
+                <View
+                  style={{
+                    marginTop: -55,
+                    marginBottom: 10,
+                    alignItems: "center",
+                  }}
+                >
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => avatarUri && setIsAvatarFullScreen(true)}
+                    disabled={!avatarUri}
+                    style={[
+                      styles.avatar,
+                      {
+                        backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7",
+                        overflow: "hidden",
+                        borderWidth: 3,
+                        borderColor: colors.background,
+                      },
+                    ]}
+                  >
+                    {avatarUri ? (
+                      <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                    ) : (
+                      <Text
+                        style={[styles.avatarText, { color: colors.textSecondary }]}
+                      >
+                        {nameInitial}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ alignItems: "center", marginTop: -8 }}>
+                  <Text
+                    style={[
+                      styles.displayName,
+                      { color: colors.text, textAlign: "center" },
+                    ]}
+                  >
+                    {displayName}
+                  </Text>
+
+                  {isBlocked && (
+                    <View
+                      style={[
+                        styles.blockedBadge,
+                        { backgroundColor: colors.danger },
+                      ]}
+                    >
+                      <Text style={styles.blockedBadgeText}>BLOQUEADO</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View style={[styles.profileHeader, { paddingTop: insets.top + 8 }]}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => avatarUri && setIsAvatarFullScreen(true)}
+                disabled={!avatarUri}
                 style={[
-                  styles.blockedBadge,
-                  { backgroundColor: colors.danger },
+                  styles.avatar,
+                  {
+                    backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7",
+                    overflow: "hidden",
+                  },
                 ]}
               >
-                <Text style={styles.blockedBadgeText}>BLOQUEADO</Text>
-              </View>
-            )}
-          </View>
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                ) : (
+                  <Text
+                    style={[styles.avatarText, { color: colors.textSecondary }]}
+                  >
+                    {nameInitial}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <Text style={[styles.displayName, { color: colors.text }]}>
+                {displayName}
+              </Text>
+
+              {isBlocked && (
+                <View
+                  style={[
+                    styles.blockedBadge,
+                    { backgroundColor: colors.danger },
+                  ]}
+                >
+                  <Text style={styles.blockedBadgeText}>BLOQUEADO</Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Quick Call Action Row */}
           <View style={styles.actionRow}>
@@ -1882,6 +1983,17 @@ export default function ContactDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  storeDetailsContainer: {
+    marginBottom: 8,
+  },
+  heroBanner: {
+    width: "100%",
+  },
+  heroBannerFallback: {},
+  storeInfoWrapper: {
+    padding: 16,
+    paddingTop: 12,
   },
   centerContainer: {
     flex: 1,
