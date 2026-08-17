@@ -54,7 +54,8 @@ interface MessageBubbleProps {
   onCreateEvent?: () => void;
 }
 
-function ScheduledCountdown({ targetTime }: { targetTime: number }) {
+function ScheduledCountdown({ targetTime, isMine }: { targetTime: number; isMine: boolean }) {
+  const { colors, isDark } = useAppTheme();
   const [timeLeft, setTimeLeft] = useState(
     Math.max(0, Math.round((targetTime - Date.now()) / 1000)),
   );
@@ -78,20 +79,25 @@ function ScheduledCountdown({ targetTime }: { targetTime: number }) {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        marginTop: 4,
-        opacity: 0.85,
+        alignSelf: isMine ? "flex-end" : "flex-start",
+        backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 12,
+        marginBottom: 4,
+        opacity: 0.9,
       }}
     >
       <Ionicons
-        name="time-outline"
+        name="alarm-outline"
         size={12}
-        color="rgba(255,255,255,0.7)"
+        color={colors.textSecondary}
         style={{ marginRight: 4 }}
       />
       <Text
         style={{
-          fontSize: 11,
-          color: "rgba(255,255,255,0.9)",
+          fontSize: 10,
+          color: colors.textSecondary,
           fontWeight: "600",
         }}
       >
@@ -1476,6 +1482,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         }}
       >
         {renderReactionPill(true)}
+        {item.status === "scheduled" && item.scheduled_for && (
+          <ScheduledCountdown targetTime={item.scheduled_for} isMine={isMine} />
+        )}
         <View
           style={[
             styles.messageBubble,
@@ -1816,9 +1825,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </Text>
           ) : null}
 
-          {item.status === "scheduled" && item.scheduled_for && (
-            <ScheduledCountdown targetTime={item.scheduled_for} />
-          )}
 
           <View
             style={[

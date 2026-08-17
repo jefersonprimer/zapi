@@ -297,12 +297,12 @@ export function SendLaterModal({
 const styles = StyleSheet.create({
   sheetContainer: {
     width: "100%",
-    height: "32%",
+    height: "34%",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 32 : 20,
+    paddingBottom: Platform.OS === "ios" ? 34 : 20,
     borderTopWidth: StyleSheet.hairlineWidth,
     justifyContent: "center",
   },

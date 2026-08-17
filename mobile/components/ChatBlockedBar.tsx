@@ -55,8 +55,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 12,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 24,
     marginHorizontal: 12,
     marginVertical: 4,
   },
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   unblockButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   unblockButtonText: {
     color: "#ffffff",
