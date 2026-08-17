@@ -15,13 +15,14 @@ import {
   Animated,
 } from "react-native";
 
-
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useChat } from "@/hooks/useChat";
 import { useChatLists } from "@/hooks/useChatLists";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import * as SecureStore from "expo-secure-store";
+import { listOrders, listStoreReviews } from "@/services/deliveryApi";
 
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
@@ -36,7 +37,10 @@ import {
   placeStickerOnMessage,
   removePlacedSticker,
 } from "@/services/placedStickersApi";
-import { updateMessageStickersLocal, addCustomStickerLocal } from "@/services/database";
+import {
+  updateMessageStickersLocal,
+  addCustomStickerLocal,
+} from "@/services/database";
 import { parseForwardContent } from "@/utils/forwardMessage";
 import { isImageUrl, isVideoUrl, isAudioUrl, getYoutubeId } from "@/utils/file";
 import { voiceCallManager } from "@/services/voiceCallManager";
@@ -66,6 +70,7 @@ import { WebSearchBottomSheet } from "@/components/WebSearchBottomSheet";
 import { SendLaterModal } from "@/components/SendLaterModal";
 import { SendLaterPreviewBar } from "@/components/SendLaterPreviewBar";
 import { PollModal } from "@/components/PollModal";
+import { ReviewBanner } from "@/components/ReviewBanner";
 
 import { ItemType } from "@/types/item";
 import { ItemEditBottomSheet } from "@/components/ItemEditBottomSheet";
@@ -151,6 +156,53 @@ export default function ChatScreen() {
   } = useChat();
 
   const { token } = useAuth();
+  const [showReviewBanner, setShowReviewBanner] = useState(false);
+
+  useEffect(() => {
+    async function checkReviewRequirement() {
+      if (!token || !participantStoreId) {
+        setShowReviewBanner(false);
+        return;
+      }
+      try {
+        const dismissed = await SecureStore.getItemAsync(
+          `dismissed_review_banner_${participantStoreId}`,
+        );
+        if (dismissed === "true") {
+          setShowReviewBanner(false);
+          return;
+        }
+
+        const ordersData = await listOrders(token);
+        const storeOrders = (ordersData.orders || []).filter(
+          (o: any) =>
+            o.store_id === participantStoreId &&
+            (o.status === "entregue" || o.status === "DELIVERED"),
+        );
+
+        if (storeOrders.length === 0) {
+          setShowReviewBanner(false);
+          return;
+        }
+
+        const reviewsData = await listStoreReviews(token, participantStoreId);
+        const alreadyReviewed = (reviewsData.reviews || []).some(
+          (r: any) => r.user_id === user?.user_id,
+        );
+
+        if (alreadyReviewed) {
+          setShowReviewBanner(false);
+          return;
+        }
+
+        setShowReviewBanner(true);
+      } catch (err) {
+        console.error("Error checking review requirement:", err);
+        setShowReviewBanner(false);
+      }
+    }
+    checkReviewRequirement();
+  }, [token, participantStoreId, user]);
 
   const handleRemoveSticker = async (msgId: string, stickerId: string) => {
     if (!token || !chatId) return;
@@ -607,13 +659,16 @@ export default function ChatScreen() {
       ? selectedMsg.attachments[0]
       : null;
 
-  const selectedMsgForwardContent = selectedMsg ? parseForwardContent(selectedMsg.content) : null;
+  const selectedMsgForwardContent = selectedMsg
+    ? parseForwardContent(selectedMsg.content)
+    : null;
   const selectedMsgIsForwarded = !!selectedMsgForwardContent;
   const selectedMsgForwarded = selectedMsgForwardContent?.forwarded;
 
   const selectedMsgContentIsLink =
     selectedMsg?.content &&
-    (selectedMsg.content.startsWith("http://") || selectedMsg.content.startsWith("https://"));
+    (selectedMsg.content.startsWith("http://") ||
+      selectedMsg.content.startsWith("https://"));
 
   const selectedMsgForwardedContentIsLink = !!(
     selectedMsgForwarded?.content &&
@@ -624,7 +679,8 @@ export default function ChatScreen() {
   const selectedMsgMediaUrl = selectedMsgIsForwarded
     ? selectedMsgForwarded?.local_file_path ||
       selectedMsgForwarded?.image_url ||
-      (selectedMsgForwardedContentIsLink && isUrlMediaOrYoutube(selectedMsgForwarded.content)
+      (selectedMsgForwardedContentIsLink &&
+      isUrlMediaOrYoutube(selectedMsgForwarded.content)
         ? selectedMsgForwarded.content
         : null)
     : selectedMsg?.local_file_path ||
@@ -646,9 +702,11 @@ export default function ChatScreen() {
   const handleSaveSticker = useCallback(async () => {
     if (!selectedMsgMediaUrl) return;
     try {
-      const resolvedUrl = selectedMsgMediaUrl.startsWith("http") || selectedMsgMediaUrl.startsWith("file://")
-        ? selectedMsgMediaUrl
-        : `${API_URL}${selectedMsgMediaUrl.startsWith("/") ? "" : "/"}${selectedMsgMediaUrl}`;
+      const resolvedUrl =
+        selectedMsgMediaUrl.startsWith("http") ||
+        selectedMsgMediaUrl.startsWith("file://")
+          ? selectedMsgMediaUrl
+          : `${API_URL}${selectedMsgMediaUrl.startsWith("/") ? "" : "/"}${selectedMsgMediaUrl}`;
 
       await addCustomStickerLocal({
         url: resolvedUrl,
@@ -796,7 +854,7 @@ export default function ChatScreen() {
             alignItems: "center",
             justifyContent: "space-between",
             height: 60,
-            paddingHorizontal: 16,
+            paddingHorizontal: 8,
           }}
         >
           <View style={styles.headerLeftContainer}>
@@ -1025,6 +1083,12 @@ export default function ChatScreen() {
           };
         }}
       >
+        {showReviewBanner && participantStoreId && (
+          <ReviewBanner
+            participantStoreId={participantStoreId}
+            onClose={() => setShowReviewBanner(false)}
+          />
+        )}
         <FlatList
           key={chatId}
           ref={flatListRef}

@@ -40,7 +40,7 @@ const formatDate = (dateStr: string) => {
 };
 
 export default function StoreReviewsScreen() {
-  const { storeId } = useLocalSearchParams<{ storeId: string }>();
+  const { storeId, rating } = useLocalSearchParams<{ storeId: string; rating?: string }>();
   const { token } = useAuth();
   const { colors } = useAppTheme();
   const router = useRouter();
@@ -51,6 +51,15 @@ export default function StoreReviewsScreen() {
   const [loading, setLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [userRating, setUserRating] = useState(5);
+
+  useEffect(() => {
+    if (rating) {
+      const parsed = parseInt(rating, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 5) {
+        setUserRating(parsed);
+      }
+    }
+  }, [rating]);
   const [userComment, setUserComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
 
