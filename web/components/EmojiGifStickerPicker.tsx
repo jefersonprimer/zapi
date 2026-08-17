@@ -248,7 +248,14 @@ export function EmojiGifStickerPicker({
           const res = await fetch(endpoint);
           const data = await res.json();
           if (isMounted && data?.data) {
-            const fetchedGifs = data.data.map((item: any) => ({
+            const fetchedGifs = data.data.map((item: {
+              id: string;
+              title?: string;
+              images?: {
+                original?: { url: string };
+                fixed_width?: { url: string };
+              };
+            }) => ({
               id: item.id,
               title: item.title || "GIF",
               category: "Giphy",
@@ -324,8 +331,10 @@ export function EmojiGifStickerPicker({
   // Fetch Stickers from Giphy or Tenor API
   useEffect(() => {
     if (activeTab !== "stickers" || !stickerSearchQuery.trim()) {
-      setOnlineStickers([]);
-      return;
+      const clearTimer = setTimeout(() => {
+        setOnlineStickers((prev) => (prev.length > 0 ? [] : prev));
+      }, 0);
+      return () => clearTimeout(clearTimer);
     }
 
     let isMounted = true;
@@ -343,7 +352,14 @@ export function EmojiGifStickerPicker({
           const res = await fetch(endpoint);
           const data = await res.json();
           if (isMounted && data?.data) {
-            const fetched = data.data.map((item: any) => ({
+            const fetched = data.data.map((item: {
+              id: string;
+              title?: string;
+              images?: {
+                original?: { url: string };
+                fixed_width?: { url: string };
+              };
+            }) => ({
               id: item.id,
               name: item.title || "Sticker",
               url: item.images?.original?.url || item.images?.fixed_width?.url,

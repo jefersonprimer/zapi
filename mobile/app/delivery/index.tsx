@@ -28,6 +28,7 @@ import {
 import CategoryGrid from "@/components/CategoryGrid";
 import PromotionsSection from "@/components/PromotionsSection";
 import StoreCard, { StoreCardSkeleton } from "@/components/StoreCard";
+import { Ionicons } from "@expo/vector-icons";
 
 const LABEL_TEXT: Record<string, string> = {
   casa: "Casa",
@@ -217,7 +218,11 @@ export default function DeliveryScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
+          <Ionicons
+            name="chevron-back-outline"
+            color={colors.headerText}
+            size={24}
+          />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Zapi Delivery
@@ -230,19 +235,31 @@ export default function DeliveryScreen() {
             ]}
             onPress={() => router.push("/delivery/search")}
           >
-            <MaterialCommunityIcons name="magnify" color={colors.icon} size={20} />
+            <MaterialCommunityIcons
+              name="magnify"
+              color={colors.icon}
+              size={20}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.ordersButton, { backgroundColor: colors.surface }]}
             onPress={() => router.push("/delivery/orders")}
           >
-            <MaterialCommunityIcons name="clipboard-text-outline" color={colors.icon} size={20} />
+            <MaterialCommunityIcons
+              name="clipboard-text-outline"
+              color={colors.icon}
+              size={20}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.vendorButton, { backgroundColor: colors.surface }]}
             onPress={() => router.push("/delivery/vendor/dashboard")}
           >
-            <MaterialCommunityIcons name="store" color={colors.icon} size={20} />
+            <MaterialCommunityIcons
+              name="store"
+              color={colors.icon}
+              size={20}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -255,7 +272,11 @@ export default function DeliveryScreen() {
         onPress={() => router.push("/delivery/addresses")}
         activeOpacity={0.7}
       >
-        <MaterialCommunityIcons name="map-marker" size={18} color={colors.tint} />
+        <MaterialCommunityIcons
+          name="map-marker"
+          size={18}
+          color={colors.tint}
+        />
         <View style={styles.addressBarText}>
           {loading ? (
             <Text
@@ -285,7 +306,11 @@ export default function DeliveryScreen() {
             </Text>
           )}
         </View>
-        <MaterialCommunityIcons name="chevron-right" size={18} color={colors.icon} />
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={18}
+          color={colors.icon}
+        />
       </TouchableOpacity>
 
       {loading && !address ? (
@@ -301,7 +326,11 @@ export default function DeliveryScreen() {
         </ScrollView>
       ) : !address ? (
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="map-marker" color={colors.icon} size={64} />
+          <MaterialCommunityIcons
+            name="map-marker"
+            color={colors.icon}
+            size={64}
+          />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             Cadastre um endereço para ver lojas na sua cidade
           </Text>
@@ -407,7 +436,9 @@ export default function DeliveryScreen() {
                     <Text
                       style={[
                         styles.filterChipText,
-                        { color: deliveryMode !== "all" ? "#FFF" : colors.text },
+                        {
+                          color: deliveryMode !== "all" ? "#FFF" : colors.text,
+                        },
                       ]}
                     >
                       {deliveryMode === "all"
@@ -441,7 +472,9 @@ export default function DeliveryScreen() {
                     <Text
                       style={[
                         styles.filterChipText,
-                        { color: paymentFilter !== null ? "#FFF" : colors.text },
+                        {
+                          color: paymentFilter !== null ? "#FFF" : colors.text,
+                        },
                       ]}
                     >
                       {paymentFilter === null
@@ -519,13 +552,19 @@ export default function DeliveryScreen() {
                         backgroundColor: promotionOnly
                           ? colors.tint
                           : colors.surface,
-                        borderColor: promotionOnly ? colors.tint : colors.border,
+                        borderColor: promotionOnly
+                          ? colors.tint
+                          : colors.border,
                       },
                     ]}
                     onPress={() => setPromotionOnly(!promotionOnly)}
                     activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons name="tag-outline" size={14} color={promotionOnly ? "#FFF" : colors.text} />
+                    <MaterialCommunityIcons
+                      name="tag-outline"
+                      size={14}
+                      color={promotionOnly ? "#FFF" : colors.text}
+                    />
                     <Text
                       style={[
                         styles.filterChipText,
@@ -576,7 +615,11 @@ export default function DeliveryScreen() {
               </View>
             ) : (
               <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons name="store" color={colors.icon} size={64} />
+                <MaterialCommunityIcons
+                  name="store"
+                  color={colors.icon}
+                  size={64}
+                />
                 <Text
                   style={[styles.emptyText, { color: colors.textSecondary }]}
                 >
@@ -599,7 +642,11 @@ export default function DeliveryScreen() {
           onPress={() => router.push("/delivery/cart")}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="cart" color={isDark ? "#121212" : "#FFFFFF"} size={24} />
+          <MaterialCommunityIcons
+            name="cart"
+            color={isDark ? "#121212" : "#FFFFFF"}
+            size={24}
+          />
           <View style={[styles.badge, { backgroundColor: colors.badge }]}>
             <Text style={[styles.badgeText, { color: colors.badgeText }]}>
               {getItemCount()}

@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   dialogTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "500",
     textAlign: "center",
     marginBottom: 16,

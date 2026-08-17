@@ -19,6 +19,7 @@ import {
   getOrderStatusLabel,
   ORDER_STATUS_COLORS,
 } from "@/services/deliveryApi";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function OrdersScreen() {
   const { token } = useAuth();
@@ -45,24 +46,46 @@ export default function OrdersScreen() {
   useFocusEffect(
     useCallback(() => {
       loadOrders();
-    }, [loadOrders])
+    }, [loadOrders]),
   );
 
   const renderOrder = ({ item }: { item: Order }) => (
     <TouchableOpacity
-      style={[styles.orderCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-      onPress={() => router.push({ pathname: "/delivery/orders/[id]", params: { id: item.id } })}
+      style={[
+        styles.orderCard,
+        { backgroundColor: colors.cardBackground, borderColor: colors.border },
+      ]}
+      onPress={() =>
+        router.push({
+          pathname: "/delivery/orders/[id]",
+          params: { id: item.id },
+        })
+      }
       activeOpacity={0.7}
     >
       <View style={styles.orderHeader}>
         <View style={styles.orderIdRow}>
-          <MaterialCommunityIcons name="package-variant" color={colors.icon} size={18} />
+          <MaterialCommunityIcons
+            name="package-variant"
+            color={colors.icon}
+            size={18}
+          />
           <Text style={[styles.orderId, { color: colors.text }]}>
             #{item.id.slice(0, 8).toUpperCase()}
           </Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: ORDER_STATUS_COLORS[item.status] + "20" }]}>
-          <Text style={[styles.statusText, { color: ORDER_STATUS_COLORS[item.status] }]}>
+        <View
+          style={[
+            styles.statusBadge,
+            { backgroundColor: ORDER_STATUS_COLORS[item.status] + "20" },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              { color: ORDER_STATUS_COLORS[item.status] },
+            ]}
+          >
             {getOrderStatusLabel(item.status, item.fulfillment_type)}
           </Text>
         </View>
@@ -72,31 +95,62 @@ export default function OrdersScreen() {
           R$ {item.total.toFixed(2)}
         </Text>
         <Text style={[styles.orderDate, { color: colors.textSecondary }]}>
-          {new Date(item.created_at).toLocaleDateString("pt-BR")} {new Date(item.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+          {new Date(item.created_at).toLocaleDateString("pt-BR")}{" "}
+          {new Date(item.created_at).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </Text>
       </View>
       {item.discount > 0 && (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
-          <MaterialCommunityIcons name="tag-outline" color="#10B981" size={12} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+            marginTop: 4,
+          }}
+        >
+          <MaterialCommunityIcons
+            name="tag-outline"
+            color="#10B981"
+            size={12}
+          />
           <Text style={{ color: "#10B981", fontSize: 12, fontWeight: "500" }}>
             {item.coupon_code} — Desconto: -R$ {item.discount.toFixed(2)}
           </Text>
         </View>
       )}
       <View style={styles.orderAddress}>
-        <Text style={[styles.orderAddressText, { color: colors.textSecondary }]} numberOfLines={1}>
+        <Text
+          style={[styles.orderAddressText, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
           {item.fulfillment_type === "retirada"
             ? "Retirada na loja"
             : `${item.address_snapshot.rua}, ${item.address_snapshot.numero} - ${item.address_snapshot.bairro}`}
         </Text>
-        <MaterialCommunityIcons name="chevron-right" color={colors.icon} size={18} />
+        <MaterialCommunityIcons
+          name="chevron-right"
+          color={colors.icon}
+          size={18}
+        />
       </View>
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            alignItems: "center",
+            justifyContent: "center",
+          },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
@@ -104,11 +158,22 @@ export default function OrdersScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
+      <View
+        style={[styles.header, { backgroundColor: colors.headerBackground }]}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="chevron-back-outline"
+            color={colors.headerText}
+            size={24}
+          />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.headerText }]}>Meus Pedidos</Text>
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>
+          Meus Pedidos
+        </Text>
       </View>
 
       <FlatList
@@ -117,11 +182,22 @@ export default function OrdersScreen() {
         renderItem={renderOrder}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadOrders(); }} tintColor={colors.tint} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadOrders();
+            }}
+            tintColor={colors.tint}
+          />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="package-variant" color={colors.icon} size={64} />
+            <MaterialCommunityIcons
+              name="package-variant"
+              color={colors.icon}
+              size={64}
+            />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               Nenhum pedido encontrado
             </Text>
@@ -142,7 +218,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backButton: { padding: 8 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: "600", marginHorizontal: 8 },
+  headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: "500",
+    marginHorizontal: 8,
+  },
   listContent: { padding: 16, paddingBottom: 32 },
   orderCard: {
     padding: 14,

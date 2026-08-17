@@ -27,6 +27,7 @@ import {
   deleteAddress,
   UserAddress,
 } from "@/services/deliveryApi";
+import { Ionicons } from "@expo/vector-icons";
 
 const LABELS = [
   { value: "casa", label: "Casa" },
@@ -35,8 +36,33 @@ const LABELS = [
 ];
 
 const UFS = [
-  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA",
-  "PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
 ];
 
 interface AddressForm {
@@ -97,7 +123,7 @@ export default function AddressesScreen() {
   useFocusEffect(
     useCallback(() => {
       loadAddresses();
-    }, [loadAddresses])
+    }, [loadAddresses]),
   );
 
   const openForm = (addr?: UserAddress) => {
@@ -140,12 +166,12 @@ export default function AddressesScreen() {
       }));
       Alert.alert(
         "Localização obtida!",
-        "Os campos do seu endereço foram preenchidos automaticamente com base na sua localização atual. Confira os dados e ajuste o número ou complemento se necessário."
+        "Os campos do seu endereço foram preenchidos automaticamente com base na sua localização atual. Confira os dados e ajuste o número ou complemento se necessário.",
       );
     } catch (err: any) {
       Alert.alert(
         "Erro ao obter localização",
-        err.message || "Não foi possível obter sua localização atual."
+        err.message || "Não foi possível obter sua localização atual.",
       );
     } finally {
       setGettingLocation(false);
@@ -154,7 +180,14 @@ export default function AddressesScreen() {
 
   const handleSave = async () => {
     if (!token) return;
-    if (!form.rua.trim() || !form.numero.trim() || !form.cidade.trim() || !form.estado.trim() || !form.bairro.trim() || !form.cep.trim()) {
+    if (
+      !form.rua.trim() ||
+      !form.numero.trim() ||
+      !form.cidade.trim() ||
+      !form.estado.trim() ||
+      !form.bairro.trim() ||
+      !form.cep.trim()
+    ) {
       Alert.alert("Erro", "Preencha todos os campos obrigatórios");
       return;
     }
@@ -200,31 +233,63 @@ export default function AddressesScreen() {
   };
 
   const renderAddress = ({ item }: { item: UserAddress }) => (
-    <View style={[styles.addrCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.addrCard,
+        { backgroundColor: colors.cardBackground, borderColor: colors.border },
+      ]}
+    >
       <View style={styles.addrHeader}>
         <View style={styles.addrLabelRow}>
-          <MaterialCommunityIcons name="map-marker" color={item.is_default ? colors.tint : colors.icon} size={18} />
+          <MaterialCommunityIcons
+            name="map-marker"
+            color={item.is_default ? colors.tint : colors.icon}
+            size={18}
+          />
           <Text style={[styles.addrLabel, { color: colors.text }]}>
             {LABELS.find((l) => l.value === item.label)?.label || item.label}
           </Text>
           {item.is_default && (
-            <View style={[styles.defaultBadge, { backgroundColor: `${colors.tint}20` }]}>
-              <Text style={[styles.defaultText, { color: colors.tint }]}>Padrão</Text>
+            <View
+              style={[
+                styles.defaultBadge,
+                { backgroundColor: `${colors.tint}20` },
+              ]}
+            >
+              <Text style={[styles.defaultText, { color: colors.tint }]}>
+                Padrão
+              </Text>
             </View>
           )}
         </View>
         <View style={styles.addrActions}>
-          <TouchableOpacity onPress={() => openForm(item)} style={styles.addrAction}>
-            <Text style={[styles.addrActionText, { color: colors.tint }]}>Editar</Text>
+          <TouchableOpacity
+            onPress={() => openForm(item)}
+            style={styles.addrAction}
+          >
+            <Text style={[styles.addrActionText, { color: colors.tint }]}>
+              Editar
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDelete(item)} style={styles.addrAction}>
-            <MaterialCommunityIcons name="trash-can-outline" color={colors.danger} size={16} />
+          <TouchableOpacity
+            onPress={() => handleDelete(item)}
+            style={styles.addrAction}
+          >
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              color={colors.danger}
+              size={16}
+            />
           </TouchableOpacity>
         </View>
       </View>
-      <Text style={[styles.addrText, { color: colors.textSecondary }]} numberOfLines={3}>
+      <Text
+        style={[styles.addrText, { color: colors.textSecondary }]}
+        numberOfLines={3}
+      >
         {item.rua}, {item.numero} - {item.bairro}
-        {"\n"}{item.cidade}/{item.estado} - CEP: {item.cep}
+        {"\n"}
+        {item.cidade}/{item.estado} - CEP: {item.cep}
         {item.ponto_referencia ? `\nRef: ${item.ponto_referencia}` : ""}
       </Text>
     </View>
@@ -232,12 +297,26 @@ export default function AddressesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
+      <View
+        style={[styles.header, { backgroundColor: colors.headerBackground }]}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="chevron-back-outline"
+            color={colors.headerText}
+            size={24}
+          />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.headerText }]}>Endereços</Text>
-        <TouchableOpacity onPress={() => openForm()} style={[styles.addButton, { backgroundColor: colors.tint }]}>
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>
+          Endereços
+        </Text>
+        <TouchableOpacity
+          onPress={() => openForm()}
+          style={[styles.addButton, { backgroundColor: colors.tint }]}
+        >
           <MaterialCommunityIcons name="plus" color="#fff" size={20} />
         </TouchableOpacity>
       </View>
@@ -253,19 +332,35 @@ export default function AddressesScreen() {
           renderItem={renderAddress}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadAddresses(); }} tintColor={colors.tint} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                loadAddresses();
+              }}
+              tintColor={colors.tint}
+            />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons name="map-marker" color={colors.icon} size={64} />
+              <MaterialCommunityIcons
+                name="map-marker"
+                color={colors.icon}
+                size={64}
+              />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 Nenhum endereço cadastrado
               </Text>
               <TouchableOpacity
-                style={[styles.emptyAddButton, { backgroundColor: colors.tint }]}
+                style={[
+                  styles.emptyAddButton,
+                  { backgroundColor: colors.tint },
+                ]}
                 onPress={() => openForm()}
               >
-                <Text style={styles.emptyAddButtonText}>Adicionar endereço</Text>
+                <Text style={styles.emptyAddButtonText}>
+                  Adicionar endereço
+                </Text>
               </TouchableOpacity>
             </View>
           }
@@ -277,10 +372,21 @@ export default function AddressesScreen() {
           style={styles.modalOverlay}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.background },
+            ]}
+          >
+            <View
+              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+            >
               <TouchableOpacity onPress={() => setShowForm(false)}>
-                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
+                <MaterialCommunityIcons
+                  name="close"
+                  color={colors.text}
+                  size={24}
+                />
               </TouchableOpacity>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 {editingId ? "Editar endereço" : "Novo endereço"}
@@ -289,28 +395,51 @@ export default function AddressesScreen() {
                 {saving ? (
                   <ActivityIndicator color={colors.tint} />
                 ) : (
-                  <MaterialCommunityIcons name="check" color={colors.tint} size={24} />
+                  <MaterialCommunityIcons
+                    name="check"
+                    color={colors.tint}
+                    size={24}
+                  />
                 )}
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+            <ScrollView
+              style={styles.modalBody}
+              contentContainerStyle={styles.modalBodyContent}
+            >
               <TouchableOpacity
-                style={[styles.locationBtn, { backgroundColor: `${colors.tint}15`, borderColor: colors.tint }]}
+                style={[
+                  styles.locationBtn,
+                  {
+                    backgroundColor: `${colors.tint}15`,
+                    borderColor: colors.tint,
+                  },
+                ]}
                 onPress={handleUseLocation}
                 disabled={gettingLocation}
               >
                 {gettingLocation ? (
                   <ActivityIndicator size="small" color={colors.tint} />
                 ) : (
-                  <MaterialCommunityIcons name="crosshairs-gps" color={colors.tint} size={18} />
+                  <MaterialCommunityIcons
+                    name="crosshairs-gps"
+                    color={colors.tint}
+                    size={18}
+                  />
                 )}
                 <Text style={[styles.locationBtnText, { color: colors.tint }]}>
-                  {gettingLocation ? "Buscando localização..." : "Usar minha localização atual"}
+                  {gettingLocation
+                    ? "Buscando localização..."
+                    : "Usar minha localização atual"}
                 </Text>
               </TouchableOpacity>
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Tipo *</Text>
+              <Text
+                style={[styles.fieldLabel, { color: colors.textSecondary }]}
+              >
+                Tipo *
+              </Text>
               <View style={styles.labelRow}>
                 {LABELS.map((l) => (
                   <TouchableOpacity
@@ -318,21 +447,35 @@ export default function AddressesScreen() {
                     style={[
                       styles.labelChip,
                       {
-                        backgroundColor: form.label === l.value ? colors.tint : colors.surface,
+                        backgroundColor:
+                          form.label === l.value ? colors.tint : colors.surface,
                         borderColor: colors.border,
                       },
                     ]}
                     onPress={() => setForm({ ...form, label: l.value })}
                   >
-                    <Text style={{ color: form.label === l.value ? "#fff" : colors.text, fontSize: 14 }}>
+                    <Text
+                      style={{
+                        color: form.label === l.value ? "#fff" : colors.text,
+                        fontSize: 14,
+                      }}
+                    >
                       {l.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>UF *</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.ufScroll}>
+              <Text
+                style={[styles.fieldLabel, { color: colors.textSecondary }]}
+              >
+                UF *
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.ufScroll}
+              >
                 <View style={styles.ufRow}>
                   {UFS.map((uf) => (
                     <TouchableOpacity
@@ -340,13 +483,20 @@ export default function AddressesScreen() {
                       style={[
                         styles.ufChip,
                         {
-                          backgroundColor: form.estado === uf ? colors.tint : colors.surface,
+                          backgroundColor:
+                            form.estado === uf ? colors.tint : colors.surface,
                           borderColor: colors.border,
                         },
                       ]}
                       onPress={() => setForm({ ...form, estado: uf })}
                     >
-                      <Text style={{ color: form.estado === uf ? "#fff" : colors.text, fontSize: 13, fontWeight: "500" }}>
+                      <Text
+                        style={{
+                          color: form.estado === uf ? "#fff" : colors.text,
+                          fontSize: 13,
+                          fontWeight: "500",
+                        }}
+                      >
                         {uf}
                       </Text>
                     </TouchableOpacity>
@@ -354,27 +504,48 @@ export default function AddressesScreen() {
                 </View>
               </ScrollView>
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Cidade *</Text>
+              <Text
+                style={[styles.fieldLabel, { color: colors.textSecondary }]}
+              >
+                Cidade *
+              </Text>
               <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
                 value={form.cidade}
                 onChangeText={(t) => setForm({ ...form, cidade: t })}
                 placeholder="São Paulo"
                 placeholderTextColor={colors.textSecondary}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Bairro *</Text>
+              <Text
+                style={[styles.fieldLabel, { color: colors.textSecondary }]}
+              >
+                Bairro *
+              </Text>
               <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
                 value={form.bairro}
                 onChangeText={(t) => setForm({ ...form, bairro: t })}
                 placeholder="Centro"
                 placeholderTextColor={colors.textSecondary}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>CEP *</Text>
+              <Text
+                style={[styles.fieldLabel, { color: colors.textSecondary }]}
+              >
+                CEP *
+              </Text>
               <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
                 value={form.cep}
                 onChangeText={(t) => setForm({ ...form, cep: t })}
                 placeholder="01234-567"
@@ -382,27 +553,48 @@ export default function AddressesScreen() {
                 keyboardType="numeric"
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Rua *</Text>
+              <Text
+                style={[styles.fieldLabel, { color: colors.textSecondary }]}
+              >
+                Rua *
+              </Text>
               <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
                 value={form.rua}
                 onChangeText={(t) => setForm({ ...form, rua: t })}
                 placeholder="Rua Exemplo"
                 placeholderTextColor={colors.textSecondary}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Número *</Text>
+              <Text
+                style={[styles.fieldLabel, { color: colors.textSecondary }]}
+              >
+                Número *
+              </Text>
               <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
                 value={form.numero}
                 onChangeText={(t) => setForm({ ...form, numero: t })}
                 placeholder="123"
                 placeholderTextColor={colors.textSecondary}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Ponto de referência</Text>
+              <Text
+                style={[styles.fieldLabel, { color: colors.textSecondary }]}
+              >
+                Ponto de referência
+              </Text>
               <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border },
+                ]}
                 value={form.ponto_referencia}
                 onChangeText={(t) => setForm({ ...form, ponto_referencia: t })}
                 placeholder="Em frente à padaria"
@@ -411,20 +603,34 @@ export default function AddressesScreen() {
 
               <TouchableOpacity
                 style={styles.defaultRow}
-                onPress={() => setForm({ ...form, is_default: !form.is_default })}
+                onPress={() =>
+                  setForm({ ...form, is_default: !form.is_default })
+                }
               >
                 <View
                   style={[
                     styles.checkbox,
                     {
-                      backgroundColor: form.is_default ? colors.tint : "transparent",
-                      borderColor: form.is_default ? colors.tint : colors.border,
+                      backgroundColor: form.is_default
+                        ? colors.tint
+                        : "transparent",
+                      borderColor: form.is_default
+                        ? colors.tint
+                        : colors.border,
                     },
                   ]}
                 >
-                  {form.is_default && <MaterialCommunityIcons name="check" color="#fff" size={14} />}
+                  {form.is_default && (
+                    <MaterialCommunityIcons
+                      name="check"
+                      color="#fff"
+                      size={14}
+                    />
+                  )}
                 </View>
-                <Text style={[styles.defaultLabel, { color: colors.text }]}>Definir como padrão</Text>
+                <Text style={[styles.defaultLabel, { color: colors.text }]}>
+                  Definir como padrão
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -445,8 +651,19 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backButton: { padding: 8 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: "600", marginHorizontal: 8 },
-  addButton: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: "500",
+    marginHorizontal: 8,
+  },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { padding: 16, paddingBottom: 32 },
   addrCard: {
@@ -471,7 +688,11 @@ const styles = StyleSheet.create({
   addrText: { fontSize: 13, lineHeight: 18 },
   emptyContainer: { alignItems: "center", paddingTop: 64 },
   emptyText: { fontSize: 16, marginTop: 12, marginBottom: 16 },
-  emptyAddButton: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
+  emptyAddButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
   emptyAddButtonText: { color: "#fff", fontWeight: "600" },
   modalOverlay: { flex: 1, justifyContent: "flex-end" },
   modalContent: { flex: 1 },
@@ -500,7 +721,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  fieldLabel: { fontSize: 13, fontWeight: "500", marginBottom: 6, marginTop: 12 },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginBottom: 6,
+    marginTop: 12,
+  },
   labelRow: { flexDirection: "row", gap: 8 },
   labelChip: {
     paddingHorizontal: 16,

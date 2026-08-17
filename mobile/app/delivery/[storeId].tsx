@@ -13,10 +13,13 @@ import {
   ScrollView,
   TextInput,
   Clipboard,
-  SafeAreaView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import {
+  useSafeAreaInsets,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
@@ -37,11 +40,13 @@ import {
   formatProductPrice,
   formatQuantityLabel,
   StoreCoupon,
-  createStoreReview,
-  listStoreReviews,
-  StoreReviewWithUser,
 } from "@/services/deliveryApi";
 import { getFullRemoteUrl } from "@/services/mediaCache";
+import { FoodProductCard } from "@/components/FoodProductCard";
+import { GridProductCard } from "@/components/GridProductCard";
+import { CouponsBottomSheetModal } from "@/components/CouponsBottomSheetModal";
+import { StoreDetailsBottomSheetModal } from "@/components/StoreDetailsBottomSheetModal";
+import { Ionicons } from "@expo/vector-icons";
 
 function categoryLabel(name: string): string {
   return PRODUCT_CATEGORIES[name] || name;
@@ -93,9 +98,8 @@ export default function StoreScreen() {
   >([]);
   const [hours, setHours] = useState<StoreHours[]>([]);
   const [coupons, setCoupons] = useState<StoreCoupon[]>([]);
-  const [storeDetailsModalVisible, setStoreDetailsModalVisible] =
-    useState(false);
-  const [couponsModalVisible, setCouponsModalVisible] = useState(false);
+  const storeDetailsBottomSheetRef = useRef<BottomSheetModal>(null);
+  const couponsBottomSheetRef = useRef<BottomSheetModal>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -117,16 +121,13 @@ export default function StoreScreen() {
     }
   };
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [scrollY, setScrollY] = useState(0);
   const [isGridViewVisible, setIsGridViewVisible] = useState(false);
   const [gridSelectedCategory, setGridSelectedCategory] = useState<
     string | null
   >(null);
-  const [searchModalVisible, setSearchModalVisible] = useState(false);
 
   const [addonModalVisible, setAddonModalVisible] = useState(false);
-  const [productDetailVisible, setProductDetailVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(
     null,
   );
@@ -136,50 +137,6 @@ export default function StoreScreen() {
   );
   const [loadingAddons, setLoadingAddons] = useState(false);
   const [modalQty, setModalQty] = useState(1);
-
-  const [reviews, setReviews] = useState<StoreReviewWithUser[]>([]);
-  const [reviewsModalVisible, setReviewsModalVisible] = useState(false);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [userRating, setUserRating] = useState(5);
-  const [userComment, setUserComment] = useState("");
-  const [submittingReview, setSubmittingReview] = useState(false);
-
-  const loadReviews = useCallback(async () => {
-    if (!token || !storeId) return;
-    setReviewsLoading(true);
-    try {
-      const res = await listStoreReviews(token, storeId);
-      setReviews(res.reviews || []);
-    } catch (err) {
-      console.error("Failed to load reviews:", err);
-    } finally {
-      setReviewsLoading(false);
-    }
-  }, [token, storeId]);
-
-  const handleSubmitReview = async () => {
-    if (!token || !storeId) return;
-    if (userRating < 0 || userRating > 5) {
-      Alert.alert("Erro", "Por favor, selecione uma nota de 0 a 5 estrelas.");
-      return;
-    }
-    setSubmittingReview(true);
-    try {
-      await createStoreReview(token, storeId, userRating, userComment);
-      Alert.alert("Sucesso", "Sua avaliação foi salva!");
-      setUserComment("");
-      loadReviews();
-      loadStore();
-    } catch (err) {
-      console.error("Failed to submit review:", err);
-      Alert.alert(
-        "Erro",
-        "Não foi possível salvar sua avaliação. Tente novamente.",
-      );
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
 
   const loadStore = useCallback(async () => {
     if (!token || !storeId) return;
@@ -350,12 +307,11 @@ export default function StoreScreen() {
     await loadProductAddons(product);
   };
 
-  const openProductDetail = async (product: StoreProduct) => {
-    setSelectedProduct(product);
-    setSelectedAddonIds(new Set());
-    setModalQty(product.sale_type === "weight" ? MIN_WEIGHT : 1);
-    setProductDetailVisible(true);
-    await loadProductAddons(product);
+  const openProductDetail = (product: StoreProduct) => {
+    router.push({
+      pathname: "/delivery/product/[productId]",
+      params: { productId: product.id, storeId },
+    });
   };
 
   const relatedProducts = useMemo(() => {
@@ -424,7 +380,6 @@ export default function StoreScreen() {
 
     addProductToCart(selectedProduct, addons, modalQty);
     setAddonModalVisible(false);
-    if (closeDetail) setProductDetailVisible(false);
   };
 
   const quickAddToCart = (product: StoreProduct) => {
@@ -453,17 +408,6 @@ export default function StoreScreen() {
     return products;
   }, [products]);
 
-  const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        (p.description?.toLowerCase().includes(q) ?? false) ||
-        (p.category?.toLowerCase().includes(q) ?? false),
-    );
-  }, [products, searchQuery]);
-
   const gridProducts = useMemo(() => {
     if (!gridSelectedCategory) {
       return products;
@@ -477,307 +421,37 @@ export default function StoreScreen() {
   }, [products, gridSelectedCategory, storeCategories]);
 
   const renderGridProductCard = (product: StoreProduct, isCarousel = false) => {
-    const saleType = product.sale_type || "unit";
-    const qty = getItemQty(product.id);
-    const step = saleType === "weight" ? WEIGHT_STEP : 1;
-    const minQty = saleType === "weight" ? MIN_WEIGHT : 1;
-
     return (
-      <View
+      <GridProductCard
         key={product.id}
-        style={[
-          isCarousel ? styles.carouselProductCard : styles.mercadoCard,
-          {
-            backgroundColor: Colors.light.cardBackground,
-            borderColor: Colors.light.border,
-          },
-          !isCarousel && { width: "48.5%" },
-        ]}
-      >
-        <View
-          style={
-            isCarousel ? { position: "relative" } : styles.mercadoImageWrap
-          }
-        >
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => openProductDetail(product)}
-          >
-            {product.image ? (
-              <Image
-                source={{ uri: getFullRemoteUrl(product.image) }}
-                style={
-                  isCarousel ? styles.carouselProductImage : styles.mercadoImage
-                }
-              />
-            ) : (
-              <View
-                style={[
-                  isCarousel
-                    ? styles.carouselProductImageFallback
-                    : styles.mercadoImageFallback,
-                  { backgroundColor: Colors.light.surface },
-                ]}
-              >
-                <MaterialCommunityIcons name="store" color={Colors.light.icon} size={isCarousel ? 24 : 28} />
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {qty > 0 ? (
-            <View
-              style={[
-                styles.mercadoPlusBtn,
-                {
-                  backgroundColor: Colors.light.surface,
-                  borderWidth: 1,
-                  borderColor: Colors.light.border,
-                  width: "auto",
-                  minWidth: isCarousel ? 90 : 95,
-                  flexDirection: "row",
-                  paddingHorizontal: 4,
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={() =>
-                  qty <= minQty
-                    ? removeItem(product.id)
-                    : updateQuantity(
-                        product.id,
-                        Math.round((qty - step) * 10) / 10,
-                      )
-                }
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                hitSlop={6}
-              >
-                <MaterialCommunityIcons name="minus" color={Colors.light.tint} size={16} />
-              </TouchableOpacity>
-
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "600",
-                  color: Colors.light.text,
-                  marginHorizontal: isCarousel ? 1 : 2,
-                }}
-              >
-                {formatQuantityLabel(qty, saleType)}
-              </Text>
-
-              <TouchableOpacity
-                onPress={() =>
-                  updateQuantity(product.id, Math.round((qty + step) * 10) / 10)
-                }
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                hitSlop={6}
-              >
-                <MaterialCommunityIcons name="plus" color={Colors.light.tint} size={16} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.mercadoPlusBtn,
-                {
-                  backgroundColor: Colors.light.surface,
-                  borderWidth: 1,
-                  borderColor: Colors.light.border,
-                },
-              ]}
-              onPress={() => quickAddToCart(product)}
-              hitSlop={6}
-            >
-              <MaterialCommunityIcons name="plus" color={Colors.light.tint} size={isCarousel ? 18 : 20} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => openProductDetail(product)}
-        >
-          <Text
-            style={[
-              isCarousel ? styles.carouselProductPrice : styles.mercadoPrice,
-              { color: Colors.light.tint },
-            ]}
-          >
-            {formatProductPrice(product.price, saleType)}
-          </Text>
-          <Text
-            style={[
-              isCarousel ? styles.carouselProductName : styles.mercadoName,
-              { color: Colors.light.text },
-            ]}
-            numberOfLines={2}
-          >
-            {product.name}
-          </Text>
-          {!isCarousel && product.description ? (
-            <Text
-              style={[
-                styles.mercadoDesc,
-                { color: Colors.light.textSecondary },
-              ]}
-              numberOfLines={2}
-            >
-              {product.description}
-            </Text>
-          ) : null}
-          {!isCarousel && (
-            <Text
-              style={[
-                styles.mercadoSaleType,
-                { color: Colors.light.textSecondary },
-              ]}
-            >
-              {saleType === "weight" ? "Peso (kg)" : "Unidade"}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+        product={product}
+        qty={getItemQty(product.id)}
+        isCarousel={isCarousel}
+        onPress={() => openProductDetail(product)}
+        onUpdateQty={(newQty) => updateQuantity(product.id, newQty)}
+        onRemove={() => removeItem(product.id)}
+        onQuickAdd={() => quickAddToCart(product)}
+      />
     );
   };
 
   const renderFoodProductCard = (product: StoreProduct) => {
-    const saleType = product.sale_type || "unit";
-    const qty = getItemQty(product.id);
-    const step = saleType === "weight" ? WEIGHT_STEP : 1;
-    const minQty = saleType === "weight" ? MIN_WEIGHT : 1;
-
     return (
-      <View
+      <FoodProductCard
         key={product.id}
-        style={[
-          styles.productCard,
-          {
-            backgroundColor: Colors.light.cardBackground,
-            borderColor: Colors.light.border,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => openProductDetail(product)}
-          style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
-        >
-          <View style={styles.productInfo}>
-            <Text
-              style={[styles.productName, { color: Colors.light.text }]}
-              numberOfLines={2}
-            >
-              {product.name}
-            </Text>
-            {product.description ? (
-              <Text
-                style={[
-                  styles.productDesc,
-                  { color: Colors.light.textSecondary },
-                ]}
-                numberOfLines={2}
-              >
-                {product.description}
-              </Text>
-            ) : null}
-            <Text style={[styles.productPrice, { color: Colors.light.tint }]}>
-              {formatProductPrice(product.price, saleType)}
-            </Text>
-          </View>
-          {product.image ? (
-            <Image
-              source={{ uri: getFullRemoteUrl(product.image) }}
-              style={styles.productImage}
-            />
-          ) : (
-            <View
-              style={[
-                styles.productImage,
-                {
-                  backgroundColor: Colors.light.surface,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: Colors.light.border,
-                },
-              ]}
-            >
-              <MaterialCommunityIcons name="store" color={Colors.light.icon} size={20} />
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.productActions}>
-          {qty > 0 ? (
-            <View style={styles.quantityRow}>
-              <TouchableOpacity
-                style={[
-                  styles.qtyButton,
-                  { backgroundColor: Colors.light.border },
-                ]}
-                onPress={() =>
-                  qty <= minQty
-                    ? removeItem(product.id)
-                    : updateQuantity(
-                        product.id,
-                        Math.round((qty - step) * 10) / 10,
-                      )
-                }
-              >
-                <MaterialCommunityIcons name="minus" color={Colors.light.text} size={20} />
-              </TouchableOpacity>
-              <Text style={[styles.qtyText, { color: Colors.light.text }]}>
-                {formatQuantityLabel(qty, saleType)}
-              </Text>
-              <TouchableOpacity
-                style={[
-                  styles.qtyButton,
-                  { backgroundColor: Colors.light.tint },
-                ]}
-                onPress={() =>
-                  updateQuantity(product.id, Math.round((qty + step) * 10) / 10)
-                }
-              >
-                <MaterialCommunityIcons name="plus" color="#fff" size={20} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.addButton,
-                {
-                  backgroundColor: Colors.light.surface,
-                  borderWidth: 1,
-                  borderColor: Colors.light.border,
-                },
-              ]}
-              onPress={() => {
-                if (product.has_addons || product.addon_categories?.length) {
-                  openAddonsModal(product);
-                } else {
-                  quickAddToCart(product);
-                }
-              }}
-            >
-              <MaterialCommunityIcons name="plus" color={Colors.light.tint} size={22} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+        product={product}
+        qty={getItemQty(product.id)}
+        onPress={() => openProductDetail(product)}
+        onUpdateQty={(newQty) => updateQuantity(product.id, newQty)}
+        onRemove={() => removeItem(product.id)}
+        onAddPress={() => {
+          if (product.has_addons || product.addon_categories?.length) {
+            openAddonsModal(product);
+          } else {
+            quickAddToCart(product);
+          }
+        }}
+      />
     );
   };
 
@@ -852,7 +526,11 @@ export default function StoreScreen() {
               onPress={() => setIsGridViewVisible(false)}
               style={styles.gridBackButton}
             >
-              <MaterialCommunityIcons name="arrow-left" color={colors.text} size={24} />
+              <Ionicons
+                name="chevron-back-outline"
+                color={colors.text}
+                size={24}
+              />
             </TouchableOpacity>
 
             <Text
@@ -867,19 +545,26 @@ export default function StoreScreen() {
             >
               <TouchableOpacity
                 onPress={() => {
-                  setSearchModalVisible(true);
-                  setSearchQuery("");
+                  router.push(`/delivery/search-products/${storeId}`);
                 }}
                 style={styles.gridSearchButton}
               >
-                <MaterialCommunityIcons name="magnify" color={colors.text} size={24} />
+                <MaterialCommunityIcons
+                  name="magnify"
+                  color={colors.text}
+                  size={24}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => setStoreDetailsModalVisible(true)}
+                onPress={() => storeDetailsBottomSheetRef.current?.present()}
                 style={styles.gridSearchButton}
               >
-                <MaterialCommunityIcons name="alert-circle-outline" color={colors.text} size={24} />
+                <MaterialCommunityIcons
+                  name="alert-circle-outline"
+                  color={colors.text}
+                  size={24}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -1005,7 +690,11 @@ export default function StoreScreen() {
                     { backgroundColor: colors.border },
                   ]}
                 >
-                  <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={20} />
+                  <Ionicons
+                    name="chevron-back-outline"
+                    color={colors.headerText}
+                    size={20}
+                  />
                 </TouchableOpacity>
 
                 <Text
@@ -1020,7 +709,7 @@ export default function StoreScreen() {
                 >
                   {coupons.length > 0 && (
                     <TouchableOpacity
-                      onPress={() => setCouponsModalVisible(true)}
+                      onPress={() => couponsBottomSheetRef.current?.present()}
                       style={[
                         styles.couponBadgeHeader,
                         {
@@ -1041,25 +730,34 @@ export default function StoreScreen() {
 
                   <TouchableOpacity
                     onPress={() => {
-                      setSearchModalVisible(true);
-                      setSearchQuery("");
+                      router.push(`/delivery/search-products/${storeId}`);
                     }}
                     style={[
                       styles.searchButton,
                       { backgroundColor: colors.border },
                     ]}
                   >
-                    <MaterialCommunityIcons name="magnify" color={colors.headerText} size={20} />
+                    <MaterialCommunityIcons
+                      name="magnify"
+                      color={colors.headerText}
+                      size={20}
+                    />
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => setStoreDetailsModalVisible(true)}
+                    onPress={() =>
+                      storeDetailsBottomSheetRef.current?.present()
+                    }
                     style={[
                       styles.searchButton,
                       { backgroundColor: colors.border },
                     ]}
                   >
-                    <MaterialCommunityIcons name="alert-circle-outline" color={colors.headerText} size={20} />
+                    <MaterialCommunityIcons
+                      name="alert-circle-outline"
+                      color={colors.headerText}
+                      size={20}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1149,7 +847,11 @@ export default function StoreScreen() {
               onPress={() => router.back()}
               style={[styles.searchButton, { backgroundColor: colors.border }]}
             >
-              <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={20} />
+              <Ionicons
+                name="chevron-back-outline"
+                color={colors.headerText}
+                size={24}
+              />
             </TouchableOpacity>
 
             <View
@@ -1157,7 +859,7 @@ export default function StoreScreen() {
             >
               {coupons.length > 0 && (
                 <TouchableOpacity
-                  onPress={() => setCouponsModalVisible(true)}
+                  onPress={() => couponsBottomSheetRef.current?.present()}
                   style={[
                     styles.couponBadgeHeader,
                     {
@@ -1177,25 +879,32 @@ export default function StoreScreen() {
 
               <TouchableOpacity
                 onPress={() => {
-                  setSearchModalVisible(true);
-                  setSearchQuery("");
+                  router.push(`/delivery/search-products/${storeId}`);
                 }}
                 style={[
                   styles.searchButton,
                   { backgroundColor: colors.border },
                 ]}
               >
-                <MaterialCommunityIcons name="magnify" color={colors.headerText} size={20} />
+                <MaterialCommunityIcons
+                  name="magnify"
+                  color={colors.headerText}
+                  size={20}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => setStoreDetailsModalVisible(true)}
+                onPress={() => storeDetailsBottomSheetRef.current?.present()}
                 style={[
                   styles.searchButton,
                   { backgroundColor: colors.border },
                 ]}
               >
-                <MaterialCommunityIcons name="alert-circle-outline" color={colors.headerText} size={20} />
+                <MaterialCommunityIcons
+                  name="alert-circle-outline"
+                  color={colors.headerText}
+                  size={20}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -1227,8 +936,7 @@ export default function StoreScreen() {
               style={[
                 styles.storeDetailsContainer,
                 {
-                  backgroundColor: colors.surface,
-                  borderBottomColor: colors.border,
+                  backgroundColor: colors.background,
                 },
               ]}
             >
@@ -1251,7 +959,7 @@ export default function StoreScreen() {
               {/* Clickable Store Hero Info */}
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setStoreDetailsModalVisible(true)}
+                onPress={() => storeDetailsBottomSheetRef.current?.present()}
                 style={[styles.storeInfoWrapper, { alignItems: "center" }]}
               >
                 {/* Store Logo/Avatar */}
@@ -1281,7 +989,11 @@ export default function StoreScreen() {
                         },
                       ]}
                     >
-                      <MaterialCommunityIcons name="store" color={colors.icon} size={32} />
+                      <MaterialCommunityIcons
+                        name="store"
+                        color={colors.icon}
+                        size={32}
+                      />
                     </View>
                   )}
                 </View>
@@ -1306,7 +1018,11 @@ export default function StoreScreen() {
                     <View
                       style={{ flexDirection: "row", alignItems: "center" }}
                     >
-                      <MaterialCommunityIcons name="star" color="#F59E0B" size={14} />
+                      <MaterialCommunityIcons
+                        name="star"
+                        color="#F59E0B"
+                        size={14}
+                      />
                       <Text
                         style={[
                           styles.storeMetaCompactText,
@@ -1472,7 +1188,11 @@ export default function StoreScreen() {
               style={[styles.modalHeader, { borderBottomColor: colors.border }]}
             >
               <TouchableOpacity onPress={() => setAddonModalVisible(false)}>
-                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
+                <MaterialCommunityIcons
+                  name="close"
+                  color={colors.text}
+                  size={24}
+                />
               </TouchableOpacity>
               <Text
                 style={[styles.modalTitle, { color: colors.text }]}
@@ -1481,7 +1201,11 @@ export default function StoreScreen() {
                 {selectedProduct?.name}
               </Text>
               <TouchableOpacity onPress={() => confirmAddToCart()}>
-                <MaterialCommunityIcons name="check" color={colors.tint} size={24} />
+                <MaterialCommunityIcons
+                  name="check"
+                  color={colors.tint}
+                  size={24}
+                />
               </TouchableOpacity>
             </View>
 
@@ -1529,7 +1253,11 @@ export default function StoreScreen() {
                         );
                       }}
                     >
-                      <MaterialCommunityIcons name="minus" color={colors.text} size={20} />
+                      <MaterialCommunityIcons
+                        name="minus"
+                        color={colors.text}
+                        size={20}
+                      />
                     </TouchableOpacity>
                     <Text
                       style={[
@@ -1557,7 +1285,11 @@ export default function StoreScreen() {
                         setModalQty((q) => Math.round((q + step) * 10) / 10);
                       }}
                     >
-                      <MaterialCommunityIcons name="plus" color="#fff" size={20} />
+                      <MaterialCommunityIcons
+                        name="plus"
+                        color="#fff"
+                        size={20}
+                      />
                     </TouchableOpacity>
                   </View>
                   {selectedProduct.sale_type === "weight" && (
@@ -1665,305 +1397,17 @@ export default function StoreScreen() {
                           },
                         ]}
                       >
-                        {selected && <MaterialCommunityIcons name="check" color="#fff" size={14} />}
+                        {selected && (
+                          <MaterialCommunityIcons
+                            name="check"
+                            color="#fff"
+                            size={14}
+                          />
+                        )}
                       </View>
                     </TouchableOpacity>
                   );
                 })
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={productDetailVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setProductDetailVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.detailModalContent,
-              { backgroundColor: colors.background },
-            ]}
-          >
-            <View
-              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
-            >
-              <TouchableOpacity onPress={() => setProductDetailVisible(false)}>
-                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
-              </TouchableOpacity>
-              <Text
-                style={[styles.modalTitle, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                Detalhes
-              </Text>
-              <View style={{ width: 24 }} />
-            </View>
-
-            <ScrollView
-              style={styles.detailScrollView}
-              contentContainerStyle={styles.detailScroll}
-              showsVerticalScrollIndicator={false}
-              bounces
-            >
-              {selectedProduct && (
-                <>
-                  {selectedProduct.image ? (
-                    <Image
-                      source={{ uri: getFullRemoteUrl(selectedProduct.image) }}
-                      style={styles.detailImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.detailImage,
-                        styles.mercadoImageFallback,
-                        { backgroundColor: colors.surface },
-                      ]}
-                    >
-                      <MaterialCommunityIcons name="store" color={colors.icon} size={48} />
-                    </View>
-                  )}
-
-                  <Text style={[styles.detailName, { color: colors.text }]}>
-                    {selectedProduct.name}
-                  </Text>
-
-                  {selectedProduct.description ? (
-                    <Text
-                      style={[
-                        styles.detailDesc,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {selectedProduct.description}
-                    </Text>
-                  ) : null}
-
-                  <Text style={[styles.detailPrice, { color: colors.tint }]}>
-                    {formatProductPrice(
-                      selectedProduct.price,
-                      selectedProduct.sale_type || "unit",
-                    )}
-                  </Text>
-
-                  <View
-                    style={[styles.modalQtySection, { marginHorizontal: 16 }]}
-                  >
-                    <Text
-                      style={[
-                        styles.modalQtyLabel,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {(selectedProduct.sale_type || "unit") === "weight"
-                        ? "Quantidade (kg)"
-                        : "Quantidade"}
-                    </Text>
-                    <View style={styles.quantityRow}>
-                      <TouchableOpacity
-                        style={[
-                          styles.qtyButton,
-                          { backgroundColor: colors.surface },
-                        ]}
-                        onPress={() => {
-                          const saleType = selectedProduct.sale_type || "unit";
-                          const step = saleType === "weight" ? WEIGHT_STEP : 1;
-                          const min = saleType === "weight" ? MIN_WEIGHT : 1;
-                          setModalQty((q) =>
-                            Math.max(min, Math.round((q - step) * 10) / 10),
-                          );
-                        }}
-                      >
-                        <MaterialCommunityIcons name="minus" color={colors.text} size={20} />
-                      </TouchableOpacity>
-                      <Text
-                        style={[
-                          styles.qtyText,
-                          {
-                            color: colors.text,
-                            minWidth: 56,
-                            textAlign: "center",
-                          },
-                        ]}
-                      >
-                        {formatQuantityLabel(
-                          modalQty,
-                          selectedProduct.sale_type || "unit",
-                        )}
-                      </Text>
-                      <TouchableOpacity
-                        style={[
-                          styles.qtyButton,
-                          { backgroundColor: colors.tint },
-                        ]}
-                        onPress={() => {
-                          const saleType = selectedProduct.sale_type || "unit";
-                          const step = saleType === "weight" ? WEIGHT_STEP : 1;
-                          setModalQty((q) => Math.round((q + step) * 10) / 10);
-                        }}
-                      >
-                        <MaterialCommunityIcons name="plus" color="#fff" size={20} />
-                      </TouchableOpacity>
-                    </View>
-                    {selectedProduct.sale_type === "weight" && (
-                      <View style={styles.weightPresets}>
-                        {[0.25, 0.5, 1, 1.5, 2].map((kg) => (
-                          <TouchableOpacity
-                            key={kg}
-                            style={[
-                              styles.weightPreset,
-                              {
-                                backgroundColor:
-                                  modalQty === kg
-                                    ? colors.tint
-                                    : colors.surface,
-                                borderColor: colors.border,
-                              },
-                            ]}
-                            onPress={() => setModalQty(kg)}
-                          >
-                            <Text
-                              style={{
-                                color: modalQty === kg ? "#fff" : colors.text,
-                                fontSize: 12,
-                                fontWeight: "600",
-                              }}
-                            >
-                              {kg < 1 ? `${kg * 1000}g` : `${kg}kg`}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-
-                  {loadingAddons ? (
-                    <ActivityIndicator
-                      style={{ marginVertical: 12 }}
-                      color={colors.tint}
-                    />
-                  ) : productAddons.length > 0 ? (
-                    <View style={{ marginBottom: 12, marginHorizontal: 16 }}>
-                      <Text
-                        style={[
-                          styles.relatedTitle,
-                          { color: colors.text, marginHorizontal: 0 },
-                        ]}
-                      >
-                        Adicionais
-                      </Text>
-                      {productAddons.map((addon) => {
-                        const selected = selectedAddonIds.has(addon.id);
-                        return (
-                          <TouchableOpacity
-                            key={addon.id}
-                            style={[
-                              styles.addonItem,
-                              {
-                                backgroundColor: selected
-                                  ? `${colors.tint}15`
-                                  : colors.cardBackground,
-                                borderColor: selected
-                                  ? colors.tint
-                                  : colors.border,
-                              },
-                            ]}
-                            onPress={() => toggleAddon(addon.id)}
-                          >
-                            <View style={{ flex: 1 }}>
-                              <Text
-                                style={{
-                                  color: colors.text,
-                                  fontWeight: "500",
-                                }}
-                              >
-                                {addon.name}
-                              </Text>
-                              <Text
-                                style={{
-                                  color: colors.tint,
-                                  fontSize: 13,
-                                  marginTop: 2,
-                                }}
-                              >
-                                + R$ {addon.price.toFixed(2)}
-                              </Text>
-                            </View>
-                            <View
-                              style={[
-                                styles.addonCheck,
-                                {
-                                  backgroundColor: selected
-                                    ? colors.tint
-                                    : "transparent",
-                                  borderColor: selected
-                                    ? colors.tint
-                                    : colors.border,
-                                },
-                              ]}
-                            >
-                              {selected && <MaterialCommunityIcons name="check" color="#fff" size={14} />}
-                            </View>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  ) : null}
-
-                  <TouchableOpacity
-                    style={[
-                      styles.detailAddBtn,
-                      { backgroundColor: colors.tint },
-                    ]}
-                    onPress={() => confirmAddToCart(true)}
-                  >
-                    <MaterialCommunityIcons name="plus" color="#fff" size={18} />
-                    <Text style={styles.detailAddBtnText}>
-                      Adicionar · R${" "}
-                      {(
-                        (selectedProduct.price +
-                          productAddons
-                            .filter((a) => selectedAddonIds.has(a.id))
-                            .reduce((s, a) => s + a.price, 0)) *
-                        modalQty
-                      ).toFixed(2)}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {relatedProducts.length > 0 && (
-                    <View style={styles.relatedSection}>
-                      <Text
-                        style={[styles.relatedTitle, { color: colors.text }]}
-                      >
-                        Mais em{" "}
-                        {categoryLabel(selectedProduct.category || "Produtos")}
-                      </Text>
-                      {isFoodOrDrinkStore ? (
-                        <View style={{ gap: 8, paddingHorizontal: 16 }}>
-                          {relatedProducts.map((product) =>
-                            renderFoodProductCard(product),
-                          )}
-                        </View>
-                      ) : (
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={styles.relatedCarousel}
-                        >
-                          {relatedProducts.map((product) =>
-                            renderGridProductCard(product, true),
-                          )}
-                        </ScrollView>
-                      )}
-                    </View>
-                  )}
-                </>
               )}
             </ScrollView>
           </View>
@@ -1983,8 +1427,19 @@ export default function StoreScreen() {
           activeOpacity={0.9}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <MaterialCommunityIcons name="cart" color={isDark ? "#121212" : "#FFFFFF"} size={20} style={{ marginRight: 8 }} />
-            <Text style={{ color: isDark ? "#121212" : "#FFFFFF", fontWeight: "600", fontSize: 15 }}>
+            <MaterialCommunityIcons
+              name="cart"
+              color={isDark ? "#121212" : "#FFFFFF"}
+              size={20}
+              style={{ marginRight: 8 }}
+            />
+            <Text
+              style={{
+                color: isDark ? "#121212" : "#FFFFFF",
+                fontWeight: "600",
+                fontSize: 15,
+              }}
+            >
               {getItemCount()} {getItemCount() === 1 ? "item" : "itens"} • R${" "}
               {getSubtotal().toFixed(2).replace(".", ",")}
             </Text>
@@ -2004,882 +1459,20 @@ export default function StoreScreen() {
         </TouchableOpacity>
       )}
 
-      <Modal
-        visible={storeDetailsModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setStoreDetailsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.detailsModalContent,
-              { backgroundColor: colors.background },
-            ]}
-          >
-            <View
-              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
-            >
-              <TouchableOpacity
-                onPress={() => setStoreDetailsModalVisible(false)}
-              >
-                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
-              </TouchableOpacity>
-              <Text
-                style={[styles.modalTitle, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                Detalhes da Loja
-              </Text>
-              <View style={{ width: 24 }} />
-            </View>
-
-            <ScrollView contentContainerStyle={styles.detailsModalScroll}>
-              {/* Store Name and Description */}
-              <View style={styles.detailsModalSection}>
-                <Text
-                  style={[styles.detailsModalStoreName, { color: colors.text }]}
-                >
-                  {store.name}
-                </Text>
-                {store.description && (
-                  <Text
-                    style={[
-                      styles.detailsModalDesc,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {store.description}
-                  </Text>
-                )}
-              </View>
-
-              {/* Delivery and Minimum Order */}
-              <View
-                style={[
-                  styles.detailsModalSection,
-                  { borderTopColor: colors.border, borderTopWidth: 1 },
-                ]}
-              >
-                <Text
-                  style={[styles.detailsModalSecTitle, { color: colors.text }]}
-                >
-                  Valores e Prazos
-                </Text>
-                <View style={styles.detailsModalRow}>
-                  <Text
-                    style={[
-                      styles.detailsModalLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Taxa de entrega
-                  </Text>
-                  <Text
-                    style={[styles.detailsModalValue, { color: colors.text }]}
-                  >
-                    {store.delivery_fee === 0
-                      ? "Grátis"
-                      : `R$ ${store.delivery_fee.toFixed(2)}`}
-                  </Text>
-                </View>
-                <View style={styles.detailsModalRow}>
-                  <Text
-                    style={[
-                      styles.detailsModalLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Pedido mínimo
-                  </Text>
-                  <Text
-                    style={[styles.detailsModalValue, { color: colors.text }]}
-                  >
-                    {store.minimum_order === 0
-                      ? "Sem valor mínimo"
-                      : `R$ ${store.minimum_order.toFixed(2)}`}
-                  </Text>
-                </View>
-                {store.prep_time_minutes ? (
-                  <View style={styles.detailsModalRow}>
-                    <Text
-                      style={[
-                        styles.detailsModalLabel,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Tempo de preparo
-                    </Text>
-                    <Text
-                      style={[styles.detailsModalValue, { color: colors.text }]}
-                    >
-                      ~{store.prep_time_minutes} min
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {/* Address */}
-              <View
-                style={[
-                  styles.detailsModalSection,
-                  { borderTopColor: colors.border, borderTopWidth: 1 },
-                ]}
-              >
-                <Text
-                  style={[styles.detailsModalSecTitle, { color: colors.text }]}
-                >
-                  Endereço
-                </Text>
-                <Text
-                  style={[
-                    styles.detailsModalAddressText,
-                    { color: colors.text },
-                  ]}
-                >
-                  {store.street
-                    ? `${store.street}, ${store.number || "S/N"}`
-                    : "Endereço não disponível"}
-                  {store.neighborhood ? ` - ${store.neighborhood}` : ""}
-                  {`\n${store.city} - ${store.state}`}
-                  {store.cep ? `\nCEP: ${store.cep}` : ""}
-                </Text>
-              </View>
-
-              {/* Phone & CNPJ */}
-              {(store.phone || store.cnpj) && (
-                <View
-                  style={[
-                    styles.detailsModalSection,
-                    { borderTopColor: colors.border, borderTopWidth: 1 },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.detailsModalSecTitle,
-                      { color: colors.text },
-                    ]}
-                  >
-                    Contato & Dados
-                  </Text>
-                  {store.phone && (
-                    <Text
-                      style={[
-                        styles.detailsModalAddressText,
-                        { color: colors.text },
-                      ]}
-                    >
-                      Tel: {store.phone}
-                    </Text>
-                  )}
-                  {store.cnpj && (
-                    <Text
-                      style={[
-                        styles.detailsModalAddressText,
-                        { color: colors.text, marginTop: 4 },
-                      ]}
-                    >
-                      CNPJ: {store.cnpj}
-                    </Text>
-                  )}
-                </View>
-              )}
-
-              {/* Hours */}
-              {hours && hours.length > 0 && (
-                <View
-                  style={[
-                    styles.detailsModalSection,
-                    { borderTopColor: colors.border, borderTopWidth: 1 },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.detailsModalSecTitle,
-                      { color: colors.text },
-                    ]}
-                  >
-                    Horários de Funcionamento
-                  </Text>
-                  {WEEKDAYS.map((day) => {
-                    const h = hours.find((x) => x.day_of_week === day.key);
-                    return (
-                      <View key={day.key} style={styles.detailsModalRow}>
-                        <Text
-                          style={[
-                            styles.detailsModalLabel,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {day.label}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.detailsModalValue,
-                            {
-                              color:
-                                h && !h.is_closed ? colors.text : colors.danger,
-                            },
-                          ]}
-                        >
-                          {h && !h.is_closed
-                            ? `${h.open_time.slice(0, 5)} - ${h.close_time.slice(0, 5)}`
-                            : "Fechado"}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-
-              {/* Reviews Button Link */}
-              <TouchableOpacity
-                style={[
-                  styles.detailsModalReviewsBtn,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-                onPress={() => {
-                  setStoreDetailsModalVisible(false);
-                  loadReviews();
-                  setTimeout(() => setReviewsModalVisible(true), 400);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.detailsModalReviewsBtnText,
-                    { color: colors.tint },
-                  ]}
-                >
-                  Ver Avaliações da Loja
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={couponsModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setCouponsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.couponsModalContent,
-              { backgroundColor: colors.background },
-            ]}
-          >
-            <View
-              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
-            >
-              <TouchableOpacity onPress={() => setCouponsModalVisible(false)}>
-                <MaterialCommunityIcons name="close" color={colors.text} size={24} />
-              </TouchableOpacity>
-              <Text
-                style={[styles.modalTitle, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                Cupons Disponíveis
-              </Text>
-              <View style={{ width: 24 }} />
-            </View>
-
-            <ScrollView contentContainerStyle={styles.couponsModalScroll}>
-              {coupons.map((coupon) => (
-                <TouchableOpacity
-                  key={coupon.id}
-                  style={[
-                    styles.couponModalCard,
-                    {
-                      backgroundColor: colors.cardBackground,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  onPress={() => {
-                    copyCouponCode(coupon.code);
-                    setCouponsModalVisible(false);
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.couponTicketLeft,
-                      { backgroundColor: `${colors.tint}10` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons name="ticket-percent" color={colors.tint} size={24} />
-                  </View>
-
-                  <View
-                    style={[
-                      styles.couponTicketDivider,
-                      { borderStyle: "dashed", borderColor: colors.border },
-                    ]}
-                  />
-
-                  <View style={styles.couponTicketRight}>
-                    <Text
-                      style={[
-                        styles.couponValueText,
-                        { color: colors.text, fontSize: 16 },
-                      ]}
-                    >
-                      {coupon.discount_type === "percentage"
-                        ? `${coupon.discount_value}% OFF`
-                        : `R$ ${coupon.discount_value.toFixed(0)} OFF`}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.couponCodeText,
-                        { color: colors.tint, fontSize: 14 },
-                      ]}
-                    >
-                      Código: {coupon.code}
-                    </Text>
-                    {coupon.min_order > 0 && (
-                      <Text
-                        style={[
-                          styles.couponMinOrderText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        Mínimo: R$ {coupon.min_order.toFixed(0)}
-                      </Text>
-                    )}
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: colors.textSecondary,
-                        marginTop: 4,
-                      }}
-                    >
-                      Toque para copiar o código
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={reviewsModalVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setReviewsModalVisible(false)}
-      >
-        <SafeAreaView
-          style={[
-            styles.revModalContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          {/* Modal Header */}
-          <View
-            style={[
-              styles.revModalHeader,
-              { borderBottomColor: colors.border },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() => setReviewsModalVisible(false)}
-              style={styles.revModalCloseButton}
-            >
-              <MaterialCommunityIcons name="arrow-left" color={colors.text} size={24} />
-            </TouchableOpacity>
-            <Text style={[styles.revModalTitle, { color: colors.text }]}>
-              Avaliações da Loja
-            </Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          <ScrollView
-            style={styles.revModalBody}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Store Score Card */}
-            {store && (
-              <View
-                style={[
-                  styles.reviewSummaryCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <View style={styles.reviewSummaryScoreSection}>
-                  <Text
-                    style={[
-                      styles.reviewSummaryAverageText,
-                      { color: colors.text },
-                    ]}
-                  >
-                    {store.score && Number(store.ratings_count) > 0
-                      ? Number(store.score).toFixed(1)
-                      : "Novo"}
-                  </Text>
-                  <View style={{ flexDirection: "row", marginVertical: 4 }}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <MaterialCommunityIcons
-                        key={star}
-                        size={16}
-                        color="#F59E0B"
-                        name={
-                          store.score && star <= Math.round(Number(store.score))
-                            ? "star"
-                            : "star-outline"
-                        }
-                      />
-                    ))}
-                  </View>
-                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                    {store.ratings_count || 0}{" "}
-                    {store.ratings_count === 1 ? "avaliação" : "avaliações"}
-                  </Text>
-                </View>
-
-                <View
-                  style={[
-                    styles.reviewSummaryDivider,
-                    { backgroundColor: colors.border },
-                  ]}
-                />
-
-                <View style={styles.reviewSummaryMetaSection}>
-                  <Text
-                    style={[
-                      styles.reviewSummaryMetaTitle,
-                      { color: colors.text },
-                    ]}
-                  >
-                    {store.name}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: colors.textSecondary,
-                      marginTop: 4,
-                    }}
-                  >
-                    Sua opinião ajuda outros clientes e o estabelecimento a
-                    melhorar!
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* Write a Review Section */}
-            <View
-              style={[
-                styles.writeReviewContainer,
-                { borderColor: colors.border, backgroundColor: colors.surface },
-              ]}
-            >
-              <Text style={[styles.writeReviewTitle, { color: colors.text }]}>
-                Deixe sua avaliação
-              </Text>
-
-              <View style={styles.starSelectorRow}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <TouchableOpacity
-                    key={star}
-                    onPress={() =>
-                      setUserRating(userRating === 1 && star === 1 ? 0 : star)
-                    }
-                    activeOpacity={0.7}
-                    style={{ padding: 6 }}
-                  >
-                    <MaterialCommunityIcons
-                      size={32}
-                      color="#F59E0B"
-                      name={star <= userRating ? "star" : "star-outline"}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: colors.textSecondary,
-                  textAlign: "center",
-                  marginBottom: 12,
-                }}
-              >
-                {userRating === 0
-                  ? "0 estrelas - Péssimo"
-                  : userRating === 1
-                    ? "1 estrela - Muito ruim"
-                    : userRating === 2
-                      ? "2 estrelas - Ruim"
-                      : userRating === 3
-                        ? "3 estrelas - Regular"
-                        : userRating === 4
-                          ? "4 estrelas - Muito bom"
-                          : "5 estrelas - Excelente"}
-              </Text>
-
-              <TextInput
-                style={[
-                  styles.commentInput,
-                  {
-                    color: colors.text,
-                    backgroundColor: colors.background,
-                    borderColor: colors.border,
-                  },
-                ]}
-                placeholder="Escreva um comentário sobre a sua experiência..."
-                placeholderTextColor={colors.textSecondary}
-                value={userComment}
-                onChangeText={setUserComment}
-                multiline
-                numberOfLines={3}
-                maxLength={500}
-              />
-
-              <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: colors.tint }]}
-                onPress={handleSubmitReview}
-                disabled={submittingReview}
-              >
-                {submittingReview ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.submitButtonText}>Enviar Avaliação</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Other Reviews List */}
-            <View style={styles.reviewsListSection}>
-              <Text
-                style={[styles.reviewsSectionTitle, { color: colors.text }]}
-              >
-                O que dizem os clientes
-              </Text>
-
-              {reviewsLoading ? (
-                <ActivityIndicator
-                  color={colors.tint}
-                  size="large"
-                  style={{ marginVertical: 20 }}
-                />
-              ) : reviews.length === 0 ? (
-                <Text
-                  style={[
-                    styles.emptyReviewsText,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Nenhuma avaliação ainda. Seja o primeiro a avaliar!
-                </Text>
-              ) : (
-                reviews.map((rev) => (
-                  <View
-                    key={rev.id}
-                    style={[
-                      styles.reviewItemCard,
-                      { borderBottomColor: colors.border },
-                    ]}
-                  >
-                    <View style={styles.reviewItemHeader}>
-                      <View
-                        style={{ flexDirection: "row", alignItems: "center" }}
-                      >
-                        {rev.user_avatar ? (
-                          <Image
-                            source={{ uri: getFullRemoteUrl(rev.user_avatar) }}
-                            style={styles.reviewUserAvatar}
-                          />
-                        ) : (
-                          <View
-                            style={[
-                              styles.reviewUserAvatarPlaceholder,
-                              { backgroundColor: colors.surface },
-                            ]}
-                          >
-                            <Text
-                              style={{
-                                color: colors.textSecondary,
-                                fontWeight: "bold",
-                              }}
-                            >
-                              {(rev.user_name || "U")
-                                .substring(0, 1)
-                                .toUpperCase()}
-                            </Text>
-                          </View>
-                        )}
-                        <View style={{ marginLeft: 10 }}>
-                          <Text
-                            style={[
-                              styles.reviewUserName,
-                              { color: colors.text },
-                            ]}
-                          >
-                            {rev.user_name}
-                          </Text>
-                          <View style={{ flexDirection: "row", marginTop: 2 }}>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <MaterialCommunityIcons
-                                key={star}
-                                size={12}
-                                color="#F59E0B"
-                                name={
-                                  star <= rev.rating ? "star" : "star-outline"
-                                }
-                              />
-                            ))}
-                          </View>
-                        </View>
-                      </View>
-                      <Text
-                        style={{ fontSize: 11, color: colors.textSecondary }}
-                      >
-                        {formatDate(rev.created_at)}
-                      </Text>
-                    </View>
-
-                    {rev.comment && rev.comment.trim().length > 0 ? (
-                      <Text
-                        style={[
-                          styles.reviewCommentText,
-                          { color: colors.text },
-                        ]}
-                      >
-                        {rev.comment}
-                      </Text>
-                    ) : null}
-                  </View>
-                ))
-              )}
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      <Modal
-        visible={searchModalVisible}
-        animationType="slide"
-        onRequestClose={() => {
-          setSearchModalVisible(false);
-          setSearchQuery("");
+      <StoreDetailsBottomSheetModal
+        ref={storeDetailsBottomSheetRef}
+        store={store}
+        hours={hours}
+        onViewReviews={() => {
+          router.push(`/delivery/reviews/${storeId}`);
         }}
-      >
-        <SafeAreaView
-          style={[
-            styles.searchModalContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          {/* Modal Header */}
-          <View
-            style={[
-              styles.searchModalHeader,
-              {
-                borderBottomColor: colors.border,
-                backgroundColor: colors.headerBackground,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() => {
-                setSearchModalVisible(false);
-                setSearchQuery("");
-              }}
-              style={styles.searchModalCloseButton}
-            >
-              <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
-            </TouchableOpacity>
+      />
 
-            <View
-              style={[
-                styles.searchModalInputBox,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <MaterialCommunityIcons name="magnify" color={colors.icon} size={18} />
-              <TextInput
-                style={[styles.searchModalInput, { color: colors.text }]}
-                placeholder="Buscar produtos na loja..."
-                placeholderTextColor={colors.textSecondary}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                returnKeyType="search"
-                autoCorrect={false}
-                autoFocus={true}
-                clearButtonMode="while-editing"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setSearchQuery("")}
-                  hitSlop={8}
-                >
-                  <MaterialCommunityIcons name="close" color={colors.icon} size={16} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          {/* Search Results */}
-          <FlatList
-            data={searchResults}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.searchModalListContent}
-            ListEmptyComponent={
-              <View style={styles.searchModalEmpty}>
-                {searchQuery.trim().length > 0 ? (
-                  <Text
-                    style={[
-                      styles.searchModalEmptyText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Nenhum produto encontrado
-                  </Text>
-                ) : (
-                  <Text
-                    style={[
-                      styles.searchModalEmptyText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Digite para buscar produtos nesta loja
-                  </Text>
-                )}
-              </View>
-            }
-            renderItem={({ item: product }) => {
-              const saleType = product.sale_type || "unit";
-              const qty = getItemQty(product.id);
-              const step = saleType === "weight" ? WEIGHT_STEP : 1;
-              const minQty = saleType === "weight" ? MIN_WEIGHT : 1;
-
-              return (
-                <View
-                  style={[
-                    styles.productCard,
-                    {
-                      backgroundColor: colors.cardBackground,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setSearchModalVisible(false);
-                      setTimeout(() => openProductDetail(product), 400);
-                    }}
-                    style={{ flex: 1, flexDirection: "row" }}
-                  >
-                    <View style={styles.productInfo}>
-                      <Text
-                        style={[styles.productName, { color: colors.text }]}
-                        numberOfLines={2}
-                      >
-                        {product.name}
-                      </Text>
-                      {product.description ? (
-                        <Text
-                          style={[
-                            styles.productDesc,
-                            { color: colors.textSecondary },
-                          ]}
-                          numberOfLines={2}
-                        >
-                          {product.description}
-                        </Text>
-                      ) : null}
-                      <Text
-                        style={[styles.productPrice, { color: colors.tint }]}
-                      >
-                        {formatProductPrice(product.price, saleType)}
-                      </Text>
-                    </View>
-                    {product.image ? (
-                      <Image
-                        source={{ uri: getFullRemoteUrl(product.image) }}
-                        style={styles.productImage}
-                      />
-                    ) : null}
-                  </TouchableOpacity>
-
-                  <View style={styles.productActions}>
-                    {qty > 0 ? (
-                      <View style={styles.quantityRow}>
-                        <TouchableOpacity
-                          style={[
-                            styles.qtyButton,
-                            { backgroundColor: colors.border },
-                          ]}
-                          onPress={() =>
-                            qty <= minQty
-                              ? removeItem(product.id)
-                              : updateQuantity(
-                                  product.id,
-                                  Math.round((qty - step) * 10) / 10,
-                                )
-                          }
-                        >
-                          <MaterialCommunityIcons name="minus" color={colors.text} size={20} />
-                        </TouchableOpacity>
-                        <Text style={[styles.qtyText, { color: colors.text }]}>
-                          {formatQuantityLabel(qty, saleType)}
-                        </Text>
-                        <TouchableOpacity
-                          style={[
-                            styles.qtyButton,
-                            { backgroundColor: colors.tint },
-                          ]}
-                          onPress={() =>
-                            updateQuantity(
-                              product.id,
-                              Math.round((qty + step) * 10) / 10,
-                            )
-                          }
-                        >
-                          <MaterialCommunityIcons name="plus" color="#fff" size={20} />
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        style={[
-                          styles.addButton,
-                          {
-                            backgroundColor: colors.surface,
-                            borderWidth: 1,
-                            borderColor: colors.border,
-                          },
-                        ]}
-                        onPress={() => {
-                          if (
-                            product.has_addons ||
-                            product.addon_categories?.length
-                          ) {
-                            setSearchModalVisible(false);
-                            setTimeout(() => openAddonsModal(product), 400);
-                          } else {
-                            quickAddToCart(product);
-                          }
-                        }}
-                      >
-                        <MaterialCommunityIcons name="plus" color={colors.tint} size={22} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              );
-            }}
-          />
-        </SafeAreaView>
-      </Modal>
+      <CouponsBottomSheetModal
+        ref={couponsBottomSheetRef}
+        coupons={coupons}
+        onCopyCoupon={copyCouponCode}
+      />
     </View>
   );
 }
@@ -2887,35 +1480,36 @@ export default function StoreScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   carouselProductCard: {
-    width: 140,
-    borderRadius: 12,
+    width: 160,
+    minHeight: 260,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 8,
-    marginRight: 10,
+    padding: 10,
+    marginRight: 12,
   },
   carouselProductImage: {
     width: "100%",
-    height: 100,
-    borderRadius: 8,
-    marginBottom: 6,
+    height: 140,
+    borderRadius: 10,
+    marginBottom: 8,
   },
   carouselProductImageFallback: {
     width: "100%",
-    height: 100,
-    borderRadius: 8,
-    marginBottom: 6,
+    height: 140,
+    borderRadius: 10,
+    marginBottom: 8,
     alignItems: "center",
     justifyContent: "center",
   },
   carouselProductPrice: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
   },
   carouselProductName: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     marginTop: 2,
-    height: 32,
+    height: 36,
   },
   carouselViewAllCard: {
     width: 110,
@@ -3221,22 +1815,21 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginTop: 8,
     marginBottom: 10,
-    textTransform: "uppercase",
   },
   productCard: {
     flexDirection: "row",
-    padding: 12,
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    marginBottom: 10,
+    marginBottom: 12,
     alignItems: "center",
   },
   productInfo: { flex: 1 },
-  productName: { fontSize: 15, fontWeight: "600" },
-  productDesc: { fontSize: 13, marginTop: 2 },
-  productPrice: { fontSize: 15, fontWeight: "700", marginTop: 4 },
-  productImage: { width: 64, height: 64, borderRadius: 8, marginLeft: 8 },
-  productActions: { marginLeft: 12 },
+  productName: { fontSize: 16, fontWeight: "600" },
+  productDesc: { fontSize: 13, marginTop: 4 },
+  productPrice: { fontSize: 16, fontWeight: "700", marginTop: 6 },
+  productImage: { width: 84, height: 84, borderRadius: 10, marginLeft: 10 },
+  productActions: { marginLeft: 14 },
   mercadoGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -3244,10 +1837,11 @@ const styles = StyleSheet.create({
   },
   mercadoCard: {
     width: "48.5%",
-    borderRadius: 12,
+    minHeight: 360,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 10,
-    marginBottom: 10,
+    padding: 12,
+    marginBottom: 12,
   },
   mercadoImageWrap: {
     position: "relative",
@@ -3255,7 +1849,7 @@ const styles = StyleSheet.create({
   },
   mercadoImage: {
     width: "100%",
-    aspectRatio: 1,
+    aspectRatio: 0.85,
     borderRadius: 8,
   },
   mercadoPlusBtn: {
@@ -3274,6 +1868,9 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   mercadoImageFallback: {
+    width: "100%",
+    aspectRatio: 0.85,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -3614,63 +2211,18 @@ const styles = StyleSheet.create({
     paddingLeft: 46,
   },
   searchButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchModalContainer: {
-    flex: 1,
-  },
-  searchModalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-  },
-  searchModalCloseButton: {
-    padding: 8,
-  },
-  searchModalInputBox: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 12,
+    width: 40,
     height: 40,
-    marginLeft: 4,
-    marginRight: 8,
-  },
-  searchModalInput: {
-    flex: 1,
-    height: "100%",
-    marginLeft: 8,
-    fontSize: 15,
-    padding: 0,
-  },
-  searchModalListContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  searchModalEmpty: {
-    flex: 1,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 60,
   },
-  searchModalEmptyText: {
-    fontSize: 15,
-    textAlign: "center",
-  },
+
   storeDetailsContainer: {
     marginBottom: 8,
     marginTop: -16,
     marginLeft: -16,
     marginRight: -16,
-    borderBottomWidth: 1,
   },
   storeInfoWrapper: {
     padding: 16,

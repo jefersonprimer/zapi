@@ -20,6 +20,7 @@ import {
   UserAddress,
 } from "@/services/deliveryApi";
 import StoreCard from "@/components/StoreCard";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SearchScreen() {
   const { token } = useAuth();
@@ -96,7 +97,11 @@ export default function SearchScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons size={24} color={colors.headerText} name="arrow-left" />
+          <Ionicons
+            name="chevron-back-outline"
+            size={24}
+            color={colors.headerText}
+          />
         </TouchableOpacity>
         <View
           style={[
@@ -104,7 +109,11 @@ export default function SearchScreen() {
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
-          <MaterialCommunityIcons name="magnify" color={colors.icon} size={18} />
+          <MaterialCommunityIcons
+            name="magnify"
+            color={colors.icon}
+            size={18}
+          />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Buscar loja..."
@@ -126,7 +135,11 @@ export default function SearchScreen() {
 
       {!address ? (
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="map-marker" color={colors.icon} size={64} />
+          <MaterialCommunityIcons
+            name="map-marker"
+            color={colors.icon}
+            size={64}
+          />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             Cadastre um endereço para buscar lojas na sua cidade
           </Text>
@@ -154,7 +167,11 @@ export default function SearchScreen() {
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <MaterialCommunityIcons name="store" color={colors.icon} size={64} />
+                  <MaterialCommunityIcons
+                    name="store"
+                    color={colors.icon}
+                    size={64}
+                  />
                   <Text
                     style={[styles.emptyText, { color: colors.textSecondary }]}
                   >
@@ -167,7 +184,11 @@ export default function SearchScreen() {
 
           {!loading && searchQuery.trim().length === 0 && (
             <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons name="magnify" color={colors.icon} size={64} />
+              <MaterialCommunityIcons
+                name="magnify"
+                color={colors.icon}
+                size={64}
+              />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 Digite o nome de uma loja para começar a buscar
               </Text>

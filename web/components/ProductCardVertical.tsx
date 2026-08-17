@@ -109,13 +109,8 @@ export default function ProductCardVertical({
       {/* Product Details (Below Image) */}
       <div className="py-2 flex-grow flex flex-col justify-between">
         <div>
-          {/* Product Name */}
-          <h4 className="font-medium text-foreground text-sm line-clamp-3">
-            {product.name}
-          </h4>
-
-          {/* Price below image/name */}
-          <div className="my-1 font-sans flex items-baseline flex-wrap gap-1">
+          {/* Price below image */}
+          <div className="mb-1 font-sans flex items-baseline flex-wrap gap-1">
             {hasDiscount ? (
               <>
                 <span className="font-extrabold text-foreground text-sm">
@@ -126,7 +121,7 @@ export default function ProductCardVertical({
                 </span>
               </>
             ) : (
-              <span className="font-bold text-foreground text-sm">
+              <span className="font-medium text-foreground text-lg">
                 {formatPrice(product.price)}
               </span>
             )}
@@ -137,7 +132,12 @@ export default function ProductCardVertical({
             )}
           </div>
 
-          {/* Description below price */}
+          {/* Product Name */}
+          <h4 className=" text-foreground text-sm line-clamp-2 mb-2">
+            {product.name}
+          </h4>
+
+          {/* Description below name */}
           {product.description && (
             <p className="text-xs text-muted-text line-clamp-2 leading-tight">
               {product.description}

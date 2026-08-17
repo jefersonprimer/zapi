@@ -283,11 +283,19 @@ export default function CreateListModal({
               }
             >
               {showEmojiPicker ? (
-                <Ionicons name={"keyboard-outline" as any} size={24} color={colors.text} />
+                <Ionicons
+                  name={"keyboard-outline" as any}
+                  size={24}
+                  color={colors.text}
+                />
               ) : icon ? (
                 <Text style={styles.emojiButtonIcon}>{icon}</Text>
               ) : (
-                <Ionicons name="happy-outline" size={22} color={colors.textSecondary} />
+                <Ionicons
+                  name="happy-outline"
+                  size={22}
+                  color={colors.textSecondary}
+                />
               )}
             </TouchableOpacity>
           </View>
@@ -498,7 +506,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "500",
     textAlign: "center",
   },

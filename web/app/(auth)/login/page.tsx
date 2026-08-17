@@ -81,7 +81,7 @@ export default function LoginPage() {
       console.error(err);
       setQrStatus("expired");
     }
-  }, [router]);
+  }, [router, loginWithToken]);
 
   // Handle countdown timer
   useEffect(() => {

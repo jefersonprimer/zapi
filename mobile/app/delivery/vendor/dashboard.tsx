@@ -25,6 +25,7 @@ import {
   getOrderStatusLabel,
   ORDER_STATUS_COLORS,
 } from "@/services/deliveryApi";
+import { Ionicons } from "@expo/vector-icons";
 
 const DASHBOARD_WEB_URL = "http://192.168.5.22:3001/dashboard";
 
@@ -127,7 +128,11 @@ export default function VendorDashboardScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
+            <Ionicons
+              name="chevron-back-outline"
+              color={colors.headerText}
+              size={24}
+            />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.headerText }]}>
             Minha Loja
@@ -163,7 +168,11 @@ export default function VendorDashboardScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
+          <Ionicons
+            name="chevron-back-outline"
+            color={colors.headerText}
+            size={24}
+          />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Minha Loja
@@ -215,9 +224,17 @@ export default function VendorDashboardScreen() {
                   {toggling ? (
                     <ActivityIndicator color={colors.tint} />
                   ) : store.is_open ? (
-                    <MaterialCommunityIcons name="toggle-switch" color={colors.tint} size={48} />
+                    <MaterialCommunityIcons
+                      name="toggle-switch"
+                      color={colors.tint}
+                      size={48}
+                    />
                   ) : (
-                    <MaterialCommunityIcons name="toggle-switch-off" color={colors.icon} size={48} />
+                    <MaterialCommunityIcons
+                      name="toggle-switch-off"
+                      color={colors.icon}
+                      size={48}
+                    />
                   )}
                 </TouchableOpacity>
               </View>
@@ -254,7 +271,11 @@ export default function VendorDashboardScreen() {
                   },
                 ]}
               >
-                <MaterialCommunityIcons name="cart" color={colors.tint} size={20} />
+                <MaterialCommunityIcons
+                  name="cart"
+                  color={colors.tint}
+                  size={20}
+                />
                 <Text style={[styles.statValue, { color: colors.text }]}>
                   {pendingCount}
                 </Text>
@@ -273,7 +294,11 @@ export default function VendorDashboardScreen() {
                   },
                 ]}
               >
-                <MaterialCommunityIcons name="trending-up" color="#10B981" size={20} />
+                <MaterialCommunityIcons
+                  name="trending-up"
+                  color="#10B981"
+                  size={20}
+                />
                 <Text style={[styles.statValue, { color: "#10B981" }]}>
                   R$ {todayRevenue.toFixed(2)}
                 </Text>
@@ -297,7 +322,11 @@ export default function VendorDashboardScreen() {
                 ]}
                 onPress={() => router.push("/delivery/vendor/orders")}
               >
-                <MaterialCommunityIcons name="clock-outline" color={colors.tint} size={28} />
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  color={colors.tint}
+                  size={28}
+                />
                 <Text style={[styles.actionTitle, { color: colors.text }]}>
                   Pedidos
                 </Text>
@@ -320,7 +349,11 @@ export default function VendorDashboardScreen() {
                 ]}
                 onPress={() => router.push("/delivery/vendor/products")}
               >
-                <MaterialCommunityIcons name="package-variant" color={colors.tint} size={28} />
+                <MaterialCommunityIcons
+                  name="package-variant"
+                  color={colors.tint}
+                  size={28}
+                />
                 <Text style={[styles.actionTitle, { color: colors.text }]}>
                   Produtos
                 </Text>
@@ -346,7 +379,11 @@ export default function VendorDashboardScreen() {
                 ]}
                 onPress={() => router.push("/(tabs)")}
               >
-                <MaterialCommunityIcons name="message-text-outline" color={colors.tint} size={28} />
+                <MaterialCommunityIcons
+                  name="message-text-outline"
+                  color={colors.tint}
+                  size={28}
+                />
                 <Text style={[styles.actionTitle, { color: colors.text }]}>
                   Mensagens
                 </Text>
@@ -369,7 +406,11 @@ export default function VendorDashboardScreen() {
                 ]}
                 onPress={handleOpenDashboard}
               >
-                <MaterialCommunityIcons name="open-in-new" color="#fff" size={28} />
+                <MaterialCommunityIcons
+                  name="open-in-new"
+                  color="#fff"
+                  size={28}
+                />
                 <Text style={[styles.actionTitle, { color: "#fff" }]}>
                   Dashboard
                 </Text>
@@ -457,8 +498,8 @@ const styles = StyleSheet.create({
   backButton: { padding: 8 },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "500",
     marginHorizontal: 8,
   },
   listContent: { padding: 16, paddingBottom: 32 },

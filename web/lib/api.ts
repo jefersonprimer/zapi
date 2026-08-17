@@ -950,7 +950,7 @@ export const STORE_CATEGORIES: Record<string, string> = {
   // Alimentação
   restaurante: "Restaurantes",
   fast_food: "Fast Food",
-  lanchonete: "Lanches",
+  lanchonete: "Lanchonetes",
   lanches: "Lanches",
   pizza: "Pizzas",
   marmita: "Marmitas & PF",

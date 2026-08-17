@@ -77,13 +77,15 @@ export const SendLaterPreviewBar: React.FC<SendLaterPreviewBarProps> = ({
           borderColor: isDark
             ? "rgba(52, 199, 89, 0.4)"
             : "rgba(7, 193, 96, 0.4)",
-          backgroundColor: isDark
-            ? "rgba(52, 199, 89, 0.08)"
-            : "rgba(7, 193, 96, 0.08)",
         },
       ]}
     >
-      <Ionicons name="time-outline" size={16} color={iconColor} style={styles.clockIcon} />
+      <Ionicons
+        name="time-outline"
+        size={20}
+        color={iconColor}
+        style={styles.clockIcon}
+      />
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={onPress}
@@ -109,7 +111,7 @@ export const SendLaterPreviewBar: React.FC<SendLaterPreviewBarProps> = ({
         onPress={onClear}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <Ionicons name="close" size={20} color={colors.textSecondary} />
+        <Ionicons name="close" size={20} color={greenColor} />
       </TouchableOpacity>
     </View>
   );
@@ -119,7 +121,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 50,
     borderWidth: 1.5,
@@ -141,11 +143,11 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   text: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    fontWeight: "400",
   },
   scheduledText: {
-    fontWeight: "600",
+    fontWeight: "500",
   },
   chevronIcon: {
     marginLeft: 4,

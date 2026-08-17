@@ -1,11 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import {
-  Store as StoreIcon,
-  Plus,
-  Minus,
-  Percent,
-} from "lucide-react";
+import { Store as StoreIcon, Plus, Minus, Percent } from "lucide-react";
 import { type StoreProduct } from "@/lib/api";
 import { formatPrice, getImageUrl } from "@/lib/utils";
 
@@ -64,7 +59,7 @@ export default function ProductDetailMainCard({
         {/* Product Info & Actions */}
         <div className="flex flex-col justify-center space-y-6 w-full max-w-xl justify-self-center md:justify-self-start">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-medium text-foreground leading-tight">
+            <h1 className="text-xl sm:text-2xl font-normal text-foreground leading-tight">
               {product.name}
             </h1>
 
@@ -80,7 +75,7 @@ export default function ProductDetailMainCard({
                   </span>
                 </>
               ) : (
-                <span className="text-3xl font-bold text-foreground">
+                <span className="text-2xl font-medium text-foreground">
                   {formatPrice(product.price)}
                 </span>
               )}

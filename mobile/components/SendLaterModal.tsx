@@ -20,6 +20,8 @@ interface WheelPickerProps<T extends number | string> {
   selectedValue: T;
   onChange: (value: T) => void;
   label: string;
+  containerStyle?: any;
+  wheelStyle?: any;
 }
 
 function WheelPicker<T extends number | string>({
@@ -27,6 +29,8 @@ function WheelPicker<T extends number | string>({
   selectedValue,
   onChange,
   label,
+  containerStyle,
+  wheelStyle,
 }: WheelPickerProps<T>) {
   const { colors, isDark } = useAppTheme();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -60,11 +64,13 @@ function WheelPicker<T extends number | string>({
   };
 
   return (
-    <View style={styles.pickerContainer}>
+    <View style={[styles.pickerContainer, containerStyle]}>
       <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>
         {label}
       </Text>
-      <View style={[styles.wheelContainer, { height: PICKER_HEIGHT }]}>
+      <View
+        style={[styles.wheelContainer, { height: PICKER_HEIGHT }, wheelStyle]}
+      >
         <View
           style={[
             styles.selectionOverlay,
@@ -93,12 +99,23 @@ function WheelPicker<T extends number | string>({
               );
             }
             const isSelected = item === selectedValue;
+            const isLongText = typeof item === "string" && item.length > 6;
+            const fontSize = isSelected
+              ? isLongText
+                ? 14
+                : 18
+              : isLongText
+                ? 11
+                : 14;
+
             return (
               <View
                 key={String(item)}
                 style={[styles.itemWrapper, { height: ITEM_HEIGHT }]}
               >
                 <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                   style={[
                     styles.itemText,
                     {
@@ -108,11 +125,13 @@ function WheelPicker<T extends number | string>({
                           ? "#666"
                           : "#AAA",
                       fontWeight: isSelected ? "bold" : "normal",
-                      fontSize: isSelected ? 18 : 14,
+                      fontSize,
                     },
                   ]}
                 >
-                  {typeof item === "number" ? String(item).padStart(2, "0") : item}
+                  {typeof item === "number"
+                    ? String(item).padStart(2, "0")
+                    : item}
                 </Text>
               </View>
             );
@@ -140,7 +159,7 @@ export function SendLaterModal({
   const bottomPadding = insets.bottom > 0 ? insets.bottom + 12 : 28;
 
   const initialDate = new Date(Date.now() + (initialDelayMs || 60000));
-  
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const targetDay = new Date(initialDate);
@@ -149,21 +168,57 @@ export function SendLaterModal({
   const initialDays = Math.max(0, Math.floor(diffTime / 86400000));
 
   const rawHours = initialDate.getHours();
-  const initialAmpm: "AM" | "PM" = rawHours >= 12 ? "PM" : "AM";
-  let initialHours = rawHours % 12;
-  if (initialHours === 0) initialHours = 12;
-
   const initialMinutes = initialDate.getMinutes();
 
-  const [days, setDays] = useState(initialDays);
-  const [hours, setHours] = useState(initialHours);
-  const [minutes, setMinutes] = useState(initialMinutes);
-  const [ampm, setAmpm] = useState<"AM" | "PM">(initialAmpm);
+  const getDayLabel = (offset: number) => {
+    if (offset === 0) return "Hoje";
+    if (offset === 1) return "Amanhã";
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
 
-  const daysArray = Array.from({ length: 31 }, (_, i) => i);
-  const hoursArray = Array.from({ length: 12 }, (_, i) => i + 1);
+    const weekdays = [
+      "Domingo",
+      "Segunda-feira",
+      "Terça-feira",
+      "Quarta-feira",
+      "Quinta-feira",
+      "Sexta-feira",
+      "Sábado",
+    ];
+    const months = [
+      "Jan",
+      "Fev",
+      "Mar",
+      "Abr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez",
+    ];
+
+    const weekday = weekdays[date.getDay()];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+
+    return `${weekday} ${day} ${month}`;
+  };
+
+  const daysLimit = 30; // 1 month limit
+  const daysArray = Array.from({ length: daysLimit }, (_, i) => getDayLabel(i));
+  const hoursArray = Array.from({ length: 24 }, (_, i) => i);
   const minutesArray = Array.from({ length: 60 }, (_, i) => i);
-  const ampmArray: ("AM" | "PM")[] = ["AM", "PM"];
+
+  // Fallback to "Hoje" if targetDay exceeds 1 month limit
+  const initialDayLabel =
+    initialDays < daysLimit ? getDayLabel(initialDays) : getDayLabel(0);
+
+  const [selectedDayLabel, setSelectedDayLabel] = useState(initialDayLabel);
+  const [hours, setHours] = useState(rawHours);
+  const [minutes, setMinutes] = useState(initialMinutes);
 
   const onScheduleRef = useRef(onSchedule);
   useEffect(() => {
@@ -171,17 +226,11 @@ export function SendLaterModal({
   }, [onSchedule]);
 
   useEffect(() => {
+    const dayOffset = Math.max(0, daysArray.indexOf(selectedDayLabel));
     const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + days);
-    
-    let targetHour = hours;
-    if (ampm === "PM" && hours !== 12) {
-      targetHour += 12;
-    } else if (ampm === "AM" && hours === 12) {
-      targetHour = 0;
-    }
-    
-    targetDate.setHours(targetHour, minutes, 0, 0);
+    targetDate.setDate(targetDate.getDate() + dayOffset);
+
+    targetDate.setHours(hours, minutes, 0, 0);
 
     // Se o horário selecionado já passou, agenda automaticamente para o dia seguinte
     if (targetDate.getTime() <= Date.now()) {
@@ -190,7 +239,7 @@ export function SendLaterModal({
 
     const delayMs = Math.max(60000, targetDate.getTime() - Date.now());
     onScheduleRef.current(delayMs);
-  }, [days, hours, minutes, ampm]);
+  }, [selectedDayLabel, hours, minutes]);
 
   const modalBgColor = isDark
     ? "rgba(28, 28, 30, 0.85)"
@@ -218,27 +267,27 @@ export function SendLaterModal({
       >
         <WheelPicker
           options={daysArray}
-          selectedValue={days}
-          onChange={setDays}
+          selectedValue={selectedDayLabel}
+          onChange={setSelectedDayLabel}
           label="dias"
+          containerStyle={{ flex: 2.2 }}
+          wheelStyle={{ width: "95%" }}
         />
         <WheelPicker
           options={hoursArray}
           selectedValue={hours}
           onChange={setHours}
           label="horas"
+          containerStyle={{ flex: 1 }}
+          wheelStyle={{ width: "85%" }}
         />
         <WheelPicker
           options={minutesArray}
           selectedValue={minutes}
           onChange={setMinutes}
           label="min"
-        />
-        <WheelPicker
-          options={ampmArray}
-          selectedValue={ampm}
-          onChange={setAmpm}
-          label="am/pm"
+          containerStyle={{ flex: 1 }}
+          wheelStyle={{ width: "85%" }}
         />
       </View>
     </View>
@@ -248,12 +297,12 @@ export function SendLaterModal({
 const styles = StyleSheet.create({
   sheetContainer: {
     width: "100%",
-    height: "34%",
+    height: "32%",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 34 : 20,
+    paddingBottom: Platform.OS === "ios" ? 32 : 20,
     borderTopWidth: StyleSheet.hairlineWidth,
     justifyContent: "center",
   },

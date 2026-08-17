@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { getVendorStore } from "@/lib/api";
 import {
   LayoutDashboard,
   Store,
@@ -33,14 +34,37 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { token, isLoading } = useAuth();
+  const [storeLoading, setStoreLoading] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && !token) {
+    if (isLoading) return;
+    if (!token) {
       router.replace("/login");
+      return;
     }
+
+    let active = true;
+    getVendorStore(token)
+      .then((res) => {
+        if (!active) return;
+        if (res && res.store) {
+          setStoreLoading(false);
+        } else {
+          router.replace("/cadastrar-loja");
+        }
+      })
+      .catch(() => {
+        if (active) {
+          router.replace("/cadastrar-loja");
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, [isLoading, token, router]);
 
-  if (isLoading) {
+  if (isLoading || storeLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-[#0a0e17]">
         <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />

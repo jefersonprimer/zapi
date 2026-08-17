@@ -228,7 +228,11 @@ export default function ReorderListsModal({
                         onPress={() => onDeleteList(item.id)}
                         hitSlop={8}
                       >
-                        <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                        <Ionicons
+                          name="trash-outline"
+                          size={18}
+                          color={colors.danger}
+                        />
                       </TouchableOpacity>
                     ) : null}
 
@@ -243,7 +247,11 @@ export default function ReorderListsModal({
                       }
                       onResponderRelease={handleTouchEnd}
                     >
-                      <Ionicons name="reorder-two-outline" size={20} color={colors.textSecondary} />
+                      <Ionicons
+                        name="reorder-two-outline"
+                        size={20}
+                        color={colors.textSecondary}
+                      />
                     </View>
                   </View>
                 </View>
@@ -298,7 +306,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dialogTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "500",
     textAlign: "center",
   },
