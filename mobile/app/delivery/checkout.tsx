@@ -29,6 +29,7 @@ import {
   getStore,
   simulatePayment,
 } from "@/services/deliveryApi";
+import { Ionicons } from "@expo/vector-icons";
 
 type ScheduleDay = {
   date: string;
@@ -400,7 +401,12 @@ export default function CheckoutScreen() {
         ]}
       >
         <View style={{ alignItems: "center", marginVertical: 24 }}>
-          <MaterialCommunityIcons name="qrcode" color={colors.tint} size={64} style={{ marginBottom: 12 }} />
+          <MaterialCommunityIcons
+            name="qrcode"
+            color={colors.tint}
+            size={64}
+            style={{ marginBottom: 12 }}
+          />
           <Text style={{ fontSize: 22, fontWeight: "700", color: colors.text }}>
             Pagamento do Pedido
           </Text>
@@ -612,7 +618,11 @@ export default function CheckoutScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
+          <Ionicons
+            name="chevron-back-outline"
+            color={colors.headerText}
+            size={24}
+          />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Finalizar Pedido
@@ -828,7 +838,13 @@ export default function CheckoutScreen() {
                         >
                           {feeLabel}
                         </Text>
-                        {selected && <MaterialCommunityIcons name="check" color={colors.tint} size={18} />}
+                        {selected && (
+                          <MaterialCommunityIcons
+                            name="check"
+                            color={colors.tint}
+                            size={18}
+                          />
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -894,7 +910,11 @@ export default function CheckoutScreen() {
                   </Text>
                 </View>
                 {paymentMethod === "pix" && (
-                  <MaterialCommunityIcons name="check" color={colors.tint} size={20} />
+                  <MaterialCommunityIcons
+                    name="check"
+                    color={colors.tint}
+                    size={20}
+                  />
                 )}
               </TouchableOpacity>
 
@@ -934,7 +954,11 @@ export default function CheckoutScreen() {
                   </Text>
                 </View>
                 {paymentMethod === "credit_card" && (
-                  <MaterialCommunityIcons name="check" color={colors.tint} size={20} />
+                  <MaterialCommunityIcons
+                    name="check"
+                    color={colors.tint}
+                    size={20}
+                  />
                 )}
               </TouchableOpacity>
 
@@ -974,7 +998,11 @@ export default function CheckoutScreen() {
                   </Text>
                 </View>
                 {paymentMethod === "debit_card" && (
-                  <MaterialCommunityIcons name="check" color={colors.tint} size={20} />
+                  <MaterialCommunityIcons
+                    name="check"
+                    color={colors.tint}
+                    size={20}
+                  />
                 )}
               </TouchableOpacity>
             </View>
@@ -1052,7 +1080,11 @@ export default function CheckoutScreen() {
                         </Text>
                       </View>
                       {selectedAddress?.id === addr.id && (
-                        <MaterialCommunityIcons name="check" color={colors.tint} size={20} />
+                        <MaterialCommunityIcons
+                          name="check"
+                          color={colors.tint}
+                          size={20}
+                        />
                       )}
                     </TouchableOpacity>
                   ))
@@ -1076,7 +1108,11 @@ export default function CheckoutScreen() {
                 <View
                   style={[styles.addressOption, { borderColor: colors.border }]}
                 >
-                  <MaterialCommunityIcons name="map-marker" color={colors.tint} size={20} />
+                  <MaterialCommunityIcons
+                    name="map-marker"
+                    color={colors.tint}
+                    size={20}
+                  />
                   <View style={styles.addressInfo}>
                     <Text style={[styles.addressLabel, { color: colors.text }]}>
                       {store.name}
@@ -1192,7 +1228,11 @@ export default function CheckoutScreen() {
                       gap: 6,
                     }}
                   >
-                     <MaterialCommunityIcons name="tag-outline" color="#10B981" size={16} />
+                    <MaterialCommunityIcons
+                      name="tag-outline"
+                      color="#10B981"
+                      size={16}
+                    />
                     <Text style={{ color: "#10B981", fontWeight: "600" }}>
                       {couponCode}
                     </Text>
@@ -1207,8 +1247,12 @@ export default function CheckoutScreen() {
                     <Text style={{ color: "#10B981", fontWeight: "700" }}>
                       - R$ {discount.toFixed(2)}
                     </Text>
-                     <TouchableOpacity onPress={handleRemoveCoupon}>
-                      <MaterialCommunityIcons name="close" color="#10B981" size={18} />
+                    <TouchableOpacity onPress={handleRemoveCoupon}>
+                      <MaterialCommunityIcons
+                        name="close"
+                        color="#10B981"
+                        size={18}
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1354,7 +1398,7 @@ export default function CheckoutScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.orderButtonText}>
-              Confirmar Pedido — R$ {(total + deliveryFee).toFixed(2)}
+              Confirmar Pedido: R$ {(total + deliveryFee).toFixed(2)}
             </Text>
           )}
         </TouchableOpacity>
@@ -1375,8 +1419,8 @@ const styles = StyleSheet.create({
   backButton: { padding: 8 },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "500",
     marginHorizontal: 8,
   },
   content: { padding: 16, paddingBottom: 100 },
@@ -1513,5 +1557,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  orderButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  orderButtonText: { color: "#fff", fontSize: 16, fontWeight: "400" },
 });

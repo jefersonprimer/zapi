@@ -1420,7 +1420,7 @@ export default function StoreScreen() {
             styles.floatingCartBar,
             {
               backgroundColor: colors.fab,
-              bottom: Math.max(insets.bottom, 16),
+              bottom: insets.bottom + 24,
             },
           ]}
           onPress={() => router.push("/delivery/cart")}
@@ -1453,7 +1453,7 @@ export default function StoreScreen() {
                 marginRight: 4,
               }}
             >
-              Ver carrinho
+              Ver Carrinho
             </Text>
           </View>
         </TouchableOpacity>

@@ -306,8 +306,8 @@ const styles = StyleSheet.create({
   backButton: { padding: 8 },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "500",
     marginHorizontal: 8,
   },
   clearText: { fontSize: 14, fontWeight: "500", padding: 8 },

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -29,6 +29,11 @@ import CategoryGrid from "@/components/CategoryGrid";
 import PromotionsSection from "@/components/PromotionsSection";
 import StoreCard, { StoreCardSkeleton } from "@/components/StoreCard";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  BottomSheetModal,
+  BottomSheetView,
+  BottomSheetBackdrop,
+} from "@gorhom/bottom-sheet";
 
 const LABEL_TEXT: Record<string, string> = {
   casa: "Casa",
@@ -86,10 +91,27 @@ export default function DeliveryScreen() {
   const [sortBy, setSortBy] = useState<string>("default");
 
   // Modal visibility states
-  const [deliveryModalVisible, setDeliveryModalVisible] = useState(false);
-  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-  const [sortModalVisible, setSortModalVisible] = useState(false);
   const [hasPromptedAddress, setHasPromptedAddress] = useState(false);
+
+  const sortBottomSheetRef = useRef<BottomSheetModal>(null);
+  const sortSnapPoints = useMemo(() => ["55%"], []);
+
+  const deliveryBottomSheetRef = useRef<BottomSheetModal>(null);
+  const deliverySnapPoints = useMemo(() => ["40%"], []);
+
+  const paymentBottomSheetRef = useRef<BottomSheetModal>(null);
+  const paymentSnapPoints = useMemo(() => ["40%"], []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+      />
+    ),
+    [],
+  );
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -385,7 +407,7 @@ export default function DeliveryScreen() {
                           sortBy !== "default" ? colors.tint : colors.border,
                       },
                     ]}
-                    onPress={() => setSortModalVisible(true)}
+                    onPress={() => sortBottomSheetRef.current?.present()}
                     activeOpacity={0.7}
                   >
                     <MaterialCommunityIcons
@@ -430,7 +452,7 @@ export default function DeliveryScreen() {
                           deliveryMode !== "all" ? colors.tint : colors.border,
                       },
                     ]}
-                    onPress={() => setDeliveryModalVisible(true)}
+                    onPress={() => deliveryBottomSheetRef.current?.present()}
                     activeOpacity={0.7}
                   >
                     <Text
@@ -466,7 +488,7 @@ export default function DeliveryScreen() {
                           paymentFilter !== null ? colors.tint : colors.border,
                       },
                     ]}
-                    onPress={() => setPaymentModalVisible(true)}
+                    onPress={() => paymentBottomSheetRef.current?.present()}
                     activeOpacity={0.7}
                   >
                     <Text
@@ -656,232 +678,217 @@ export default function DeliveryScreen() {
       )}
 
       {/* Modal - Forma de Entrega */}
-      <Modal
-        visible={deliveryModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setDeliveryModalVisible(false)}
+      <BottomSheetModal
+        ref={deliveryBottomSheetRef}
+        index={0}
+        snapPoints={deliverySnapPoints}
+        enableDynamicSizing={false}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{
+          backgroundColor: colors.background,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+        }}
+        handleIndicatorStyle={{ backgroundColor: colors.border }}
       >
-        <TouchableWithoutFeedback
-          onPress={() => setDeliveryModalVisible(false)}
+        <BottomSheetView
+          style={{
+            flex: 1,
+            paddingBottom: insets.bottom,
+            paddingHorizontal: 20,
+          }}
         >
-          <View
-            style={[
-              styles.modalOverlay,
-              { backgroundColor: colors.modalOverlay },
-            ]}
-          >
-            <TouchableWithoutFeedback>
-              <View
-                style={[
-                  styles.modalContent,
-                  { backgroundColor: colors.surface },
-                ]}
-              >
-                <View style={styles.modalHeader}>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>
-                    Forma de entrega
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setDeliveryModalVisible(false)}
-                  >
-                    <Text
-                      style={[styles.modalCloseText, { color: colors.tint }]}
-                    >
-                      Fechar
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {[
-                  { key: "all", label: "Todas" },
-                  { key: "delivery", label: "Entregar (Delivery)" },
-                  { key: "pickup", label: "Retirar" },
-                ].map((option) => {
-                  const selected = deliveryMode === option.key;
-                  return (
-                    <TouchableOpacity
-                      key={option.key}
-                      style={[
-                        styles.modalOption,
-                        selected && { backgroundColor: `${colors.tint}15` },
-                        { borderBottomColor: colors.border },
-                      ]}
-                      onPress={() => {
-                        setDeliveryMode(option.key);
-                        setDeliveryModalVisible(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.modalOptionText,
-                          { color: colors.text },
-                          selected && { color: colors.tint, fontWeight: "600" },
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </TouchableWithoutFeedback>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              onPress={() => deliveryBottomSheetRef.current?.dismiss()}
+              style={[styles.modalCloseButton, { borderColor: colors.border }]}
+            >
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Forma de Entrega
+            </Text>
+            <View style={{ width: 40 }} />
           </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+
+          {[
+            { key: "all", label: "Todas" },
+            { key: "delivery", label: "Entregar (Delivery)" },
+            { key: "pickup", label: "Retirar" },
+          ].map((option) => {
+            const selected = deliveryMode === option.key;
+            return (
+              <TouchableOpacity
+                key={option.key}
+                style={[
+                  styles.modalOption,
+                  selected && { backgroundColor: `${colors.tint}15` },
+                  { borderBottomColor: colors.border },
+                ]}
+                onPress={() => {
+                  setDeliveryMode(option.key);
+                  deliveryBottomSheetRef.current?.dismiss();
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    { color: colors.text },
+                    selected && { color: colors.tint, fontWeight: "600" },
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </BottomSheetView>
+      </BottomSheetModal>
 
       {/* Modal - Forma de Pagamento */}
-      <Modal
-        visible={paymentModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPaymentModalVisible(false)}
+      <BottomSheetModal
+        ref={paymentBottomSheetRef}
+        index={0}
+        snapPoints={paymentSnapPoints}
+        enableDynamicSizing={false}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{
+          backgroundColor: colors.background,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+        }}
+        handleIndicatorStyle={{ backgroundColor: colors.border }}
       >
-        <TouchableWithoutFeedback onPress={() => setPaymentModalVisible(false)}>
-          <View
-            style={[
-              styles.modalOverlay,
-              { backgroundColor: colors.modalOverlay },
-            ]}
-          >
-            <TouchableWithoutFeedback>
-              <View
-                style={[
-                  styles.modalContent,
-                  { backgroundColor: colors.surface },
-                ]}
-              >
-                <View style={styles.modalHeader}>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>
-                    Forma de pagamento
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setPaymentModalVisible(false)}
-                  >
-                    <Text
-                      style={[styles.modalCloseText, { color: colors.tint }]}
-                    >
-                      Fechar
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {[
-                  { key: null, label: "Todas" },
-                  { key: "card", label: "Máquina de cartão" },
-                  { key: "online", label: "Online (Pix)" },
-                ].map((option) => {
-                  const selected = paymentFilter === option.key;
-                  return (
-                    <TouchableOpacity
-                      key={String(option.key)}
-                      style={[
-                        styles.modalOption,
-                        selected && { backgroundColor: `${colors.tint}15` },
-                        { borderBottomColor: colors.border },
-                      ]}
-                      onPress={() => {
-                        setPaymentFilter(option.key);
-                        setPaymentModalVisible(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.modalOptionText,
-                          { color: colors.text },
-                          selected && { color: colors.tint, fontWeight: "600" },
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </TouchableWithoutFeedback>
+        <BottomSheetView
+          style={{
+            flex: 1,
+            paddingBottom: insets.bottom,
+            paddingHorizontal: 20,
+          }}
+        >
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              onPress={() => paymentBottomSheetRef.current?.dismiss()}
+              style={[styles.modalCloseButton, { borderColor: colors.border }]}
+            >
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Forma de Pagamento
+            </Text>
+            <View style={{ width: 40 }} />
           </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+
+          {[
+            { key: null, label: "Todas" },
+            { key: "card", label: "Máquina de cartão" },
+            { key: "online", label: "Online (Pix)" },
+          ].map((option) => {
+            const selected = paymentFilter === option.key;
+            return (
+              <TouchableOpacity
+                key={String(option.key)}
+                style={[
+                  styles.modalOption,
+                  selected && { backgroundColor: `${colors.tint}15` },
+                  { borderBottomColor: colors.border },
+                ]}
+                onPress={() => {
+                  setPaymentFilter(option.key);
+                  paymentBottomSheetRef.current?.dismiss();
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    { color: colors.text },
+                    selected && { color: colors.tint, fontWeight: "600" },
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </BottomSheetView>
+      </BottomSheetModal>
 
       {/* Modal - Ordenar por */}
-      <Modal
-        visible={sortModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSortModalVisible(false)}
+      <BottomSheetModal
+        ref={sortBottomSheetRef}
+        index={0}
+        snapPoints={sortSnapPoints}
+        enableDynamicSizing={false}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{
+          backgroundColor: colors.background,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+        }}
+        handleIndicatorStyle={{ backgroundColor: colors.border }}
       >
-        <TouchableWithoutFeedback onPress={() => setSortModalVisible(false)}>
-          <View
-            style={[
-              styles.modalOverlay,
-              { backgroundColor: colors.modalOverlay },
-            ]}
-          >
-            <TouchableWithoutFeedback>
-              <View
-                style={[
-                  styles.modalContent,
-                  { backgroundColor: colors.surface },
-                ]}
-              >
-                <View style={styles.modalHeader}>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>
-                    Ordenar por
-                  </Text>
-                  <TouchableOpacity onPress={() => setSortModalVisible(false)}>
-                    <Text
-                      style={[styles.modalCloseText, { color: colors.tint }]}
-                    >
-                      Fechar
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {[
-                  { key: "default", label: "Padrão / Relevância" },
-                  { key: "price", label: "Preço (Menor pedido mínimo)" },
-                  { key: "rating", label: "Avaliação (Melhores notas)" },
-                  {
-                    key: "delivery_time",
-                    label: "Tempo de entrega (Mais rápidos)",
-                  },
-                  {
-                    key: "delivery_fee",
-                    label: "Taxa de entrega (Mais baratas)",
-                  },
-                  { key: "distance", label: "Distância (Mais próximos)" },
-                ].map((option) => {
-                  const selected = sortBy === option.key;
-                  return (
-                    <TouchableOpacity
-                      key={option.key}
-                      style={[
-                        styles.modalOption,
-                        selected && { backgroundColor: `${colors.tint}15` },
-                        { borderBottomColor: colors.border },
-                      ]}
-                      onPress={() => {
-                        setSortBy(option.key);
-                        setSortModalVisible(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.modalOptionText,
-                          { color: colors.text },
-                          selected && { color: colors.tint, fontWeight: "600" },
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </TouchableWithoutFeedback>
+        <BottomSheetView
+          style={{
+            flex: 1,
+            paddingBottom: insets.bottom,
+            paddingHorizontal: 20,
+          }}
+        >
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              onPress={() => sortBottomSheetRef.current?.dismiss()}
+              style={[styles.modalCloseButton, { borderColor: colors.border }]}
+            >
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Ordenar Por
+            </Text>
+            <View style={{ width: 40 }} />
           </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+
+          {[
+            { key: "default", label: "Padrão / Relevância" },
+            { key: "price", label: "Preço (Menor pedido mínimo)" },
+            { key: "rating", label: "Avaliação (Melhores notas)" },
+            {
+              key: "delivery_time",
+              label: "Tempo de entrega (Mais rápidos)",
+            },
+            {
+              key: "delivery_fee",
+              label: "Taxa de entrega (Mais baratas)",
+            },
+            { key: "distance", label: "Distância (Mais próximos)" },
+          ].map((option) => {
+            const selected = sortBy === option.key;
+            return (
+              <TouchableOpacity
+                key={option.key}
+                style={[
+                  styles.modalOption,
+                  selected && { backgroundColor: `${colors.tint}15` },
+                  { borderBottomColor: colors.border },
+                ]}
+                onPress={() => {
+                  setSortBy(option.key);
+                  sortBottomSheetRef.current?.dismiss();
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    { color: colors.text },
+                    selected && { color: colors.tint, fontWeight: "600" },
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </BottomSheetView>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -1057,6 +1064,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
   },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(128,128,128,0.4)",
+    alignSelf: "center",
+    marginBottom: 16,
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -1064,7 +1079,7 @@ const styles = StyleSheet.create({
   modalContent: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingTop: 20,
+    paddingTop: 12,
     paddingBottom: 40,
     paddingHorizontal: 20,
     shadowColor: "#000",
@@ -1082,7 +1097,17 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "500",
+    textAlign: "center",
+    flex: 1,
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalCloseText: {
     fontSize: 16,
