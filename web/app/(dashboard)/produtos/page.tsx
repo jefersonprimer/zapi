@@ -64,6 +64,7 @@ interface ProductFormData {
   category_id: string;
   sale_type: SaleType;
   image: string;
+  stock: string;
 }
 
 const EMPTY_FORM: ProductFormData = {
@@ -75,6 +76,7 @@ const EMPTY_FORM: ProductFormData = {
   category_id: "",
   sale_type: "unit",
   image: "",
+  stock: "",
 };
 
 export default function ProdutosPage() {
@@ -399,6 +401,7 @@ export default function ProdutosPage() {
       category_id: p.category_id || "",
       sale_type: (p.sale_type as SaleType) || "unit",
       image: p.image || "",
+      stock: p.stock !== undefined && p.stock !== null ? String(p.stock) : "",
     });
     setShowPromoInputs(hasPromo);
     setShowForm(true);
@@ -447,6 +450,11 @@ export default function ProdutosPage() {
       );
       return;
     }
+    const stock = form.stock.trim() !== "" ? parseFloat(form.stock) : null;
+    if (stock !== null && (isNaN(stock) || stock < 0)) {
+      showToast("O estoque deve ser um número maior ou igual a zero", "error");
+      return;
+    }
     setSaving(true);
     try {
       const isUuid =
@@ -467,6 +475,7 @@ export default function ProdutosPage() {
           category_id: categoryIdParam || null,
           category: categoryNameParam,
           sale_type: form.sale_type,
+          stock,
         });
         setProducts((prev) =>
           prev.map((p) => (p.id === product.id ? product : p)),
@@ -482,6 +491,7 @@ export default function ProdutosPage() {
           category_id: categoryIdParam || undefined,
           category: categoryNameParam,
           sale_type: form.sale_type,
+          stock,
         });
         setProducts((prev) => [product, ...prev]);
         showToast("Produto criado com sucesso!");
@@ -956,9 +966,16 @@ export default function ProdutosPage() {
                   <div>
                     {/* Category & Status Row */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-extrabold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase">
-                        {p.category || "Sem Categoria"}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-extrabold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase">
+                          {p.category || "Sem Categoria"}
+                        </span>
+                        {p.stock !== undefined && p.stock !== null && (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${p.stock <= 5 ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400" : "bg-slate-100 text-slate-800 dark:bg-slate-805 dark:text-slate-300"}`}>
+                            Estoque: {p.stock}
+                          </span>
+                        )}
+                      </div>
                       <button
                         onClick={() => handleToggleAvailability(p)}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-xs cursor-pointer transition-all hover:scale-105 active:scale-95 ${
@@ -1328,8 +1345,8 @@ export default function ProdutosPage() {
                 )}
               </div>
 
-              {/* Category & Sale Type Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Category, Sale Type & Stock Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* Sale Type */}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -1384,6 +1401,26 @@ export default function ProdutosPage() {
                     <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-550">
                       <ChevronDown className="w-4 h-4" />
                     </div>
+                  </div>
+                </div>
+
+                {/* Stock (Estoque) */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Estoque (Qtd)
+                  </label>
+                  <div className="relative group">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={form.stock}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, stock: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 p-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400"
+                      placeholder="Ilimitado"
+                    />
                   </div>
                 </div>
               </div>

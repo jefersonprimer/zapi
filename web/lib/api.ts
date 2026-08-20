@@ -85,6 +85,7 @@ export interface StoreProduct {
   category_id: string | null;
   sale_type: SaleType;
   is_available: boolean;
+  stock?: number | null;
   created_at: string;
   updated_at: string;
   has_addons?: boolean;
@@ -576,6 +577,7 @@ export async function createProduct(
     category?: string;
     category_id?: string;
     sale_type?: SaleType;
+    stock?: number | null;
   }
 ): Promise<{ status: string; product: StoreProduct }> {
   return authFetch(`${API_URL}/delivery/stores/${storeId}/products`, token, {
@@ -597,6 +599,7 @@ export async function updateProduct(
     category_id?: string | null;
     sale_type?: SaleType;
     is_available?: boolean;
+    stock?: number | null;
   }
 ): Promise<{ status: string; product: StoreProduct }> {
   return authFetch(`${API_URL}/delivery/products/${productId}`, token, {

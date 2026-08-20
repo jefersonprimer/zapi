@@ -79,9 +79,11 @@ pub struct StoreProduct {
     pub category_id: Option<Uuid>,
     pub sale_type: String,
     pub is_available: bool,
+    pub stock: Option<f64>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
 
 #[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
 pub struct PromotionalProductItem {
@@ -283,6 +285,7 @@ pub struct CreateProductRequest {
     pub category: Option<String>,
     pub category_id: Option<Uuid>,
     pub sale_type: Option<String>,
+    pub stock: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -296,6 +299,7 @@ pub struct UpdateProductRequest {
     pub category_id: Option<Option<Uuid>>,
     pub sale_type: Option<String>,
     pub is_available: Option<bool>,
+    pub stock: Option<Option<f64>>,
 }
 
 #[derive(Debug, Deserialize)]

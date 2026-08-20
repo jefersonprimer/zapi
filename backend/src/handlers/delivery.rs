@@ -19,7 +19,7 @@ use crate::AppState;
 const STORE_COLS: &str = "id, owner_id, name, description, (SELECT avatar_url FROM users WHERE users.id = stores.owner_id) AS avatar, image_banner, phone, cnpj, pix_key, category, delivery_fee, minimum_order, city, state, street, number, neighborhood, cep, latitude, longitude, prep_time_minutes, accepts_delivery, accepts_pickup, schedule_days, is_open, score, ratings_count, payment_account_id, order_accept_timeout_minutes, created_at, updated_at";
 const SLOT_COLS: &str = "id, store_id, start_time, end_time, fee, fulfillment_type, is_active, sort_order, created_at, updated_at";
 
-const PRODUCT_COLS: &str = "id, store_id, name, description, price, promotional_price, image, category, category_id, sale_type, is_available, created_at, updated_at";
+const PRODUCT_COLS: &str = "id, store_id, name, description, price, promotional_price, image, category, category_id, sale_type, is_available, stock, created_at, updated_at";
 
 const ORDER_ITEM_COLS: &str = "id, order_id, product_id, product_name, product_image, quantity, unit_price, subtotal, observation, addons, sale_type, quantity_decimal";
 
@@ -1544,8 +1544,8 @@ pub async fn create_product(
 
     let product = sqlx::query_as::<_, StoreProduct>(
         &format!(
-            "INSERT INTO store_products (store_id, name, description, price, promotional_price, image, category, category_id, sale_type)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            "INSERT INTO store_products (store_id, name, description, price, promotional_price, image, category, category_id, sale_type, stock)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              RETURNING {}",
             PRODUCT_COLS
         ),
@@ -1559,6 +1559,7 @@ pub async fn create_product(
     .bind(&category)
     .bind(category_id)
     .bind(&sale_type)
+    .bind(body.stock)
     .fetch_one(&pool)
     .await
     .map_err(|e| {
@@ -1579,7 +1580,7 @@ pub async fn update_product(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let existing = sqlx::query_as::<_, StoreProduct>(
         "SELECT sp.id, sp.store_id, sp.name, sp.description, sp.price, sp.promotional_price, sp.image, sp.category,
-                sp.category_id, sp.sale_type, sp.is_available, sp.created_at, sp.updated_at
+                sp.category_id, sp.sale_type, sp.is_available, sp.stock, sp.created_at, sp.updated_at
          FROM store_products sp JOIN stores s ON s.id = sp.store_id
          WHERE sp.id = $1 AND s.owner_id = $2",
     )
@@ -1617,6 +1618,10 @@ pub async fn update_product(
         None => existing.image,
     };
     let is_available = body.is_available.unwrap_or(existing.is_available);
+    let stock = match body.stock {
+        Some(inner) => inner,
+        None => existing.stock,
+    };
 
     let sale_type = body.sale_type.unwrap_or(existing.sale_type);
     if sale_type != "unit" && sale_type != "weight" {
@@ -1646,8 +1651,8 @@ pub async fn update_product(
     let product = sqlx::query_as::<_, StoreProduct>(
         &format!(
             "UPDATE store_products SET name = $1, description = $2, price = $3, promotional_price = $4, image = $5,
-             category = $6, category_id = $7, sale_type = $8, is_available = $9, updated_at = NOW()
-             WHERE id = $10
+             category = $6, category_id = $7, sale_type = $8, is_available = $9, stock = $10, updated_at = NOW()
+             WHERE id = $11
              RETURNING {}",
             PRODUCT_COLS
         ),
@@ -1661,6 +1666,7 @@ pub async fn update_product(
     .bind(category_id)
     .bind(&sale_type)
     .bind(is_available)
+    .bind(stock)
     .bind(id)
     .fetch_one(&pool)
     .await
@@ -2986,6 +2992,8 @@ pub async fn create_order(
         Option<f64>,
     )> = Vec::new();
 
+    let mut stock_alerts: Vec<(String, f64)> = Vec::new();
+
     for item in &body.items {
         let product = sqlx::query_as::<_, StoreProduct>(
             &format!(
@@ -3035,6 +3043,48 @@ pub async fn create_order(
             }
             (qty, None, qty as f64)
         };
+
+        // Stock check
+        if let Some(stock_val) = product.stock {
+            if stock_val <= 0.0 {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "error": format!("Produto '{}' esgotado no estoque", product.name) })),
+                ));
+            }
+            if qty_multiplier > stock_val {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "error": format!("Estoque insuficiente para o produto '{}'. Disponível: {}", product.name, stock_val) })),
+                ));
+            }
+
+            let new_stock = (stock_val - qty_multiplier).max(0.0);
+            let is_available_update = if new_stock <= 0.0 {
+                "is_available = FALSE, "
+            } else {
+                ""
+            };
+
+            sqlx::query(&format!(
+                "UPDATE store_products SET {}stock = $1, updated_at = NOW() WHERE id = $2",
+                is_available_update
+            ))
+            .bind(new_stock)
+            .bind(product.id)
+            .execute(&pool)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": format!("database error: {}", e) })),
+                )
+            })?;
+
+            if new_stock <= 10.0 {
+                stock_alerts.push((product.name.clone(), new_stock));
+            }
+        }
 
         let mut item_addons_total: f64 = 0.0;
         let mut addons_data: Vec<serde_json::Value> = Vec::new();
@@ -3364,6 +3414,26 @@ pub async fn create_order(
             order.id,
             content_text,
             "ORDER_CARD",
+        )
+        .await;
+    }
+
+    // Send stock alerts to the delivery chat so the seller is notified
+    for (prod_name, left) in stock_alerts {
+        let alert_text = if left <= 0.0 {
+            format!("⚠️ ALERTA DE ESTOQUE: O produto '{}' ESGOTOU e foi marcado como indisponível.", prod_name)
+        } else {
+            format!("⚠️ ALERTA DE ESTOQUE: O produto '{}' tem apenas {:.1} itens restantes.", prod_name, left)
+        };
+        let _ = send_delivery_chat_message(
+            &pool,
+            &ws_state,
+            &call_manager,
+            store.owner_id,
+            auth.0,
+            order.id,
+            alert_text,
+            "SYSTEM_EVENT",
         )
         .await;
     }
