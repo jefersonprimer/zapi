@@ -104,7 +104,7 @@ export default function StoreCard({ item }: StoreCardProps) {
         >
           <Text
             style={[styles.storeName, { color: colors.text }]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {item.name}
           </Text>
@@ -183,27 +183,35 @@ export default function StoreCard({ item }: StoreCardProps) {
         <View style={styles.storeMeta}>
           {item.eta_min != null && (
             <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
-              <Text
-                style={[styles.storeFee, { color: colors.textSecondary }]}
-              >
+              <Ionicons
+                name="time-outline"
+                size={12}
+                color={colors.textSecondary}
+              />
+              <Text style={[styles.storeFee, { color: colors.textSecondary }]}>
                 {formatEta(item.eta_min)}
               </Text>
             </View>
           )}
           {item.distance_km != null && (
             <View style={styles.metaItem}>
-              <Ionicons name="bicycle-outline" size={12} color={colors.textSecondary} />
-              <Text
-                style={[styles.storeFee, { color: colors.textSecondary }]}
-              >
+              <Ionicons
+                name="bicycle-outline"
+                size={12}
+                color={colors.textSecondary}
+              />
+              <Text style={[styles.storeFee, { color: colors.textSecondary }]}>
                 {formatDistance(item.distance_km)}
               </Text>
             </View>
           )}
           <View style={styles.metaItem}>
             {item.delivery_fee === 0 && (
-              <Ionicons name="bicycle-outline" size={12} color={colors.textSecondary} />
+              <Ionicons
+                name="bicycle-outline"
+                size={12}
+                color={colors.textSecondary}
+              />
             )}
             <Text style={[styles.storeFee, { color: colors.textSecondary }]}>
               {item.delivery_fee === 0
@@ -235,7 +243,7 @@ export function StoreCardSkeleton() {
           duration: 850,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, [fadeAnim]);
 
@@ -327,7 +335,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   storeInfo: { flex: 1, marginLeft: 12 },
-  storeName: { fontSize: 16, fontWeight: "600" },
+  storeName: { fontSize: 16, fontWeight: "500" },
   storeMeta: {
     flexDirection: "row",
     marginTop: 4,

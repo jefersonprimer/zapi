@@ -124,10 +124,16 @@ export default function SearchScreen() {
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Text style={[styles.clearText, { color: colors.tint }]}>
-                Limpar
-              </Text>
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              hitSlop={8}
+              style={{ padding: 4 }}
+            >
+              <MaterialCommunityIcons
+                name="close"
+                color={colors.icon}
+                size={20}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -216,11 +222,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
   },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 15, paddingVertical: 0 },
-  clearText: { fontSize: 13, fontWeight: "600", marginLeft: 4 },
   list: { flex: 1 },
   listContent: { padding: 16 },
   storeCard: {

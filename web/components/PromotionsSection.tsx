@@ -206,7 +206,7 @@ export default function PromotionsSection() {
                   {/* 3. Below Image: Product Name & Prices */}
                   <div className="py-2.5 px-1 flex flex-col justify-start flex-1 gap-1.5">
                     <div>
-                      <h3 className="text-sm font-medium text-foreground line-clamp-3 group-hover/card:opacity-80 transition-opacity">
+                      <h3 className="text-sm font-medium text-foreground line-clamp-2 group-hover/card:opacity-80 transition-opacity">
                         {item.name}
                       </h3>
                       {item.description && (

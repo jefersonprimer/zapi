@@ -388,10 +388,23 @@ export default function StoreScreen() {
     addProductToCart(product, [], quantity);
   };
 
-  const productCategoryNames =
-    storeCategories.length > 0
-      ? storeCategories.map((c) => c.name)
-      : [...new Set(products.map((p) => p.category).filter(Boolean))];
+  const promotionalProducts = useMemo(() => {
+    return products.filter(
+      (p) => p.promotional_price != null && p.promotional_price > 0,
+    );
+  }, [products]);
+
+  const productCategoryNames = useMemo(() => {
+    const cats =
+      storeCategories.length > 0
+        ? storeCategories.map((c) => c.name)
+        : [...new Set(products.map((p) => p.category).filter(Boolean))];
+    if (promotionalProducts.length > 0) {
+      return ["Promoções", ...cats];
+    }
+    return cats;
+  }, [storeCategories, products, promotionalProducts]);
+
   const isFoodOrDrinkStore =
     !!store?.category &&
     [
@@ -412,13 +425,16 @@ export default function StoreScreen() {
     if (!gridSelectedCategory) {
       return products;
     }
+    if (gridSelectedCategory === "Promoções") {
+      return promotionalProducts;
+    }
     return products.filter(
       (p) =>
         p.category === gridSelectedCategory ||
         p.category_id ===
           storeCategories.find((c) => c.name === gridSelectedCategory)?.id,
     );
-  }, [products, gridSelectedCategory, storeCategories]);
+  }, [products, gridSelectedCategory, storeCategories, promotionalProducts]);
 
   const renderGridProductCard = (product: StoreProduct, isCarousel = false) => {
     return (
@@ -455,33 +471,51 @@ export default function StoreScreen() {
     );
   };
 
-  const groupedProducts: { category: string; items: StoreProduct[] }[] = [];
-  if (storeCategories.length > 0) {
-    const assigned = new Set<string>();
-    for (const cat of storeCategories) {
-      const catItems = visibleProducts.filter(
-        (p) => p.category_id === cat.id || p.category === cat.name,
-      );
-      if (catItems.length > 0) {
-        groupedProducts.push({ category: cat.name, items: catItems });
-        catItems.forEach((p) => assigned.add(p.id));
+  const groupedProducts = useMemo(() => {
+    const groups: { category: string; items: StoreProduct[] }[] = [];
+
+    // 1. Add Promoções first if any
+    if (promotionalProducts.length > 0) {
+      groups.push({ category: "Promoções", items: promotionalProducts });
+    }
+
+    // 2. Add other categories
+    if (storeCategories.length > 0) {
+      const assigned = new Set<string>();
+      for (const cat of storeCategories) {
+        const catItems = visibleProducts.filter(
+          (p) => p.category_id === cat.id || p.category === cat.name,
+        );
+        if (catItems.length > 0) {
+          groups.push({ category: cat.name, items: catItems });
+          catItems.forEach((p) => assigned.add(p.id));
+        }
+      }
+      const leftover = visibleProducts.filter((p) => !assigned.has(p.id));
+      if (leftover.length > 0) {
+        groups.push({ category: "Outros", items: leftover });
+      }
+    } else {
+      const normalCats = productCategoryNames.filter((c) => c !== "Promoções");
+      for (const cat of normalCats) {
+        const catItems = visibleProducts.filter((p) => p.category === cat);
+        if (catItems.length > 0) {
+          groups.push({ category: cat, items: catItems });
+        }
+      }
+      // If we only have Promoções, we shouldn't push visibleProducts under "Produtos" again
+      if (groups.length === 0 && visibleProducts.length > 0) {
+        groups.push({ category: "Produtos", items: visibleProducts });
       }
     }
-    const leftover = visibleProducts.filter((p) => !assigned.has(p.id));
-    if (leftover.length > 0) {
-      groupedProducts.push({ category: "Outros", items: leftover });
-    }
-  } else {
-    for (const cat of productCategoryNames) {
-      const catItems = visibleProducts.filter((p) => p.category === cat);
-      if (catItems.length > 0) {
-        groupedProducts.push({ category: cat, items: catItems });
-      }
-    }
-    if (groupedProducts.length === 0 && visibleProducts.length > 0) {
-      groupedProducts.push({ category: "Produtos", items: visibleProducts });
-    }
-  }
+
+    return groups;
+  }, [
+    storeCategories,
+    productCategoryNames,
+    visibleProducts,
+    promotionalProducts,
+  ]);
   if (loading) {
     return (
       <View
@@ -595,7 +629,7 @@ export default function StoreScreen() {
                     styles.categoryChipText,
                     {
                       color: !gridSelectedCategory ? colors.tint : colors.text,
-                      fontWeight: !gridSelectedCategory ? "600" : "500",
+                      fontWeight: !gridSelectedCategory ? "500" : "400",
                     },
                   ]}
                 >
@@ -625,7 +659,7 @@ export default function StoreScreen() {
                             ? colors.tint
                             : colors.text,
                         fontWeight:
-                          gridSelectedCategory === cat ? "600" : "500",
+                          gridSelectedCategory === cat ? "500" : "400",
                       },
                     ]}
                   >
@@ -1099,13 +1133,7 @@ export default function StoreScreen() {
                   </Text>
                 </View>
 
-                {isFoodOrDrinkStore ? (
-                  <View style={{ gap: 8 }}>
-                    {group.items.map((product) =>
-                      renderFoodProductCard(product),
-                    )}
-                  </View>
-                ) : (
+                {group.category === "Promoções" || !isFoodOrDrinkStore ? (
                   /* Horizontal Carousel of products */
                   <ScrollView
                     horizontal
@@ -1159,6 +1187,12 @@ export default function StoreScreen() {
                       </TouchableOpacity>
                     )}
                   </ScrollView>
+                ) : (
+                  <View style={{ gap: 8 }}>
+                    {group.items.map((product) =>
+                      renderFoodProductCard(product),
+                    )}
+                  </View>
                 )}
               </View>
             ))}
@@ -1792,7 +1826,7 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "400",
   },
   searchBox: {
     flexDirection: "row",

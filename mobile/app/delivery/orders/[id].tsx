@@ -21,8 +21,16 @@ import {
   ORDER_STATUS_COLORS,
   formatQuantityLabel,
 } from "@/services/deliveryApi";
+import { Ionicons } from "@expo/vector-icons";
 
-const STEPS = ["PENDING_PAYMENT", "PAID", "ACCEPTED", "PREPARING", "OUT_FOR_DELIVERY", "DELIVERED"];
+const STEPS = [
+  "PENDING_PAYMENT",
+  "PAID",
+  "ACCEPTED",
+  "PREPARING",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+];
 
 function getStepIndex(status: string): number {
   const normalized = status.toUpperCase();
@@ -30,7 +38,12 @@ function getStepIndex(status: string): number {
   if (normalized === "PAID") return 1;
   if (normalized === "ACCEPTED" || normalized === "CONFIRMADO") return 2;
   if (normalized === "PREPARING" || normalized === "PREPARANDO") return 3;
-  if (normalized === "READY" || normalized === "OUT_FOR_DELIVERY" || normalized === "SAIU_ENTREGA") return 4;
+  if (
+    normalized === "READY" ||
+    normalized === "OUT_FOR_DELIVERY" ||
+    normalized === "SAIU_ENTREGA"
+  )
+    return 4;
   if (normalized === "DELIVERED" || normalized === "ENTREGUE") return 5;
   return -1;
 }
@@ -70,12 +83,21 @@ export default function OrderDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData])
+    }, [loadData]),
   );
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            alignItems: "center",
+            justifyContent: "center",
+          },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
@@ -83,8 +105,19 @@ export default function OrderDetailScreen() {
 
   if (!order) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
-        <Text style={{ color: colors.textSecondary }}>Pedido não encontrado</Text>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            alignItems: "center",
+            justifyContent: "center",
+          },
+        ]}
+      >
+        <Text style={{ color: colors.textSecondary }}>
+          Pedido não encontrado
+        </Text>
       </View>
     );
   }
@@ -93,9 +126,18 @@ export default function OrderDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" color={colors.headerText} size={24} />
+      <View
+        style={[styles.header, { backgroundColor: colors.headerBackground }]}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="chevron-back-outline"
+            color={colors.headerText}
+            size={24}
+          />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>
           Pedido #{order.id.slice(0, 8).toUpperCase()}
@@ -104,17 +146,58 @@ export default function OrderDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Status Progress */}
-        <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Status do pedido</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.cardBackground,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            Status do pedido
+          </Text>
           <View style={styles.stepsContainer}>
             {STEPS.map((step, idx) => {
               const isActive = idx <= currentStep;
               const isCurrent = idx === currentStep;
               return (
                 <View key={step} style={styles.stepRow}>
-                  <View style={[styles.stepDot, { backgroundColor: isActive ? ORDER_STATUS_COLORS[step] : colors.surface }]} />
-                  <View style={[styles.stepLine, { backgroundColor: idx < STEPS.length - 1 ? (isActive && idx < currentStep ? ORDER_STATUS_COLORS[step] : colors.border) : "transparent" }]} />
-                  <Text style={[styles.stepLabel, { color: isActive ? ORDER_STATUS_COLORS[step] : colors.textSecondary, fontWeight: isCurrent ? "700" : "400" }]}>
+                  <View
+                    style={[
+                      styles.stepDot,
+                      {
+                        backgroundColor: isActive
+                          ? ORDER_STATUS_COLORS[step]
+                          : colors.surface,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.stepLine,
+                      {
+                        backgroundColor:
+                          idx < STEPS.length - 1
+                            ? isActive && idx < currentStep
+                              ? ORDER_STATUS_COLORS[step]
+                              : colors.border
+                            : "transparent",
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.stepLabel,
+                      {
+                        color: isActive
+                          ? ORDER_STATUS_COLORS[step]
+                          : colors.textSecondary,
+                        fontWeight: isCurrent ? "700" : "400",
+                      },
+                    ]}
+                  >
                     {getOrderStatusLabel(step, order.fulfillment_type)}
                   </Text>
                 </View>
@@ -125,21 +208,41 @@ export default function OrderDetailScreen() {
 
         {/* Store Info */}
         {store && (
-          <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.cardBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <Text style={[styles.cardTitle, { color: colors.text }]}>Loja</Text>
-            <Text style={{ color: colors.text, fontWeight: "500" }}>{store.name}</Text>
+            <Text style={{ color: colors.text, fontWeight: "500" }}>
+              {store.name}
+            </Text>
           </View>
         )}
 
         {/* Items */}
-        <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.cardBackground,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <Text style={[styles.cardTitle, { color: colors.text }]}>Itens</Text>
           {items.map((item) => {
             let parsedAddons: { name: string; price: number }[] = [];
             if (item.addons && Array.isArray(item.addons)) {
               parsedAddons = item.addons;
             } else if (typeof item.addons === "string") {
-              try { parsedAddons = JSON.parse(item.addons); } catch {}
+              try {
+                parsedAddons = JSON.parse(item.addons);
+              } catch {}
             }
             return (
               <View key={item.id} style={styles.itemRow}>
@@ -149,51 +252,111 @@ export default function OrderDetailScreen() {
                       ? `${formatQuantityLabel(item.quantity_decimal ?? item.quantity, "weight")} ${item.product_name}`
                       : `${item.quantity}x ${item.product_name}`}
                   </Text>
-                  {parsedAddons.length > 0 && parsedAddons.map((addon, idx) => (
-                    <Text key={idx} style={[styles.addonText, { color: colors.textSecondary }]}>
-                      + {addon.name} (R$ {(addon.price || 0).toFixed(2)})
-                    </Text>
-                  ))}
+                  {parsedAddons.length > 0 &&
+                    parsedAddons.map((addon, idx) => (
+                      <Text
+                        key={idx}
+                        style={[
+                          styles.addonText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        + {addon.name} (R$ {(addon.price || 0).toFixed(2)})
+                      </Text>
+                    ))}
                 </View>
-                <Text style={[styles.itemPrice, { color: colors.text }]}>R$ {item.subtotal.toFixed(2)}</Text>
+                <Text style={[styles.itemPrice, { color: colors.text }]}>
+                  R$ {item.subtotal.toFixed(2)}
+                </Text>
               </View>
             );
           })}
         </View>
 
         {/* Address / Fulfillment */}
-        <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <MaterialCommunityIcons name="map-marker" color={colors.icon} size={18} />
-            <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.cardBackground,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 8,
+            }}
+          >
+            <MaterialCommunityIcons
+              name="map-marker"
+              color={colors.icon}
+              size={18}
+            />
+            <Text
+              style={[
+                styles.cardTitle,
+                { color: colors.text, marginBottom: 0 },
+              ]}
+            >
               {order.fulfillment_type === "retirada" ? "Retirada" : "Entrega"}
             </Text>
           </View>
           {order.scheduled_date && order.slot_start && (
-            <Text style={{ color: colors.text, fontSize: 14, fontWeight: "600", marginBottom: 6 }}>
+            <Text
+              style={{
+                color: colors.text,
+                fontSize: 14,
+                fontWeight: "600",
+                marginBottom: 6,
+              }}
+            >
               {order.fulfillment_type === "retirada"
                 ? `Retirar em ${formatOrderDate(order.scheduled_date)} a partir das ${order.slot_start}`
                 : `Receber em ${formatOrderDate(order.scheduled_date)} das ${order.slot_start} às ${order.slot_end}`}
             </Text>
           )}
           <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-            {order.address_snapshot.rua}, {order.address_snapshot.numero} - {order.address_snapshot.bairro}, {order.address_snapshot.cidade}-{order.address_snapshot.estado}
+            {order.address_snapshot.rua}, {order.address_snapshot.numero} -{" "}
+            {order.address_snapshot.bairro}, {order.address_snapshot.cidade}-
+            {order.address_snapshot.estado}
           </Text>
         </View>
 
         {/* Totals */}
-        <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.cardBackground,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.totalRow}>
             <Text style={{ color: colors.textSecondary }}>Subtotal</Text>
-            <Text style={{ color: colors.text }}>R$ {order.subtotal.toFixed(2)}</Text>
+            <Text style={{ color: colors.text }}>
+              R$ {order.subtotal.toFixed(2)}
+            </Text>
           </View>
           {order.discount > 0 && (
             <View style={styles.totalRow}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <MaterialCommunityIcons name="tag-outline" color="#10B981" size={14} />
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
+                <MaterialCommunityIcons
+                  name="tag-outline"
+                  color="#10B981"
+                  size={14}
+                />
                 <Text style={{ color: "#10B981" }}>{order.coupon_code}</Text>
               </View>
-              <Text style={{ color: "#10B981" }}>- R$ {order.discount.toFixed(2)}</Text>
+              <Text style={{ color: "#10B981" }}>
+                - R$ {order.discount.toFixed(2)}
+              </Text>
             </View>
           )}
           <View style={styles.totalRow}>
@@ -201,24 +364,47 @@ export default function OrderDetailScreen() {
               {order.fulfillment_type === "retirada" ? "Retirada" : "Entrega"}
             </Text>
             <Text style={{ color: colors.text }}>
-              {order.delivery_fee > 0 ? `R$ ${order.delivery_fee.toFixed(2)}` : "Grátis"}
+              {order.delivery_fee > 0
+                ? `R$ ${order.delivery_fee.toFixed(2)}`
+                : "Grátis"}
             </Text>
           </View>
           <View style={[styles.totalRow, styles.totalFinal]}>
-            <Text style={[styles.totalFinalLabel, { color: colors.text }]}>Total</Text>
-            <Text style={[styles.totalFinalValue, { color: colors.tint }]}>R$ {order.total.toFixed(2)}</Text>
+            <Text style={[styles.totalFinalLabel, { color: colors.text }]}>
+              Total
+            </Text>
+            <Text style={[styles.totalFinalValue, { color: colors.tint }]}>
+              R$ {order.total.toFixed(2)}
+            </Text>
           </View>
         </View>
 
         {order.observation && (
-          <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Observação</Text>
-            <Text style={{ color: colors.textSecondary }}>{order.observation}</Text>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.cardBackground,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              Observação
+            </Text>
+            <Text style={{ color: colors.textSecondary }}>
+              {order.observation}
+            </Text>
           </View>
         )}
 
         <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-          Pedido feito em {new Date(order.created_at).toLocaleDateString("pt-BR")} às {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+          Pedido feito em{" "}
+          {new Date(order.created_at).toLocaleDateString("pt-BR")} às{" "}
+          {new Date(order.created_at).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </Text>
       </ScrollView>
     </View>
@@ -235,7 +421,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backButton: { padding: 8 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: "600", marginHorizontal: 8 },
+  headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: "500",
+    marginHorizontal: 8,
+  },
   content: { padding: 16, paddingBottom: 48 },
   card: {
     padding: 16,
@@ -245,9 +436,21 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 15, fontWeight: "600", marginBottom: 10 },
   stepsContainer: { paddingLeft: 4 },
-  stepRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 28 },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minHeight: 28,
+  },
   stepDot: { width: 14, height: 14, borderRadius: 7 },
-  stepLine: { width: 2, height: 14, borderRadius: 1, position: "absolute", left: 6, top: 14 },
+  stepLine: {
+    width: 2,
+    height: 14,
+    borderRadius: 1,
+    position: "absolute",
+    left: 6,
+    top: 14,
+  },
   stepLabel: { fontSize: 14 },
   itemRow: {
     flexDirection: "row",
@@ -262,7 +465,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 4,
   },
-  totalFinal: { borderTopWidth: 1, borderTopColor: "#E5E7EB", marginTop: 8, paddingTop: 8 },
+  totalFinal: {
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    marginTop: 8,
+    paddingTop: 8,
+  },
   totalFinalLabel: { fontSize: 16, fontWeight: "700" },
   totalFinalValue: { fontSize: 18, fontWeight: "700" },
   dateText: { fontSize: 12, textAlign: "center", marginTop: 8 },

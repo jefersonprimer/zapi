@@ -34,6 +34,11 @@ export const FoodProductCard: React.FC<FoodProductCardProps> = ({
   const step = saleType === "weight" ? WEIGHT_STEP : 1;
   const minQty = saleType === "weight" ? MIN_WEIGHT : 1;
   const isVertical = layout === "vertical";
+  const discountPct = product.promotional_price
+    ? Math.round(
+        ((product.price - product.promotional_price) / product.price) * 100,
+      )
+    : 0;
 
   const renderImageContainer = () => (
     <View
@@ -142,9 +147,32 @@ export const FoodProductCard: React.FC<FoodProductCardProps> = ({
           <>
             {renderImageContainer()}
             <View style={styles.verticalProductInfo}>
-              <Text style={[styles.productPrice, { color: colors.tint }]}>
-                {formatProductPrice(product.price, saleType)}
-              </Text>
+              {product.promotional_price ? (
+                <View style={styles.priceColumn}>
+                  <Text style={[styles.productPrice, { color: colors.tint }]}>
+                    {formatProductPrice(product.promotional_price, saleType)}
+                  </Text>
+                  <View style={styles.discountRow}>
+                    <Text
+                      style={[
+                        styles.productPriceOriginal,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {formatProductPrice(product.price, saleType)}
+                    </Text>
+                    <View style={styles.discountBadge}>
+                      <Text style={styles.discountBadgeText}>
+                        {discountPct}% OFF
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <Text style={[styles.productPrice, { color: colors.tint }]}>
+                  {formatProductPrice(product.price, saleType)}
+                </Text>
+              )}
               <Text
                 style={[styles.productName, { color: colors.text }]}
                 numberOfLines={2}
@@ -178,9 +206,32 @@ export const FoodProductCard: React.FC<FoodProductCardProps> = ({
                   {product.description}
                 </Text>
               ) : null}
-              <Text style={[styles.productPrice, { color: colors.tint }]}>
-                {formatProductPrice(product.price, saleType)}
-              </Text>
+              {product.promotional_price ? (
+                <View style={styles.priceColumn}>
+                  <Text style={[styles.productPrice, { color: colors.tint }]}>
+                    {formatProductPrice(product.promotional_price, saleType)}
+                  </Text>
+                  <View style={styles.discountRow}>
+                    <Text
+                      style={[
+                        styles.productPriceOriginal,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {formatProductPrice(product.price, saleType)}
+                    </Text>
+                    <View style={styles.discountBadge}>
+                      <Text style={styles.discountBadgeText}>
+                        {discountPct}% OFF
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <Text style={[styles.productPrice, { color: colors.tint }]}>
+                  {formatProductPrice(product.price, saleType)}
+                </Text>
+              )}
             </View>
             {renderImageContainer()}
           </>
@@ -214,9 +265,35 @@ const styles = StyleSheet.create({
     marginTop: 8,
     gap: 4,
   },
+  priceColumn: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    marginTop: 4,
+  },
+  discountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 2,
+  },
+  discountBadge: {
+    backgroundColor: "rgba(244, 63, 94, 0.1)",
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  discountBadgeText: {
+    color: "#F43F5E",
+    fontSize: 9,
+    fontWeight: "bold",
+  },
+  productPriceOriginal: {
+    fontSize: 12,
+    textDecorationLine: "line-through",
+  },
   productName: { fontSize: 14, fontWeight: "400" },
   productDesc: { fontSize: 12, marginTop: 4 },
-  productPrice: { fontSize: 16, fontWeight: "500", marginTop: 6 },
+  productPrice: { fontSize: 16, fontWeight: "500" },
   imageContainer: {
     position: "relative",
     marginLeft: 10,
@@ -228,7 +305,7 @@ const styles = StyleSheet.create({
     height: 140,
     paddingBottom: 10, // space for overlay
   },
-  productImage: { width: 84, height: 84, borderRadius: 10 },
+  productImage: { width: 100, height: 100, borderRadius: 16 },
   verticalProductImage: { width: "100%", height: 140, borderRadius: 10 },
   quantityOverlay: {
     position: "absolute",

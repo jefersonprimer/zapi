@@ -54,13 +54,7 @@ export default function PromotionsSection() {
             <Text style={[styles.title, { color: colors.text }]}>
               Ofertas Imperdíveis
             </Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Até 50% OFF</Text>
-            </View>
           </View>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Os melhores descontos da sua região reunidos aqui
-          </Text>
         </View>
       </View>
 
@@ -77,7 +71,7 @@ export default function PromotionsSection() {
         >
           {displayedPromotions.map((item) => {
             const discountPct = Math.round(
-              ((item.price - item.promotional_price) / item.price) * 100
+              ((item.price - item.promotional_price) / item.price) * 100,
             );
 
             return (
@@ -99,20 +93,34 @@ export default function PromotionsSection() {
                 }
               >
                 {/* Store Info Header */}
-                <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
+                <View
+                  style={[
+                    styles.cardHeader,
+                    { borderBottomColor: colors.border },
+                  ]}
+                >
                   {item.store_avatar ? (
                     <Image
                       source={{ uri: getFullRemoteUrl(item.store_avatar) }}
                       style={styles.storeAvatar}
                     />
                   ) : (
-                    <View style={[styles.storeAvatarPlaceholder, { backgroundColor: colors.surface }]}>
-                      <Ionicons name="storefront-outline" size={12} color={colors.textSecondary} />
+                    <View
+                      style={[
+                        styles.storeAvatarPlaceholder,
+                        { backgroundColor: colors.surface },
+                      ]}
+                    >
+                      <Ionicons
+                        name="storefront-outline"
+                        size={12}
+                        color={colors.textSecondary}
+                      />
                     </View>
                   )}
                   <Text
                     style={[styles.storeName, { color: colors.text }]}
-                    numberOfLines={1}
+                    numberOfLines={2}
                   >
                     {item.store_name}
                   </Text>
@@ -127,8 +135,17 @@ export default function PromotionsSection() {
                       resizeMode="cover"
                     />
                   ) : (
-                    <View style={[styles.productImagePlaceholder, { backgroundColor: colors.surface }]}>
-                      <Ionicons name="pricetag-outline" size={24} color={colors.icon} />
+                    <View
+                      style={[
+                        styles.productImagePlaceholder,
+                        { backgroundColor: colors.surface },
+                      ]}
+                    >
+                      <Ionicons
+                        name="pricetag-outline"
+                        size={24}
+                        color={colors.icon}
+                      />
                     </View>
                   )}
 
@@ -146,18 +163,12 @@ export default function PromotionsSection() {
                   >
                     {item.name}
                   </Text>
-                  {item.description ? (
-                    <Text
-                      style={[styles.productDescription, { color: colors.textSecondary }]}
-                      numberOfLines={1}
-                    >
-                      {item.description}
-                    </Text>
-                  ) : null}
 
                   {/* Prices */}
                   <View style={styles.priceRow}>
-                    <Text style={[styles.oldPrice, { color: colors.textSecondary }]}>
+                    <Text
+                      style={[styles.oldPrice, { color: colors.textSecondary }]}
+                    >
                       R$ {item.price.toFixed(2).replace(".", ",")}
                     </Text>
                     <Text style={[styles.promoPrice, { color: colors.tint }]}>
@@ -193,7 +204,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: "400",
   },
   badge: {
     backgroundColor: "rgba(244, 63, 94, 0.1)",
@@ -223,8 +234,9 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   card: {
-    width: 160,
+    width: 170,
     borderRadius: 16,
+    paddingHorizontal: 8,
     borderWidth: 1,
     overflow: "hidden",
     flexDirection: "column",
@@ -233,13 +245,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 8,
     paddingVertical: 8,
-    borderBottomWidth: 1,
   },
   storeAvatar: {
-    width: 20,
-    height: 20,
+    width: 30,
+    height: 30,
     borderRadius: 10,
   },
   storeAvatarPlaceholder: {
@@ -250,8 +260,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   storeName: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "500",
     flex: 1,
   },
   imageContainer: {
@@ -262,6 +272,8 @@ const styles = StyleSheet.create({
   productImage: {
     width: "100%",
     height: "100%",
+
+    borderRadius: 16,
   },
   productImagePlaceholder: {
     width: "100%",
@@ -284,13 +296,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   cardDetails: {
-    padding: 10,
+    paddingVertical: 10,
     flex: 1,
     justifyContent: "space-between",
   },
   productName: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "400",
     lineHeight: 16,
   },
   productDescription: {

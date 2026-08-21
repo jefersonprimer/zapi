@@ -33,6 +33,7 @@ export const GridProductCard: React.FC<GridProductCardProps> = ({
   const saleType = product.sale_type || "unit";
   const step = saleType === "weight" ? WEIGHT_STEP : 1;
   const minQty = saleType === "weight" ? MIN_WEIGHT : 1;
+  const discountPct = product.promotional_price ? Math.round(((product.price - product.promotional_price) / product.price) * 100) : 0;
 
   return (
     <View
@@ -162,14 +163,35 @@ export const GridProductCard: React.FC<GridProductCardProps> = ({
       </View>
 
       <TouchableOpacity activeOpacity={0.85} onPress={onPress}>
-        <Text
-          style={[
-            isCarousel ? styles.carouselProductPrice : styles.mercadoPrice,
-            { color: colors.tint },
-          ]}
-        >
-          {formatProductPrice(product.price, saleType)}
-        </Text>
+        {product.promotional_price ? (
+          <View style={styles.priceColumn}>
+            <Text
+              style={[
+                isCarousel ? styles.carouselProductPrice : styles.mercadoPrice,
+                { color: colors.tint },
+              ]}
+            >
+              {formatProductPrice(product.promotional_price, saleType)}
+            </Text>
+            <View style={styles.discountRow}>
+              <Text style={[styles.productPriceOriginal, { color: colors.textSecondary }]}>
+                {formatProductPrice(product.price, saleType)}
+              </Text>
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountBadgeText}>{discountPct}% OFF</Text>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <Text
+            style={[
+              isCarousel ? styles.carouselProductPrice : styles.mercadoPrice,
+              { color: colors.tint },
+            ]}
+          >
+            {formatProductPrice(product.price, saleType)}
+          </Text>
+        )}
         <Text
           style={[
             isCarousel ? styles.carouselProductName : styles.mercadoName,
@@ -289,5 +311,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "500",
     marginBottom: 8,
+  },
+  priceColumn: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    marginBottom: 4,
+  },
+  discountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 2,
+  },
+  discountBadge: {
+    backgroundColor: "rgba(244, 63, 94, 0.1)",
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  discountBadgeText: {
+    color: "#F43F5E",
+    fontSize: 9,
+    fontWeight: "bold",
+  },
+  productPriceOriginal: {
+    fontSize: 12,
+    textDecorationLine: "line-through",
   },
 });
