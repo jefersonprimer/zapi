@@ -14,3 +14,4 @@ pub mod delivery;
 pub mod communities;
 pub mod stickers;
 pub mod placed_stickers;
+pub mod scheduling;

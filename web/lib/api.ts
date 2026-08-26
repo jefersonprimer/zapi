@@ -989,6 +989,15 @@ export const STORE_CATEGORIES: Record<string, string> = {
   flores: "Floricultura & Flores",
   tabacaria: "Tabacaria",
   shopping: "Shopping",
+  barbeiro: "Barbearia",
+  salao: "Salão de Beleza",
+  estetica: "Estética & Spa",
+  tatuagem: "Estúdio de Tatuagem",
+  clinica: "Clínicas Médicas",
+  dentista: "Dentista",
+  oficina: "Oficinas Mecânicas",
+  personal: "Personal Trainer",
+  fotografo: "Fotógrafo",
 
   // Outros
   outro: "Outros",
@@ -1399,6 +1408,230 @@ export async function reactToMessage(
     body: JSON.stringify({ reaction }),
   });
 }
+
+// ─── Scheduling System ───
+
+export interface SchedulingService {
+  id: string;
+  store_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  duration_minutes: number;
+  image_url: string | null;
+  is_available: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Professional {
+  id: string;
+  store_id: string;
+  name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  is_active: boolean;
+  service_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Appointment {
+  id: string;
+  store_id: string;
+  store_name?: string;
+  store_avatar?: string | null;
+  user_id: string;
+  service_id: string;
+  service_name?: string;
+  service_price?: number;
+  professional_id: string;
+  professional_name?: string;
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+  status: "pending" | "confirmed" | "cancelled" | "completed";
+  client_name: string;
+  client_phone: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface AvailableSlot {
+  start: string;
+  end: string;
+  available: boolean;
+}
+
+export async function listSchedulingServices(
+  storeId: string
+): Promise<SchedulingService[]> {
+  const res = await fetch(`${API_URL}/scheduling/stores/${storeId}/services`);
+  if (!res.ok) throw new Error("Falha ao carregar serviços");
+  return res.json();
+}
+
+export async function createSchedulingService(
+  token: string,
+  data: {
+    store_id: string;
+    name: string;
+    description?: string | null;
+    price: number;
+    duration_minutes: number;
+    image_url?: string | null;
+  }
+): Promise<SchedulingService> {
+  return authFetch(`${API_URL}/scheduling/services`, token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateSchedulingService(
+  token: string,
+  id: string,
+  data: {
+    name: string;
+    description?: string | null;
+    price: number;
+    duration_minutes: number;
+    image_url?: string | null;
+    is_available: boolean;
+  }
+): Promise<SchedulingService> {
+  return authFetch(`${API_URL}/scheduling/services/${id}`, token, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteSchedulingService(
+  token: string,
+  id: string
+): Promise<{ success: boolean }> {
+  return authFetch(`${API_URL}/scheduling/services/${id}`, token, {
+    method: "DELETE",
+  });
+}
+
+export async function listProfessionals(
+  storeId: string
+): Promise<Professional[]> {
+  const res = await fetch(`${API_URL}/scheduling/stores/${storeId}/professionals`);
+  if (!res.ok) throw new Error("Falha ao carregar profissionais");
+  return res.json();
+}
+
+export async function createProfessional(
+  token: string,
+  data: {
+    store_id: string;
+    name: string;
+    avatar_url?: string | null;
+    bio?: string | null;
+    service_ids: string[];
+  }
+): Promise<Professional> {
+  return authFetch(`${API_URL}/scheduling/professionals`, token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProfessional(
+  token: string,
+  id: string,
+  data: {
+    name: string;
+    avatar_url?: string | null;
+    bio?: string | null;
+    is_active: boolean;
+    service_ids: string[];
+  }
+): Promise<Professional> {
+  return authFetch(`${API_URL}/scheduling/professionals/${id}`, token, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProfessional(
+  token: string,
+  id: string
+): Promise<{ success: boolean }> {
+  return authFetch(`${API_URL}/scheduling/professionals/${id}`, token, {
+    method: "DELETE",
+  });
+}
+
+export async function getAvailableSlots(
+  storeId: string,
+  date: string,
+  serviceId: string,
+  professionalId: string
+): Promise<AvailableSlot[]> {
+  const res = await fetch(
+    `${API_URL}/scheduling/stores/${storeId}/available-slots?date=${date}&service_id=${serviceId}&professional_id=${professionalId}`
+  );
+  if (!res.ok) throw new Error("Falha ao calcular horários livres");
+  return res.json();
+}
+
+export async function createAppointment(
+  token: string,
+  data: {
+    store_id: string;
+    service_id: string;
+    professional_id: string;
+    appointment_date: string;
+    start_time: string;
+    client_name: string;
+    client_phone: string;
+    notes?: string | null;
+  }
+): Promise<Appointment> {
+  return authFetch(`${API_URL}/scheduling/appointments`, token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function listMyAppointments(token: string): Promise<Appointment[]> {
+  return authFetch(`${API_URL}/scheduling/appointments`, token);
+}
+
+export async function cancelAppointment(
+  token: string,
+  id: string
+): Promise<{ success: boolean }> {
+  return authFetch(`${API_URL}/scheduling/appointments/${id}/cancel`, token, {
+    method: "POST",
+  });
+}
+
+export async function listVendorAppointments(
+  token: string,
+  storeId: string,
+  date?: string
+): Promise<Appointment[]> {
+  const url = date
+    ? `${API_URL}/scheduling/vendor/appointments?store_id=${storeId}&date=${date}`
+    : `${API_URL}/scheduling/vendor/appointments?store_id=${storeId}`;
+  return authFetch(url, token);
+}
+
+export async function updateAppointmentStatus(
+  token: string,
+  id: string,
+  status: string
+): Promise<{ success: boolean; status: string }> {
+  return authFetch(`${API_URL}/scheduling/appointments/${id}/status`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
 
 
 

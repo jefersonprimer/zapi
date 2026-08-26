@@ -18,6 +18,13 @@ import {
   createStoreReview,
   listStoreReviews,
   type StoreReviewWithUser,
+  listSchedulingServices,
+  listProfessionals,
+  getAvailableSlots,
+  createAppointment,
+  type SchedulingService,
+  type Professional,
+  type AvailableSlot,
 } from "@/lib/api";
 import {
   getPublisherByUser,
@@ -42,7 +49,20 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
+  Check,
 } from "lucide-react";
+
+const SERVICE_CATEGORIES = [
+  "barbeiro",
+  "salao",
+  "estetica",
+  "tatuagem",
+  "clinica",
+  "dentista",
+  "oficina",
+  "personal",
+  "fotografo",
+];
 
 interface PageProps {
   params: Promise<{
@@ -87,6 +107,22 @@ function StoreDetailPageContent({ params }: PageProps) {
   const [publisherId, setPublisherId] = useState<string | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+
+  // Scheduling states
+  const [schedulingServices, setSchedulingServices] = useState<SchedulingService[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [selectedService, setSelectedService] = useState<SchedulingService | null>(null);
+  const [selectedProf, setSelectedProf] = useState<Professional | null>(null);
+  const [bookingDate, setBookingDate] = useState<string>("");
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [bookingNotes, setBookingNotes] = useState("");
+  const [bookingStep, setBookingStep] = useState(1);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   // Active category navigation helper
   const [activeCategory, setActiveCategory] = useState<string>("");
@@ -296,6 +332,76 @@ function StoreDetailPageContent({ params }: PageProps) {
     };
   }, [loadStore]);
 
+  // Load services and professionals if the store is a service category
+  useEffect(() => {
+    if (!data?.store?.id) return;
+    const isService = SERVICE_CATEGORIES.includes(data.store.category);
+    if (isService) {
+      listSchedulingServices(data.store.id)
+        .then(setSchedulingServices)
+        .catch((err) => console.error("Error listing scheduling services:", err));
+      listProfessionals(data.store.id)
+        .then(setProfessionals)
+        .catch((err) => console.error("Error listing professionals:", err));
+    }
+  }, [data?.store]);
+
+  // Fetch available slots dynamically when service, professional, or date changes
+  useEffect(() => {
+    if (!data?.store?.id || !bookingDate || !selectedService || !selectedProf) return;
+    let active = true;
+    setLoadingSlots(true);
+    getAvailableSlots(data.store.id, bookingDate, selectedService.id, selectedProf.id)
+      .then((slots) => {
+        if (active) setAvailableSlots(slots);
+      })
+      .catch((err) => console.error("Error loading available slots:", err))
+      .finally(() => {
+        if (active) setLoadingSlots(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [data?.store?.id, bookingDate, selectedService, selectedProf]);
+
+  const handleBookAppointment = async () => {
+    if (!token) {
+      alert("Por favor, faça login para agendar.");
+      router.push("/login");
+      return;
+    }
+    if (!data?.store?.id || !selectedService || !selectedProf || !bookingDate || !selectedSlot) {
+      alert("Por favor, preencha todos os campos.");
+      return;
+    }
+    if (!clientName.trim() || !clientPhone.trim()) {
+      alert("Por favor, preencha seu nome e telefone de contato.");
+      return;
+    }
+
+    try {
+      setBookingLoading(true);
+      await createAppointment(token, {
+        store_id: data.store.id,
+        service_id: selectedService.id,
+        professional_id: selectedProf.id,
+        appointment_date: bookingDate,
+        start_time: selectedSlot.start,
+        client_name: clientName,
+        client_phone: clientPhone,
+        notes: bookingNotes || null,
+      });
+      setBookingSuccess(true);
+      setBookingStep(5);
+    } catch (err: any) {
+      alert(err.message || "Erro ao realizar agendamento");
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-pulse">
@@ -498,11 +604,283 @@ function StoreDetailPageContent({ params }: PageProps) {
 
         {/* Main Content (Right Side) */}
         <main className="lg:col-span-3 space-y-6 py-6 px-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-text">
-              <Search className="h-5 w-5" />
-            </div>
+          {(() => {
+            const isServiceStore = SERVICE_CATEGORIES.includes(store.category);
+            if (isServiceStore) {
+              return (
+                <div className="space-y-6">
+                  {/* PORTFOLIO / GALLERY */}
+                  {schedulingServices.length > 0 && (
+                    <div className="bg-surface border border-card-border rounded-2xl p-6 shadow-sm">
+                      <h2 className="text-lg font-bold mb-4">Galeria do Estabelecimento</h2>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {schedulingServices
+                          .filter((s) => s.image_url)
+                          .slice(0, 6)
+                          .map((s) => (
+                            <div key={s.id} className="relative h-32 rounded-xl overflow-hidden group">
+                              <Image src={s.image_url!} alt={s.name} fill className="object-cover group-hover:scale-105 transition-transform" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2.5">
+                                <span className="text-[10px] font-bold text-white leading-tight line-clamp-1">{s.name}</span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* BOOKING WIZARD */}
+                  <div className="bg-surface border border-card-border rounded-2xl p-6 shadow-sm space-y-6">
+                    <div className="flex items-center justify-between border-b border-card-border pb-4">
+                      <h2 className="text-xl font-bold">Agendamento Online</h2>
+                      <span className="text-xs text-muted-text font-semibold">Passo {bookingStep} de 4</span>
+                    </div>
+
+                    {bookingStep === 1 && (
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-sm">Selecione o serviço:</h3>
+                        {schedulingServices.length === 0 ? (
+                          <p className="text-sm text-muted-text">Nenhum serviço disponível no momento.</p>
+                        ) : (
+                          <div className="grid gap-3">
+                            {schedulingServices.map((s) => (
+                              <div
+                                key={s.id}
+                                onClick={() => {
+                                  setSelectedService(s);
+                                  setBookingStep(2);
+                                }}
+                                className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer hover:border-emerald-500 transition-all ${
+                                  selectedService?.id === s.id ? "border-emerald-500 bg-emerald-500/5" : "border-card-border"
+                                }`}
+                              >
+                                <div>
+                                  <p className="font-bold text-sm">{s.name}</p>
+                                  {s.description && <p className="text-xs text-muted-text mt-1">{s.description}</p>}
+                                  <p className="text-xs text-muted-text mt-2 font-medium">{s.duration_minutes} minutos</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-emerald-500">R$ {s.price.toFixed(2)}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {bookingStep === 2 && (
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-sm">Escolha o profissional:</h3>
+                        <div className="grid gap-3">
+                          {professionals
+                            .filter((p) => !selectedService || p.service_ids.includes(selectedService.id))
+                            .map((p) => (
+                              <div
+                                key={p.id}
+                                onClick={() => {
+                                  setSelectedProf(p);
+                                  setBookingStep(3);
+                                }}
+                                className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer hover:border-emerald-500 transition-all ${
+                                  selectedProf?.id === p.id ? "border-emerald-500 bg-emerald-500/5" : "border-card-border"
+                                }`}
+                              >
+                                <div className="relative h-12 w-12 rounded-full overflow-hidden bg-gray-150 flex-shrink-0">
+                                  {p.avatar_url ? (
+                                    <Image src={p.avatar_url} alt={p.name} fill className="object-cover" />
+                                  ) : (
+                                    <div className="h-full w-full flex items-center justify-center bg-emerald-500/10 text-emerald-500 font-bold text-lg">
+                                      {p.name.charAt(0)}
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-sm">{p.name}</p>
+                                  {p.bio && <p className="text-xs text-muted-text mt-0.5">{p.bio}</p>}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                        <button
+                          onClick={() => setBookingStep(1)}
+                          className="text-xs font-bold text-muted-text mt-4 flex items-center gap-1 hover:text-foreground cursor-pointer"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Serviços
+                        </button>
+                      </div>
+                    )}
+
+                    {bookingStep === 3 && (
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-sm">Escolha a data e hora:</h3>
+                        <input
+                          type="date"
+                          value={bookingDate}
+                          min={new Date().toISOString().split("T")[0]}
+                          onChange={(e) => setBookingDate(e.target.value)}
+                          className="w-full px-3.5 py-2.5 border border-card-border rounded-lg bg-surface text-foreground"
+                        />
+
+                        {bookingDate && (
+                          <div className="space-y-2 mt-4">
+                            <p className="text-xs font-semibold text-muted-text">Horários disponíveis:</p>
+                            {loadingSlots ? (
+                              <div className="flex items-center gap-2 py-4">
+                                <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+                                <span className="text-xs text-muted-text">Calculando horários livres...</span>
+                              </div>
+                            ) : availableSlots.length === 0 ? (
+                              <p className="text-xs text-muted-text italic">Nenhum horário disponível para esta data.</p>
+                            ) : (
+                              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                {availableSlots.map((slot) => (
+                                  <button
+                                    key={slot.start}
+                                    disabled={!slot.available}
+                                    onClick={() => {
+                                      if (slot.available) setSelectedSlot(slot);
+                                    }}
+                                    className={`py-2 text-xs font-bold rounded-lg border transition-all ${
+                                      !slot.available
+                                        ? "bg-card-border/30 border-transparent text-muted-text cursor-not-allowed opacity-40"
+                                        : selectedSlot?.start === slot.start
+                                        ? "bg-emerald-500 text-white border-emerald-500"
+                                        : "border-card-border hover:border-emerald-500 text-foreground"
+                                    }`}
+                                  >
+                                    {slot.start}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex justify-between items-center pt-4">
+                          <button
+                            onClick={() => setBookingStep(2)}
+                            className="text-xs font-bold text-muted-text flex items-center gap-1 hover:text-foreground cursor-pointer"
+                          >
+                            <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Profissional
+                          </button>
+                          {selectedSlot && (
+                            <button
+                              onClick={() => setBookingStep(4)}
+                              className="px-4 py-2 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
+                            >
+                              Avançar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {bookingStep === 4 && (
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-sm">Confirme seus dados para contato:</h3>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs text-muted-text block mb-1">Seu Nome *</label>
+                            <input
+                              type="text"
+                              value={clientName}
+                              onChange={(e) => setClientName(e.target.value)}
+                              placeholder="Ex: João Silva"
+                              className="w-full px-3.5 py-2 border border-card-border rounded-lg bg-surface text-foreground text-sm"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-text block mb-1">Telefone / WhatsApp *</label>
+                            <input
+                              type="text"
+                              value={clientPhone}
+                              onChange={(e) => setClientPhone(e.target.value)}
+                              placeholder="Ex: (11) 99999-9999"
+                              className="w-full px-3.5 py-2 border border-card-border rounded-lg bg-surface text-foreground text-sm"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-text block mb-1">Observações (Opcional)</label>
+                            <textarea
+                              value={bookingNotes}
+                              onChange={(e) => setBookingNotes(e.target.value)}
+                              placeholder="Alguma observação para o profissional?"
+                              className="w-full px-3.5 py-2 border border-card-border rounded-lg bg-surface text-foreground text-sm resize-none"
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 space-y-2 mt-4">
+                          <p className="text-xs font-bold text-emerald-500">Resumo do Agendamento:</p>
+                          <div className="text-xs text-muted-text space-y-1">
+                            <p>Serviço: <span className="font-semibold text-foreground">{selectedService?.name}</span> (R$ {selectedService?.price.toFixed(2)})</p>
+                            <p>Profissional: <span className="font-semibold text-foreground">{selectedProf?.name}</span></p>
+                            <p>Data: <span className="font-semibold text-foreground">{bookingDate}</span></p>
+                            <p>Horário: <span className="font-semibold text-foreground">{selectedSlot?.start}</span></p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-4">
+                          <button
+                            onClick={() => setBookingStep(3)}
+                            className="text-xs font-bold text-muted-text flex items-center gap-1 hover:text-foreground cursor-pointer"
+                          >
+                            <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Data
+                          </button>
+                          <button
+                            onClick={handleBookAppointment}
+                            disabled={bookingLoading}
+                            className="flex items-center gap-1.5 px-5 py-2 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                          >
+                            {bookingLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                            Confirmar Agendamento
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {bookingStep === 5 && bookingSuccess && (
+                      <div className="text-center py-6 space-y-4">
+                        <div className="h-12 w-12 bg-emerald-100 dark:bg-emerald-950/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
+                          <Check className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg">Agendamento Solicitado!</h3>
+                          <p className="text-xs text-muted-text mt-1.5 px-4 max-w-sm mx-auto">
+                            Seu agendamento foi encaminhado e está pendente de confirmação. Você receberá atualizações diretamente no chat do Zapi!
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedService(null);
+                            setSelectedProf(null);
+                            setBookingDate("");
+                            setSelectedSlot(null);
+                            setBookingStep(1);
+                            setBookingSuccess(false);
+                          }}
+                          className="px-4 py-2 border border-card-border rounded-lg text-xs font-semibold hover:bg-card-border/10 transition-colors"
+                        >
+                          Realizar Novo Agendamento
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <>
+                {/* Search Bar */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-text">
+                    <Search className="h-5 w-5" />
+                  </div>
             <input
               type="text"
               placeholder="Buscar produtos no estabelecimento..."
@@ -821,6 +1199,9 @@ function StoreDetailPageContent({ params }: PageProps) {
               })}
             </div>
           )}
+              </>
+            );
+          })()}
         </main>
       </div>
 

@@ -5,3 +5,5 @@ pub mod call;
 pub mod pix;
 pub mod delivery;
 pub mod community;
+pub mod scheduling;
+

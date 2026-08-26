@@ -76,6 +76,7 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/notes", notes::routes::router())
         .nest("/updates", updates::routes::router())
         .nest("/delivery", handlers::delivery::router())
+        .nest("/scheduling", handlers::scheduling::router())
         .nest("/communities", handlers::communities::router())
         .route("/stickers/remove-bg", post(handlers::stickers::remove_background).layer(DefaultBodyLimit::disable()))
         .route("/stickers/remove-bg-url", post(handlers::stickers::remove_background_url))
