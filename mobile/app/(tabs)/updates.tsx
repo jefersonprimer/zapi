@@ -76,9 +76,7 @@ export default function UpdatesScreen() {
       <View
         style={[
           styles.header,
-          activeTab === "reels"
-            ? styles.reelsHeader
-            : { backgroundColor: colors.headerBackground },
+          { backgroundColor: colors.headerBackground },
         ]}
       >
         <View style={styles.tabContainer}>
@@ -95,9 +93,7 @@ export default function UpdatesScreen() {
                 {
                   color:
                     activeTab === "feed"
-                      ? activeTab === "feed" && colors.tint
-                        ? colors.tint
-                        : colors.text
+                      ? (colors.tint || colors.text)
                       : colors.textSecondary,
                 },
                 activeTab === "feed" && styles.activeTabText,
@@ -117,7 +113,10 @@ export default function UpdatesScreen() {
               style={[
                 styles.tabText,
                 {
-                  color: activeTab === "reels" ? "white" : colors.textSecondary,
+                  color:
+                    activeTab === "reels"
+                      ? (colors.tint || colors.text)
+                      : colors.textSecondary,
                 },
                 activeTab === "reels" && styles.activeTabText,
               ]}
@@ -134,7 +133,7 @@ export default function UpdatesScreen() {
           <MaterialCommunityIcons
             name="plus"
             size={28}
-            color={activeTab === "reels" ? "white" : colors.text}
+            color={colors.text}
           />
         </TouchableOpacity>
       </View>

@@ -214,8 +214,7 @@ function InitialLayout() {
       <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
       <Stack.Screen name="privacy" options={{ headerShown: false }} />
       <Stack.Screen name="archived" options={{ headerShown: false }} />
-      <Stack.Screen name="notes" options={{ headerShown: false }} />
-      <Stack.Screen name="note-editor" options={{ headerShown: false }} />
+
       <Stack.Screen name="items" options={{ headerShown: false }} />
       <Stack.Screen name="item-editor" options={{ headerShown: false }} />
       <Stack.Screen name="payments" options={{ headerShown: false }} />

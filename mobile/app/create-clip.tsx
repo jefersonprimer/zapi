@@ -86,8 +86,8 @@ export default function CreateClipScreen() {
           setLastMediaUri(result.assets[0].uri);
         }
       }
-    } catch (err) {
-      console.log("Error loading last media:", err);
+    } catch (err: any) {
+      console.log("Error loading last media (this is expected in Expo Go on Android):", err?.message || err);
     }
   }, []);
 
@@ -110,8 +110,8 @@ export default function CreateClipScreen() {
           setRecentMedia(result.assets);
         }
       }
-    } catch (err) {
-      console.log("Error loading recent media list:", err);
+    } catch (err: any) {
+      console.log("Error loading recent media list (this is expected in Expo Go on Android):", err?.message || err);
     }
   }, []);
 

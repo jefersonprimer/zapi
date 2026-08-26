@@ -1199,8 +1199,8 @@ export default function ChatListScreen() {
                       activeOpacity={0.8}
                       onPress={() =>
                         router.push({
-                          pathname: "/note-editor",
-                          params: { noteId: pinnedNote.id },
+                          pathname: "/item-editor",
+                          params: { id: pinnedNote.id },
                         })
                       }
                     >
