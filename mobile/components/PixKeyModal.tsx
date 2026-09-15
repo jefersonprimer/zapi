@@ -40,8 +40,10 @@ const VISIBILITY_OPTIONS = [
   { key: "ninguem", label: "Ninguém" },
 ];
 
+const ACTIVE_GREEN = "#34C759";
+
 export default function PixKeyModal({ visible, onClose, onSaved }: PixKeyModalProps) {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const { token } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -164,9 +166,57 @@ export default function PixKeyModal({ visible, onClose, onSaved }: PixKeyModalPr
         >
           <View style={[styles.indicator, { backgroundColor: colors.border }]} />
 
-          <Text style={[styles.title, { color: colors.text }]}>
-            {pixData ? "Editar Chave Pix" : "Nova Chave Pix"}
-          </Text>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={onClose}
+              disabled={saving}
+              style={[
+                styles.closeBtn,
+                {
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.12)"
+                    : "rgba(0, 0, 0, 0.08)",
+                  backgroundColor: isDark
+                    ? "rgba(30, 30, 30, 0.98)"
+                    : "rgba(255, 255, 255, 0.98)",
+                },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="close-outline"
+                size={24}
+                color={colors.headerText}
+              />
+            </TouchableOpacity>
+
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              {pixData ? "Editar Chave Pix" : "Nova Chave Pix"}
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={saving}
+              style={[
+                styles.saveBtn,
+                {
+                  backgroundColor: ACTIVE_GREEN,
+                  borderColor: ACTIVE_GREEN,
+                },
+              ]}
+              activeOpacity={0.7}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Ionicons
+                  name="checkmark"
+                  size={24}
+                  color="#ffffff"
+                />
+              )}
+            </TouchableOpacity>
+          </View>
 
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -316,21 +366,6 @@ export default function PixKeyModal({ visible, onClose, onSaved }: PixKeyModalPr
                 </View>
               )}
 
-              <TouchableOpacity
-                style={[styles.saveButton, { backgroundColor: colors.tint }]}
-                onPress={handleSave}
-                disabled={saving}
-                activeOpacity={0.8}
-              >
-                {saving ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.saveButtonText}>
-                    {pixData ? "Salvar" : "Adicionar"}
-                  </Text>
-                )}
-              </TouchableOpacity>
-
               {pixData && (
                 <TouchableOpacity
                   style={styles.deleteButton}
@@ -343,17 +378,6 @@ export default function PixKeyModal({ visible, onClose, onSaved }: PixKeyModalPr
                   </Text>
                 </TouchableOpacity>
               )}
-
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={onClose}
-                disabled={saving}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
-                  Cancelar
-                </Text>
-              </TouchableOpacity>
             </ScrollView>
           )}
         </TouchableOpacity>
@@ -382,10 +406,32 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 20,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 24,
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  closeBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saveBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "center",
   },
   loadingContainer: {
     height: 200,
@@ -443,35 +489,13 @@ const styles = StyleSheet.create({
   dropdownText: {
     fontSize: 15,
   },
-  saveButton: {
-    height: 48,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 28,
-  },
-  saveButtonText: {
-    color: "#FFF",
-    fontSize: 15,
-    fontWeight: "700",
-  },
   deleteButton: {
     height: 44,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 28,
   },
   deleteButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  cancelButton: {
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  cancelButtonText: {
     fontSize: 14,
     fontWeight: "500",
   },

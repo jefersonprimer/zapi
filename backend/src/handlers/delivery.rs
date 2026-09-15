@@ -684,7 +684,8 @@ pub async fn create_store(
         "comida_japonesa", "comida_italiana", "comida_chinesa", "comida_arabe", "comida_mexicana",
         "frango_assado", "churrascaria", "saudavel", "vegetariana", "comida_brasileira",
         "mercado", "acougue", "hortifruti", "bebidas", "conveniencia", "queijos_frios", "peixaria",
-        "farmacia", "petshop", "flores", "tabacaria", "shopping", "outro",
+        "farmacia", "petshop", "flores", "tabacaria", "shopping", "barbeiro", "salao", "estetica",
+        "tatuagem", "clinica", "dentista", "oficina", "personal", "fotografo", "outro",
     ];
     if !valid_categories.contains(&body.category.as_str()) {
         return Err((
@@ -948,7 +949,8 @@ pub async fn update_store(
         "comida_japonesa", "comida_italiana", "comida_chinesa", "comida_arabe", "comida_mexicana",
         "frango_assado", "churrascaria", "saudavel", "vegetariana", "comida_brasileira",
         "mercado", "acougue", "hortifruti", "bebidas", "conveniencia", "queijos_frios", "peixaria",
-        "farmacia", "petshop", "flores", "tabacaria", "shopping", "outro",
+        "farmacia", "petshop", "flores", "tabacaria", "shopping", "barbeiro", "salao", "estetica",
+        "tatuagem", "clinica", "dentista", "oficina", "personal", "fotografo", "outro",
     ];
     if !valid_categories.contains(&category.as_str()) {
         return Err((

@@ -78,6 +78,7 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/delivery", handlers::delivery::router())
         .nest("/scheduling", handlers::scheduling::router())
         .nest("/communities", handlers::communities::router())
+        .nest("/lives", handlers::live::router())
         .route("/stickers/remove-bg", post(handlers::stickers::remove_background).layer(DefaultBodyLimit::disable()))
         .route("/stickers/remove-bg-url", post(handlers::stickers::remove_background_url))
         .nest_service("/uploads", ServeDir::new("uploads"))

@@ -158,7 +158,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       } else {
         setLocalPoll(null);
       }
-    } catch (e) {
+    } catch {
       setLocalPoll(null);
     }
   }, [item.content]);
@@ -273,12 +273,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     address?: string;
   } | null = null;
   let isPoll = false;
-  let pollData: {
-    type: "poll";
-    question: string;
-    options: Array<{ id: string; text: string; votes: string[] }>;
-    multipleAnswers?: boolean;
-  } | null = null;
 
   const forwardContent = parseForwardContent(item.content);
 
@@ -308,7 +302,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     locationShareData = sharePayload;
   } else if (sharePayload?.type === "poll") {
     isPoll = true;
-    pollData = sharePayload;
   }
 
   const handleStartChat = async () => {

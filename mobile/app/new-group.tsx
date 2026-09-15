@@ -69,7 +69,7 @@ export default function NewGroupScreen() {
   }>();
 
   const { token } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
@@ -183,23 +183,33 @@ export default function NewGroupScreen() {
             styles.customHeader,
             {
               paddingTop: insets.top,
-              borderBottomColor: colors.border,
+              backgroundColor: colors.headerBackground,
             },
           ]}
         >
           <View style={styles.headerContent}>
             <TouchableOpacity
               onPress={() => router.back()}
-              style={styles.backBtn}
+              style={[
+                styles.backBtn,
+                {
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.12)"
+                    : "rgba(0, 0, 0, 0.08)",
+                  backgroundColor: isDark
+                    ? "rgba(30, 30, 30, 0.98)"
+                    : "rgba(255, 255, 255, 0.98)",
+                },
+              ]}
             >
               <Ionicons
                 name="chevron-back-outline"
                 size={24}
-                color={colors.text}
+                color={colors.headerText}
               />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>
+              <Text style={[styles.headerTitle, { color: colors.headerText }]}>
                 Novo Grupo
               </Text>
               <Text
@@ -210,6 +220,7 @@ export default function NewGroupScreen() {
                   : `${selected.size} selecionado(s)`}
               </Text>
             </View>
+            <View style={styles.headerRight} />
           </View>
         </View>
 
@@ -496,7 +507,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customHeader: {
-    paddingBottom: 6,
+    paddingBottom: 12,
   },
   headerContent: {
     flexDirection: "row",
@@ -505,20 +516,32 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backBtn: {
-    padding: 8,
-    marginRight: 8,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
   },
   headerTitleContainer: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: "500",
+    textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 13,
     marginTop: 2,
+    textAlign: "center",
+  },
+  headerRight: {
+    width: 48,
+    marginLeft: 16,
   },
   scrollContent: {
     flex: 1,

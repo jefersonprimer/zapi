@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  useSafeAreaInsets,
   SafeAreaView,
 } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -44,7 +43,6 @@ export default function StoreReviewsScreen() {
   const { token } = useAuth();
   const { colors } = useAppTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const [store, setStore] = useState<StoreType | null>(null);
   const [reviews, setReviews] = useState<StoreReviewWithUser[]>([]);

@@ -7,7 +7,7 @@ import {
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/context/ThemeContext";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 interface BrowserBottomSheetModalProps {
   canGoBack: boolean;

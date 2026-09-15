@@ -30,6 +30,7 @@ pub struct Professional {
 }
 
 #[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct ProfessionalService {
     pub professional_id: Uuid,
     pub service_id: Uuid,

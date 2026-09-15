@@ -29,7 +29,7 @@ import { Ionicons } from "@expo/vector-icons";
 export default function LinkDeviceScreen() {
   const router = useRouter();
   const { token } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isLinkModeOnly = mode === "link";
@@ -501,85 +501,117 @@ export default function LinkDeviceScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       {/* Header */}
-      <View
-        style={[
-          isScanning ? styles.headerAbsolute : styles.header,
-          {
-            borderBottomColor: isScanning ? "transparent" : colors.border,
-            paddingTop: insets.top,
-            height: 60 + insets.top,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
+      {isScanning ? (
+        <View
           style={[
-            isScanning ? styles.iconButton : styles.backButton,
-            isScanning && { backgroundColor: "rgba(0,0,0,0.5)" },
+            styles.headerAbsolute,
+            {
+              paddingTop: insets.top,
+              height: 60 + insets.top,
+            },
           ]}
         >
-          <Ionicons
-            name="chevron-back-outline"
-            size={isScanning ? 22 : 24}
-            color={isScanning ? "#fff" : colors.text}
-          />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[
+              styles.iconButton,
+              { backgroundColor: "rgba(0,0,0,0.5)" },
+            ]}
+          >
+            <Ionicons
+              name="chevron-back-outline"
+              size={22}
+              color="#fff"
+            />
+          </TouchableOpacity>
 
-        {!isScanning && (
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isLinkModeOnly
-              ? "Conectar Aparelho"
-              : isScanMode
-                ? "Escanear QR Code"
-                : "Câmera"}
-          </Text>
-        )}
-
-        {isScanning && !isLinkModeOnly ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <TouchableOpacity
-              style={[
-                styles.iconButton,
-                { backgroundColor: "rgba(0,0,0,0.5)" },
-              ]}
-              onPress={() =>
-                setFlash((f) =>
-                  f === "off" ? "on" : f === "on" ? "auto" : "off",
-                )
-              }
-            >
-              {flash === "off" ? (
+          {isScanning && !isLinkModeOnly ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <TouchableOpacity
+                style={[
+                  styles.iconButton,
+                  { backgroundColor: "rgba(0,0,0,0.5)" },
+                ]}
+                onPress={() =>
+                  setFlash((f) =>
+                    f === "off" ? "on" : f === "on" ? "auto" : "off",
+                  )
+                }
+              >
+                {flash === "off" ? (
+                  <MaterialCommunityIcons
+                    name="flash-off"
+                    size={20}
+                    color="#fff"
+                  />
+                ) : (
+                  <MaterialCommunityIcons
+                    name="flash"
+                    size={20}
+                    color={flash === "on" ? colors.badge : "#fff"}
+                  />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setIsScanning(false)}
+                style={[
+                  styles.iconButton,
+                  { backgroundColor: "rgba(0,0,0,0.5)" },
+                ]}
+              >
                 <MaterialCommunityIcons
-                  name="flash-off"
+                  name="keyboard-outline"
                   size={20}
                   color="#fff"
                 />
-              ) : (
-                <MaterialCommunityIcons
-                  name="flash"
-                  size={20}
-                  color={flash === "on" ? colors.badge : "#fff"}
-                />
-              )}
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ width: 42 }} />
+          )}
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.customHeader,
+            {
+              paddingTop: insets.top,
+              backgroundColor: colors.headerBackground,
+            },
+          ]}
+        >
+          <View style={styles.headerContent}>
             <TouchableOpacity
-              onPress={() => setIsScanning(false)}
+              onPress={() => router.back()}
               style={[
-                styles.iconButton,
-                { backgroundColor: "rgba(0,0,0,0.5)" },
+                styles.backButton,
+                {
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.12)"
+                    : "rgba(0, 0, 0, 0.08)",
+                  backgroundColor: isDark
+                    ? "rgba(30, 30, 30, 0.98)"
+                    : "rgba(255, 255, 255, 0.98)",
+                },
               ]}
             >
-              <MaterialCommunityIcons
-                name="keyboard-outline"
-                size={20}
-                color="#fff"
+              <Ionicons
+                name="chevron-back-outline"
+                size={24}
+                color={colors.headerText}
               />
             </TouchableOpacity>
+
+            <Text style={[styles.headerTitle, { color: colors.headerText }]}>
+              {isLinkModeOnly
+                ? "Conectar Aparelho"
+                : isScanMode
+                  ? "Escanear QR Code"
+                  : "Câmera"}
+            </Text>
           </View>
-        ) : (
-          <View style={{ width: 42 }} />
-        )}
-      </View>
+        </View>
+      )}
 
       {isScanning && (
         /* Camera Scanner View */
@@ -1124,12 +1156,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  customHeader: {
+    paddingBottom: 12,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
   backButton: {
-    padding: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "500",
+    flex: 1,
   },
   scannerContainer: {
     flex: 1,

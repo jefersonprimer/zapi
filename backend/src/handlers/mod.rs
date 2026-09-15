@@ -15,3 +15,5 @@ pub mod communities;
 pub mod stickers;
 pub mod placed_stickers;
 pub mod scheduling;
+pub mod live;
+

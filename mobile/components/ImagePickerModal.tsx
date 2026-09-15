@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 
 interface ImagePickerModalProps {
@@ -135,10 +135,10 @@ export default function ImagePickerModal({
   });
 
   const optionItems = [
-    { label: "Câmera", icon: "camera" as const, color: "#f2f2f2", onPress: handleCamera },
-    { label: "Galeria", icon: "image" as const, color: "#f2f2f2", onPress: handleGallery },
+    { label: "Câmera", icon: "camera-outline" as const, color: "#f2f2f2", onPress: handleCamera },
+    { label: "Galeria", icon: "image-outline" as const, color: "#f2f2f2", onPress: handleGallery },
     ...(hasImage && onRemoveImage
-      ? [{ label: "Remover foto", icon: "trash-can-outline" as const, color: colors.danger, onPress: handleRemove }]
+      ? [{ label: "Remover foto", icon: "trash-outline" as const, color: colors.danger, onPress: handleRemove }]
       : []),
   ];
 
@@ -200,9 +200,9 @@ export default function ImagePickerModal({
                   onPress={item.onPress}
                   activeOpacity={0.6}
                 >
-                  <MaterialCommunityIcons
+                  <Ionicons
                     name={item.icon}
-                    size={20}
+                    size={24}
                     color={item.color}
                     style={styles.optionIcon}
                   />

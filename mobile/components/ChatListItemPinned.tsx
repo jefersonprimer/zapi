@@ -134,7 +134,6 @@ export default function ChatListItemPinned({
         // Only show message bubble if there are unread messages
         if (item.unread_count <= 0) return null;
 
-        const { isDark } = useAppTheme();
         const bubbleStyle = {
           top: 16, // Always at the top
         };

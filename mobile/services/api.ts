@@ -102,6 +102,20 @@ export interface PlacedSticker {
   created_at: string;
 }
 
+type AuthErrorCallback = () => void;
+const authErrorListeners = new Set<AuthErrorCallback>();
+
+export const onAuthError = (callback: AuthErrorCallback) => {
+  authErrorListeners.add(callback);
+  return () => {
+    authErrorListeners.delete(callback);
+  };
+};
+
+export const triggerAuthError = () => {
+  authErrorListeners.forEach((cb) => cb());
+};
+
 export async function authFetch(url: string, token: string, options: RequestInit = {}) {
   const res = await fetch(url, {
     ...options,
@@ -116,7 +130,12 @@ export async function authFetch(url: string, token: string, options: RequestInit
   try {
     data = await res.json();
   } catch {
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+    if (!res.ok) {
+      if (res.status === 401) {
+        triggerAuthError();
+      }
+      throw new Error(`Request failed with status ${res.status}`);
+    }
     throw new Error("Invalid JSON response from server");
   }
 
@@ -128,6 +147,11 @@ export async function authFetch(url: string, token: string, options: RequestInit
       "Request failed";
     const err = new Error(message) as Error & { code?: string };
     if (code) err.code = code;
+
+    if (res.status === 401 || code === "invalid or expired token") {
+      triggerAuthError();
+    }
+
     throw err;
   }
   return data;
@@ -286,11 +310,21 @@ export async function uploadFile(
   try {
     data = await res.json();
   } catch {
-    if (!res.ok) throw new Error(`Upload failed with status ${res.status}`);
+    if (!res.ok) {
+      if (res.status === 401) {
+        triggerAuthError();
+      }
+      throw new Error(`Upload failed with status ${res.status}`);
+    }
     throw new Error("Invalid JSON response from upload server");
   }
 
-  if (!res.ok) throw new Error(data.error ?? "Upload failed");
+  if (!res.ok) {
+    if (res.status === 401 || data?.error === "invalid or expired token") {
+      triggerAuthError();
+    }
+    throw new Error(data.error ?? "Upload failed");
+  }
   return data;
 }
 

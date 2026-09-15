@@ -29,6 +29,7 @@ interface StickerModalProps {
     name: string;
     type: "image" | "video" | "audio" | "document";
     mimeType: string;
+    isSticker?: boolean;
   }) => void;
   onStickerSelected?: (stickerUrl: string) => void;
   height?: number;
@@ -52,7 +53,7 @@ const StickerGestureItem: React.FC<StickerGestureItemProps> = ({
   const isDragging = React.useRef(false);
   const hasLongPressed = React.useRef(false);
   const touchStart = React.useRef({ x: 0, y: 0 });
-  const longPressTimeout = React.useRef<NodeJS.Timeout | null>(null);
+  const longPressTimeout = React.useRef<any>(null);
 
   const clearLongPress = () => {
     if (longPressTimeout.current) {

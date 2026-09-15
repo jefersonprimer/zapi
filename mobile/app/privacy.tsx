@@ -127,14 +127,23 @@ export default function PrivacyScreen() {
           {
             paddingTop: insets.top,
             backgroundColor: colors.headerBackground,
-            borderBottomColor: colors.border,
           },
         ]}
       >
         <View style={styles.headerContent}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backBtn}
+            style={[
+              styles.backBtn,
+              {
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
+                backgroundColor: isDark
+                  ? "rgba(30, 30, 30, 0.98)"
+                  : "rgba(255, 255, 255, 0.98)",
+              },
+            ]}
             activeOpacity={0.7}
           >
             <Ionicons
@@ -144,21 +153,30 @@ export default function PrivacyScreen() {
             />
           </TouchableOpacity>
           <Text
-            style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
+            style={[styles.headerTitle, { color: colors.headerText }]}
           >
             Privacidade
           </Text>
           <TouchableOpacity
             onPress={handleSavePrivacy}
             disabled={isUpdating}
+            style={[
+              styles.iconBtn,
+              {
+                backgroundColor: ACTIVE_GREEN,
+                borderColor: ACTIVE_GREEN,
+              },
+            ]}
             activeOpacity={0.7}
           >
             {isUpdating ? (
-              <ActivityIndicator size="small" color={colors.tint} />
+              <ActivityIndicator size="small" color="#ffffff" />
             ) : (
-              <Text style={[styles.saveText, { color: colors.tint }]}>
-                Salvar
-              </Text>
+              <Ionicons
+                name="checkmark"
+                size={24}
+                color="#ffffff"
+              />
             )}
           </TouchableOpacity>
         </View>
@@ -377,7 +395,6 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerContent: {
     flexDirection: "row",
@@ -386,17 +403,27 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backBtn: {
-    padding: 4,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+  iconBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  saveText: {
-    fontSize: 16,
-    fontWeight: "600",
-    paddingHorizontal: 8,
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "500",
+    flex: 1,
+    textAlign: "center",
   },
   scrollContent: {
     paddingTop: 20,

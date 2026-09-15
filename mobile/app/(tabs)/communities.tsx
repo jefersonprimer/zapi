@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Alert,
   Share,
 } from "react-native";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
@@ -56,12 +57,12 @@ export default function CommunitiesScreen() {
     "list" | "chat" | "posts" | "events"
   >("list");
 
-  // Modals state
-  const [showCreateCommunity, setShowCreateCommunity] = useState(false);
-  const [showJoinCommunity, setShowJoinCommunity] = useState(false);
-  const [showCreateChannel, setShowCreateChannel] = useState(false);
-  const [showCreatePost, setShowCreatePost] = useState(false);
-  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  // Modals refs
+  const createCommunityModalRef = useRef<BottomSheetModal>(null);
+  const joinCommunityModalRef = useRef<BottomSheetModal>(null);
+  const createChannelModalRef = useRef<BottomSheetModal>(null);
+  const createPostModalRef = useRef<BottomSheetModal>(null);
+  const createEventModalRef = useRef<BottomSheetModal>(null);
 
   // Post detail modal state
   const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
@@ -126,7 +127,7 @@ export default function CommunitiesScreen() {
       const newComm = await communityApi.createCommunity(token, payload);
       setCommunities((prev) => [...prev, newComm]);
       setSelectedCommunity(newComm);
-      setShowCreateCommunity(false);
+      createCommunityModalRef.current?.dismiss();
       Alert.alert("Sucesso", "Comunidade criada com sucesso!");
     } catch (err: any) {
       Alert.alert(
@@ -148,7 +149,7 @@ export default function CommunitiesScreen() {
         return [...prev, comm];
       });
       setSelectedCommunity(comm);
-      setShowJoinCommunity(false);
+      joinCommunityModalRef.current?.dismiss();
       Alert.alert("Sucesso", "Você entrou na comunidade!");
     } catch (err: any) {
       Alert.alert("Erro", err?.message || "Não foi possível entrar.");
@@ -164,7 +165,7 @@ export default function CommunitiesScreen() {
         payload,
       );
       setChannels((prev) => [...prev, newChan]);
-      setShowCreateChannel(false);
+      createChannelModalRef.current?.dismiss();
       Alert.alert("Sucesso", "Canal criado!");
     } catch (err: any) {
       Alert.alert("Erro", err?.message || "Erro ao criar canal.");
@@ -178,7 +179,7 @@ export default function CommunitiesScreen() {
         title,
         content,
       });
-      setShowCreatePost(false);
+      createPostModalRef.current?.dismiss();
       Alert.alert("Sucesso", "Post criado!");
     } catch (err: any) {
       Alert.alert("Erro", err?.message || "Erro ao criar post.");
@@ -189,7 +190,7 @@ export default function CommunitiesScreen() {
     if (!token || !selectedCommunity) return;
     try {
       await communityApi.createEvent(token, selectedCommunity.id, payload);
-      setShowCreateEvent(false);
+      createEventModalRef.current?.dismiss();
       Alert.alert("Sucesso", "Evento criado!");
     } catch (err: any) {
       Alert.alert("Erro", err?.message || "Erro ao criar evento.");
@@ -239,12 +240,11 @@ export default function CommunitiesScreen() {
           communityId={selectedCommunity!.id}
           channel={selectedChannel!}
           onBack={() => setActiveChannelView("list")}
-          onCreatePostClick={() => setShowCreatePost(true)}
+          onCreatePostClick={() => createPostModalRef.current?.present()}
           onSelectPost={(post: CommunityPost) => setSelectedPost(post)}
         />
         <CreatePostModal
-          visible={showCreatePost}
-          onClose={() => setShowCreatePost(false)}
+          ref={createPostModalRef}
           onSubmit={handleCreatePostSubmit}
         />
         {selectedPost && (
@@ -268,11 +268,10 @@ export default function CommunitiesScreen() {
           communityId={selectedCommunity!.id}
           channel={selectedChannel!}
           onBack={() => setActiveChannelView("list")}
-          onCreateEventClick={() => setShowCreateEvent(true)}
+          onCreateEventClick={() => createEventModalRef.current?.present()}
         />
         <CreateEventModal
-          visible={showCreateEvent}
-          onClose={() => setShowCreateEvent(false)}
+          ref={createEventModalRef}
           onSubmit={handleCreateEventSubmit}
         />
       </View>
@@ -300,7 +299,7 @@ export default function CommunitiesScreen() {
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: colors.background }]}
-            onPress={() => setShowJoinCommunity(true)}
+            onPress={() => joinCommunityModalRef.current?.present()}
           >
             <MaterialCommunityIcons
               name="compass"
@@ -314,7 +313,7 @@ export default function CommunitiesScreen() {
 
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: colors.brandGreen }]}
-            onPress={() => setShowCreateCommunity(true)}
+            onPress={() => createCommunityModalRef.current?.present()}
           >
             <MaterialCommunityIcons name="plus" size={20} color="#fff" />
             <Text style={[styles.headerBtnText, { color: "#fff" }]}>Criar</Text>
@@ -470,7 +469,7 @@ export default function CommunitiesScreen() {
 
               {selectedCommunity.owner_id === user?.user_id && (
                 <TouchableOpacity
-                  onPress={() => setShowCreateChannel(true)}
+                  onPress={() => createChannelModalRef.current?.present()}
                   style={[
                     styles.actionCard,
                     {
@@ -669,7 +668,7 @@ export default function CommunitiesScreen() {
                 </Text>
                 {selectedCommunity.owner_id === user?.user_id ? (
                   <TouchableOpacity
-                    onPress={() => setShowCreateChannel(true)}
+                    onPress={() => createChannelModalRef.current?.present()}
                     style={[
                       styles.noChannelsBtn,
                       { backgroundColor: colors.brandGreen },
@@ -710,7 +709,7 @@ export default function CommunitiesScreen() {
           </Text>
           <View style={styles.emptyButtons}>
             <TouchableOpacity
-              onPress={() => setShowJoinCommunity(true)}
+              onPress={() => joinCommunityModalRef.current?.present()}
               style={[
                 styles.emptyBtn,
                 { borderColor: colors.brandGreen, borderWidth: 1 },
@@ -722,7 +721,7 @@ export default function CommunitiesScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => setShowCreateCommunity(true)}
+              onPress={() => createCommunityModalRef.current?.present()}
               style={[styles.emptyBtn, { backgroundColor: colors.brandGreen }]}
             >
               <Text style={{ color: "#fff", fontWeight: "bold" }}>
@@ -735,18 +734,15 @@ export default function CommunitiesScreen() {
 
       {/* MODALS */}
       <CreateCommunityModal
-        visible={showCreateCommunity}
-        onClose={() => setShowCreateCommunity(false)}
+        ref={createCommunityModalRef}
         onSubmit={handleCreateCommunitySubmit}
       />
       <JoinCommunityModal
-        visible={showJoinCommunity}
-        onClose={() => setShowJoinCommunity(false)}
+        ref={joinCommunityModalRef}
         onSubmit={handleJoinCommunitySubmit}
       />
       <CreateChannelModal
-        visible={showCreateChannel}
-        onClose={() => setShowCreateChannel(false)}
+        ref={createChannelModalRef}
         onSubmit={handleCreateChannelSubmit}
       />
     </View>

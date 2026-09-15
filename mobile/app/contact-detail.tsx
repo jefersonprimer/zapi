@@ -17,7 +17,7 @@ import {
 } from "react-native";
 
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { Svg, Path } from "react-native-svg";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -78,6 +78,7 @@ export default function ContactDetailScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
+  const [isBannerFullScreen, setIsBannerFullScreen] = useState(false);
 
   const [muteModalVisible, setMuteModalVisible] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -390,7 +391,7 @@ export default function ContactDetailScreen() {
     } finally {
       setLoading(false);
     }
-  }, [token, participantId]);
+  }, [token, participantId, paramStoreId]);
 
   useEffect(() => {
     fetchContactDetails();
@@ -519,6 +520,8 @@ export default function ContactDetailScreen() {
       ? currentAvatarUrl
       : `${API_URL}${currentAvatarUrl}`
     : null;
+
+  const bannerUri = store?.image_banner ? getFullRemoteUrl(store.image_banner) : null;
 
   const mediaMessages = messages.filter((m) => {
     if (m.deleted_for_everyone) return false;
@@ -718,10 +721,15 @@ export default function ContactDetailScreen() {
             >
               {/* Banner */}
               {store?.image_banner ? (
-                <Image
-                  source={{ uri: getFullRemoteUrl(store.image_banner) }}
-                  style={[styles.heroBanner, { height: 160 + insets.top, paddingTop: insets.top }]}
-                />
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => setIsBannerFullScreen(true)}
+                >
+                  <Image
+                    source={{ uri: getFullRemoteUrl(store.image_banner) }}
+                    style={[styles.heroBanner, { height: 160 + insets.top, paddingTop: insets.top }]}
+                  />
+                </TouchableOpacity>
               ) : (
                 <View
                   style={[
@@ -1904,6 +1912,34 @@ export default function ContactDetailScreen() {
             <View style={styles.fullScreenImageContainer}>
               <Image
                 source={{ uri: avatarUri }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Full Screen Banner Modal */}
+      {bannerUri && (
+        <Modal
+          visible={isBannerFullScreen}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsBannerFullScreen(false)}
+        >
+          <View style={styles.fullScreenBg}>
+            <View style={[styles.fullScreenHeader, { paddingTop: insets.top }]}>
+              <TouchableOpacity
+                onPress={() => setIsBannerFullScreen(false)}
+                style={styles.fullScreenBackBtn}
+              >
+                <Ionicons name="arrow-back-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.fullScreenImageContainer}>
+              <Image
+                source={{ uri: bannerUri }}
                 style={styles.fullScreenImage}
                 resizeMode="contain"
               />

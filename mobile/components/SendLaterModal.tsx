@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -170,7 +170,7 @@ export function SendLaterModal({
   const rawHours = initialDate.getHours();
   const initialMinutes = initialDate.getMinutes();
 
-  const getDayLabel = (offset: number) => {
+  const getDayLabel = useCallback((offset: number) => {
     if (offset === 0) return "Hoje";
     if (offset === 1) return "Amanhã";
     const date = new Date();
@@ -205,10 +205,10 @@ export function SendLaterModal({
     const month = months[date.getMonth()];
 
     return `${weekday} ${day} ${month}`;
-  };
+  }, []);
 
   const daysLimit = 30; // 1 month limit
-  const daysArray = Array.from({ length: daysLimit }, (_, i) => getDayLabel(i));
+  const daysArray = useMemo(() => Array.from({ length: daysLimit }, (_, i) => getDayLabel(i)), [daysLimit, getDayLabel]);
   const hoursArray = Array.from({ length: 24 }, (_, i) => i);
   const minutesArray = Array.from({ length: 60 }, (_, i) => i);
 
@@ -239,7 +239,7 @@ export function SendLaterModal({
 
     const delayMs = Math.max(60000, targetDate.getTime() - Date.now());
     onScheduleRef.current(delayMs);
-  }, [selectedDayLabel, hours, minutes]);
+  }, [selectedDayLabel, hours, minutes, daysArray]);
 
   const modalBgColor = isDark
     ? "rgba(28, 28, 30, 0.85)"

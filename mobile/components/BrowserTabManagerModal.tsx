@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -240,14 +240,16 @@ export function BrowserTabManagerModal({
     }
   }, [visible, activeTabId, activeTab]);
 
-  const filteredTabs = tabs.filter((t) =>
-    activeMode === "incognito" ? t.isIncognito : !t.isIncognito,
-  );
+  const filteredTabs = useMemo(() => {
+    return tabs.filter((t: BrowserTab) =>
+      activeMode === "incognito" ? t.isIncognito : !t.isIncognito,
+    );
+  }, [tabs, activeMode]);
 
   // Scroll to active tab on open or mode switch
   useEffect(() => {
     if (visible && filteredTabs.length > 0) {
-      const index = filteredTabs.findIndex((t) => t.id === activeTabId);
+      const index = filteredTabs.findIndex((t: BrowserTab) => t.id === activeTabId);
       if (index !== -1) {
         const timer = setTimeout(() => {
           flatListRef.current?.scrollToIndex({
@@ -258,7 +260,7 @@ export function BrowserTabManagerModal({
         return () => clearTimeout(timer);
       }
     }
-  }, [visible, activeMode, filteredTabs.length]);
+  }, [visible, activeMode, activeTabId, filteredTabs]);
 
   const handleSelectTab = (id: string) => {
     setActiveTabId(id);
@@ -271,22 +273,7 @@ export function BrowserTabManagerModal({
     onClose();
   };
 
-  const getDomain = (url: string) => {
-    try {
-      const cleanUrl = url.replace(/(^\w+:|^)\/\//, "").split("/")[0];
-      return cleanUrl.replace("www.", "") || url;
-    } catch {
-      return url;
-    }
-  };
 
-  const getInitial = (title: string, url: string) => {
-    if (title && title !== "Nova Guia" && title !== "Guia Anônima") {
-      return title.charAt(0).toUpperCase();
-    }
-    const domain = getDomain(url);
-    return domain ? domain.charAt(0).toUpperCase() : "G";
-  };
 
   const getItemLayout = (data: any, index: number) => ({
     length: SNAP_INTERVAL,
@@ -301,7 +288,7 @@ export function BrowserTabManagerModal({
   ) => {
     const isIncognito = item.isIncognito;
     const url = item.url.toLowerCase();
-    const activeIndex = filteredTabs.findIndex((t) => t.id === activeTabId);
+    const activeIndex = filteredTabs.findIndex((t: BrowserTab) => t.id === activeTabId);
 
     // Render live active tab AND the next tab in the list using WebView
     if (index === activeIndex || index === activeIndex + 1) {

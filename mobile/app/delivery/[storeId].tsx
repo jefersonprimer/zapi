@@ -11,20 +11,17 @@ import {
   Alert,
   Modal,
   ScrollView,
-  TextInput,
   Clipboard,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import {
   useSafeAreaInsets,
-  SafeAreaView,
 } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/context/AuthContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import { Colors } from "@/constants/theme";
 import { useCartStore, MIN_WEIGHT, WEIGHT_STEP } from "@/store/useCartStore";
 import {
   getStore,
@@ -64,15 +61,6 @@ function formatEta(min: number): string {
   if (min <= 55) return "45–60 min";
   return `${min} min`;
 }
-
-const formatDate = (dateStr: string) => {
-  try {
-    const d = new Date(dateStr);
-    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-  } catch {
-    return dateStr;
-  }
-};
 
 export default function StoreScreen() {
   const { storeId } = useLocalSearchParams<{ storeId: string }>();
@@ -314,16 +302,6 @@ export default function StoreScreen() {
     });
   };
 
-  const relatedProducts = useMemo(() => {
-    if (!selectedProduct) return [];
-    return products.filter(
-      (p) =>
-        p.id !== selectedProduct.id &&
-        (selectedProduct.category_id
-          ? p.category_id === selectedProduct.category_id
-          : p.category === selectedProduct.category),
-    );
-  }, [products, selectedProduct]);
 
   const toggleAddon = (addonId: string) => {
     setSelectedAddonIds((prev) => {

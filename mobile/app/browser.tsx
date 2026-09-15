@@ -292,12 +292,26 @@ export default function BrowserScreen() {
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          style={[styles.headerButton, { backgroundColor: inputBackground }]}
+          style={[
+            styles.backBtn,
+            {
+              borderColor: isIncognito
+                ? "rgba(255, 255, 255, 0.15)"
+                : isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
+              backgroundColor: isIncognito
+                ? "#1E293B"
+                : isDark
+                  ? "rgba(30, 30, 30, 0.98)"
+                  : "rgba(255, 255, 255, 0.98)",
+            },
+          ]}
         >
           <Ionicons
             name="chevron-back-outline"
             size={24}
-            color={isIncognito ? "#FFFFFF" : colors.text}
+            color={isIncognito ? "#FFFFFF" : colors.headerText}
           />
         </TouchableOpacity>
 
@@ -573,6 +587,14 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
+  },
+  backBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   addressInputContainer: {
     flex: 1,

@@ -9,6 +9,7 @@ import {
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { clearAllLocalData } from "@/services/database";
+import { onAuthError } from "@/services/api";
 
 interface User {
   user_id: string;
@@ -202,6 +203,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Update user storage failed:", e);
     }
   }, [user, updateSavedProfiles]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthError(() => {
+      signOut();
+    });
+    return () => unsubscribe();
+  }, [signOut]);
 
   return (
     <AuthContext.Provider value={{

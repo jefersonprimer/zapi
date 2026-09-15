@@ -41,7 +41,6 @@ import {
   getChatsFromLocal,
 } from "@/services/database";
 import { Ionicons } from "@expo/vector-icons";
-import { voiceCallManager } from "@/services/voiceCallManager";
 import { chatRepository } from "@/services/ChatRepository";
 
 export default function GroupDetailScreen() {

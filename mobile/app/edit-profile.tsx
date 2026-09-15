@@ -26,7 +26,7 @@ export default function EditProfileScreen() {
     field: "name" | "about" | "username";
   }>();
   const { user, token, updateUser } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   const [value, setValue] = useState("");
@@ -212,14 +212,23 @@ export default function EditProfileScreen() {
           {
             paddingTop: insets.top,
             backgroundColor: colors.headerBackground,
-            borderBottomColor: colors.border,
           },
         ]}
       >
         <View style={styles.headerContent}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backBtn}
+            style={[
+              styles.backBtn,
+              {
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
+                backgroundColor: isDark
+                  ? "rgba(30, 30, 30, 0.98)"
+                  : "rgba(255, 255, 255, 0.98)",
+              },
+            ]}
             activeOpacity={0.7}
           >
             <Ionicons
@@ -229,7 +238,10 @@ export default function EditProfileScreen() {
             />
           </TouchableOpacity>
           <Text
-            style={[styles.headerTitle, { color: colors.headerText, flex: 1 }]}
+            style={[
+              styles.headerTitle,
+              { color: colors.headerText, flex: 1, textAlign: "center" },
+            ]}
           >
             {info.title}
           </Text>
@@ -237,13 +249,16 @@ export default function EditProfileScreen() {
             onPress={handleSave}
             disabled={isUpdating}
             activeOpacity={0.7}
+            style={styles.saveBtn}
           >
             {isUpdating ? (
-              <ActivityIndicator size="small" color={colors.tint} />
+              <ActivityIndicator size="small" color="#ffffff" />
             ) : (
-              <Text style={[styles.saveText, { color: colors.tint }]}>
-                Salvar
-              </Text>
+              <Ionicons
+                name="checkmark"
+                size={24}
+                color="#ffffff"
+              />
             )}
           </TouchableOpacity>
         </View>
@@ -300,7 +315,6 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerContent: {
     flexDirection: "row",
@@ -309,17 +323,28 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backBtn: {
-    padding: 4,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
   },
-  saveText: {
-    fontSize: 16,
-    fontWeight: "600",
-    paddingHorizontal: 8,
+  saveBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 16,
+    backgroundColor: "#34C759",
+    borderColor: "#34C759",
   },
   scrollContent: {
     padding: 20,

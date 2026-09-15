@@ -200,14 +200,23 @@ export default function SettingsScreen() {
           {
             paddingTop: insets.top,
             backgroundColor: colors.headerBackground,
-            borderBottomColor: colors.border,
           },
         ]}
       >
         <View style={styles.headerContent}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backBtn}
+            style={[
+              styles.backBtn,
+              {
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
+                backgroundColor: isDark
+                  ? "rgba(30, 30, 30, 0.98)"
+                  : "rgba(255, 255, 255, 0.98)",
+              },
+            ]}
           >
             <Ionicons
               name="chevron-back-outline"
@@ -254,14 +263,14 @@ export default function SettingsScreen() {
             <Text
               style={[
                 styles.headerTitle,
-                { color: colors.headerText, flex: 1 },
+                { color: colors.headerText, flex: 1, textAlign: "center" },
               ]}
             >
               Configurações
             </Text>
           )}
 
-          <View style={{ width: 24 }} />
+          <View style={{ width: 48 }} />
         </View>
       </View>
 
@@ -324,7 +333,7 @@ export default function SettingsScreen() {
                 },
               ]}
             >
-              <MaterialCommunityIcons name="camera" size={12} color="#FFF" />
+              <Ionicons name="camera-outline" size={12} color="#FFF" />
             </View>
           </TouchableOpacity>
 
@@ -662,25 +671,55 @@ export default function SettingsScreen() {
         ref={langBottomSheetModalRef}
         snapPoints={["40%"]}
         backdropComponent={renderBackdrop}
-        backgroundStyle={{ backgroundColor: colors.menuBackground }}
+        backgroundStyle={{ backgroundColor: colors.menuBackground, borderRadius: 24 }}
         handleIndicatorStyle={{ backgroundColor: colors.border }}
       >
         <BottomSheetView style={{ padding: 24, paddingBottom: 40 }}>
-          <Text
-            style={[
-              styles.sheetTitle,
-              { color: colors.text, marginBottom: 16 },
-            ]}
-          >
-            Idioma do app
-          </Text>
-          <View
-            style={{
-              height: StyleSheet.hairlineWidth,
-              backgroundColor: colors.border,
-              marginBottom: 12,
-            }}
-          />
+          <View style={styles.sheetHeaderRow}>
+            <TouchableOpacity
+              onPress={() => langBottomSheetModalRef.current?.dismiss()}
+              style={[
+                styles.sheetCloseBtn,
+                {
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.12)"
+                    : "rgba(0, 0, 0, 0.08)",
+                  backgroundColor: isDark
+                    ? "rgba(30, 30, 30, 0.98)"
+                    : "rgba(255, 255, 255, 0.98)",
+                },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="close-outline"
+                size={24}
+                color={colors.headerText}
+              />
+            </TouchableOpacity>
+
+            <Text style={[styles.sheetHeaderTitle, { color: colors.text }]}>
+              Idioma do app
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => langBottomSheetModalRef.current?.dismiss()}
+              style={[
+                styles.sheetSaveBtn,
+                {
+                  backgroundColor: ACTIVE_GREEN,
+                  borderColor: ACTIVE_GREEN,
+                },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="checkmark"
+                size={24}
+                color="#ffffff"
+              />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={[
@@ -708,13 +747,6 @@ export default function SettingsScreen() {
             Por enquanto o Zapi está disponível somente em Português (Brasil).
             Novos idiomas serão adicionados em breve.
           </Text>
-
-          <TouchableOpacity
-            style={[styles.sheetCloseButton, { backgroundColor: colors.tint }]}
-            onPress={() => langBottomSheetModalRef.current?.dismiss()}
-          >
-            <Text style={styles.sheetCloseButtonText}>OK</Text>
-          </TouchableOpacity>
         </BottomSheetView>
       </BottomSheetModal>
 
@@ -909,7 +941,6 @@ const styles = StyleSheet.create({
   },
   customHeader: {
     paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerContent: {
     flexDirection: "row",
@@ -918,12 +949,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backBtn: {
-    padding: 4,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "500",
     flex: 1,
   },
   headerProfileContainer: {
@@ -1094,10 +1130,32 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 20,
   },
-  sheetTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+  sheetHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 20,
+  },
+  sheetCloseBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetSaveBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetHeaderTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "center",
   },
   sheetHeaderWithIcon: {
     flexDirection: "row",

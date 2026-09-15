@@ -93,7 +93,17 @@ export default function PaymentsScreen() {
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backBtn}
+            style={[
+              styles.backBtn,
+              {
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "rgba(0, 0, 0, 0.08)",
+                backgroundColor: isDark
+                  ? "rgba(30, 30, 30, 0.98)"
+                  : "rgba(255, 255, 255, 0.98)",
+              },
+            ]}
           >
             <Ionicons
               name="chevron-back-outline"
@@ -314,11 +324,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingBottom: 12,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   headerRow: {
     flexDirection: "row",
@@ -327,16 +332,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backBtn: {
-    padding: 4,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 16,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "500",
     flex: 1,
+    textAlign: "center",
   },
   headerRight: {
-    width: 32,
+    width: 48,
+    marginLeft: 16,
   },
   content: {
     padding: 16,

@@ -295,6 +295,7 @@ export default function ChatScreen() {
         height: number;
         pageX: number;
         pageY: number;
+        relativeY: number;
       }
     >
   >({});

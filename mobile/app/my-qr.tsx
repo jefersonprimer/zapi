@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function MyQrScreen() {
   const { user } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -21,9 +21,20 @@ export default function MyQrScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <TouchableOpacity
         onPress={() => router.back()}
-        style={[styles.backBtn, { top: insets.top + 16 }]}
+        style={[
+          styles.backBtn,
+          {
+            top: insets.top + 16,
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(0, 0, 0, 0.08)",
+            backgroundColor: isDark
+              ? "rgba(30, 30, 30, 0.98)"
+              : "rgba(255, 255, 255, 0.98)",
+          },
+        ]}
       >
-        <Ionicons name="chevron-back-outline" size={24} color={colors.text} />
+        <Ionicons name="chevron-back-outline" size={24} color={colors.headerText} />
       </TouchableOpacity>
 
       <Text style={[styles.title, { color: colors.text }]}>Meu QR Code</Text>
@@ -56,8 +67,12 @@ const styles = StyleSheet.create({
   backBtn: {
     position: "absolute",
     left: 20,
-    padding: 8,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: 24,

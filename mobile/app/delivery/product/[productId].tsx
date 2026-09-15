@@ -52,8 +52,6 @@ export default function ProductDetailScreen() {
     addItem,
     updateQuantity,
     removeItem,
-    getItemCount,
-    getSubtotal,
   } = useCartStore();
 
   const [loading, setLoading] = useState(true);
