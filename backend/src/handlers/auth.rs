@@ -209,6 +209,35 @@ pub struct SessionResponse {
     pub ip: Option<String>,
 }
 
+#[derive(sqlx::FromRow)]
+struct QrSessionIdRow {
+    id: Uuid,
+}
+
+#[derive(sqlx::FromRow)]
+struct QrSessionFullRow {
+    id: Uuid,
+    code: String,
+    status: String,
+    browser: Option<String>,
+    platform: Option<String>,
+    ip: Option<String>,
+    expires_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(sqlx::FromRow)]
+struct QrSessionStatusRow {
+    id: Uuid,
+    status: String,
+    expires_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(sqlx::FromRow)]
+struct QrSessionStatusOnlyRow {
+    id: Uuid,
+    status: String,
+}
+
 fn parse_user_agent(ua: &str) -> (String, String) {
     let platform = if ua.contains("Windows") {
         "Windows"
@@ -271,16 +300,16 @@ pub async fn create_web_qr_session(
 
     let expires_at = chrono::Utc::now() + chrono::Duration::seconds(60);
 
-    let row = sqlx::query!(
+    let row = sqlx::query_as::<_, QrSessionIdRow>(
         "INSERT INTO web_login_sessions (code, browser, platform, ip, expires_at)
          VALUES ($1, $2, $3, $4, $5)
-         RETURNING id",
-        code,
-        browser,
-        platform,
-        ip,
-        expires_at
+         RETURNING id"
     )
+    .bind(&code)
+    .bind(&browser)
+    .bind(&platform)
+    .bind(&ip)
+    .bind(expires_at)
     .fetch_one(&state.pool)
     .await
     .map_err(|e| {
@@ -302,10 +331,10 @@ pub async fn get_web_qr_session(
     axum::extract::Path(code): axum::extract::Path<String>,
 ) -> Result<Json<SessionResponse>, (StatusCode, Json<Value>)> {
     let now = chrono::Utc::now();
-    let session = sqlx::query!(
-        "SELECT id, code, status, browser, platform, ip, expires_at FROM web_login_sessions WHERE code = $1",
-        code
+    let session = sqlx::query_as::<_, QrSessionFullRow>(
+        "SELECT id, code, status, browser, platform, ip, expires_at FROM web_login_sessions WHERE code = $1"
     )
+    .bind(&code)
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| {
@@ -346,10 +375,10 @@ pub async fn approve_web_qr_session(
     let user_id = auth.0;
     let now = chrono::Utc::now();
     
-    let session = sqlx::query!(
-        "SELECT id, status, expires_at FROM web_login_sessions WHERE code = $1",
-        body.code
+    let session = sqlx::query_as::<_, QrSessionStatusRow>(
+        "SELECT id, status, expires_at FROM web_login_sessions WHERE code = $1"
     )
+    .bind(&body.code)
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| {
@@ -374,10 +403,10 @@ pub async fn approve_web_qr_session(
 
     if session.expires_at < now {
         // Update to expired
-        let _ = sqlx::query!(
-            "UPDATE web_login_sessions SET status = 'expired' WHERE id = $1",
-            session.id
+        let _ = sqlx::query(
+            "UPDATE web_login_sessions SET status = 'expired' WHERE id = $1"
         )
+        .bind(session.id)
         .execute(&state.pool)
         .await;
 
@@ -390,15 +419,15 @@ pub async fn approve_web_qr_session(
     let is_approved = body.approve.unwrap_or(true);
     let new_status = if is_approved { "approved" } else { "cancelled" };
 
-    sqlx::query!(
+    sqlx::query(
         "UPDATE web_login_sessions
          SET status = $1, user_id = $2, approved_at = $3
-         WHERE id = $4",
-        new_status,
-        user_id,
-        if is_approved { Some(now) } else { None },
-        session.id
+         WHERE id = $4"
     )
+    .bind(new_status)
+    .bind(user_id)
+    .bind(if is_approved { Some(now) } else { None })
+    .bind(session.id)
     .execute(&state.pool)
     .await
     .map_err(|e| {
@@ -446,10 +475,10 @@ pub async fn cancel_web_qr_session(
     State(state): State<crate::AppState>,
     Json(body): Json<ApproveQrRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let session = sqlx::query!(
-        "SELECT id, status FROM web_login_sessions WHERE code = $1",
-        body.code
+    let session = sqlx::query_as::<_, QrSessionStatusOnlyRow>(
+        "SELECT id, status FROM web_login_sessions WHERE code = $1"
     )
+    .bind(&body.code)
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| {
@@ -472,10 +501,10 @@ pub async fn cancel_web_qr_session(
         ));
     }
 
-    sqlx::query!(
-        "UPDATE web_login_sessions SET status = 'cancelled' WHERE id = $1",
-        session.id
+    sqlx::query(
+        "UPDATE web_login_sessions SET status = 'cancelled' WHERE id = $1"
     )
+    .bind(session.id)
     .execute(&state.pool)
     .await
     .map_err(|e| {

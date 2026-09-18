@@ -208,7 +208,14 @@ pub async fn update_profile(
             )
         })?;
 
-        let current_user = sqlx::query!("SELECT username, username_updated_at FROM users WHERE id = $1", auth.0)
+        #[derive(sqlx::FromRow)]
+        struct UserCheckRow {
+            username: String,
+            username_updated_at: Option<chrono::DateTime<chrono::Utc>>,
+        }
+
+        let current_user = sqlx::query_as::<_, UserCheckRow>("SELECT username, username_updated_at FROM users WHERE id = $1")
+            .bind(auth.0)
             .fetch_one(&pool)
             .await
             .map_err(|e| {
@@ -292,10 +299,21 @@ pub async fn update_profile(
             })?;
     }
 
-    let updated_user = sqlx::query!(
-        "SELECT username, email, avatar_url, about, name, privacy_messages, privacy_calls FROM users WHERE id = $1",
-        auth.0
+    #[derive(sqlx::FromRow)]
+    struct UpdatedUserRow {
+        username: String,
+        email: String,
+        avatar_url: Option<String>,
+        about: Option<String>,
+        name: Option<String>,
+        privacy_messages: String,
+        privacy_calls: String,
+    }
+
+    let updated_user = sqlx::query_as::<_, UpdatedUserRow>(
+        "SELECT username, email, avatar_url, about, name, privacy_messages, privacy_calls FROM users WHERE id = $1"
     )
+    .bind(auth.0)
     .fetch_one(&pool)
     .await
     .map_err(|e| {
