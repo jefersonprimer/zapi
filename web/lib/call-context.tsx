@@ -470,7 +470,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!token || !user) return;
 
-    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://zapi-production-94ee.up.railway.app";
     const wsUrl =
       baseApiUrl.replace(/^http/, "ws") + `/ws?token=${encodeURIComponent(token)}`;
 
