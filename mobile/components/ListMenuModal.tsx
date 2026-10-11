@@ -90,7 +90,7 @@ export default function ListMenuModal({
   return (
     <TouchableOpacity
       style={[
-        StyleSheet.absoluteFillObject,
+        StyleSheet.absoluteFill,
         styles.dialogOverlay,
         { zIndex: 1000 },
       ]}
@@ -99,7 +99,7 @@ export default function ListMenuModal({
     >
       <Animated.View
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           {
             backgroundColor: colors.modalOverlay,
             opacity: dialogOpacity,

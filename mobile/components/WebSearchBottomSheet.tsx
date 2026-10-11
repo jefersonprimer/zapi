@@ -615,7 +615,7 @@ export function WebSearchBottomSheet({
     dragMedia && dragMedia.y < SCREEN_HEIGHT - sheetHeight;
 
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       {/* Backdrop */}
       <TouchableOpacity
         style={[styles.backdrop, { backgroundColor: colors.modalOverlay }]}
@@ -815,7 +815,7 @@ export function WebSearchBottomSheet({
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 999,
   },
   sheetContainer: {
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
     elevation: 30,
   },
   downloadOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10000,

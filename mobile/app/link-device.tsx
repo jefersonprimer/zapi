@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import * as MediaLibrary from "expo-media-library";
+import * as MediaLibrary from "expo-media-library/legacy";
 import * as ImagePicker from "expo-image-picker";
 import {
   View,
@@ -618,7 +618,7 @@ export default function LinkDeviceScreen() {
         <View style={styles.scannerContainer}>
           <CameraView
             ref={cameraRef}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             facing={facing}
             flash={flash}
             mode={cameraMode}
@@ -1184,7 +1184,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   unfocusedArea: {
     flex: 1,

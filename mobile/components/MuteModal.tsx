@@ -127,7 +127,7 @@ export default function MuteModal({
       >
         <Animated.View
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             {
               backgroundColor: colors.modalOverlay,
               opacity: dialogOpacity,

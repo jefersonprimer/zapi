@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as SystemUI from 'expo-system-ui';
@@ -248,7 +247,7 @@ function InitialLayout() {
 function RootLayoutInner() {
   const { theme, colors } = useAppTheme();
 
-  // Sync Android nav bar + root background with theme (edge-to-edge; see androidNavigationBar.enforceContrast).
+  // Sync Android nav bar + root background with theme (edge-to-edge is the default in SDK 57).
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
 
@@ -262,7 +261,7 @@ function RootLayoutInner() {
       <BottomSheetModalProvider>
         <InitialLayout />
         <CallOverlay />
-        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.headerBackground} />
+        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       </BottomSheetModalProvider>
     </ThemeProvider>
   );

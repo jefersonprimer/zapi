@@ -12,7 +12,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAppTheme } from "@/context/ThemeContext";
 import * as FileSystem from "expo-file-system/legacy";
-import * as MediaLibrary from "expo-media-library";
+import * as MediaLibrary from "expo-media-library/legacy";
 interface BrowserMediaActionsModalProps {
   visible: boolean;
   onClose: () => void;
@@ -149,7 +149,7 @@ export function BrowserMediaActionsModal({
   return (
     <TouchableOpacity
       style={[
-        StyleSheet.absoluteFillObject,
+        StyleSheet.absoluteFill,
         styles.modalOverlayCentered,
         { zIndex: 1000 },
       ]}
@@ -158,7 +158,7 @@ export function BrowserMediaActionsModal({
     >
       <Animated.View
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           {
             backgroundColor: colors.modalOverlay || "rgba(0, 0, 0, 0.4)",
             opacity: modalOpacity,

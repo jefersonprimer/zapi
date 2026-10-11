@@ -1012,7 +1012,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
   previewMedia: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   previewLoading: {
     flex: 1,

@@ -1177,7 +1177,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   realWebViewOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "transparent",
   },
 });

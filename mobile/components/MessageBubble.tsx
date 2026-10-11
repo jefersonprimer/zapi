@@ -1569,7 +1569,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   >
                     {isSvgMedia ? (
                       <SvgUri
-                        style={[StyleSheet.absoluteFillObject, styles.mediaSvg]}
+                        style={[StyleSheet.absoluteFill, styles.mediaSvg]}
                         uri={fullUrl}
                         width="100%"
                         height="100%"
@@ -1578,7 +1578,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     ) : (
                       <Image
                         source={{ uri: fullUrl }}
-                        style={StyleSheet.absoluteFillObject}
+                        style={StyleSheet.absoluteFill}
                         contentFit={isSticker ? "contain" : "cover"}
                         cachePolicy="disk"
                       />
@@ -2105,7 +2105,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   videoPlayOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0, 0, 0, 0.3)",
     justifyContent: "center",
     alignItems: "center",

@@ -103,13 +103,13 @@ export function SelectedChatsMenuModal({
 
   return (
     <TouchableOpacity
-      style={[StyleSheet.absoluteFillObject, { zIndex: 1000 }]}
+      style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}
       activeOpacity={1}
       onPress={() => hideMenu()}
     >
       <Animated.View
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           {
             backgroundColor: colors.modalOverlay,
             opacity: menuOpacity,

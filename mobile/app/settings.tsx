@@ -766,7 +766,7 @@ export default function SettingsScreen() {
           >
             <Animated.View
               style={[
-                StyleSheet.absoluteFillObject,
+                StyleSheet.absoluteFill,
                 {
                   backgroundColor: colors.modalOverlay,
                   opacity: themeDialogAnimation.interpolate({
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   overlayLoading: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 999,
     justifyContent: "center",
     alignItems: "center",

@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   overlayLoading: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 999,
     justifyContent: "center",
     alignItems: "center",

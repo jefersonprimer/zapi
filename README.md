@@ -4,6 +4,23 @@ Este documento centraliza as ideias de novas funcionalidades para o nosso ecossi
 
 ---
 
+## ▶️ Rodando o projeto local
+
+Para clonar o repo e subir banco + backend + web + mobile, siga o guia **[docs/DEV_SETUP.md](docs/DEV_SETUP.md)**.
+
+Resumo:
+
+```bash
+docker compose up -d postgres     # 1. banco (Postgres 16)
+cd backend && cargo run           # 2. API Rust (porta 3001)
+cd web && pnpm dev                # 3. web Next.js (porta 3000)
+cd mobile && npx expo start       # 4. app Expo
+```
+
+Os `.env` não são versionados — copie os exemplos (`backend/.env.example`, `web/.env.local.example`, `mobile/.env.example`) antes de subir.
+
+---
+
 ## 🚀 Lista de Features Propostas
 
 ### 1. Carrinho Coletivo e Pedidos Compartilhados (Group Cart)

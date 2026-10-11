@@ -131,13 +131,13 @@ export default function ReorderListsModal({
       onRequestClose={handleClose}
     >
       <TouchableOpacity
-        style={[StyleSheet.absoluteFillObject, { zIndex: 1000 }]}
+        style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}
         activeOpacity={1}
         onPress={handleClose}
       >
         <Animated.View
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             {
               backgroundColor: "rgba(0,0,0,0.7)",
               opacity: overlayOpacity,

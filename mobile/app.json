@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "app",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.primer.chat",
@@ -46,11 +45,7 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ],
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
-    },
-    "androidNavigationBar": {
-      "enforceContrast": false
     },
     "web": {
       "output": "static",

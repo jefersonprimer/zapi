@@ -289,7 +289,7 @@ export function ChatMessageOptionsModal({
     <>
       <TouchableOpacity
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           styles.modalOverlay,
           { zIndex: 1000 },
         ]}
@@ -298,7 +298,7 @@ export function ChatMessageOptionsModal({
       >
         <Animated.View
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             {
               backgroundColor: colors.modalOverlay,
               opacity: modalOpacity,
@@ -701,7 +701,7 @@ export function ChatMessageOptionsModal({
 
       {/* Emoji Keyboard Overlay */}
       {isEmojiKeyboardOpen && (
-        <View style={[StyleSheet.absoluteFillObject, { zIndex: 1100 }]}>
+        <View style={[StyleSheet.absoluteFill, { zIndex: 1100 }]}>
           <TouchableOpacity
             style={styles.emojiModalOverlay}
             activeOpacity={1}

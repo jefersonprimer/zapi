@@ -151,13 +151,13 @@ export default function ImagePickerModal({
       onRequestClose={handleClose}
     >
       <TouchableOpacity
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         activeOpacity={1}
         onPress={handleClose}
       >
         <Animated.View
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             { backgroundColor: colors.modalOverlay, opacity: overlayOpacity },
           ]}
         />

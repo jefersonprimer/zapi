@@ -62,7 +62,7 @@ export default function CallScreen({
       <View style={styles.videoContainer}>
         {/* Remote Video Stream */}
         {remoteStream && isConnected ? (
-          <VideoView stream={remoteStream} style={StyleSheet.absoluteFillObject} />
+          <VideoView stream={remoteStream} style={StyleSheet.absoluteFill} />
         ) : (
           <View style={styles.remotePlaceholder}>
             <View style={styles.avatarContainer}>

@@ -2,6 +2,7 @@
 name = "primer-chat"
 version = "0.1.0"
 edition = "2021"
+default-run = "primer-chat"
 rust-version = "1.88.0"
 
 [dependencies]

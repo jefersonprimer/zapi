@@ -392,7 +392,7 @@ export function ChatActionsModal({
   return (
     <TouchableOpacity
       style={[
-        StyleSheet.absoluteFillObject,
+        StyleSheet.absoluteFill,
         styles.modalOverlayCentered,
         { zIndex: 1000 },
       ]}
@@ -401,7 +401,7 @@ export function ChatActionsModal({
     >
       <Animated.View
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           {
             backgroundColor: colors.modalOverlay,
             opacity: modalOpacity,

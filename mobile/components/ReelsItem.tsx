@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   playPauseOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 5,
